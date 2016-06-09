@@ -1,0 +1,444 @@
+---
+layout: post
+title: S'exprimer régulièrement (Partie 3)
+date: 2010-11-04 19:55:50.000000000 +01:00
+type: post
+published: true
+status: publish
+categories:
+- code
+- design
+- pattern
+tags:
+- code
+- expression régulière
+- pattern
+- regex
+- regexp
+- regular expression
+- unicode
+meta:
+  _su_description: Expression régulière en Java, look behind, look ahead et unicode
+  _syntaxhighlighter_encoded: '1'
+  _su_rich_snippet_type: none
+  _edit_last: '1'
+  suf_pseudo_template: default
+author:
+  login: brice
+  email: brice.dutheil@gmail.com
+  display_name: Brice Dutheil
+  first_name: Brice
+  last_name: Dutheil
+---
+<p>Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez peu utilisés et pourtant très utiles.</p>
+<ul>
+<li>Le premier, dans la continuité des groupes ce sont les constructions de <strong>look behind</strong> et <strong>look ahead</strong>.</li>
+<li>Le deuxième point abordera le support de Unicode dans nos expressions régulières.</li>
+</ul>
+<h1>Avoir le coup d'œil</h1>
+<p>C'est bien de ça dont il s'agit; ce feature, introduit grâce aux groupes non-capturant, permet de vérifier si une autre expression matche avant ou après une expression capturante  <strong>sans consommer</strong> de caractères. Il y a 4 constructions de types :</p>
+<ul>
+<li>Les constructions look ahead</li>
+</ul>
+<ol>
+<li>
+<ol>
+<li><em><strong>(?=X)</strong> X, via zero-width <strong>positive lookahead</strong></em> : L'expression cherche à matcher X <strong>après</strong> la position courante et sans consommer.</li>
+<li><em><strong>(?!X)</strong> X, via zero-width <strong>negative lookahead</strong></em> : L'expression cherche à <strong>ne pas</strong> matcher X <strong>après</strong> la position courante et sans consommer.</li>
+</ol>
+</li>
+</ol>
+<ul>
+<li>Les expressions look behind</li>
+</ul>
+<ol>
+<li>
+<ol>
+<li><em><strong>(?&lt;=X)</strong> X, via zero-width <strong>positive lookbehind</strong></em> : L'expression cherche à matcher X <strong>avant</strong> la position courante et sans consommer, ou X est une expression régulière de <strong>longueur connue</strong>.</li>
+<li><em><strong>(?&lt;!X)</strong> X, via zero-width <strong>negative lookbehind</strong></em> : L'expression cherche à <strong>ne pas</strong> matcher X <strong>avant</strong> la position courante et sans consommer, ou X est une expression régulière de <strong>longueur connue</strong>.</li>
+</ol>
+</li>
+</ol>
+<p>Ces assertions ressemblent aux bornes `\b` elles ont un fonctionnement similaire mais plus complexes. Passons aux tests pour voir leur fonctionnement.</p>
+<h2>Les groupes de look ahead</h2>
+<p>Par exemple avec le look ahead positif :</p>
+<pre class="lang:java mark:10,15,21 decode:true">public class LookAheadLookBehind {
+
+    private String text = "static private String aStaticVarLabel;" +
+            "static private Long anotherStaticVarLabel;" +
+            "private String anInstanceVar;" +
+            "protected String anInteger;";
+
+    @Test
+    public void classicRegex() {
+        assertEquals("aStaticVarLabel", regexMatch(text, "\w+Label"));
+    }
+
+    @Test
+    public void positiveLookAhead() {
+        assertEquals("aStaticVar", regexMatch(text, "\w+(?=Label)"));
+    }
+
+    private String regexMatch(String text, String regex) {
+        Matcher matcher = Pattern.compile(regex).matcher(text);
+
+        return matcher.find() ? matcher.group(0) : "";
+    }
+}</pre>
+<p>Ligne 10, on veut chopper les lignes qui se terminent par `Label` avec une expression usuelle. Si on ne voulais pas la partie `Label`, alors il aurait fallu créer un autre groupe autour de `\w+`, cependant le curseur aura consommé les caractères. L'alternative est d'utiliser un look ahead positif, c'est ce qu'on a à la ligne 15, ici le curseur s'arrête après le `r` juste avant `Label`.</p>
+<p>Notez que dans l'exemple ce qui est retourné est le <strong>groupe 0</strong> (ligne 21), c'est à dire l’ensemble de ce qui est capturé par toute la regex. Ceci illustre à nouveau que les groupes de look ahead/begind ne capturent pas (méthode positiveLookAhead, ligne 15). C'est assez pratique pour faire des sélections ou des remplacements, dans Eclipse par exemple.</p>
+<p>Si typiquement on cherche des termes qui ne se terminent pas par `Label`. On écrira simplement :</p>
+<pre class="lang:java decode:true">@Test
+public void negativeLookAhead() {
+    assertEquals("static", regexMatch(text, "\w+(?!Label)")); // retourne 'static' car ce mot ne se termine pas par 'Label'
+}</pre>
+<p>L'expression chope en premier `static`, tout simplement parce que cette partie du texte matche le fait qu'il n'y a pas `Label` qui suit, si on veut chopper le nom d'une variable alors on peut ajouter des constructions de <strong>look behind</strong>. C'est ce qu'on regarde juste après.</p>
+<p>Faisons d'autres tests :</p>
+<pre class="lang:java decode:true">@Test
+public void more_negativeLookAhead() {
+    assertTrue(Pattern.compile("\w+(?!Label)").matcher("aStaticVar").matches()); // match car Label n’apparaît pas dans la chaîne
+
+    assertTrue(Pattern.compile("\w+(?!Label)").matcher("aStaticVarLabel").matches()); // comme '\w+' est est quantificateur greedy, il va matcher 'aStaticVarLabel', ce qui rend le lookahead négatif '(?!Label)' vrai aussi
+    assertFalse(Pattern.compile("(?!\w+Label)").matcher("aStaticVarLabel").matches()); // Ne matche pas car la construction de lookahead contient le quantificateur '\w+'
+}</pre>
+<p>À la ligne 5 attention, comme il y a devant un quantificateur gourmand `\w+` et en dehors de la construction lookahead, celui-ci va avaler la chaîne complète `aStaticVarLabel` et comme tous les caractères auront été consommés le lookahead négatif `(?!Label)` sera également valide. La ligne 6 corrige ça en incluant la construction `w+` à l'intérieur du lookahead.</p>
+<h2>Les groupes de look behind</h2>
+<pre class="lang:java decode:true">@Test
+public void positiveLookBehind() {
+    assertEquals("anotherStaticVarLabel", regexMatch(text, "(?&lt;=private Long )\w+"));
+}</pre>
+<p>Donc là j'ai préfixé la regex par ce que je voulais voir juste avant. De la même manière si on ne veut pas d'un terme, on utilisera un <strong>look behind</strong> négatif `(?&lt;!)`, par exmple si on ne veut pas de `String`.</p>
+<pre class="lang:java decode:true crayon-selected">@Test
+public void negativeLookBehind() {
+    assertEquals("anotherStaticVarLabel", regexMatch(text, "(?&lt;=private \w{4,8} )(?&lt;!String )\w+"));
+}</pre>
+<p>Observez ici qu'il y a deux constructions adjacentes look behind, l'une positive l'autre négative, ce qui illustre encore mieux que ces constructions ne consomment pas la séquence de caractères.</p>
+<p>Observez également que l'expression ici est de longueur connue : le `\w{4,8}` ne prend que de 4 à 8 caractères. Il n'est pas possible d'écrire un look behind avec un quantificateur où la longueur n'est pas connue, la <span style="text-decoration: underline;">construction suivante est fausse</span> et provoquera une erreur de syntaxe : `(?&lt;!private \w+ )`. C'est une limite technique qui impose aux groupes de look behind d'avoir une longueur fixe ou calculable; les quantificateurs bornés `{n,m}`, l'option `?` ou l'alternative `|` tombent dans cette catégorie. Ainsi on pourrait écrire :</p>
+<pre class="lang:java decode:true">@Test
+public void revised_negativeLookBehind() {
+    assertEquals("anotherStaticVarLabel", regexMatch(text, "(?&lt;=(?:static )?private (?:long|Long) )\w+"));
+}</pre>
+<p>Et donc par opposition les quantificateurs `*` et `+` ne sont pas autorisés dans les lookbehind.</p>
+<h2>Attention aux quantificateurs sur une même classe de caractère</h2>
+<p>Bon, il existe certains cas un peu délicats ou les caractères adjacents d'une séquence font partie de la même classe. Dans le bout de texte utilisé dans le premier exemple, les noms variables correspondent typiquement à ça:<br />
+<code><span style="color: #800000;">anotherStaticVar</span><span style="color: #333399;">Label</span></code><br />
+Le nom de la variable appartient à la classe de caractère `[a-zA-Z0-9_]` ou encore à `\w`.</p>
+<p>Lorsqu'on faisait un <strong>positive look ahead</strong>, le quantificateur `\w+` va chercher à matcher l’ensemble des caractères de cette classe, ce qui veut dire que `\w+` va <strong>matcher et consommer</strong> les caractères `anotherStaticVarLabel`. Du coup lorsque la construction `(?=Label)` cherche à matcher `Label`, elle n'y arrive pas. Ce n'est pas grave, avec le backtracking l'expression `\w+` reviens en arrière jusqu'à ce que `(?=Label)` matche.</p>
+<p>L'histoire est différente avec un <strong>negative look ahead</strong>; une fois que la partie `\w+` a matché `anotherStaticVarLabel`, le curseur est positionné après le `l`. Maintenant le moteur teste `(?!Label)`, qui cherche donc à ne pas matcher `Label`, normal c'est une négation. Et là ça marche, cette partie de l'expression ne peut plus trouver `Label`, donc la construction est validée.</p>
+<p>Bref ce n'est pas ce qu'on veut, nous voulons par exemple identifier les variables qui ne sont pas suffixées par `Label` !</p>
+<p>Pour ne éviter ce problème, il faut placer le groupe look ahead négatif avant `\w+`. Cela ne posera pas de problème étant donné que les look ahead ne consomment pas la séquence de caractères. Ainsi en écrivant :</p>
+<pre class="lang:java decode:true">@Test
+public void controlYourQuantifiers() throws Exception {
+    assertEquals("anInstanceVar", regexMatch(text, "(?&lt;=String )(?!\w+Label)\w+"));
+}</pre>
+<p>La première partie est un look behind pour avoir ce qui est après `String `, le deuxième groupe est le look ahead dont je parlais, ce groupe cherche à ne matcher `\w+Label`, si les derniers caractères `Label` de la regex ne sont pas trouvés alors c'est bon. Finalement l'expression se termine par `\w+`. L'astuce donc se fait en deux étapes:</p>
+<ol>
+<li>Déplacer le look ahead avant l'expression qui consomme les caractères et qu'on veut capturer, ici `\w+`</li>
+<li>Faire précéder dans le look ahead négatif l'expression qu'on veut capturer, ici le groupe est devenu `(?!\w+Label)`, grâce au backtracking dans ce groupe une valeur `aStaticVarLabel` ne sera pas matchée (negative look ahead).</li>
+</ol>
+<p>Voilà pour les possibilités de look ahead et de look behind dans les expressions rationnelles.</p>
+<p>Passons maintenant au support <a href="http://unicode.org/">Unicode</a> par la classe <a href="http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html">Pattern</a>.</p>
+<h1>Unicode</h1>
+<p>En quoi Unicode est intéressant dans nos regex en Java?</p>
+<ol>
+<li>Unicode est supporté nativement par Java, le format interne des String est Unicode.</li>
+<li>Unicode nous apporte des classes, des catégories ou des propriétés de caractères bien plus étendues que les classes ASCII couramment utilisées.</li>
+</ol>
+<h2>Juste pour une lettre</h2>
+<p>Par exemple, j'ai une application US qui vérifie que le texte entré est uniquement composé de lettres. Facile avec la regex suivante:</p>
+<p>[plain][a-zA-Z][/plain]</p>
+<p>Maintenant je me dit que je souhaiterais avoir des clients français! Aille! L'approche facile mais peu élégante est d'écrire une regex dans ce genre :</p>
+<p>[plain][a-zA-Zéèêïôàù][/plain]</p>
+<p>Et encore j'oublie les accents sur les majuscules et encore d'autre caractères spéciaux, alors qu'ils ont pourtant <a href="http://www.academie-francaise.fr/langue/questions.html#accentuation">pleine valeur orthographique sur les majuscules également</a>. S'il fallait en plus gérer le grec, l’allemand, l’espagnol, nous aurions du mal avec une telle expression régulière. Et le raccourci <strong>w</strong> n'aide pas vraiment non plus! C'est là que viennent les classes de caractère Unicode, pour identifier un caractère qui est une lettre, on écrira très simplement :</p>
+<p>[plain]\p{L}[/plain]</p>
+<p>Ainsi en Java on aura par exemple</p>
+<pre class="lang:java decode:true">@Test
+public void matchLettersInDifferentLanguage() throws Exception {
+    assertTrue(Pattern.matches("(\p{L}| )+", "une manœuvre sur un chêne"));
+    assertFalse(Pattern.matches("[\p{Lower} ]+", "une manœuvre sur un chêne")); // Attention p{Lower} est une classe POSIX ou ASCII !
+    assertTrue(Pattern.matches("[\p{Ll} ]+", "une manœuvre sur un chêne")); // Classe des petites lettres en Unicode p{Ll} !
+
+    assertTrue(Pattern.matches("[\p{L} ]+", "eine kleine Straße in München"));
+
+    assertTrue(Pattern.matches("[\p{L} ]+", "Это настоящая красота"));
+}</pre>
+<p>IntelliJ est très bien, il fourni l'auto-complétion dans les regex c'est assez pratique à l'intérieur du code, mais pas d'explication sur la signification de ces blocs de caractères Unicode. Eclipse n'en parlons pas, et NetBeans je ne sais pas. En tous cas on trouve une réponse <a href="http://unicode.org/reports/tr18/">ici</a> ou encore <a href="http://www.unicode.org/Public/5.1.0/ucd/UCD.html">là</a> à propos des blocs Unicode:</p>
+<table style="border-spacing: 0px; border: 1px solid black; width: 574px; height: 704px;">
+<thead>
+<tr style="background-color: #d2e1f8;">
+<th style="border-collapse: collapse; border: 1px solid #000000;">Abréviation reconnue par Pattern</th>
+<th style="border-collapse: collapse; -webkit-border-horizontal-spacing: 0px; -webkit-border-vertical-spacing: 0px; border: 1px solid #000000;">Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border: 1px solid #000000;">L</td>
+<td style="border: 1px solid #000000;">Letter</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Lu</td>
+<td style="border: 1px solid #000000;">Uppercase Letter</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Ll</td>
+<td style="border: 1px solid #000000;">Lowercase Letter</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Lt</td>
+<td style="border: 1px solid #000000;">Titlecase Letter</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Lm</td>
+<td style="border: 1px solid #000000;">Modifier Letter</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Lo</td>
+<td style="border: 1px solid #000000;">Other Letter</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">M</td>
+<td style="border: 1px solid #000000;">Mark</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Mn</td>
+<td style="border: 1px solid #000000;">Non-Spacing Mark</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Mc</td>
+<td style="border: 1px solid #000000;">Spacing Combining Mark</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Me</td>
+<td style="border: 1px solid #000000;">Enclosing Mark</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">N</td>
+<td style="border: 1px solid #000000;">Number</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Nd</td>
+<td style="border: 1px solid #000000;">Decimal Digit Number</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Nl</td>
+<td style="border: 1px solid #000000;">Letter Number</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">No</td>
+<td style="border: 1px solid #000000;">Other Number</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">S</td>
+<td style="border: 1px solid #000000;">Symbol</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Sm</td>
+<td style="border: 1px solid #000000;">Math Symbol</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Sc</td>
+<td style="border: 1px solid #000000;">Currency Symbol</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Sk</td>
+<td style="border: 1px solid #000000;">Modifier Symbol</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">So</td>
+<td style="border: 1px solid #000000;">Other Symbol</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">P</td>
+<td style="border: 1px solid #000000;">Punctuation</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Pc</td>
+<td style="border: 1px solid #000000;">Connector Punctuation</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Pd</td>
+<td style="border: 1px solid #000000;">Dash Punctuation</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Ps</td>
+<td style="border: 1px solid #000000;">Open Punctuation</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Pe</td>
+<td style="border: 1px solid #000000;">Close Punctuation</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Pi</td>
+<td style="border: 1px solid #000000;">Initial Punctuation</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Pf</td>
+<td style="border: 1px solid #000000;">Final Punctuation</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Po</td>
+<td style="border: 1px solid #000000;">Other Punctuation</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Z</td>
+<td style="border: 1px solid #000000;">Separator</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Zs</td>
+<td style="border: 1px solid #000000;">Space Separator</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Zl</td>
+<td style="border: 1px solid #000000;">Line Separator</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Zp</td>
+<td style="border: 1px solid #000000;">Paragraph Separator</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">C</td>
+<td style="border: 1px solid #000000;">Other</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Cc</td>
+<td style="border: 1px solid #000000;">Control</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Cf</td>
+<td style="border: 1px solid #000000;">Format</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Cs</td>
+<td style="border: 1px solid #000000;">Surrogate</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">Co</td>
+<td style="border: 1px solid #000000;">Private Use</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">Cn</td>
+<td style="border: 1px solid #000000;">Not Assigned</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">-</td>
+<td style="border: 1px solid #000000;">Any*</td>
+</tr>
+<tr>
+<td style="border: 1px solid #000000;">-</td>
+<td style="border: 1px solid #000000;">Assigned*</td>
+</tr>
+<tr style="background-color: #d2e1f8;">
+<td style="border: 1px solid #000000;">-</td>
+<td style="border: 1px solid #000000;">ASCII*</td>
+</tr>
+</tbody>
+</table>
+<h2>Matcher les caractère d'un alphabet seulement</h2>
+<p>Si je veux vérifier que mon texte appartient à de l'hébreu ou du chinois c'est faisable. Dans Unicode il faut remarquer qu'il y a plusieurs notion pour les "alphabets"; il y a les <strong>Blocs</strong> et les <strong>Scripts</strong>, cependant le moteur de Java qui se base essentiellement sur le moteur de perl, ne gère pas les scripts, donc on se contentera des blocs.</p>
+<p>Ci-dessous je teste l'appartenance à un bloc :</p>
+<pre class="lang:java decode:true">@Test
+public void matchABlock() throws Exception {
+    assertFalse(Pattern.matches("(\p{InBASIC_LATIN}| )+", "une manœuvre sur un chêne"));
+    assertTrue(Pattern.matches("(\p{InLATIN_EXTENDED_A}|\p{InLATIN_1_SUPPLEMENT}|\p{InBASIC_LATIN}| )+", "une manœuvre sur un chêne"));
+
+    assertTrue(Pattern.matches("[\p{InLATIN_1_SUPPLEMENT}\p{InBASIC_LATIN} ]+", "eine kleine Straße in München"));
+
+    assertTrue(Pattern.matches("[\p{InCYRILLIC} ]+", "Это настоящая красота"));
+    assertFalse(Pattern.matches("[\p{InHEBREW} ]+", "Это настоящая красота"));
+
+    assertTrue(Pattern.matches("[\p{InCJK_UNIFIED_IDEOGRAPHS} ]+", new String(Character.toChars(0x6C23)))); // chi écriture traditionnel
+    assertTrue(Pattern.matches("[\p{InHIRAGANA} ]+", new String(Character.toChars(0x304D)))); // ki écriture Hiragana
+}</pre>
+<p>Plusieures choses sont à remarquer :</p>
+<ul>
+<li>Le nom de l'alphabet est précédé par `In`</li>
+<li>Pour avoir une phrase en français on a très vite plusieurs blocs `LATIN EXTENDED A` pour le graphème <em>`œ`</em>, `LATIN 1 SUPPLEMENT` pour le <em>`ê`</em> e accent circonflexe.</li>
+<li>D'autres alphabet sont plus pratique à utiliser comme l'hébreu, le cyrillique, le grecque, etc.</li>
+<li>L'utilisation des alphabet Chinois, Japonais, Coréen peut aussi soulever des question surtout quand on ne le parle pas ;)</li>
+</ul>
+<p>A noter également :</p>
+<blockquote><p>Sur les deux dernières lignes noter que j'ai utilisé le code hexadécimal <strong>UTF-16</strong> (j'y reviendrais après) pour obtenir les caractères <span style="font-size: large;">氣</span> et <span style="font-size: large;">き</span> (Chi en chinois traditionnel, Ki avec l'alphabet Hiragana). Pourquoi? Parce que Unicode c'est bien joli mais dans le monde réel il y a des limitations, pour moi il s'agit de la police de caractère de mon éditeur qui ne possède pas ces blocs de caractères défini. Peut-être aurez vous des limitations sur la police de votre navigateur. A noter également que l'encodage de vos fichier peut faire mal quand on joue avec les caractères en dehors du latin basique.</p>
+<table style="width: 50px;" border="0">
+<tbody>
+<tr>
+<td><a href="http://www.fileformat.info/info/unicode/char/6c23/index.htm"><img class="alignright size-full wp-image-234" title="0x6C23" src="{{ site.baseurl }}/assets/0x6C23-chi.png" alt="Chi (Chinois traditionnel)" width="100" height="100" /></a></td>
+<td><a href="http://www.fileformat.info/info/unicode/char/304d/index.htm"><img class="alignright size-full wp-image-235" title="0x304D" src="{{ site.baseurl }}/assets/0x304D-ki-hiragana.png" alt="Ki (Alphabet Hiragana)" width="100" height="100" /></a></td>
+</tr>
+<tr>
+<td style="text-align: center;">Chi (0x6C23)</td>
+<td style="text-align: center;">Ki (0x304D)</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<h2>On peut encore s'amuser</h2>
+<p>Pour revenir dans les choses qui nous intéresse, imaginons que nous voulions compter tous les caractères accentués dans un texte. Le bloc Unicode `\p{L}` n'est pas approprié, mais comme je l'ai dit avec Unicode on peut accéder aux propriété d'un caractère.</p>
+<p>Déjà pour commencer il faut savoir qu'en Unicode, un graphème comme <em>`é`</em> peut correspondre à un seul caractère <em>`é`</em> ou à deux caractères <em>`e`</em> suivi du modificateur accent grave. Cela dépend de la source, mais <strong>ces cas sont probables</strong>.</p>
+<pre class="lang:java mark:5 decode:true">@Test
+public void graphemes() {
+    System.out.println(
+            "Lettre é accentuée Latin1 : é" + "\n" +
+            "Lettre ê accentuée Latin1 : ê" + "\n" +
+            "Lettre e accentuée avec modificateur unicode : e\u0301" + "\n" +
+            "Lettre e accentuée avec modificateur unicode : \u0065\u0302");
+
+    assertTrue(Pattern.matches("\p{InLATIN_1_SUPPLEMENT}+", "éèê\u00E9"));
+    assertFalse(Pattern.matches("\p{InLATIN_1_SUPPLEMENT}+", "e\u0301"));
+    assertTrue(Pattern.matches("(\p{L}\p{M})+", "e\u0301"));
+    assertTrue(Pattern.matches("(\p{InLATIN_1_SUPPLEMENT}|\p{L}\p{Mn})+", "éêe\u0301\u0065\u0302"));
+}</pre>
+<p>Ainsi dans les lignes précédentes pour rechercher un graphème représenté par un seul codepoint, il faudra aller le chercher dans le bloc idoine, ici `LATIN 1 COMPLEMENT`, 0x00E9 est le codepoint du caractère <em>`é`</em>. La forme décomposée de <em>`é`</em> est <em>`e`</em> (0x0065) suivi du modificateur accent grave (0x0301).</p>
+<p>Pour matcher cette forme décomposée du graphème, il faut simplement écrire `\p{L}\p{M}`. Il est toujours possible d'affiner l'expression en choisissant des propriétés plus précises (cf. Tableau plus haut, voire la référence Unicode). Du coup pour matcher n'importe quelle forme d'un graphème on pourra écrire l'expression de la ligne 6.</p>
+<p>Enfin rapidement on peut exprimer les compléments à la manière standard avec `[^\p{Lu}]` ou plus simple avec un grand P `\P{Lu}`. Les intersections entres les classes / propriétés Unicode se font sans problèmes également :</p>
+<pre class="lang:java mark:3,5 decode:true">@Test
+public void complements() throws Exception {
+    assertTrue(Pattern.matches("[^\p{Lu}]+", "une manœuvre sur un chêne")); // exclusion
+    assertFalse(Pattern.matches("[^\p{Lu}]+", "Une Manœuvre sur un chêne"));
+    assertFalse(Pattern.matches("\P{Lu}+", "Une Manœuvre sur un chêne")); // complément (grand P)
+
+    assertFalse(Pattern.matches("[[^\p{Lu}]&amp;&amp;\p{IsL} ]+", "une manœuvre sur un chêne 123164")); // exclusion et intersection
+    assertTrue(Pattern.matches("[[^\p{Lu}]&amp;&amp;\p{IsL} ]+", "une manœuvre sur un chêne")); // exclusion et intersection
+}</pre>
+<h2>Petit retour sur les base de Java</h2>
+<p>Java gère nativement Unicode, les <strong>String sont encodées en UTF-16</strong>. Ce qui explique par conséquent que lorsque je veux exprimer un caractère sous forme hexadécimale, il faut <strong>l'écrire dans sa forme UTF-16</strong>.</p>
+<pre class="lang:java decode:true">@Test
+public void utf16() throws Exception {
+    assertTrue(Pattern.matches("\u00E9", "é")); // char UTF-16 compris par le compilateur
+    assertTrue(Pattern.matches("\u00E9", "é")); // char UTF-16 échappé compris par la classe Pattern 
+    assertTrue(Pattern.matches("\u00E9", new String(Character.toChars(0x00E9))));
+    assertTrue(Pattern.matches("\u00E9", new String(Character.toChars(0x00E9))));
+}</pre>
+<p>Ces assertions marches toutes mais il faut noter que `\u00E9` est compris par le compilateur et remplacera `\u00E9` par <em>`é`</em>, alors que dans la forme ou le backslash est échappé `\u00E9` le compilateur ne fera rien. Ce sera au moteur Pattern de traiter la chaîne.</p>
+<pre class="lang:java decode:true">@Test
+public void charLengthForCodePoint() throws Exception {
+    assertEquals(1, Character.toChars(0x00E9).length); // é
+    assertEquals(1, Character.toChars(0x304D).length); // ki
+    assertEquals(2, Character.toChars(0x0001D50A).length); // MATHEMATICAL FRAKTUR CAPITAL G
+}</pre>
+<p>La plupart des caractères tiendront dans le type primitif `char` qui fait donc <strong>16 bits</strong> (voilà pourquoi Java gère nativement l'UTF-16), cependant il peut arriver que certains caractères demandent davantage. `Character.toChars(int)` prend donc un <strong>codepoint</strong> représenté par en <strong>entier</strong>, qui fait en Java <strong>32 bits</strong> pour exprimer Unicode en UTF-32 donc. Dans le code ci-dessus la 3ème assertion montre d'ailleurs que Java doit splitter le caractère en question sur deux `char`.</p>
+<p>De la même manière l'encodage change naturellement la taille d'un tableau de `byte` (<strong>8 bits</strong>).</p>
+<pre class="lang:java decode:true">@Test
+public void encodingDifferenceForAsciiChars() throws Exception {
+    String string = "une chaine ascii";
+    assertEquals(string.length(), string.getBytes("ASCII").length);
+    assertEquals(string.length(), string.getBytes("UTF-8").length);
+}
+
+@Test
+public void encodingDifferenceForAccentedChars() throws Exception {
+    String string = "un chêne, un frêne, une orchidée";
+    assertTrue(string.length() == string.getBytes("ASCII").length);
+    assertEquals(string.length() + 3, string.getBytes("UTF-8").length);
+}</pre>
+<h1>Bilan</h1>
+<p>Voilà cet article clos la série que je voulais écrire sur les expressions régulière. Il y a probablement d'autres arcanes à connaître. Mais sur cette série le but était de couvrir ce que le moteur Java nous permet de faire. Je pense que comprendre le fonctionnement du moteur en particulier sur le backtracking, la manière du moteur de tester une expression, la manière dont le moteur parcoure / consomme les caractères en entrée, sont des facteurs clé pour réussir une bonne expression. Cette compréhension est d'autant plus importante quand celles-ci sont liée à des éléments de performance.</p>
+<p>Les constructions apportées avec Unicode, même limitées, ouvrent certaines possibilités intéressantes, mais clairement il y a du travail à faire : Unicode n'est manifestement pas simple.</p>
+<h1>Références</h1>
+<ul>
+<li>Le tutorial perl : <a href="http://perldoc.perl.org/perlretut.html">http://perldoc.perl.org/perlretut.html</a></li>
+<li>La classe Pattern : <a href="http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html">http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html</a></li>
+<li>Unicode Regular Expressions: <a href="http://unicode.org/reports/tr18/">http://unicode.org/reports/tr18/</a></li>
+<li>Unicode Character Datablase : <a href="http://www.unicode.org/Public/5.1.0/ucd/UCD.html">http://www.unicode.org/Public/5.1.0/ucd/UCD.html</a></li>
+<li>FileFormat, pour en savoir plus sur un certain caractère :  <a href="http://www.fileformat.info/info/unicode/char/search.htm">http://www.fileformat.info/info/unicode/char/search.htm</a></li>
+<li>Types primitifs en Java : <a href="http://download.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html">http://download.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html</a></li>
+</ul>

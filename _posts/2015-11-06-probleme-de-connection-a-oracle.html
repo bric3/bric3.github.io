@@ -1,0 +1,93 @@
+---
+layout: post
+title: Problème de connection à Oracle
+date: 2015-11-06 22:33:53.000000000 +01:00
+type: post
+published: true
+status: publish
+categories:
+- prod
+- tips
+tags:
+- entropie
+- entropy
+- firewall
+- jdbc
+- keepalive
+- oracle
+- random
+meta:
+  _edit_last: '1'
+  _oembed_88a7b9e5fa58f4ba4da51144dbc06c2c: '{{unknown}}'
+  _su_rich_snippet_type: none
+  _oembed_634d9c27589adc20bd27321e026a3b4f: '{{unknown}}'
+author:
+  login: brice
+  email: brice.dutheil@gmail.com
+  display_name: Brice Dutheil
+  first_name: Brice
+  last_name: Dutheil
+---
+<div class="markdown-here-wrapper" data-md-url="http://www.blog2.arkey.fr/wp-admin/post.php?post=493&amp;action=edit">
+<p style="margin: 0px 0px 1.2em !important;">Deux problèmes assez courant peuvent survenir sur les connections à une base de donnée Oracle. Ces problèmes peuvent être à l’origine de timeout sur les connections HTTP, etc…</p>
+<p style="margin: 0px 0px 1.2em !important;">Ces deux problèmes touchent deux choses totalement différente, l’entropie du système et la coupure de connection par un firewall.</p>
+<h2 id="entropie" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.4em; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #eeeeee;">Entropie</h2>
+<p style="margin: 0px 0px 1.2em !important;">Pourquoi l’entropie ? L’entropie est une mesure de l’incertitude d’un message par rapport à celui qui le précède. Sur un système POSIX c’est <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">/dev/random</code> qui est mesuré avec l’entropie. Hors la JVM utilise ce <em>device</em> pour la génération de nombres aléatoires utilisable pour des fonctions cryptographique, <a href="http://docs.oracle.com/javase/7/docs/api/java/security/SecureRandom.html"><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">SecureRandom</code></a>.</p>
+<p style="margin: 0px 0px 1.2em !important;">Hors le driver Oracle 11g (possiblement dans les versions précédentes aussi) établie un lien sécurisé avec la base donnée pour protéger les échanges de credentials.</p>
+<p style="margin: 0px 0px 1.2em !important;">Le problème vient du fait que la lecture dans <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">/dev/random</code> est bloquante tant que le système (Linux, BSD, etc.) considère qu’il n’y a pas assez d’entropie. Heureusement en bon lecteur de la javadoc il y a une note sur <a href="http://docs.oracle.com/javase/7/docs/api/java/security/SecureRandom.html"><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">SecureRandom</code></a>.</p>
+<blockquote style="margin: 1.2em 0px; border-left-width: 4px; border-left-style: solid; border-left-color: #dddddd; padding: 0px 1em; color: #777777; quotes: none;">
+<p style="margin: 0px 0px 1.2em !important;">Note: Depending on the implementation, the generateSeed and nextBytes methods may block as entropy is being gathered, for example, if they need to read from /dev/random on various unix-like operating systems.</p>
+</blockquote>
+<h3 id="la-mauvaise-solution" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">La MAUVAISE solution</h3>
+<p style="margin: 0px 0px 1.2em !important;">Java permet de changer la source du random avec la propriété <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">java.security.egd</code>, si on prend le <em>device</em><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">/dev/urandom</code>. Ce device à l’inverse de <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">/dev/random</code> est non bloquant. Donc sur la ligne de comande il suffirait d’ajouter cette option pour s’en sortir ?</p>
+<pre style="margin: 0px 0px 1.2em !important;" class="">-Djava.security.egd=file:/dev/./urandom</pre>
+<p style="margin: 0px 0px 1.2em !important;">Non surtout pas. Pourquoi ce n’est pas une bonne solution ? Le soucis ici est qu’on abaisse le niveau de sécurité de la JVM. Que ce soit pour l’établissement de connexion à Oracle ou une connexion HTTPS, la sécurité est compromise. Comme il n’y a plus assez d’entropie un attaquant peut connaitre ou determiner quel sera les prochains nombres qui sortiront de <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">SecureRandom</code> et donc potentiellement reconstruire les éléments cryptographiques tel que les clé privé, à partir de là l’attaquant à les mains libres.</p>
+<h3 id="ce-qu-il-faut-faire" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">Ce qu’il faut faire</h3>
+<p style="margin: 0px 0px 1.2em !important;">Les OS alimente <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">/dev/random</code> généralement à partir de plusieurs sources, comme les sonde de température, l’activité du CPU, le trafic réseau, mais cela s’avère parfois pas assez efficace. L’idée est donc d’aider l’OS. Installer un démon qui ajoute de l’entropie au système. Il en existe plusieurs, celui que j’utilise est <a href="http://www.issihosts.com/haveged/"><em>HAVEGED</em></a> ; il utilise les états des composants internes des processeurs modernes pour augmenter significativement l’entropie du système. À noter il tourne dans le user space donc assez facile à installer.</p>
+<h2 id="avec-un-firewall" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.4em; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #eeeeee;">Avec un Firewall</h2>
+<p style="margin: 0px 0px 1.2em !important;">Suivant les infra et les besoins de légalité, il faut protéger les bases de données par un firewall. Le firewall va inspecter et protéger les équipements derrières mais il fait aussi de l’assainissement des connections TCP, il va couper les connections inactive au bout d’un certain temps.</p>
+<h3 id="avec-le-pool-de-connection" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">Avec le pool de connection</h3>
+<p style="margin: 0px 0px 1.2em !important;">En général quand on fait du connection pooling sur des connections longues (typiquement le rôle d’une Datasource) ça n’arrange pas les choses. Quand le pool donne une connection il ne sait pas forcement qu’elle à été fermé par un composant tierce (un firewall). Heureusement c’est un simple manque de configuration, il n’y a qu’à lui dire de vérifier les connections régulièrement par exemple <a href="https://tomcat.apache.org/tomcat-7.0-doc/jdbc-pool.html"><em>tomcat-jdbc</em></a> :</p>
+<ul style="margin: 1.2em 0px; padding-left: 2em;">
+<li style="margin: 0.5em 0px;"><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">minEvictableIdleTimeMillis</code> : The minimum amount of time an object may sit idle in the pool before it is eligible for eviction. The default value is 60000 (60 seconds).</li>
+<li style="margin: 0.5em 0px;"><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">timeBetweenEvictionRunsMillis</code> : The number of milliseconds to sleep between runs of the idle connection validation/cleaner thread. This value should not be set under 1 second. It dictates how often we check for idle, abandoned connections, and how often we validate idle connections. The default value is 5000 (5 seconds).</li>
+</ul>
+<p style="margin: 0px 0px 1.2em !important;">A simple example of a datasource configuration to be adapted to your infrastructure settings.</p>
+</div>
+<pre class="lang:xhtml decode:true ">&lt;Resource name="Locator"
+      type="javax.sql.DataSource"
+      factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+      testOnBorrow="true" driverClassName="oracle.jdbc.OracleDriver"
+      validationInterval="30000"
+      validationQuery="SELECT 1 FROM DUAL"
+      ...
+      timeBetweenEvictionRunsMillis="30000"
+      minEvictableIdleTimeMillis="60000"
+      url="jdbc:oracle:thin:@..."
+      ...
+      &gt;
+&lt;/Resource&gt;</pre>
+<p style="margin: 0px 0px 1.2em !important;">Certains pool offrent une configuration plus fine et peut-être plus sûre comme HirakiCP. Mais c’est hors propos. Quoiqu’il en soit cette option n’est pas optimale car elle ne traite pas le problème à sa source.</p>
+<div class="markdown-here-wrapper" data-md-url="http://www.blog2.arkey.fr/wp-admin/post.php?post=493&amp;action=edit">
+<h3 id="tcp-keepalive" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">TCP Keepalive</h3>
+<p style="margin: 0px 0px 1.2em !important;">TCP, le protocole réseau sur lequel transite la connection oracle, fourni un mécanisme de keepalive. Ce mécanisme va envoyer un paquet sur la connection pour que les équipements de l’infrastructure réseau dont le fameux firewall maintiennent cette connection ouverte.</p>
+<p style="margin: 0px 0px 1.2em !important;">Avec Java ça se fait en passant la bonne option à l’ouverture de la socket <a href="http://docs.oracle.com/javase/7/docs/api/java/net/SocketOptions.html#SO_KEEPALIVE"><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">SopcketOptions.SO_KEEPALIVE</code></a>. La plupart des drivers, frameworks exposent une API pour activer cette option. Avec le driver Oracle cette option s’active donc aussi.</p>
+<p style="margin: 0px 0px 1.2em !important;">D’après la <a href="http://docs.oracle.com/cd/E11882_01/java.112/e16548/apxtblsh.htm#JJDBC28984">documentation Oracle</a> il y a plusieurs moyens de configurer le driver JDBC pour travailler avec un firewall.</p>
+<p style="margin: 0px 0px 1.2em !important;">Dans le cas d’une configuration style <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">TNSNAMES</code> il faudra utiliser la chaine suivante <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">ENABLE=BROKEN</code> pour activer le keepalive. Par exemple :</p>
+<pre style="margin: 0px 0px 1.2em !important;" class="">jdbc:oracle:thin:@(DESCRIPTION=(ENABLE=BROKEN)(ADDRESS=(PROTOCOL=tcp)(PORT=1521)(HOST=myhost))(CONNECT_DATA=(SID=orcl)))</pre>
+<p style="margin: 0px 0px 1.2em !important;">Dans le cas d’une configuration sans <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">TNSNAMES</code> il faut passer la propriété <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">oracle.net.keepAlive</code> à <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">true</code> programmatiquement via les properties passée à l’API JDBC <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">java.sql.DriverManager#getConnection(java.lang.String, java.util.Properties)</code>. <em>Attention à la casse!</em> Les propriété <strong>non documentées</strong> du driver sont disponible sur la javadoc de <a href="http://download.oracle.com/otn_hosted_doc/jdeveloper/905/jdbc-javadoc/index.html?constant-values.html"><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">oracle.jdbc.OracleConnection</code></a></p>
+<h4 id="dans-tout-les-cas-configurer-le-keepalive-sur-l-os" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.2em;">Dans tout les cas configurer le keepalive sur l’OS</h4>
+<p style="margin: 0px 0px 1.2em !important;">Sur Linux par exemple, la <a href="http://tldp.org/HOWTO/TCP-Keepalive-HOWTO/usingkeepalive.html">documentation</a> indique comment il faut faire. Pour vérifier qu’il correspondent :</p>
+<pre class="lang:sh decode:true">$ cat /proc/sys/net/ipv4/tcp_keepalive_time 
+2400 
+$ cat /proc/sys/net/ipv4/tcp_keepalive_intvl 
+75 
+$ cat /proc/sys/net/ipv4/tcp_keepalive_probes 
+6</pre>
+<p style="margin: 0px 0px 1.2em !important;">Ces paramètres disent la pile TCP enverra la première sonde (premier paquet de keepalive) au bout de 40min, attendra 75 millisecondes avant de renvoyer une sonde dans la limite de 6 essais. Si aucun ACK n’est reçu alors la connection est reconnue par l’OS comme fermée.</p>
+<p style="margin: 0px 0px 1.2em !important;">Quoiqu’il en soit il faut régler ces paramètres en accord avec les réglages des équipement réseau.</p>
+<p style="margin: 0px 0px 1.2em !important;"><em>À noter que la documention indique bien que le keepalive est un comportement à activer volontairement, d’ou l’option <code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0px 0.3em; white-space: pre-wrap; border: 1px solid #eaeaea; border-radius: 3px; display: inline; background-color: #f8f8f8;">SopcketOptions.SO_KEEPALIVE</code> dans la JVM.</em></p>
+<blockquote style="margin: 1.2em 0px; border-left-width: 4px; border-left-style: solid; border-left-color: #dddddd; padding: 0px 1em; color: #777777; quotes: none;">
+<p style="margin: 0px 0px 1.2em !important;">Remember that keepalive support, even if configured in the kernel, is not the default behavior in Linux. Programs must request keepalive control for their sockets using the setsockopt interface.</p>
+</blockquote>
+</div>

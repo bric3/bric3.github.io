@@ -1,0 +1,98 @@
+---
+layout: post
+title: Mockito 1.9.0 is out - Bientôt sur les repos maven
+date: 2011-12-19 10:37:06.000000000 +01:00
+type: post
+published: true
+status: publish
+categories:
+- code
+- TDD
+tags:
+- constructor injection
+- mockito
+- TDD
+meta:
+  _edit_last: '1'
+  _syntaxhighlighter_encoded: '1'
+  amazon-product-content-hook-override: '2'
+  amazon-product-excerpt-hook-override: '3'
+  _su_rich_snippet_type: none
+  suf_pseudo_template: default
+  amazon-product-newwindow: '3'
+author:
+  login: brice
+  email: brice.dutheil@gmail.com
+  display_name: Brice Dutheil
+  first_name: Brice
+  last_name: Dutheil
+---
+<p><span style="font-weight: normal;"><strong>EDIT:</strong> Hop. Enfin la release 1.9.0 est dispo en téléchargement.</span></p>
+<p><span style="font-weight: normal;">Après pas mal de travail avec des périodes plus ou moins intenses - <em>bref les vicissitudes du développement Open Source</em> - le projet sort une nouvelle version <strong>1.9.0</strong> en <del>Release Candidate</del>, avec des bugfixes et bien sûr des nouvelles features. Il y a un <a title="Release notes de Mockito 1.9.0" href="http://code.google.com/p/mockito/wiki/ReleaseNotes">changelog</a> mais dans les faits le billet suivant liste brièvement ce qui est nouveau. Ah oui la version est téléchargeable <a title="Télécharger la version 1.9.0 de Mockito" href="http://code.google.com/p/mockito/downloads/detail?name=mockito-1.9.0.zip">ici</a> et bientôt disponible sur le central maven.</span></p>
+<ul>
+<li>Pour être plus fluent et expressif, l'API introduit les alias `then` et `will` pour les réponses personnalisées (`Answer`). Ainsi que d'autres petits tweak de l'API:
+<pre class="lang:java decode:true ">@Test
+public void engine_should_only_work_with_diesel() {
+  given(engine.start()).will(throwExceptionIfEssenceInsteadOfDiesel());
+  // ...
+}
+
+private Answer throwExceptionIfEssenceInsteadOfDiesel() {
+  return new Answer&lt;EngineStatus&gt;() {
+    public EngineStatus answer(InvocationOnMock invocation) {
+      // answer code
+    }
+  };
+}</pre>
+</li>
+<li>Les mocks peuvent maintenant être déclaré dans la configuration du stub, sur une ligne.
+<pre class="lang:java decode:true ">DieselEngine de = given(mock(DieselEngine.class).start()).willThrow(TankIsEmpty.class).getMock();</pre>
+</li>
+<li>On peut maintenant renvoyer la classe d'une exception plutôt que son instance.
+<pre class="lang:java decode:true ">given(someMock).willThrow(IllegalArgumentException.class, SomethingIsWrongException.class);</pre>
+</li>
+<li>Si jamais vous avez besoin de debugguer un bout de code ou les interactions sont non prédictibles, il est maintenant possible de loguer les invocations du mock ou de l'espion. Attention, bien qu'utile à l'occasion avec du code legacy, quand même si jamais ce besoin s'en fait sentir sur un nouveau développement c'est que ce code devient trop complexe.
+<pre class="lang:java decode:true ">List mockedList = mock(List.class, withSettings().verboseLogging());
+mockedList.get(0);</pre>
+<p>On pourra également ajouter des callbacks sur chaque interaction du mock.</p>
+<pre class="lang:java decode:true ">Observer observer = mock(Observer.class, withSettings().invocationListeners(listener1, listener2));
+willThrow(IllegalArgumentException.class).given(observer.update(observable, "what has changed"));</pre>
+</li>
+<li>Pas mal de travail a été fait sur les annotations. Maintenant il n'est plus nécéssaire d'initialiser un champ annoté par `@Spy` s'il existe dans la classe un constructeur sans argument.
+<pre class="lang:java decode:true ">@RunWith(MockitoJUnitRunner.class)
+public class SomeTest {
+  // pas besoin d'initialiser le champs
+  @Spy private ArrayList spiedArrayList;
+
+  @Test public void verify_some_interactions() {
+    spiedArrayList.iterator();
+    verify(spiedArrayList, once()).iterator();
+  }
+}</pre>
+</li>
+<li>Et pour la fin mais pas des moindres, le mécanisme d'injection de mockito supporte maintenant l'injection par constructeur. A l'heure actuelle, seul les mocks et spies déclaré dans le test en tant que champs pourront être injecté dans le constructeur du champs annoté par `@InjectMocks`.
+<pre class="lang:default mark:4 decode:true ">@RunWith(MockitoJUnitRunner.class)
+public class EngineTest {
+  @Mock Diesel diesel;
+  @InjectMocks Engine engine;
+
+  @Test public void engine_should_consume_Diesel() {
+    engine.start();
+  }
+}</pre>
+<p>Ou `Engine` a un constructeur avec le paramètre Diesel.</p>
+<pre class="lang:java mark:4 decode:true ">public class Engine {
+  Diesel diesel;
+  public Engine(Diesel diesel) {
+    this.diesel = diesel;
+  }
+
+  public boolean start() {
+    checkNotEmpty(diesel);
+    // ...
+  }
+  // ...
+}</pre>
+</li>
+</ul>
+<p>Pour l'instant en RC, cette release permettra d'adoucir les angles si nous en avons loupé certains éléments. N'hésitez pas à nous poser des questions sur la <a title="Mockito mailing list" href="http://groups.google.com/group/mockito" target="_blank">mailing list</a> ou <a title="StackOverflow" href="http://stackoverflow.com/" target="_blank">stackoverflow</a>.</p>

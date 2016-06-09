@@ -1,0 +1,189 @@
+---
+layout: post
+title: S'exprimer régulièrement (Partie 1)
+date: 2010-09-27 15:52:58.000000000 +02:00
+type: post
+published: true
+status: publish
+categories:
+- code
+- design
+- pattern
+tags:
+- code
+- expression régulière
+- java
+- pattern
+- performance
+- regex
+- regexp
+- regular expression
+meta:
+  _syntaxhighlighter_encoded: '1'
+  _su_rich_snippet_type: none
+  _edit_last: '1'
+  suf_pseudo_template: default
+author:
+  login: brice
+  email: brice.dutheil@gmail.com
+  display_name: Brice Dutheil
+  first_name: Brice
+  last_name: Dutheil
+---
+<h1>Il était une fois les expressions régulières</h1>
+<p>Depuis bien longtemps je connais et pratique les expressions régulières, à la fois au moment de coder, mais également dans mes éditeurs de texte, parfois aussi dans le shell, lors d'un <a href="http://www.panix.com/~elflord/unix/grep.html">grep</a> par exemple. Bref les expressions régulières sont pratiques dans la vie de tous les jours pour un ingénieur logiciel.</p>
+<p>Seulement voilà je me suis aussi rendu compte que certains d'entre nous n'ont pas une connaissance approfondie des expressions régulières et de leurs arcanes. Effectivement il y a parfois certaines expressions qui sont assez absconses. Et aujourd'hui les moteurs des expressions régulières dépassent ce le cadre dans lequel ces expressions ont été conçue. Elle permettent certaines constructions qui sont peu connues.</p>
+<h2>Les expressions régulières hier et aujourd'hui</h2>
+<p>Sans remonter aux origines des expressions régulières -cette partie là est couverte par wikipedia- il est intéressant de noter que les expressions régulières et leur moteur ont bien évoluées en 60ans. En effet le mot <em>régulier</em> vient de l'état de fait que ces expressions permettaient de rechercher dans des <strong>langages formels</strong> et <strong>non-contextuel</strong>; aujourd'hui les recherches ont avancées et les moteurs permettent maintenant de dépasser le cadre du langage formel pour permettre de travailler dans l'espace du <strong>langage contextuel</strong>. Les racines des expressions régulières remontent bien avant l'avènement de l'informatique pour aller jusqu'aux raisonnements complexes de la logique mathématique.</p>
+<p>Il y a une une grosse différence entre un langage non-contextuel et un lange contextuel, dans les faits cette évolution explique pourquoi il y a aujourd'hui des différences dans les moteurs qui sont intégrés dans les différents programmes (en fonction de la plateforme, des outils, du langages etc.) Aujourd'hui en Perl, en C#, et en Java nous avons la chance d'avoir des moteurs qui font partie des dernières générations. C'est sur cet héritage que je vais disserter, cela dit uniquement dans le cadre de Java et de sa fameuse classe <strong>Pattern</strong>. (<em>Vous remarquerez d'ailleurs que le moteur est nommé </em>Pattern<em> plutôt que Regex ou quelque chose du genre, l'explication est simple : cette génération de moteur n'est plus simplement à propos d'expression régulière mais donc de <strong>pattern</strong>.</em>) Je tiens aussi à préciser que cet article se concentre sur la création d'expressions régulières et non sur l'usage de la classe Pattern.</p>
+<h1>Les différentes constructions</h1>
+<h2>Petit rappel</h2>
+<p>Je passe rapidement sur les bases, j'imagine que tout le monde connaît les constructions basiques d'une expression régulière :</p>
+<ul>
+<li>Les classes de caractères `[ ]` et les compléments `[^ ]`</li>
+<li>L'opérateur de Kleene `*`</li>
+<li>L'alternative `|` (le pipe)</li>
+<li>Les autres quantificateurs : `+`, `?`, `{}`, ces quantificateurs ne sont vraiment que des raccourcis de ce qui est déjà exprimable avec les autres constructions, mais ils nous simplifient la vie.</li>
+<li>Les groupes `()`</li>
+</ul>
+<p>Globalement pas de surprises ici, avec ses constructions il assez facile d'écrire l'expression la plus simple jusqu'à l'expression un poil plus élaborée.</p>
+<p>Par exemple pour valider un mail (sans rentrer dans les arcanes de la RFC) on peut avoir ça:</p>
+<pre class="lang:java decode:true">@Test
+public void simpleEmailMatch() {
+  String regex = "[a-z]+(\.[a-z]+)*@[a-z]+\.[a-z]{2,6}";
+
+  assertTrue(Pattern.compile(regex).matcher("brice.dutheil@gemail.com").matches());
+}</pre>
+<p>Ok, c'est déjà pas mal, mais si on veut extraire une section d'un texte ou valider précisément certaines sections d'un texte, il faut connaitre les constructions un peu plus pointues.</p>
+<h2>Les ancres</h2>
+<p>Les ancres sont rangées dans la javadoc de la classe <a href="http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html">Pattern</a> sous la catégorie <strong>Boundary matchers<span style="font-weight: normal;">. Une ancre identifie juste une position à laquelle elle matche, elle ne consomme pas de caractères dans la séquence traitée.</span></strong></p>
+<h3>Le début et la fin d'une ligne</h3>
+<p>Généralement les personnes qui ont beaucoup travaillé avec le shell connaissent les deux principales ancres, à savoir le début d'une ligne `^` et la fin d'une ligne `$`. Mais il y a une astuce en Java, c'est que par défaut `^` et `$` repèrent le début et la fin du `CharSequence` uniquement, pas de notion de saut de ligne!</p>
+<p>Pour s'en convaincre on écrit un petit test simple qu'on enrichira d'assertions, la méthode `regexFirstMatch` extrait la première section du texte qui matche la regex :</p>
+<pre class="lang:java mark:8,9 decode:true">@Test
+public void startEndOfLineVsPermanentStartEndOfString() {
+  String text = "The account number is \n" +
+  "\t123456789\n" +
+  "\tthe client phone number is :\n" +
+  "\t0-987-654-321\n";
+
+  assertEquals("T", regexFirstMatch(text, "^.")); // Tout le temps le début de la séquence
+  assertEquals("1", regexFirstMatch(text, ".$")); // Tout le temps la fin de la séquence
+}
+
+private String regexFirstMatch(String text, String regex) {
+  Matcher matcher = Pattern.compile(regex).matcher(text);
+  return matcher.find() ? matcher.group(0) : "";
+}</pre>
+<p>Et ouai, on ne s’attend pas à ça (matche `T` et `1`) surtout quand la description de ces ancres utilise le mot <strong>ligne</strong>. En fait il faut activer l'option multiligne `Pattern.MULTILINE` dans le moteur, pour que celui-ci identifie les sauts de ligne.</p>
+<p>Ainsi dans le contexte du bout de code du dessus, les lignes suivantes permettent de voire qu'il s'agit bien du caractère `:` de la première ligne qui est trouvé.</p>
+<pre class="lang:java mark:1,3 decode:true">Matcher matcher = Pattern.compile(".$", Pattern.MULTILINE).matcher(text);
+matcher.find();
+assertEquals(":", matcher.group(0));</pre>
+<p>Nice, mais il y a encore mieux, le moteur de regex de Java (comme certains autres) permet de donner les options à l'intérieur de la regex, la javadoc de Pattern donne cette info dans la catégorie <strong>Special constructs (non-capturing)</strong>, celle qui nous intéresse est la construction sur les options pour toute l'expression.</p>
+<ul>
+<li><em><strong>(?idmsux-idmsux)</strong> Nothing, but turns match flags on - off</em></li>
+</ul>
+<p>Il faut le placer au début de l'expression régulière, ici `(?m)` :</p>
+<pre class="lang:java decode:true">assertEquals(":", regexFirstMatch(text, "(?m).$"));</pre>
+<p>On choppe alors bien le caractère à la fin de la première ligne.</p>
+<h3>Le début et la fin d'une séquence de caractères</h3>
+<p>Dans notre expression si on veut se caler dans tous les cas sur le début et la fin d'une séquence de caractères, il y a des ancres dédiées `\A` et `\Z`. Celles-ci ne sont bien entendu pas affectées par l'option multiligne.</p>
+<pre class="lang:java decode:true">assertEquals("T", regexFirstMatch(text, "\A.")); // Tout le temps le début de la séquence
+assertEquals("1", regexFirstMatch(text, ".\Z")); // Tout le temps la fin de la séquence
+assertEquals("1", regexFirstMatch(text, "(?m).\Z")); // Tout le temps la fin de la séquence</pre>
+<p>Notez quand même qu'en ce qui concerne le `\Z` le dernier caractère de la séquence qui est un séparateur de ligne n'est pas retourné! Comme indiqué dans la javadoc, cette ancre repère la position avant le dernier caractère séparateur (écrit comme <a href="http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html#lt">terminators</a> dans la javadoc).</p>
+<p>Il existe d'autres ancres, mais elles sont moins utiles, je vous laisse voir par vous même.</p>
+<h2>Les options</h2>
+<p>On a vu qu'on pouvait activer des options pour une expression régulière, effectivement c'est assez pratique.</p>
+<p>Les options possibles utilisables à la construction ou dans le pattern sont dans la javadoc, mais les plus intéressantes sont :</p>
+<table>
+<tbody>
+<tr>
+<td><strong>Option</strong></td>
+<td><strong>Flag</strong></td>
+<td><strong>Flag à la construction</strong></td>
+</tr>
+<tr>
+<td>Multi-ligne</td>
+<td>`m`</td>
+<td>`Pattern.MULTILINE`</td>
+</tr>
+<tr>
+<td>Insensibilité à la casse</td>
+<td>`i`</td>
+<td>`Pattern.CASE_INSENSITIVE`</td>
+</tr>
+<tr>
+<td>Matching de la casse relatif aux règles Unicode</td>
+<td>`u`</td>
+<td>`Pattern.UNICODE_CASE`</td>
+</tr>
+<tr>
+<td>Matching des caractère en fonction de leur forme canonique</td>
+<td></td>
+<td>`Pattern.CANON_EQ`</td>
+</tr>
+</tbody>
+</table>
+<p>Certaines options comme vu dans le tableau n'ont pas d'équivalence dans la regex.</p>
+<p>Bon c'est bien pratique ça, mais parfois on aimerait bien s'assurer que la casse est ou n'est pas vérifiée sur une portion de la regex. Il existe une construction qui permet d'activer/désactiver une option dans une section de l'expression régulière :</p>
+<ul>
+<li><em><strong>(?idmsux-idmsux:X)</strong> X, as a non-capturing group with the given flags on - off</em></li>
+</ul>
+<p>A peu près la même chose que pour les options avec une portée sur toute la regex, sauf que cette fois, la portion soumise à l'option changée est à l'intérieur d'un <strong>groupe</strong>. Et là vous remarquerez que la javadoc dit bien "<em>non-capturing</em>" ça veut dire que la regex ne gardera pas en mémoire le contenu de ce groupe, contrairement aux groupes qui, donc, <em>capturent</em> et sont identifiables par l'encadrement du groupe par des parenthèses `(X)`.</p>
+<p>Ainsi par exemple si on ne veut pas tenir compte de la casse dans une portion de la regex on écrirait:</p>
+<pre class="lang:java decode:true">assertFalse(Pattern.compile("(?-i)[a-z]+ [a-z]+ [a-z]+").matcher("jqsdfkjkd fdfhJGJKGFQSDKjb ckbvg").matches());
+assertTrue(Pattern.compile("(?-i)[a-z]+ (?i:[a-z]+) [a-z]+").matcher("jqsdfkjkd fdfhJGJKGFQSDKjb ckbvg").matches());</pre>
+<p>Dans la première expression, qui ne marche pas, l'ensemble de l'expression est sensible à la casse c'est l'option `(?-i)` en début d'expression. Mais au milieu on voudrait quand même autoriser les majuscules. Pour ce faire on active l'insensibilité uniquement pour le groupe du milieu `(?i:[a-z]+)`.</p>
+<h2>Les bornes de mot</h2>
+<p>Les bornes de mots sont des ancres de type particulier. Comme n'importe quelle ancre, ces bornes ne consomment aucun caractère. La borne `\b` s'utilise avant ou après un mot pour marquer le début ou la fin d'un mot.</p>
+<p>Par exemple en utilisant la classe de caractère `\w`.</p>
+<pre class="lang:java decode:true">assertTrue("word".matches("\bword"));
+assertTrue("word".matches("word\b"));
+assertTrue("word".matches("\bword\b"));
+assertTrue("word".matches("\b\w+\b"));
+
+assertTrue("12dsk_".matches("\b\w+\b"));
+
+assertTrue("12dsk;  fdg987".matches("\w+\b.*\b\w+"));
+
+assertFalse("12dsk;   ;:!,:".matches("\w+\b.*\b\w+"));
+
+assertTrue(Pattern.compile("\bes\b").matcher("Tu es encore dans ces histoires ").find());
+assertFalse(Pattern.compile("\bes\b").matcher("Tu as encore des histoires ").find());</pre>
+<div>Effectivement `\b` marque la différence entre une classe de caractère de type lettre par rapport aux classes adjacentes. On remarque néanmoins que s'il n'y a donc pas de classes de type caractère avant ou après, la borne fait sauter l'expression. De la même manière la borne ne fonctionne pas avec une classe de caractère composée de caractères qui sont considérés comme ne faisant pas partie des mots (exemple en ajoutant le tiret à la classe suivante : `[0-9a-z-]`).</div>
+<div>
+<pre class="lang:java decode:true">assertFalse("12dsk-".matches("\w+"));
+
+assertFalse("12dsk-".matches("\w+-\b"));
+assertTrue("12dsk-".matches("[0-9a-z-]+"));
+assertFalse("12dsk-".matches("[0-9a-z-]+\b"));
+
+assertFalse("12dsk. ".matches("\w+.\b."));</pre>
+</div>
+<div>Évidemment aussi, mettre une borne dans une regex au milieu de caractères ne marchera pas.</div>
+<div>
+<pre class="lang:java decode:true">assertFalse("bobEtLéa".matches("bob\b\w+\bLéa"));</pre>
+<p>Bon c'est bien cool, mais si je veux matcher un texte en allemand, du grec ou simplement des lettres accentuées de notre bon français ? Là ça pèche un peu si on utilise le `\w`.</p>
+</div>
+<pre class="lang:default decode:true">assertFalse("Éole".matches("\b\w+"));
+assertTrue("Éole".matches("\bÉole"));
+
+assertTrue("Éole".matches("\b[Éa-z]+"));
+assertTrue("Éole".matches("\b\p{L}+"));</pre>
+<p>En effet la classe `\w` ne connait que les caractères ASCII et plus précisément; uniquement ceux de cette classe `[a-zA-Z0-9_]` tel que c'est mentionné dans la javadoc. Pour palier à cette limitation soit il faut ajouter le caractère accentué à une classe de caractère, soit on utilise une <strong>classe de caractère Unicode</strong>, c'est ce qui est fait dans la dernière assertion j'utilise `\p{L}` ! Je reviendrais plus tard sur Unicode avec les expressions régulières.</p>
+<p style="color: #a42713;">Attention à l'encodage de vos codes source ! J'ai eu des erreurs d'encodage du fichier sur Eclipse, IntelliJ et NetBeans qui provenaient de plateformes différentes (MacOSX et Windows), du coup le caractère `É` n'était pas bien encodé (comprendre que l'IDE encodait ce caractère dans autre chose qu'une lettre), ce qui faisait évidement échouer l'expression.</p>
+<p>Enfin le complément d'une borne `\b` est représenté par la borne `\B`, celle-ci matche tout ce que `\b` ne matche pas. Dans les faits `\B` marque la borne entre deux classes de caractères à l'exception d'une classe composée des caractères qu'on peut trouvé dans `\w`.</p>
+<pre class="lang:java decode:true crayon-selected">assertTrue("12dsk-".matches("\w+-\B")); // B capture l'inverse b
+assertTrue("12dsk.".matches("\w+\.\B"));
+assertTrue(".!? nt".matches("[.!?]+\B\s+"));
+assertTrue(".!?,,,;:".matches("[.!?]+\B[,;:]+"));</pre>
+<h1>Fin de la partie 1</h1>
+<p>Voilà pour la première partie, la plus simple, sur les expressions régulières en Java. Pour la suite qui arrive très bientôt j'exposerai la manière de fonctionner de certaines constructions un peu particulières :  les backreferences, les quantificateurs possessifs, les possibilités de lookahead / lookbehind.</p>
+<h2>Références</h2>
+<ul>
+<li><a href="http://en.wikipedia.org/wiki/Regular_expression">http://en.wikipedia.org/wiki/Regular_expression</a></li>
+<li><a href="http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html">http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html</a></li>
+<li><a href="http://perldoc.perl.org/perlretut.html">http://perldoc.perl.org/perlretut.html</a></li>
+</ul>

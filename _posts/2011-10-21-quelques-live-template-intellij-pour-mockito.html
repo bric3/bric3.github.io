@@ -1,0 +1,312 @@
+---
+layout: post
+title: Quelques Live Template IntelliJ pour Mockito
+date: 2011-10-21 20:06:46.000000000 +02:00
+type: post
+published: true
+status: publish
+categories:
+- code
+- TDD
+tags:
+- intellij
+- mockito
+- TDD
+- template
+- test
+- test unitaire
+meta:
+  _edit_last: '1'
+  _syntaxhighlighter_encoded: '1'
+  _su_rich_snippet_type: none
+author:
+  login: brice
+  email: brice.dutheil@gmail.com
+  display_name: Brice Dutheil
+  first_name: Brice
+  last_name: Dutheil
+---
+<p>Hello, j'en avais un peu marre d'écrire régulièrement voire répétitivement dans mes tests les constructions mockito.</p>
+<p>Pour ça je me suis créé dans mon IDE favori, <a title="IntelliJ IDEA" href="http://www.jetbrains.com/idea/">IntelliJ</a>, ce qu'on appelle des Live Template. Ces templates permettent à partir d'une abréviation d'insérer des fragments de code. Ainsi par exemple :</p>
+<p>Taper <code>iter</code> dans votre éditeur puis de faire <kbd>Ctrl+J</kbd> (sous OSX) va développer cette abréviation dans le bout de code ci-dessous (suivant le contexte bien entendu)</p>
+<p>[java]for (TypeInIterable type : someIterable) {</p>
+<p>}[/java]</p>
+<p>Taper sur <kbd>Ctrl+J</kbd> (sous OSX) vous permet de lister les abréviations disponible dans le contexte courant.</p>
+<h3>Les Live Template pour Mockito</h3>
+<p>Bien qu'imparafaite pour des raisons de limite technique d'IntelliJ, elles sauvent un minimum de temps, multiplié par le nombre de test. Malheureusement il n'y a pas non plus d'import export uniquement pour les live template, il faut donc se taper la configuration de intellij à la main. Cela dit il est possible de contourner partiellement ce problème avec la sauvegarde de la configuration personnelle sur les serveurs intellij, ou encore d'exporter la configuration pour les live templates, les file templates, et encore autre chose.</p>
+<p>J'ai défini toutes ces annotations dans un nouveau groupe 'test', et j'ai activé pour toutes le contexte Java, avec reformatage et simplification du nom qualifié.</p>
+<ol>
+<li><span style="text-decoration: underline;">Description :</span> Creates a field with the @Mock annotation<br />
+<span style="text-decoration: underline;">Abbréviation :</span> 'am'<br />
+<span style="text-decoration: underline;">Template text :</span><br />
+[java]<br />
+@org.mockito.Mock private $TYPE$ $MOCK_FIELD$<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">TYPE</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCK_FIELD</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">suggestVariableName()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><span style="text-decoration: underline;">Description :</span> Creates a field with the @Spy annotation<br />
+<span style="text-decoration: underline;">Abbréviation :</span> 'as'<br />
+<span style="text-decoration: underline;">Template text :</span><br />
+[java]<br />
+@org.mockito.Spy private $TYPE$ $MOCK_FIELD$<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">TYPE</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCK_FIELD</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">suggestVariableName()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><span style="text-decoration: underline;">Description :</span> Creates a field with the @InjectMocks annotation<br />
+<span style="text-decoration: underline;">Abbréviation :</span> 'aim'<br />
+<span style="text-decoration: underline;">Template text :</span><br />
+[java]<br />
+@org.mockito.InjectMocks private $TYPE$ $MOCK_FIELD$<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">TYPE</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCK_FIELD</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">suggestVariableName()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><span style="text-decoration: underline;">Description :</span> Add @RunWith(MockitoJUnitRunner.class)<br />
+<span style="text-decoration: underline;">Abbréviation :</span> 'rwm'<br />
+<span style="text-decoration: underline;">Template text :</span><br />
+[java]<br />
+@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)<br />
+[/java]</li>
+<li><span style="text-decoration: underline;">Description :</span> BDD Stub mock with given(...).willReturn(...) style<br />
+<span style="text-decoration: underline;">Abbréviation :</span> 'gw'<br />
+<span style="text-decoration: underline;">Template text :</span><br />
+[java]<br />
+given($MOCK$).willReturn($ARGS$)$END$<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCK</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">ARGS</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><span style="text-decoration: underline;">Description :</span> BDD Stub spy/mock with willReturn(...).given(...) style<br />
+<span style="text-decoration: underline;">Abbréviation :</span> 'wg'<br />
+<span style="text-decoration: underline;">Template text :</span><br />
+[java]<br />
+org.mockito.BDDMockito.willReturn($RETURNED$).given($MOCK$).$CALL$ $END$<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">RETURNED</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">complete()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCK</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">CALL</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">complete()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><span style="text-decoration: underline;">Description :</span> Inserts a verify(...) statement<span style="text-decoration: underline;"><br />
+Abbréviation :</span>'verif'<span style="text-decoration: underline;"><br />
+Template text :</span>[java]<br />
+org.mockito.Mockito.verify($MOCK$).$CALL$<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCK</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">CALL</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">complete()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><span style="text-decoration: underline;">Description :</span> Inserts Mockito.inOrder(mocks) followed by inOrder.verify(...) statement<br />
+<span style="text-decoration: underline;">Abbréviation :</span> 'ioverif'<span style="text-decoration: underline;"><br />
+Template text :</span>[java]<br />
+org.mockito.InOrder $inOrderVar$ = org.mockito.Mockito.inOrder($MOCKS$);<br />
+$IN_ORDER_VAR$.verify($MOCK$).$CALL$;<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">IN_ORDER_VAR</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">suggestVariableName()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCKS</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"> MOCK</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"> CALL</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">complete()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><span style="text-decoration: underline;">Description :</span>Inserts a verify(...) statement<span style="text-decoration: underline;"><br />
+Abbréviation :</span>'verif'<span style="text-decoration: underline;"><br />
+Template text :</span>[java]<br />
+$IN_ORDER_VAR$.verify($MOCK$).$CALL$;<br />
+[/java]</p>
+<p><span style="text-decoration: underline;">Les variables du templates sont :</span></p>
+<table style="border-color: #000000; border-width: 1px; background-color: #ffffff; width: 100%;" border="0">
+<tbody>
+<tr style="background-color: #ffefd5;">
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Name</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Expression</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Default value</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">Skip if defined</td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">IN_ORDER_VAR</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("org.mockito.InOrder")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">MOCK</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">variableOfType("Object")</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+<tr>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">CALL</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;">complete()</td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+<td style="border-color: #000000; width: 25%; border-style: solid; border-width: 1px;"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ol>
+<p>Voilà donc les templates que je me suis créé pour IntelliJ, il manque certainement des cas d'utilisation, mais je trouvais plus judicieux de mettre ces cas là au moins. Pour nos amis Eclipse oou Netbeans, il y a des fonctionnalités comparables plus ou moins évoluées (de mémoire le système d'Eclipse est plutôt pas mal).</p>
+<h3>Références</h3>
+<ul>
+<li><a title="Live Templates" href="http://www.jetbrains.com/idea/webhelp/live-templates-2.html">Live Templates</a></li>
+</ul>

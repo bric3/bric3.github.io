@@ -1,0 +1,63 @@
+---
+layout: post
+title: Générer le script DDL programmatiquement avec Hibernate 4.x
+date: 2015-08-07 15:26:51.000000000 +02:00
+type: post
+published: true
+status: publish
+categories:
+- architecture
+- code
+- tips
+tags:
+- ddl
+- hibernate
+- java8
+- jpa
+meta:
+  _edit_last: '1'
+  _su_rich_snippet_type: none
+  _oembed_c2a410587a6c92fa5dbab70707099e19: '{{unknown}}'
+author:
+  login: brice
+  email: brice.dutheil@gmail.com
+  display_name: Brice Dutheil
+  first_name: Brice
+  last_name: Dutheil
+---
+<p>Si par hasard votre base donnée est gérée par un véritable DBA, donc avec des scripts SQL. Mais que vous utilisez hibernate pour mapper les tables avec une configuration non triviale, modules bien découpés, package annotés, etc.... Les utilitaires comme <em><a href="http://juplo.de/hibernate4-maven-plugin/">hibernate4-maven-plugin</a></em> ne suffisent plus.</p>
+<p>Voici un petit exemple code qui utilise le `SchemaExporter` de hibernate. <em>Le code est bien sûr à adapter à la structure du code de l'application</em>.</p>
+<p>Le principe est de passer soit même les classes annotées ET les package annotés (typiquement par `@TypeDef` dans le `package-info.java`). Pour plus de commodité ce code utilise le framework <a href="https://github.com/ronmamo/reflections">Reflections</a> pour scanner les classes annotées par les annotations JPA `@Entity` et `@MappedSuperClass`. Par défaut le script génère les `drop statements`, mais ce comportement peut se changer à travers les options de `SchemaExport`.</p>
+<p>[java]<br />
+import javax.persistence.Entity;<br />
+import javax.persistence.MappedSuperclass;<br />
+import org.hibernate.cfg.AvailableSettings;<br />
+import org.hibernate.cfg.Configuration;<br />
+import org.hibernate.tool.hbm2ddl.SchemaExport;<br />
+import org.hibernate.tool.hbm2ddl.Target;<br />
+import org.junit.Test;<br />
+import org.reflections.Reflections;</p>
+<p>public class HibernateDDLGenerator {</p>
+<p>    public static final String ENTITIES_PACKAGE = "com.something";<br />
+    public static final String ANNOTATED_PACKAGE = "com";<br />
+    public static final String HBM_DIALECT = "org.hibernate.dialect.Oracle10gDialect";</p>
+<p>    @Test<br />
+    public void ddl() throws Exception {<br />
+        new SchemaExport(createHibernateConfig())<br />
+                .setOutputFile("/tmp/ddl.sql")<br />
+                .setFormat(true)<br />
+                .setDelimiter(";")<br />
+                .create(Target.EXPORT);<br />
+    }</p>
+<p>    private Configuration createHibernateConfig() {</p>
+<p>        Configuration conf = new Configuration();</p>
+<p>        final Reflections reflections = new Reflections(ENTITIES_PACKAGE);<br />
+        reflections.getTypesAnnotatedWith(MappedSuperclass.class).forEach(conf::addAnnotatedClass);<br />
+        reflections.getTypesAnnotatedWith(Entity.class).forEach(conf::addAnnotatedClass);</p>
+<p>        conf.addPackage(ANNOTATED_PACKAGE) // contains @TypeDefs<br />
+            .setProperty(AvailableSettings.DIALECT, HBM_DIALECT);<br />
+        return conf;<br />
+    }<br />
+}<br />
+[/java]</p>
+<p>gist : https://gist.github.com/bric3/370654ecad0eb81aca22</p>

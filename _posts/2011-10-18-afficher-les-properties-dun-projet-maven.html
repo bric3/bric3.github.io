@@ -1,0 +1,55 @@
+---
+layout: post
+title: Afficher les properties d'un projet maven
+date: 2011-10-18 12:15:28.000000000 +02:00
+type: post
+published: true
+status: publish
+categories:
+- maven
+tags:
+- ant
+- maven
+- properties
+meta:
+  _syntaxhighlighter_encoded: '1'
+  _edit_last: '1'
+  _su_rich_snippet_type: none
+author:
+  login: brice
+  email: brice.dutheil@gmail.com
+  display_name: Brice Dutheil
+  first_name: Brice
+  last_name: Dutheil
+---
+<p>Pas vraiment un article mais plutôt une astuce que j'ai utilisé pour afficher la valeur de certaines property.</p>
+<p>Il faut ajouter dans la section build/plugins du pom une tache ant qui fera simplement un echo. A noter que cette tache est disponible dans la phase validate.</p>
+<pre class="lang:xml decode:true crayon-selected">&lt;build&gt;
+&lt;plugins&gt;
+
+    &lt;plugin&gt;
+        &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+        &lt;artifactId&gt;maven-antrun-plugin&lt;/artifactId&gt;
+        &lt;version&gt;1.1&lt;/version&gt;
+        &lt;executions&gt;
+            &lt;execution&gt;
+                &lt;phase&gt;validate-property&lt;/phase&gt;
+                &lt;goals&gt;
+                    &lt;goal&gt;run&lt;/goal&gt;
+                &lt;/goals&gt;
+                &lt;configuration&gt;
+                    &lt;tasks&gt;
+                        &lt;echo&gt;Displaying properties resolution&lt;/echo&gt;
+                        &lt;echo&gt;some.property]= ${some.property}&lt;/echo&gt;
+                        &lt;echo&gt;project.build.directory = ${project.build.directory&lt;/echo&gt;
+
+                        &lt;echo&gt;project.build.finalName= ${project.build.finalName}&lt;/echo&gt;
+                    &lt;/tasks&gt;
+                &lt;/configuration&gt;
+            &lt;/execution&gt;
+        &lt;/executions&gt;
+    &lt;/plugin&gt;
+
+&lt;/plugins&gt;
+&lt;build&gt;</pre>
+<p>Cela dit n'étant pas un expert maven, il y existe peut-être une solution plus élégante, un commentaire est le bienvenu dans ce cas.</p>
