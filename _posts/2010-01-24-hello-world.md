@@ -9,11 +9,7 @@ categories:
 - miscellanées
 tags: []
 meta: {}
-author:
-  login: brice
-  email: brice.dutheil@gmail.com
-  display_name: Brice Dutheil
-  first_name: Brice
-  last_name: Dutheil
+author: Brice Dutheil
 ---
-<p>Well, let's get started!</p>
+
+Well, let's get started!
