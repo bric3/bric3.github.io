@@ -51,7 +51,7 @@ sur `SecureRandom` pour nous aider à résoudre le problème.
 ## La solution
 
 Java permet de changer la source du random avec la propriété `java.security.egd` (egd = entropy gathering device).
-Sur les système UNIX il y a deux devices :
+Sur les systèmes UNIX il y a deux devices:
 
 * `/dev/random` Source **bloquante** de nombres aléatoires
 * `/dev/urandom` Source **non-bloquante** de nombre aléatoires
