@@ -24,35 +24,43 @@ meta:
   _edit_last: '1'
   _syntaxhighlighter_encoded: '1'
   _su_rich_snippet_type: none
-author:
-  login: brice
-  email: brice.dutheil@gmail.com
-  display_name: Brice Dutheil
-  first_name: Brice
-  last_name: Dutheil
+author: Brice Dutheil
 ---
-<h1>Contexte</h1>
-<p>Dans les news récemment</p>
-<ul>
-<li>Guava 13.0 réduit la consommation en mémoire de plusieurs structures [<a title="Guava 13.0 release notes" href="http://code.google.com/p/guava-libraries/wiki/Release13">source</a>]</li>
-<li>J'ai passé des tests d'algorithmie [<a href="#">source</a>]</li>
-</ul>
-<p>Premier point, on sait que Google est attentif sur les performances de ses librairies. Sur le deuxième point, ben j'ai finalement loupé un des exercices "timeboxés", je n'ai pas eu le temps de le finir a temps, du coup le code soumis était 100 % foireux. Mais bon ce n'est pas le sujet du billet, ce qui est important c'est que j'ai fini après cet algo, puis je me suis rendu compte que celui-ci n'était pas optimal, il ressemblait à un algo en <del>O(n<sup>2</sup>)</del> O(n log n) (<a href="#comment-834"><em>Merci Sam pour cette correction</em></a>). Du coup j'ai repris le papier et le crayon, et je me suis rendu compte que je pouvais utiliser une technique similaire à celle que j'ai utilisé sur le premier algo du test (comment n'ai-je pas pu y penser à ce moment d'ailleurs ?).</p>
-<p>De mémoire l'algo porte grosso modo sur le comptage de paires d'entier distante d'un nombre K dans un tableau A.</p>
-<p>Ma première version :</p>
-<pre class="lang:java decode:true">class PairCounts_V1 {
+
+**ATTENTION : Cet article n'est plus d'actualité, pour les microbenchmark il faut maintenant utiliser
+[JMH](http://openjdk.java.net/projects/code-tools/jmh/) (développé par [Aleksey Shipilev](http://shipilev.net/),
+en ce moment employé par Oracle, 2016-06-14), Caliper et les autres outils de microbenchmark ont de graves problèmes
+qui ne permettent pas de faire des microbenchmarks correctes.**
+
+------------------------------------
+
+# Contexte
+
+Dans les news récemment
+
+* Guava 13.0 réduit la consommation en mémoire de plusieurs structures [[source](http://code.google.com/p/guava-libraries/wiki/Release13)]
+* J'ai passé des tests d'algorithmie [[source](#)]
+
+Premier point, on sait que Google est attentif sur les performances de ses librairies. Sur le deuxième point, ben j'ai finalement loupé un des exercices "timeboxés", je n'ai pas eu le temps de le finir a temps, du coup le code soumis était 100 % foireux. Mais bon ce n'est pas le sujet du billet, ce qui est important c'est que j'ai fini après cet algo, puis je me suis rendu compte que celui-ci n'était pas optimal, il ressemblait à un algo en ~~O(n²)~~ O(n log n) ([*Merci Sam pour cette correction*](#comment-834)). Du coup j'ai repris le papier et le crayon, et je me suis rendu compte que je pouvais utiliser une technique similaire à celle que j'ai utilisé sur le premier algo du test (comment n'ai-je pas pu y penser à ce moment d'ailleurs ?).
+
+De mémoire l'algo porte grosso modo sur le comptage de paires d'entier distante d'un nombre K dans un tableau A.
+
+Ma première version :
+
+```java
+class PairCounts_V1 {
     public int countPairsWithKDistance(int K, int[] A) {
-        if(A == null || A.length &lt; 2) return 0;
+        if(A == null || A.length < 2) return 0;
 
         Arrays.sort(A);
 
         int paircounter = 0;
 
         int j = A.length - 1;
-        for (int i = 0; i &lt;= j; i++) {
+        for (int i = 0; i <= j; i++) {
             int val_i = A[i];
 
-            for(; i&lt;j &amp;&amp; K - A[j] != val_i; j--);
+            for(; i < j && K - A[j] != val_i; j--);
             int val_j = A[j];
 
             if ((long) (val_i + val_j) == K) {
@@ -73,16 +81,22 @@ author:
         if(i != j ) paircounter++;
         return paircounter;
     }
-}</pre>
-<p>Alors pourquoi je pense que cet algo n'est pas optimal : simplement du fait des boucles inbriquée, on dirait du <del>O(n<sup>2</sup>)</del> O(n log n) (<em><a href="#comment-834">voir ici pourquoi</a></em>). Mais quand on parle de la performance ou de la complexité d'un algorithme il ne faut prendre uniquement compte de l'invariant mais aussi <strong>du jeu de données : quelle taille ? quelle distribution ? quel type de données ?</strong></p>
-<p>En effet un algorithme pour être efficace doit être adapté aux jeux de données qu'il aura à traiter et à l'usage qu'on en a ; peut-être à travers des paramètres ou des structures différentes, typiquement un des constructeur d'une HashMap prend des paramètres comme <a href="http://docs.oracle.com/javase/1.5.0/docs/api/java/util/HashMap.html#HashMap(int, float)">le facteur de charge et la taille initiale</a>, on pourra choisir une <a href="http://docs.oracle.com/javase/1.5.0/docs/api/java/util/TreeMap.html">TreeMap</a> au lieu d'une <a href="http://docs.oracle.com/javase/1.5.0/docs/api/java/util/HashMap.html">HashMap</a> si la recherche est un cas d'utilisation de la structure de donnée.</p>
-<p>Bref du coup voilà à quoi ressemble la nouvelle version de cet algo :</p>
-<pre class="lang:java decode:true">class PairCounts_V2 {
+}
+```
+
+Alors pourquoi je pense que cet algo n'est pas optimal : simplement du fait des boucles inbriquée, on dirait du ~~O(n²)~~ O(n log n) (*[voir ici pourquoi](#comment-834)*). Mais quand on parle de la performance ou de la complexité d'un algorithme il ne faut prendre uniquement compte de l'invariant mais aussi **du jeu de données : quelle taille ? quelle distribution ? quel type de données ?**
+
+En effet un algorithme pour être efficace doit être adapté aux jeux de données qu'il aura à traiter et à l'usage qu'on en a ; peut-être à travers des paramètres ou des structures différentes, typiquement un des constructeur d'une HashMap prend des paramètres comme [HashMap](http://docs.oracle.com/javase/1.5.0/docs/api/java/util/HashMap.html) si la recherche est un cas d'utilisation de la structure de donnée.
+
+Bref du coup voilà à quoi ressemble la nouvelle version de cet algo :
+
+```java
+class PairCounts_V2 {
 
 public int countPairsWithKDistance(int K, int[] A) {
-        if(A == null || A.length &lt; 2) return 0;
+        if(A == null || A.length < 2) return 0;
 
-        HashMap&lt;Long, Integer&gt; complements = new HashMap&lt;Long, Integer&gt;();
+        HashMap<Long, Integer> complements = new HashMap<Long, Integer>();
         for (int number : A) {
             long complement = K - number;
 
@@ -105,23 +119,41 @@ public int countPairsWithKDistance(int K, int[] A) {
         return paircounter;
     }
 
-}</pre>
-<p>Donc ici l'idée c'est de préparer dans un premier temps un dictionnaire  inversé basé sur un des entier et la distance demandée, en incrémentant pour chaque occurence. Ici une seule boucle for, car on parcours en entier le tableau. Dans un second temps on cherche les entiers qui correspondent effectivement à l'entrée de ce dictionnaire, et si oui on incrémente le compteur de paires. Là aussi une seule boucle sur le tableau donc O(n). Sachant qu'une HashMap a souvant une complexité de O(1) pour l'insertion et la recherche, a vue de nez l'algo est plutot pas mal.</p>
-<p>Bon mais dans la réalité ca donne quoi, en effet comme Kirk Pepperdine et bien d'autres disaient : <em><strong>Measure ! Don't guess !</strong></em></p>
-<h1>Caliper me voilà !</h1>
-<p><a href="http://code.google.com/p/caliper/">Caliper</a> est un outil codé par des personnes de chez Google, il est notamment utilisé par l'équipe en charge de Guava. On peut d'ailleurs voir dans les sources de Guava les benchmarks <a href="http://code.google.com/p/guava-libraries/source/browse/#git%2Fguava-tests%2Fbenchmark%2Fcom%2Fgoogle%2Fcommon%2Fcollect">ici</a> par exemple.</p>
-<p>Avec un projet "mavenisé" on récupère la dernière version de <strong>caliper</strong>, la version <strong>0.5-rc1</strong> aujourd'hui.</p>
-<pre class="lang:xml decode:true">&lt;dependency&gt;
-    &lt;groupid&gt;com.google.caliper&lt;/groupid&gt;
-    &lt;artifactid&gt;caliper&lt;/artifactid&gt;
-    &lt;version&gt;0.5-rc1&lt;/version&gt;
-&lt;/dependency&gt;</pre>
-<p>Pour écrire un benchmark caliper il suffit d'étendre la classe `<a href="http://caliper.googlecode.com/svn/static/api/reference/com/google/caliper/SimpleBenchmark.html"><strong>SimpleBenchmark</strong></a>`, puis d'écrire des méthodes `public int` avec le préfixe `times` et un paramètre `répétition` utilisé dans une boucle `for`. Pour passer des paramètres particuliers au benchmark on utilisera un ou des champs annoté(s) par `<a href="http://caliper.googlecode.com/svn/static/api/reference/com/google/caliper/Param.html">@Param</a>`.</p>
-<p>Enfin comme Caliper lance une nouvelle VM, fait quelques travaux pour chauffer la VM (warmup), etc, il faut pour l'instant lancer ces tests avec une commande manuelle :</p>
-<pre class="lang:sh decode:true">java -classpath $THE_CLASSPATH com.google.caliper.Runner PairCountsBenchmark</pre>
-<p>La ligne de commande pourra varier suivant les besoins ; on peut notamment se rendre sur leur site pour y voir les <a href="http://code.google.com/p/caliper/wiki/CommandLineOptions">options</a> (le lien wiki est à ce jour en retard par rapport au <a href="http://code.google.com/p/caliper/source/browse/caliper/src/main/java/com/google/caliper/Runner.java?name=v0.5-rc1">code</a>) à passer au `Runner` Caliper. Malgré la jeunesse du framework sa documentation parfois spartiate, le projet a de réelles forces et s'avère de plus en plus populaire dans le domaine. Bien que le développement de ce projet avance lentement, ce projet est aujourd'hui maintenu par des membres de l'équipe Guava.</p>
-<p>Donc le benchmark que j'ai mis en place :</p>
-<pre class="lang:default mark:3,4,6 decode:true">public class PairCountsBenchmark extends SimpleBenchmark {
+}
+```
+
+Donc ici l'idée c'est de préparer dans un premier temps un dictionnaire  inversé basé sur un des entier et la distance demandée, en incrémentant pour chaque occurence. Ici une seule boucle for, car on parcours en entier le tableau. Dans un second temps on cherche les entiers qui correspondent effectivement à l'entrée de ce dictionnaire, et si oui on incrémente le compteur de paires. Là aussi une seule boucle sur le tableau donc O(n). Sachant qu'une HashMap a souvant une complexité de O(1) pour l'insertion et la recherche, a vue de nez l'algo est plutot pas mal.
+
+Bon mais dans la réalité ca donne quoi, en effet comme Kirk Pepperdine et bien d'autres disaient : ***Measure ! Don't guess !***
+
+# Caliper me voilà !
+
+[ici](http://code.google.com/p/guava-libraries/source/browse/#git%2Fguava-tests%2Fbenchmark%2Fcom%2Fgoogle%2Fcommon%2Fcollect) par exemple.
+
+Avec un projet "mavenisé" on récupère la dernière version de **caliper**, la version **0.5-rc1** aujourd'hui.
+
+```xml
+<dependency>
+    <groupid>com.google.caliper</groupid>
+    <artifactid>caliper</artifactid>
+    <version>0.5-rc1</version>
+</dependency>
+```
+
+Pour écrire un benchmark caliper il suffit d'étendre la classe `[@Param](http://caliper.googlecode.com/svn/static/api/reference/com/google/caliper/Param.html)`.
+
+Enfin comme Caliper lance une nouvelle VM, fait quelques travaux pour chauffer la VM (warmup), etc, il faut pour l'instant lancer ces tests avec une commande manuelle :
+
+```sh
+java -classpath $THE_CLASSPATH com.google.caliper.Runner PairCountsBenchmark
+```
+
+La ligne de commande pourra varier suivant les besoins ; on peut notamment se rendre sur leur site pour y voir les [code](http://code.google.com/p/caliper/source/browse/caliper/src/main/java/com/google/caliper/Runner.java?name=v0.5-rc1)) à passer au `Runner` Caliper. Malgré la jeunesse du framework sa documentation parfois spartiate, le projet a de réelles forces et s'avère de plus en plus populaire dans le domaine. Bien que le développement de ce projet avance lentement, ce projet est aujourd'hui maintenu par des membres de l'équipe Guava.
+
+Donc le benchmark que j'ai mis en place :
+
+```java
+public class PairCountsBenchmark extends SimpleBenchmark {
 
     @Param({ "1", "6", "25", "7", "111111111" }) private int K;  // différentes valeurs de la distance de la paire
     @Param({"10", "100", "1000", "10000"}) private int length;   // différentes tailles du tableau d'entier
@@ -136,7 +168,7 @@ public int countPairsWithKDistance(int K, int[] A) {
 
     public int timePairCounts_V1(int repetition) {
         int dummy = 0;
-        for (int i = 0; i &lt; repetition; i++) {
+        for (int i = 0; i < repetition; i++) {
             dummy += new PairCounts_V1().complementary_pairs(K, values);
         }
         return dummy;                                            // Variable modifiée dans la boucle pour forcer la JVM a ne pas supprimer cette boucle for.
@@ -144,7 +176,7 @@ public int countPairsWithKDistance(int K, int[] A) {
 
     public int timePairCounts_V2(int repetition) {
         int dummy = 0;
-        for (int i = 0; i &lt; repetition; i++) {
+        for (int i = 0; i < repetition; i++) {
             dummy += new PairCounts_V2().complementary_pairs(K, values);
         }
         return dummy;
@@ -155,7 +187,7 @@ public int countPairsWithKDistance(int K, int[] A) {
             @Override
             int[] create(int length) {
                 int[] result = new int[length];
-                for (int i = 0; i &lt; length; i += 5) {
+                for (int i = 0; i < length; i += 5) {
                     result[i] = 0;
                     result[i + 1] = 1;
                     result[i + 2] = 2;
@@ -170,7 +202,7 @@ public int countPairsWithKDistance(int K, int[] A) {
             int[] create(int length) {
                 Random random = new Random();
                 int[] result = new int[length];
-                for (int i = 0; i &lt; length; i++) {
+                for (int i = 0; i < length; i++) {
                     result[i] = random.nextInt();
                 }
                 return result;
@@ -179,10 +211,15 @@ public int countPairsWithKDistance(int K, int[] A) {
 
         abstract int[] create(int length);
     }
-}</pre>
-<h2>Dans le temps</h2>
-<p>Voilà il faut maintenant lancer le benchmark en ligne de commande. Et voici une partie de la sortie standard :</p>
-<pre class="lang:default decode:true"> 0% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10} 117.03 ns; σ=0.53 ns @ 3 trials
+}
+```
+
+## Dans le temps
+
+Voilà il faut maintenant lancer le benchmark en ligne de commande. Et voici une partie de la sortie standard :
+
+```text
+ 0% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10} 117.03 ns; σ=0.53 ns @ 3 trials
  1% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=10} 410.92 ns; σ=3.93 ns @ 5 trials
  3% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=10} 118.95 ns; σ=0.54 ns @ 3 trials
  4% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=10} 346.11 ns; σ=1.04 ns @ 3 trials
@@ -348,26 +385,37 @@ PairCounts_V2  10000       RANDOM 111111111   840978 =
 vm: java
 trial: 0
 
-Process finished with exit code 0</pre>
-<p>Donc en fait Caliper créé une matrice multi-dimensionnelle des différents paramètres et pour chaque coordonnée dans cette matrice lance le test, bref un Scénario.</p>
-<p>On voit dans les mesures faites par Caliper le temps pris par chaque méthode, l'écart type, et le nombre d'essai. Enfin dans une deuxième partie Caliper donne un synopsis des différents run et en particulier une colonne très intéressante '<strong>linear time</strong>'.</p>
-<p>En observant le temps pris en fonction du nombre d'éléments pour chaque algo, on s'aperçoit que le temps pris par le premier algo augmente en effet par rapport au deuxième algo d'un facteur 5 qui augmente avec la taille du tableau. Bref on est loin d'un temps linéaire aka O(n).</p>
-<p>Ce qui est aussi intéressant, c'est que le premier algo est plus efficace tant que le nombre d'élément dans le tableau d'entrée est inférieur à 100. Alors que la deuxième  qui utilise une structure plus élaboré ne montre des signes avantageux qu'à partir d'une centaine d'éléments. Ca me rappelle étrangement l'électronique ou les comportements des capacités et inductances changeant de nature lorsqu'on passe en haute fréquence.</p>
-<h2>Dans l'espace</h2>
-<p>Alors pour faire les mesures des allocations, on peut aussi utiliser caliper, mais à l'heure de l'écriture de ce blog, il faut faire quelques petites choses en plus.</p>
-<ol>
-<li>Caliper 0.5 RC1 vient avec le jar `java-allocation-instrumenter-2.0.jar` qui est sensé servir d'agent, cependant ce jar n'a pas été généré correctement pour servir d'agent. En fait il faut télécharger le jar `allocation.jar` de ce projet : <a href="http://code.google.com/p/java-allocation-instrumenter/">http://code.google.com/p/java-allocation-instrumenter/</a> daté du <a href="http://code.google.com/p/java-allocation-instrumenter/downloads/detail?name=allocation.jar&amp;can=2&amp;q=">1 er février 2012</a>.</li>
-<li>Avant de lancer le Runner en ligne de commande il faut ajouter la variable d'environnement `ALLOCATION_JAR`
-<pre class="lang:sh decode:true ">export ALLOCATION_JAR=/path/to/downloaded/allocation.jar</pre>
-</li>
-<li>Enfin il est possible de lancer le même benchmark avec des tests sur la mémoire :
-<pre class="lang:java decode:true ">java -classpath $THE_CLASSPATH --measureMemory com.google.caliper.Runner PairCountsBenchmark</pre>
-</li>
-</ol>
-<p>&nbsp;</p>
-<blockquote><p>A noter : Ne pas renommer `allocation.jar` en autre chose, sans ça vous n'aurez pas d'instrumentation !</p></blockquote>
-<p>Ce qui donne le résultat suivant, quasiment la même chose, mais avec les infos sur les allocations mémoire.</p>
-<pre class="lang:default decode:true"> 0% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10} 119.06 ns; σ=1.08 ns @ 5 trials, allocated 1 instances for a total of 16B
+Process finished with exit code 0
+```
+
+Donc en fait Caliper créé une matrice multi-dimensionnelle des différents paramètres et pour chaque coordonnée dans cette matrice lance le test, bref un Scénario.
+
+On voit dans les mesures faites par Caliper le temps pris par chaque méthode, l'écart type, et le nombre d'essai. Enfin dans une deuxième partie Caliper donne un synopsis des différents run et en particulier une colonne très intéressante '**linear time**'.
+
+En observant le temps pris en fonction du nombre d'éléments pour chaque algo, on s'aperçoit que le temps pris par le premier algo augmente en effet par rapport au deuxième algo d'un facteur 5 qui augmente avec la taille du tableau. Bref on est loin d'un temps linéaire aka O(n).
+
+Ce qui est aussi intéressant, c'est que le premier algo est plus efficace tant que le nombre d'élément dans le tableau d'entrée est inférieur à 100. Alors que la deuxième  qui utilise une structure plus élaboré ne montre des signes avantageux qu'à partir d'une centaine d'éléments. Ca me rappelle étrangement l'électronique ou les comportements des capacités et inductances changeant de nature lorsqu'on passe en haute fréquence.
+
+## Dans l'espace
+
+Alors pour faire les mesures des allocations, on peut aussi utiliser caliper, mais à l'heure de l'écriture de ce blog, il faut faire quelques petites choses en plus.
+
+1. Caliper 0.5 RC1 vient avec le jar `java-allocation-instrumenter-2.0.jar` qui est sensé servir d'agent, cependant ce jar n'a pas été généré correctement pour servir d'agent. En fait il faut télécharger le jar `allocation.jar` de ce projet : [1 er février 2012](http://code.google.com/p/java-allocation-instrumenter/downloads/detail?name=allocation.jar&can=2&q=).
+2. Avant de lancer le Runner en ligne de commande il faut ajouter la variable d'environnement `ALLOCATION_JAR`
+  ```sh
+  export ALLOCATION_JAR=/path/to/downloaded/allocation.jar
+  ```
+3. Enfin il est possible de lancer le même benchmark avec des tests sur la mémoire :
+  ```java
+  java -classpath $THE_CLASSPATH --measureMemory com.google.caliper.Runner PairCountsBenchmark
+  ```
+
+> A noter : Ne pas renommer `allocation.jar` en autre chose, sans ça vous n'aurez pas d'instrumentation !
+
+Ce qui donne le résultat suivant, quasiment la même chose, mais avec les infos sur les allocations mémoire.
+
+```text
+ 0% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10} 119.06 ns; σ=1.08 ns @ 5 trials, allocated 1 instances for a total of 16B
  1% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=10} 468.80 ns; σ=4.56 ns @ 3 trials, allocated 9 instances for a total of 320B
  3% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=10} 115.83 ns; σ=0.46 ns @ 3 trials, allocated 1 instances for a total of 16B
  4% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=10} 426.45 ns; σ=3.65 ns @ 3 trials, allocated 9 instances for a total of 320B
@@ -533,13 +581,17 @@ PairCounts_V2  10000       RANDOM 111111111 30013.000 931264.0   835717 =
 vm: java
 trial: 0
 
-Process finished with exit code 0</pre>
-<p>C'est effectivement une information utile, la première version de l'algo, ne fait en fait qu'une seule allocation de 16B (donc en fait un seul objet), c'est à dire peanuts, on est dans du O(1) en complexité spatiale. La deuxième qui est notamment basée sur une HashMap alloue nettement plus d'objets, mais est définitivement plus rapide, on a on ici une complexité spatiale de O(n).</p>
-<p>Comme quoi il y a potentiellement des compromis à faire dans le choix d'un algo, la rapidité ou la faible consommation mémoire peuvent venir avec un coût dans une autre dimension.</p>
-<h1>Pour conclure</h1>
-<ul>
-<li>Premier point, il faut absolument être au point pour des tests d'embauche plus sur le sujet, même si je trouve limité ces tests dans leur capacité à identifier ou filtrer les bons développeurs (l'algorithmie n'est pas certainement pas le seul critère d'un individu doué), c'est toujours bien de pouvoir les reéussir !</li>
-<li>Caliper offre un outillage plutôt facile d'utilisation pour faire des microbenchmark, dans la limite de validité d'un microbenchmark, il y a plein de mise en garde sur le sujet, sur le site de Caliper [<a href="http://code.google.com/p/caliper/wiki/JavaMicrobenchmarks">1</a>][<a href="http://code.google.com/p/caliper/wiki/JavaMicrobenchmarkReviewCriteria">2</a>], Cliff Click en a parlé aussi à JavaOne [<a href="http://www.azulsystems.com/events/javaone_2002/microbenchmarks.pdf">3</a>][<a href="http://www.azulsystems.com/events/javaone_2009/session/2009_J1_Benchmark.pdf">4</a>].</li>
-<li>Quand on écrit du code c'est une bonne idée de penser à la complexité temporelle et spatiale, dont la notation pour les deux est le grand O. Caliper pourrait d'ailleurs se voir ajouter le moyen de mesurer la consommation mémoire (en lien avec la complexité spatiale). Évidement ce que je dis ne veut pas dire optimiser prématurément, mais juste de réfléchir à quel type de performance on peut s'attendre pour telle ou telle partie du code, et éventuellement de porter plus tard un effort spécifique.</li>
-</ul>
-<p>A noter que Caliper offre d'autres possibilités de mesurer la performance à travers une méthode annotée par `@ArbitraryMeasurement`.</p>
+Process finished with exit code 0
+```
+
+C'est effectivement une information utile, la première version de l'algo, ne fait en fait qu'une seule allocation de 16B (donc en fait un seul objet), c'est à dire peanuts, on est dans du O(1) en complexité spatiale. La deuxième qui est notamment basée sur une HashMap alloue nettement plus d'objets, mais est définitivement plus rapide, on a on ici une complexité spatiale de O(n).
+
+Comme quoi il y a potentiellement des compromis à faire dans le choix d'un algo, la rapidité ou la faible consommation mémoire peuvent venir avec un coût dans une autre dimension.
+
+# Pour conclure
+
+* Premier point, il faut absolument être au point pour des tests d'embauche plus sur le sujet, même si je trouve limité ces tests dans leur capacité à identifier ou filtrer les bons développeurs (l'algorithmie n'est pas certainement pas le seul critère d'un individu doué), c'est toujours bien de pouvoir les reéussir !
+* Caliper offre un outillage plutôt facile d'utilisation pour faire des microbenchmark, dans la limite de validité d'un microbenchmark, il y a plein de mise en garde sur le sujet, sur le site de Caliper [[4](http://www.azulsystems.com/events/javaone_2009/session/2009_J1_Benchmark.pdf)].
+* Quand on écrit du code c'est une bonne idée de penser à la complexité temporelle et spatiale, dont la notation pour les deux est le grand O. Caliper pourrait d'ailleurs se voir ajouter le moyen de mesurer la consommation mémoire (en lien avec la complexité spatiale). Évidement ce que je dis ne veut pas dire optimiser prématurément, mais juste de réfléchir à quel type de performance on peut s'attendre pour telle ou telle partie du code, et éventuellement de porter plus tard un effort spécifique.
+
+A noter que Caliper offre d'autres possibilités de mesurer la performance à travers une méthode annotée par `@ArbitraryMeasurement`.
