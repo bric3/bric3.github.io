@@ -5,11 +5,10 @@ date: 2015-08-07 15:26:51.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
+tags:
 - architecture
 - code
 - tips
-tags:
 - ddl
 - hibernate
 - java8

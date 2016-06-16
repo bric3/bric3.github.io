@@ -6,8 +6,8 @@ type: post
 published: true
 status: publish
 categories:
-- tips
 tags:
+- tips
 - heap dump
 - instrumentation
 - jdk7

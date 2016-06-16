@@ -5,10 +5,6 @@ date: 2010-09-27 15:52:58.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
-- code
-- design
-- pattern
 tags:
 - code
 - expression régulière

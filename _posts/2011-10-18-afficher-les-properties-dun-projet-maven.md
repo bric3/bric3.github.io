@@ -5,8 +5,6 @@ date: 2011-10-18 12:15:28.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
-- maven
 tags:
 - ant
 - maven

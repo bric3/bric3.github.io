@@ -5,10 +5,9 @@ date: 2011-12-19 10:37:06.000000000 +01:00
 type: post
 published: true
 status: publish
-categories:
+tags:
 - code
 - TDD
-tags:
 - constructor injection
 - mockito
 - TDD

@@ -5,9 +5,6 @@ date: 2011-10-14 13:01:31.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
-- code
-- TDD
 tags:
 - code
 - jmx

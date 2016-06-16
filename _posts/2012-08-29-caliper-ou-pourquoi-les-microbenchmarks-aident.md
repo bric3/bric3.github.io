@@ -5,11 +5,10 @@ date: 2012-08-29 00:47:50.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
+tags:
 - code
 - design
 - performance
-tags:
 - big o
 - cailper
 - complexity

@@ -5,10 +5,8 @@ date: 2011-10-21 20:06:46.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
-- code
-- TDD
 tags:
+- code
 - intellij
 - mockito
 - TDD

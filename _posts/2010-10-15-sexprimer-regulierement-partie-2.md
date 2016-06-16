@@ -10,7 +10,14 @@ categories:
 - design
 - pattern
 - performance
-tags: []
+tags:
+- code
+- expression régulière
+- pattern
+- regex
+- regexp
+- regular expression
+- backreference
 meta:
   _syntaxhighlighter_encoded: '1'
   _edit_last: '1'

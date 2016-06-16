@@ -5,9 +5,8 @@ date: 2012-03-05 01:54:28.000000000 +01:00
 type: post
 published: true
 status: publish
-categories:
-- code
 tags:
+- code
 - hibernate
 - infinitest
 - jenkins

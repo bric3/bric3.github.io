@@ -6,9 +6,9 @@ type: post
 published: true
 status: publish
 categories:
+tags:
 - prod
 - tips
-tags:
 - entropie
 - entropy
 - firewall

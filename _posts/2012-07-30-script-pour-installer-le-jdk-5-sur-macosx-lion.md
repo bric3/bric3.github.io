@@ -5,9 +5,8 @@ date: 2012-07-30 00:17:40.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
-- code
 tags:
+- code
 - j2se 5.0
 - java5
 - jdk5
