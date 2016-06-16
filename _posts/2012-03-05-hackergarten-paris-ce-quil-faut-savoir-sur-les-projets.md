@@ -64,13 +64,13 @@ Lancer **mvn clean install** sous chacun des clones pour être sûr que Maven t�
 
     Arnaud me dit à l'oreille que suite à des changements chez Oracle il faut ajouter ce miroir dans le `settings.xml`.
 
-    ```xml
-    <mirror>
-        <id>repo.jenkins-ci.org</id>
-        <url>http://repo.jenkins-ci.org/public/</url>
-        <mirrorOf>m.g.o-public</mirrorOf>
-    </mirror>
-    ```
+```xml
+<mirror>
+    <id>repo.jenkins-ci.org</id>
+    <url>http://repo.jenkins-ci.org/public/</url>
+    <mirrorOf>m.g.o-public</mirrorOf>
+</mirror>
+```
 
 * Checkout du plugin qui vous interesse puis `mvn clean install hpi:run`
 
