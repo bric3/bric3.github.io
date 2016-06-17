@@ -53,6 +53,15 @@ layout: default
       </div>
 
       <div class="content-panel content">
+          {% if page.tags and page.tags.size > 0 %}
+          <div class="tags">
+            <small>
+            {% for tag in page.tags %}
+              <a href="#{{ tag | slugify }}" class="post-tag">{{ tag }}</a>
+            {% endfor %}
+            </small>
+          </div>
+          {% endif %}
 
         {% if page.series %}
           This post is part of the series '{{ page.series }}':
@@ -90,16 +99,6 @@ layout: default
           <div class="addthis_sharing_toolbox"></div>
         </div>
         {% endif %}
-
-        {% if page.tags and page.tags.size > 0 %}
-        <div class="tags">
-          <small>
-          <i class="fa fa-tags"></i>
-            {{ page.tags | join: ', ' }}
-          </small>
-        </div>
-        {% endif %}
-
       </div>
 
       {% if site.twitter_username and site.disqus_account %}

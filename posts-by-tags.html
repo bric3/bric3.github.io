@@ -1,0 +1,80 @@
+---
+layout: default
+make-smaller-titles: true
+---
+{% comment %}
+=======================
+The following part extracts all the tags from your posts and sort tags,
+so that you do not need to manually collect your tags to a place.
+=======================
+{% endcomment %}
+{% assign rawtags = "" %}
+{% for post in site.posts %}
+	{% assign ttags = post.tags | join:'|' | append:'|' %}
+	{% assign rawtags = rawtags | append:ttags %}
+{% endfor %}
+{% assign rawtags = rawtags | split:'|' | sort %}
+
+{% comment %}
+=======================
+The following part removes dulpicated tags and invalid tags like blank tag.
+=======================
+{% endcomment %}
+{% assign tags = "" %}
+{% for tag in rawtags %}
+	{% if tag != "" %}
+		{% if tags == "" %}
+			{% assign tags = tag | split:'|' %}
+		{% endif %}
+		{% unless tags contains tag %}
+			{% assign tags = tags | join:'|' | append:'|' | append:tag | split:'|' %}
+		{% endunless %}
+	{% endif %}
+{% endfor %}
+
+<div class="container-fluid index">
+  <div class="row all-posts">
+
+    <h1 class="header author-header">{{ site.author_name }}</h1>
+    <h2 class="header" itemprop="headline">All posts</h2>
+    <h2 class="header categories" itemprop="headline"><small>grouped by
+
+      <div class="dropdown btn-group">
+        <button class="btn btn-categories dropdown-toggle btn-xs" type="button" data-toggle="dropdown">Tags
+          <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+          <li><a href="{{ site.baseurl }}/posts/">Years</a></li>
+          <li><a href="{{ site.baseurl }}/posts-by-categories/">Categries</a></li>
+        </ul>
+      </div>
+
+    </small></h2>
+
+    <div class="col-md-12 content-panel articles">
+        <h2>All tags</h2>
+        {% for tag in tags %}
+        <a href="#{{ tag | slugify }}" class="post-tag">{{ tag }}</a> 
+        {% endfor %}
+    </div>
+
+    {% for tag in tags %}
+    <div class="col-md-12 content-panel articles">
+        <h2 id="{{ tag | slugify }}">{{ tag }}</h2>
+        <ul class="codinfox-category-list">
+            {% for post in site.posts %}
+                {% if post.tags contains tag %}
+                <li>
+                <a href="{{ post.url | prepend: site.baseurl }}">
+                    {{ post.title }}
+                    <small class="hidden-xs">{{ post.date | date: "%B %-d, %Y" }}</small>
+                </a>
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
