@@ -5,11 +5,6 @@ date: 2010-10-15 14:40:15.000000000 +02:00
 type: post
 published: true
 status: publish
-categories:
-- code
-- design
-- pattern
-- performance
 tags:
 - code
 - expression régulière

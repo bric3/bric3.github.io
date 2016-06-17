@@ -12,9 +12,11 @@ tags:
 - code
 - pair-programming
 - scrum
-meta:
-  _msp_description: Retour d'expérience pair-programming, binomage
-  _msp_keywords: pair-programming, binomage, binome, expérience, agile, scrum
+- binomage,
+- binome
+- expérience
+- agile
+- scrum
 author: Brice Dutheil
 ---
 Lors de ma mission précédente, une des unités business a décidé d'investir dans Scrum, avec ce changement de méthodologie, les équipes de développement étant relativement enthousiastes, ont été formées au TDD et au pair-programming. Une discussion avec un pote, nous a amené à parler du pair-architecturing, ou la confrontation des idées, le challenge apporté par son alter-ego, m'a conduit à écrire ce petit retour à propos du pair-programming, et pourquoi l'appliquer à d'autres discipline n'est pas une mauvaise idée, au contraire.
