@@ -16,3 +16,7 @@ sudo gem install nokogiri -v '1.6.8' --                                \
 ```
 
 Answer source http://stackoverflow.com/a/35113383/48136
+
+
+# Styling the pre tag
+http://mediatemple.net/blog/tips/considerations-for-styling-the-pre-tag/
