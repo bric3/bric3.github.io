@@ -20,3 +20,8 @@ Answer source http://stackoverflow.com/a/35113383/48136
 
 # Styling the pre tag
 http://mediatemple.net/blog/tips/considerations-for-styling-the-pre-tag/
+
+# Liquid templates with functions, filters, tags
+http://jekyllrb.com/docs/templates/
+https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#tags
+https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#standard-filters
