@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 'Caliper me : Ou pourquoi les microbenchmarks aident !'
-date: 2012-08-29 00:47:50.000000000 +02:00
+date: 2012-08-29 00:47:50.000000000
 type: post
 published: true
 status: publish
