@@ -52,6 +52,7 @@ See http://www.adamwadeharris.com/how-to-convert-a-wordpress-site-to-jekyll-with
 - [x] Tweak theme (Carte noire)
 - [x] Migrate some pages to md
 - [x] HTTPS
-- [ ] Translate remaining english sentences
+- [x] Translate remaining english sentences
+- [ ] Use liquid filter escape, to avoid escaping in the data file
+- [ ] Migrate comments (disqus)
 - [ ] DNS
-- [ ] Migrate comments (disqus)  

@@ -8,17 +8,18 @@ make-smaller-titles: true
     <div class="row all-posts">
 
         <h1 class="header author-header">{{ site.author_name }}</h1>
-        <h2 class="header" itemprop="headline">All posts</h2>
+        <h2 class="header" itemprop="headline">{{ site.data[site.locale].all-posts.headline }}</h2>
         <h2 class="header categories" itemprop="headline">
-            <small>grouped by
+            <small>{{ site.data[site.locale].all-posts.group-by }}
 
                 <div class="dropdown btn-group">
-                    <button class="btn btn-categories dropdown-toggle btn-xs" type="button" data-toggle="dropdown">Years
+                    <button class="btn btn-categories dropdown-toggle btn-xs" type="button" data-toggle="dropdown">
+                        {{ site.data[site.locale].navigation.years }}
                         <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a href="{{ site.baseurl }}/categories/">Categories</a></li>
-                        <li><a href="{{ site.baseurl }}/tags/">Tags</a></li>
+                        <li><a href="{{ site.baseurl }}/categories/">{{ site.data[site.locale].navigation.categories }}</a></li>
+                        <li><a href="{{ site.baseurl }}/tags/">{{ site.data[site.locale].navigation.tags }}</a></li>
                     </ul>
                 </div>
 
@@ -37,7 +38,12 @@ make-smaller-titles: true
 
             <li>
                 <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
-                <small class="hidden-xs">{{ post.date | date: "%B %-d, %Y" }}</small>
+                <small class="hidden-xs">
+                    {{ post.date | date: "%-d" }}
+                    {% assign m = post.date | date: "%-m" | minus: 1 %}
+                    {{ site.data[site.locale].months[m] }}
+                    {{ post.date | date: "%Y" }}
+                </small>
             </li>
             {% if forloop.last %}
                 </ul>

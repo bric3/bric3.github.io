@@ -37,22 +37,24 @@ The following part removes dulpicated tags and invalid tags like blank tag.
 
     <h1 class="header author-header">{{ site.author_name }}</h1>
     <h2 class="header" itemprop="headline">All posts</h2>
-    <h2 class="header categories" itemprop="headline"><small>grouped by
+    <h2 class="header categories" itemprop="headline">
+      <small>{{ site.data[site.locale].all-posts.group-by }}
 
       <div class="dropdown btn-group">
-        <button class="btn btn-categories dropdown-toggle btn-xs" type="button" data-toggle="dropdown">Tags
+        <button class="btn btn-categories dropdown-toggle btn-xs" type="button" data-toggle="dropdown">
+          {{ site.data[site.locale].navigation.tags }}
           <span class="caret"></span>
         </button>
         <ul class="dropdown-menu">
-          <li><a href="{{ site.baseurl }}/posts/">Years</a></li>
-          <li><a href="{{ site.baseurl }}/categories/">Categries</a></li>
+          <li><a href="{{ site.baseurl }}/posts/">{{ site.data[site.locale].navigation.years }}</a></li>
+          <li><a href="{{ site.baseurl }}/categories/">{{ site.data[site.locale].navigation.categories }}</a></li>
         </ul>
       </div>
 
     </small></h2>
 
     <div class="col-md-12 content-panel articles">
-        <h2>All tags</h2>
+        <h2>{{ site.data[site.locale].tags.all-tags }}</h2>
         {% for tag in tags %}
         <a href="#{{ tag | slugify }}" class="post-tag">{{ tag }}</a> 
         {% endfor %}
@@ -67,7 +69,12 @@ The following part removes dulpicated tags and invalid tags like blank tag.
                 <li>
                 <a href="{{ post.url | prepend: site.baseurl }}">
                     {{ post.title }}
-                    <small class="hidden-xs">{{ post.date | date: "%B %-d, %Y" }}</small>
+                    <small class="hidden-xs">
+                        {{ post.date | date: "%-d" }}
+                        {% assign m = post.date | date: "%-m" | minus: 1 %}
+                        {{ site.data[site.locale].months[m] }}
+                        {{ post.date | date: "%Y" }}
+                    </small>
                 </a>
                 </li>
                 {% endif %}

@@ -2,10 +2,18 @@
 layout: default
 ---
 
+{% capture i18n_date %}
+{{ page.date | date: "%-d" }}
+{% assign m = page.date | date: "%-m" | minus: 1 %}
+{{ site.data[site.locale].months[m] }}
+{{ page.date | date: "%Y" }}
+{% endcapture %}
+
+
 {% if page.minutes %}
 {% assign minutes = page.minutes %}
 {% else %}
-{% assign minutes = content | number_of_words | divided_by: 180 %}
+{% assign minutes = content | number_of_words | divided_by: 100 %}
 {% if minutes == 0 %}{% assign minutes = 1 %}{% endif %}
 {% endif %}
 
@@ -29,7 +37,7 @@ layout: default
             <div class="author">
                 <small><i>
                     {% if page.author %}
-                    by
+                    {{ site.data[site.locale].post.post-by-author }}
                       <span itemprop="author">
                         {% if site.google_plus_link %}
                         <a rel="author" href="{{ site.google_plus_link }}">
@@ -42,15 +50,14 @@ layout: default
                         {% endif %}
                       </span>
                     {% endif %}
-                    on <span itemprop="datePublished" content="2014-08-28">{{ page.date | date: "%B %-d, %Y" }}</span>
-                    {% if page.categories != empty %} under {% for category in page.categories limit:1 %}{{ category
-                    }}{% endfor %}{% endif %}
+                    {{ site.data[site.locale].post.post-on-date }} <span itemprop="datePublished" content="2014-08-28">{{ i18n_date }}</span>
+                    {% if page.categories != empty %} {{ site.data[site.locale].post.under-category }} {% for category in page.categories limit:1 %}{{ category }} {% endfor %}{% endif %}
                 </i></small>
             </div>
 
             <div class="read-time">
                 <small>
-                    {{ minutes }} minute read
+                    {{ site.data[site.locale].post.minute-read | replace:'$minutes$',minutes }}
                 </small>
             </div>
 
@@ -66,7 +73,7 @@ layout: default
                 {% endif %}
 
                 {% if page.series %}
-                This post is part of the series '{{ page.series }}':
+                {{ site.data[site.locale].post.part-of-series }} '{{ page.series }}':
                 <ol class="series">
                     {% for apost in site.posts reversed %}
                     {% if page.series == apost.series %}
@@ -91,7 +98,7 @@ layout: default
 
                 {% if page.series %}
                 {% if seriesnext %}
-                <i>Next post in the series:</i> <a href="{{ seriesnext.url }}">{{ seriesnext.title }}</a>
+                <i>{{ site.data[site.locale].post.next-in-series }}:</i> <a href="{{ seriesnext.url }}">{{ seriesnext.title }}</a>
                 {% endif %}
                 {% endif %}
 
@@ -105,21 +112,17 @@ layout: default
 
             {% if site.twitter_username and site.disqus_account %}
             <div class="content-panel feedback">
-                I <i class="fa fa-heart"></i> feedback.<br/>
-                Let me know what you think of this article on twitter
-                <a href="https://www.twitter.com/{{ site.twitter_username }}">@{{ site.twitter_username }}</a> or leave
-                a comment below!
+                {{ site.data[site.locale].post.love-feedback-twitter-comment }}
+                <a href="https://www.twitter.com/{{ site.twitter_username }}">@{{ site.twitter_username }}</a>
             </div>
             {% elsif site.twitter_username %}
             <div class="content-panel feedback">
-                I <i class="fa fa-heart"></i> feedback.<br/>
-                Let me know what you think of this article on twitter
+                {{ site.data[site.locale].post.love-feedback-twitter }}
                 <a href="https://www.twitter.com/{{ site.twitter_username }}">@{{ site.twitter_username }}</a>!
             </div>
             {% elsif site.disqus_account %}
             <div class="content-panel feedback">
-                I <i class="fa fa-heart"></i> feedback.<br/>
-                Let me know what you think of this article in the comment section below!
+                {{ site.data[site.locale].post.love-feedback-comment }}
             </div>
             {% endif %}
 
@@ -127,9 +130,13 @@ layout: default
             <div class="content-panel comments">
                 <div id="disqus_thread">
                     <noscript>Please enable JavaScript to view the
-                        <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-                    <a href="https://disqus.com" class="dsq-brlink">comments powered by
-                        <span class="logo-disqus">Disqus</span></a>
+                        <a href="https://disqus.com/?ref_noscript">
+                            {{ site.data[site.locale].post.comments-powered-by }} Disqus.
+                        </a>
+                    </noscript>
+                    <a href="https://disqus.com" class="dsq-brlink">
+                        {{ site.data[site.locale].post.comments-powered-by }} <span class="logo-disqus">Disqus</span>
+                    </a>
                 </div>
             </div>
             {% endif %}
@@ -138,7 +145,7 @@ layout: default
             <div class="content-panel related clearfix">
                 {% for post in site.related_posts limit:1 %}
                 <div class="related-header">
-                    <a href="{{ site.baseurl }}{{ post.url }}">Read More</a>
+                    <a href="{{ site.baseurl }}{{ post.url }}">{{ site.data[site.locale].post.read-more }}</a>
                 </div>
                 <div class="title">
                     <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>

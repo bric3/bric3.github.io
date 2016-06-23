@@ -11,13 +11,13 @@ permalink: /404.html
             <h1 class="header author-header">404</h1>
 
             <div class="error-text">
-                Sorry but this page doesn't seem to exist.
+                {{ site.data[site.locale].not-found.error-text }}
             </div>
 
             <div class="error-text">
-                <a href="{{ site.baseurl }}/">Home</a> |
-                <a href="{{ site.baseurl }}/posts/">All Posts</a> |
-                <a href="{{ site.baseurl }}/search/">Search</a>
+                <a href="{{ site.baseurl }}/">{{ site.data[site.locale].navigation.home }}</a> |
+                <a href="{{ site.baseurl }}/posts/">{{ site.data[site.locale].navigation.all-posts }}</a> |
+                <a href="{{ site.baseurl }}/search/">{{ site.data[site.locale].navigation.search }}</a>
             </div>
 
             {% include social_links.html %}
@@ -29,7 +29,7 @@ permalink: /404.html
     <div class="content-panel related">
         {% for post in site.posts limit:1 %}
         <div class="related-header">
-            <a href="{{ site.baseurl }}{{ post.url }}">Suggested Article</a>
+            <a href="{{ site.baseurl }}{{ post.url }}">{{ site.data[site.locale].not-found.suggested-article }}</a>
         </div>
         <div class="title">
             <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
@@ -40,7 +40,7 @@ permalink: /404.html
             {% else %}
             {{ post.excerpt | strip_html | truncatewords:30 }}
             {% endif %}
-            <a href="{{ site.baseurl }}{{ post.url }}">Continue Reading</a>
+            <a href="{{ site.baseurl }}{{ post.url }}">{{ site.data[site.locale].not-found.continue-reading }}</a>
         </div>
         {% endfor %}
     </div>

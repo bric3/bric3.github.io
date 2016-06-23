@@ -2,7 +2,8 @@
 layout: post
 title: whoami
 permalink: /whoami/
-date: 2010-03-09 21:48:54.000000000 +01:00
+date: 2016-06-16 18:48:54.000000000 +01:00
+categories: []
 author: Brice Dutheil
 ---
 
