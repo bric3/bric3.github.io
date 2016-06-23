@@ -20,6 +20,7 @@ meta:
   _edit_last: '1'
   suf_pseudo_template: default
 author: Brice Dutheil
+disqus_identifier: '202 http://dutheil.brice.online.fr/blog/?p=202'
 ---
 
 

@@ -31,6 +31,8 @@ https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#standard-filters
 
 See http://www.adamwadeharris.com/how-to-convert-a-wordpress-site-to-jekyll-with-github-pages/
 
+Best guide (but deprecated on some aspects) : http://blog.8thcolor.com/en/2014/05/migrate-from-wordpress/
+
 - [x] Wordpress Export (All content)
     
     https://blog.arkey.fr/wp-admin/export.php
@@ -54,5 +56,10 @@ See http://www.adamwadeharris.com/how-to-convert-a-wordpress-site-to-jekyll-with
 - [x] HTTPS
 - [x] Translate remaining english sentences
 - [ ] Use liquid filter escape, to avoid escaping in the data file
-- [ ] Migrate comments (disqus)
+- [x] Migrate comments to Disqus
+    * Create disqus account, install disqus plugin on wordpress,
+    * Get the `disqus_identifier` for each posts, updates each pages with corresponding identifier
+    * Configure Disqus with `disqus_identifier = {{page.disqus_identifier}}`
+    * Configure Disqus with `page.url ={{ site.cname }}{{ page.url }}`
 - [ ] DNS
+- [ ] Move some file to `_pages`

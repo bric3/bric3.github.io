@@ -20,6 +20,7 @@ meta:
   _edit_last: '1'
   suf_pseudo_template: default
 author: Brice Dutheil
+disqus_identifier: '228 http://dutheil.brice.online.fr/blog/?p=228'
 ---
 Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez
 peu utilisés et pourtant très utiles.

@@ -18,6 +18,7 @@ meta:
   _su_rich_snippet_type: none
   _syntaxhighlighter_encoded: '1'
 author: Brice Dutheil
+disqus_identifier: '337 http://blog.arkey.fr/?p=337'
 ---
 Hello à tous,
 

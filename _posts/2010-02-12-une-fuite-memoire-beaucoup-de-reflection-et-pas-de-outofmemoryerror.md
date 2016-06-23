@@ -17,6 +17,7 @@ meta:
   _su_rich_snippet_type: none
   suf_pseudo_template: default
 author: Brice Dutheil
+disqus_identifier: '41 http://dutheil.brice.online.fr/blog/?p=41'
 ---
 # Le contexte
 

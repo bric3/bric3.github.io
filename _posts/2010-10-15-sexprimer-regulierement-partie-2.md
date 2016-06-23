@@ -19,6 +19,7 @@ meta:
   _su_rich_snippet_type: none
   suf_pseudo_template: default
 author: Brice Dutheil
+disqus_identifier: '211 http://dutheil.brice.online.fr/blog/?p=211'
 ---
 La première partie de cette mini-série s'est focalisée sur une petite intro, je n'ai pas vraiment insisté sur
 les bases des expressions régulières, j'ai juste abordé les ancres et les options, et j'ai parlé de certaines astuces

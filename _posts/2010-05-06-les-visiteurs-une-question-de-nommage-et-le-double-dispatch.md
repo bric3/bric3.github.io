@@ -14,6 +14,7 @@ meta:
   _su_rich_snippet_type: none
   _edit_last: '1'
 author: Brice Dutheil
+disqus_identifier: '136 http://dutheil.brice.online.fr/blog/?p=136'
 ---
 # Une histoire qui commence mal
 

@@ -24,6 +24,7 @@ meta:
   _syntaxhighlighter_encoded: '1'
   _su_rich_snippet_type: none
 author: Brice Dutheil
+disqus_identifier: '362 http://blog.arkey.fr/?p=362'
 ---
 
 **ATTENTION : Cet article n'est plus d'actualité, pour les microbenchmark il faut maintenant utiliser

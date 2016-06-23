@@ -21,6 +21,7 @@ meta:
   amazon-product-content-hook-override: '2'
   amazon-product-newwindow: '3'
 author: Brice Dutheil
+disqus_identifier: '274 http://blog.arkey.fr/?p=274'
 ---
 **MAJ 14/06/2016**: La dernière version du script est maintenant sur un [repository github dédié](https://github.com/bric3/osx-jdk5-installer).
 
