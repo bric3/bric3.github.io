@@ -66,3 +66,9 @@ See
 - [ ] DNS
     https://www.lewagon.com/blog/siteweb-domaine-mail-personalise
 - [ ] Move some file to `_pages`
+- [ ] Fix SSL for custom CNAME once GH handles it
+    See :
+    * http://blog.webjeda.com/jekyll-ssl/
+    * https://konklone.com/post/github-pages-now-sorta-supports-https-so-use-it
+    * https://sheharyar.me/blog/free-ssl-for-github-pages-with-custom-domains/
+
