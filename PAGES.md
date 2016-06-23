@@ -29,9 +29,11 @@ https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#standard-filters
 
 # GH Blog setup
 
-See http://www.adamwadeharris.com/how-to-convert-a-wordpress-site-to-jekyll-with-github-pages/
-
-Best guide (but deprecated on some aspects) : http://blog.8thcolor.com/en/2014/05/migrate-from-wordpress/
+See
+* http://www.adamwadeharris.com/how-to-convert-a-wordpress-site-to-jekyll-with-github-pages/
+* http://haacked.com/archive/2013/12/09/preserving-disqus-comments-with-jekyll/
+* Best guide (but deprecated on some aspects) : http://blog.8thcolor.com/en/2014/05/migrate-from-wordpress/
+* https://help.disqus.com/customer/en/portal/articles/2158629
 
 - [x] Wordpress Export (All content)
     
