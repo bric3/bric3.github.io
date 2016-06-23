@@ -64,4 +64,5 @@ See
     * Configure Disqus with `disqus_identifier = {{page.disqus_identifier}}`
     * Configure Disqus with `page.url ={{ site.cname }}{{ page.url }}`
 - [ ] DNS
+    https://www.lewagon.com/blog/siteweb-domaine-mail-personalise
 - [ ] Move some file to `_pages`
