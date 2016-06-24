@@ -22,10 +22,15 @@ Idea from gist https://gist.github.com/ioddly/5589077
 {% endcomment %}
 
 {% comment %}
-# size argument can be S, M, or L
+// https://www.safaribooksonline.com/library/view/amazon-hacks/0596005423/ch01s07.html
+// http://aaugh.com/imageabuse.html
+// size argument can be small : `SCTZZZZZZZ`, medium `SCMZZZZZZZ`, large `SCLZZZZZZZ` or huge `SCRM` (huge available on zoomable pictures only)
+// URIS :
+//  - http://ec2.images-amazon.com/images/P/B0015T963C.01._SCLZZZZZZZ_.jpg
+//  - http://images.amazon.com/images/P/0321503627.01._SCRM_.jpg
 {% endcomment %}
-{% assign amazon_product_image_link = "[![book](http://ws.assoc-amazon.com/widgets/q?_encoding=UTF8&ASIN=$asin$&Format=_$size$L110_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1)](http://amazon.com/exec/obidos/ASIN/$asin$/)" %}
-{% assign img_size = "S" %}
+{% assign amazon_product_image_link = "[![book](http://ec2.images-amazon.com/images/P/$asin$.01._$size$_.jpg)](http://amazon.com/exec/obidos/ASIN/$asin$/)" %}
+{% assign img_size = "SCMZZZZZZZ" %}
 
 <div class="table-wrapper" markdown="block">
 
