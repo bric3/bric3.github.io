@@ -1,10 +1,9 @@
 ---
-layout: post
+layout: page
 title: Cool stuff
-date: 2010-07-09 11:12:22.000000000 +02:00
-type: page
+permalink: "/cool-stuff/"
+date: 2016-06-24
 published: true
-status: publish
 categories: []
 tags: [amazon, book]
 author: Brice Dutheil

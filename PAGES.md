@@ -63,9 +63,9 @@ See
     * Get the `disqus_identifier` for each posts, updates each pages with corresponding identifier
     * Configure Disqus with `disqus_identifier = {{page.disqus_identifier}}`
     * Configure Disqus with `page.url ={{ site.cname }}{{ page.url }}`
-- [ ] DNS
+- [x] DNS
     https://www.lewagon.com/blog/siteweb-domaine-mail-personalise
-- [ ] Move some file to `_pages`
+- [x] Move some file to `_pages`
 - [ ] Fix SSL for custom CNAME once GH handles it
     See :
     * http://blog.webjeda.com/jekyll-ssl/

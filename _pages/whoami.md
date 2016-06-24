@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: page
 title: whoami
 permalink: /whoami/
 date: 2016-06-16 18:48:54.000000000 +01:00
