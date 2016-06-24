@@ -312,7 +312,7 @@ NetBeans je ne sais pas. En tous cas on trouve une réponse [là](http://www.uni
 
 </div>
 
-## Matcher les caractère d'un alphabet seulement
+## Matcher les caractères d'un alphabet seulement
 
 Si je veux vérifier que mon texte appartient à de l'hébreu ou du chinois c'est faisable. Dans Unicode il faut
 remarquer qu'il y a plusieurs notion pour les "alphabets"; il y a les **Blocs** et les **Scripts**, cependant
