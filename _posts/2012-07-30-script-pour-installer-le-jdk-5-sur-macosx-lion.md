@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Script d'installation du JDK 5 sur MacOSX Lion et Mountain Lion (Mis à jour)
-date: 2012-07-30 00:17:40.000000000 +02:00
+date: 2012-07-30
 type: post
 published: true
 status: publish
@@ -13,13 +13,6 @@ tags:
 - lion
 - macosx
 - mountain lion
-meta:
-  _syntaxhighlighter_encoded: '1'
-  _edit_last: '1'
-  _su_rich_snippet_type: none
-  amazon-product-excerpt-hook-override: '3'
-  amazon-product-content-hook-override: '2'
-  amazon-product-newwindow: '3'
 author: Brice Dutheil
 disqus_identifier: '274 http://blog.arkey.fr/?p=274'
 ---
