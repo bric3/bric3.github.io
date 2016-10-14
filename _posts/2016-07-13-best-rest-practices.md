@@ -5,10 +5,21 @@ date: 2016-06-26
 published: false
 tags:
 - rest
+- API
 author: Brice Dutheil
 ---
 
-Your data model has started to stabilize and you're in a position to create a public API for your web app. You realize it's hard to make significant changes to your API once it's released and want to get as much right as possible up front. Now, the internet has no shortage on opinions on API design. But, since there's no one widely adopted standard that works in all cases, you're left with a bunch of choices: What formats should you accept? How should you authenticate? Should your API be versioned?
+Mon application fonctionne bien, mon DSI me demande de fournir des APIs publique. Seulement vous vous rendez compte
+que faire une API publique est plus compliquer qu'il n'y parait. Il faut penser à la compatibilité, la facilité
+d'utilisation, la sécurité, les aspects de performance, le versioning, etc.
+
+Certaines spécifications (comme JAX-RS) ou certains modèles d'architecture (SOAP, RESTful) éxistent et fournissent
+un point de départ. Internet regorge de blogs ou d'articles favorisant une approche plus qu'une autre. Sans standard
+vraiment, quels choix en 2016 faut-il faire sur le design de ses API web?
+
+Après avoir suivi les standards, les modes, en étant soit utilisateur soit fournisseur, je vous fait part de
+mon avis sur le design d'API RESTful.
+
 
 In designing an API for Enchant (a Zendesk Alternative), I've tried to come up with pragmatic answers to these questions. My goal is for the _Enchant_ API to be easy to use, easy to adopt and flexible enough to [dogfood](http://en.wikipedia.org/wiki/Eating_your_own_dog_food) for our own user interfaces.
 
@@ -41,15 +52,21 @@ In designing an API for Enchant (a Zendesk Alternative), I've tried to come up w
 
 ## Key requirements for the API
 
-Many of the API design opinions found on the web are academic discussions revolving around subjective interpretations of fuzzy standards as opposed to what makes sense in the real world. My goal with this post is to describe best practices for a pragmatic API designed for today's web applications. I make no attempt to satisfy a standard if it doesn't feel right. To help guide the decision making process, I've written down some requirements that the API must strive for:
+Sans débattre subjectivement sur l'interprétation de tel ou tel standard ou suivre aveuglément un standard, une API
+doit faire sens dans son environement. Je vais vous présenter ce qui me semble aujourd'hui comme les meilleurs
+pratiques pour concevoir les APIs d'une l'application web. Quoi qu'il en soit une API doit rechercher à atteindre
+ces objectifs :
 
-* It should use web standards where they make sense
-* It should be friendly to the developer and be explorable via a browser address bar
-* It should be simple, intuitive and consistent to make adoption not only easy but pleasant
-* It should provide enough flexibility to power majority of the _Enchant_ UI
-* It should be efficient, while maintaining balance with the other requirements
+* Utiliser les standards qui font sens.
+* Être commode et explorable pour un développeur
+* Être simple, intuitive, cohérente, sans surprise
+* Être suffisement flexible pour s'adapter aux différentes applications, une UI ou autre
+* Être focalisée et efficace
 
-An API is a developer's UI - just like any UI, it's important to ensure the user's experience is thought out carefully!
+Une API n'est que l'interface utilisateur pour un développeur, étant nous même développeur nous même nous pouvons
+améliorer cette expérience en consommant nous même cette API.
+
+> [Eat your own dog dog food !](http://en.wikipedia.org/wiki/Eating_your_own_dog_food)
 
 ## Use RESTful URLs and actions
 
