@@ -10,13 +10,18 @@ Nokogiri installed with :
 
 
 ```sh
-sudo gem install nokogiri -v '1.6.8' --                                \
+sudo gem install nokogiri -v '1.7.1' --                                \
      --use-system-libraries=true                                       \
-     --with-xml2-include=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include/libxml2
+     --with-xml2-include=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include/libxml2
 ```
 
 Answer source http://stackoverflow.com/a/35113383/48136
 
+# Serve locally
+
+```sh
+bundle exec jekyll serve -w --port 4000
+```
 
 # Styling the pre tag
 http://mediatemple.net/blog/tips/considerations-for-styling-the-pre-tag/
@@ -36,18 +41,18 @@ See
 * https://help.disqus.com/customer/en/portal/articles/2158629
 
 - [x] Wordpress Export (All content)
-    
+
     https://blog.arkey.fr/wp-admin/export.php
 
 - [x] Run the jekyll import tool
-    
+
     ```bash
     gem install jekyll-import
     gem install hpricot
     ```
-    
-    Then run 
-    
+
+    Then run
+
     ```bash
     ruby -rubygems -e 'require "jekyll-import"; JekyllImport::Importers::WordpressDotCom.run({ "source" => "wordpress.xml" })'
     ```
@@ -71,4 +76,3 @@ See
     * http://blog.webjeda.com/jekyll-ssl/
     * https://konklone.com/post/github-pages-now-sorta-supports-https-so-use-it
     * https://sheharyar.me/blog/free-ssl-for-github-pages-with-custom-domains/
-
