@@ -35,7 +35,7 @@ JAX-RS 2 un mécanisme comme celui de GitHub.
 
 ## Qu'est-ce que le header link?
 
-[RFC Link](https://tools.ietf.org/html/rfc5988)
+D'après la [RFC 5988](https://tools.ietf.org/html/rfc5988) :
 
 
 > In this specification, a link is a typed connection between two
@@ -57,9 +57,12 @@ La RFC donne cet exemple :
 Link: <http://example.com/TheBook/chapter2>; rel="previous"; title="previous chapter"
 ```
 
-L'entête `Link` peut acceuillir plusieurs _link_, donc plusieurs relations. Ce
-qui permet de donner les liens pour naviguer d'une page à une autre comme l'a
-mis en place github. **La réponse HTTP est l'enveloppe de la payload**.
+L'entête `Link` est donc un moyen de donner au client les URIs des relations
+de la ressource actuelle.
+Le header HTTP `Link` peut acceuillir plusieurs _link_, donc plusieurs
+relations. Ce qui permet de donner les liens pour naviguer d'une page à une
+autre comme l'a mis en place github. **La réponse HTTP est l'enveloppe de
+la payload**.
 
 ## JAX-RS, le prototypage
 
