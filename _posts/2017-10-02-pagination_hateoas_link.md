@@ -19,14 +19,14 @@ Il y a plusieurs choix possible sur la manière de faire :
 
 * Ne rien faire c'est le client qui contrôle tout pour lister les pages
 * Dans le body HTTP, envelopper la liste de résultat contenant également les
-  informations de pagination. C'est une approche souvant choisi car elle demande
+  informations de pagination. C'est une approche souvent choisi car elle demande
   moins de connaissance du HTTP.
 * Utiliser la réponse HTTP comme enveloppe et système de meta-données. C'est
   l'option choisie par les designers de
   l'[API HTTP de GitHub](https://developer.github.com/v3/guides/traversing-with-pagination/)
 
 Les gens de Github utilisent spécifiquement l'entête `Link` pour exprimer les
-_relations_ des pages dans une resource paginée. Pour ceux qui n'ont pas envie
+_relations_ des pages dans une ressource paginée. Pour ceux qui n'ont pas envie
 d'utiliser le body de la réponse pour introduire ces _méta-données_ de
 navigations, cet article explique comment mettre en place avec le standard
 JAX-RS 2 un mécanisme comme celui de GitHub.
@@ -59,7 +59,7 @@ Link: <http://example.com/TheBook/chapter2>; rel="previous"; title="previous cha
 
 L'entête `Link` est donc un moyen de donner au client les URIs des relations
 de la ressource actuelle.
-Le header HTTP `Link` peut acceuillir plusieurs _link_, donc plusieurs
+Le header HTTP `Link` peut accueillir plusieurs _link_, donc plusieurs
 relations. Ce qui permet de donner les liens pour naviguer d'une page à une
 autre comme l'a mis en place github. **La réponse HTTP est l'enveloppe de
 la payload**.
@@ -68,7 +68,7 @@ la payload**.
 
 Concrètement comment implémenter cette forme de pagination en JAX-RS ?
 
-On peut utilier le builder de `Response` pour ajouter le header `Link`. Depuis
+On peut utiliser le builder de `Response` pour ajouter le header `Link`. Depuis
 la spécification JAX-RS 2 il y a un support spécifique pour les header `Link`,
 via le builder `.links(Link...)` et via la classe `Link`.
 
@@ -96,7 +96,7 @@ Avec JAX-RS, il faut récupérer `UriInfo`. Pour rappel :
   ```
 * `uriInfo.getRequestUri()` donnera `http://localhost:59520/path/to/search?foo=bar&qix=zzz`
 
-Dans le contexte d'une resource JAX-RS, on peut par example écrire le code
+Dans le contexte d'une ressource JAX-RS, on peut par exemple écrire le code
 suivant.
 
 ```java
