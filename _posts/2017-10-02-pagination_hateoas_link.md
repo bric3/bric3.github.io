@@ -13,7 +13,7 @@ author: Brice Dutheil
 ---
 
 Votre API REST est en place, mais voilà une des resources doit être paginée.
-Quelqu-en soit la raison, API de recherche, API de listing, etc.
+Quelqu'en soit la raison, API de recherche, API de listing, etc.
 
 Il y a plusieurs choix possible sur la manière de faire :
 
