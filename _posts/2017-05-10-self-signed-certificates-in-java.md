@@ -7,6 +7,7 @@ tags:
 - ssl
 - https
 - java
+- okhttp
 - openssl
 - libressl
 - trustmanager
@@ -16,8 +17,425 @@ tags:
 author: Brice Dutheil
 ---
 
+Requirement, il faut écrire un test pour un service exposé en HTTPS. Le test utilisera un server HTTP mocké comme wiremock, mock-server, etc.
+Celui-ci exposera un port HTTPS.
+
+## En test
+
+Tout part de wiremock en HTTPS, au premier usage du serveur de mock le client HTTP 
+se plain d'une erreur SSL.
+
+### Reproduire le problème
+
+```java
+public class WireMockSSLTest {
+    @Rule
+    public WireMockRule wireMock = new WireMockRule(wireMockConfig().dynamicPort()
+                                                                    .dynamicHttpsPort());
+
+    @Test
+    public void ssl_poke() throws IOException {
+        new OkHttpClient.Builder().build()
+                                  .newCall(new Request.Builder().get()
+                                                                .url("https://localhost:" + wireMock.httpsPort())
+                                                                .build())
+                                  .execute();
+    }
+}
+```
+
+Ce code lève l'exception suivante
+
+```
+javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at ...
+Caused by: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at ...
+	... 10 more
+Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at ...
+	... 16 more
+```
+
+Comment comprendre cette stacktrace : ce serveur expose un certificat, mais le client n'arrive pas à remonter la chaine des certificats jusqu'à une **autorité** connue pour le vérifier. **C'est un certificat auto-signé.**
 
 
+### Fixer le problème du test
+
+#### Faire confiance à tout le monde
+
+Pour accepter ce certificat auto-signé, on peut par exemple configurer notre socket SSL pour accepter tous les certificats.
+
+
+```java
+public class WireMockSSLTest {
+    @Rule
+    public WireMockRule wireMock = new WireMockRule(wireMockConfig().dynamicPort()
+                                                                    .dynamicHttpsPort());
+
+    @Test
+    public void ssl_poke() throws IOException {
+        new OkHttpClient.Builder().sslSocketFactory(trustAllSslContext().getSocketFactory(),
+                                                    TrustAllX509TrustManager.INSTANCE)
+                                  .build()
+                                  .newCall(new Request.Builder().get()
+                                                                .url("https://localhost:" + wireMock.httpsPort())
+                                                                .build())
+                                  .execute();
+    }
+}
+```
+
+Pour faire ce code il faut créer un contexte SSL pour une connection de type **TLS**, et
+passer un _trust manager_. Le role du trust manager est de vérifier si cette connection est 
+fiable à partir de la chaine de certificat de cette connection.
+
+```java
+public static SSLContext trustAllSslContext() {
+    try {
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null,
+                        TrustAllX509TrustManager.singleInstanceTrustManagerArray(),
+                        null);
+        return sslContext;
+    } catch (NoSuchAlgorithmException | KeyManagementException e) {
+        throw new IllegalStateException("Couldn't init TLS with trust all X509 manager", e);
+    }
+}
+```
+
+La javadoc de la méthode [`SSLContext#init`](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/SSLContext.html#init-javax.net.ssl.KeyManager:A-javax.net.ssl.TrustManager:A-java.security.SecureRandom-) indique que seul le premier élément du tableau sera utilisé, pour cette raison nous ne créons qu'un seul trust manager.
+
+> ```
+> javax.net.ssl.SSLContext
+> public final void init(KeyManager[] km,
+>                       TrustManager[] tm,
+>                       SecureRandom random)
+>                throws KeyManagementException
+> ```
+>
+> Initializes this context. Either of the first two parameters may be null in which case the installed security providers will be searched for the highest priority implementation of the appropriate factory. Likewise, the secure random parameter may be null in which case the default implementation will be used.
+>
+> **Only the first instance** of a particular key and/or trust manager implementation type in the array is used. (For example, only the first javax.net.ssl.X509KeyManager in the array will be used.)
+>
+> Parameters:
+>     km - the sources of authentication keys or null
+>     tm - the sources of peer authentication trust decisions or null
+>     random - the source of randomness for this generator or null
+> Throws:
+>    KeyManagementException - if this operation fails
+
+
+Enfin la seule implémentation du `TrustManager` est le `X509TrustManager`, qu'il faut spécialiser pour tout accepter : le code ne vérifiera pas la chaine de certificats.
+
+```java
+public static class TrustAllX509TrustManager implements X509TrustManager {
+    public static final TrustAllX509TrustManager INSTANCE = new TrustAllX509TrustManager();
+
+    @Override
+    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+
+    @Override
+    public X509Certificate[] getAcceptedIssuers() {
+        return new X509Certificate[0];
+    }
+
+    public static TrustManager[] singleInstanceTrustManagerArray() {
+        return new TrustManager[]{INSTANCE};
+    }
+}
+```
+
+Avec ça on peut imaginer que notre code fonctionne, et bien non, il y a toujours une erreur lors de l'accès à notre wiremock : 
+
+```
+javax.net.ssl.SSLPeerUnverifiedException: Hostname localhost not verified:
+    certificate: sha256//W3v5TDAEE3dl4peiEwpwDKa1OZAna1ITgokQDz0rkQ=
+    DN: CN=Tom Akehurst, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+    subjectAltNames: []
+
+	at okhttp3.internal.connection.RealConnection.connectTls(RealConnection.java:308)
+	...
+```
+
+Tous les clients HTTPS ([RFC 2818](https://tools.ietf.org/html/rfc2818)) doivent en fait vérifier l'identité du serveur avec le hostname afin de prévenir les attaques _man-in-the-middle_ voir [§3.1 server identity](https://tools.ietf.org/html/rfc2818#section-3.1).
+
+Le problème ici est que ce certificat autosigné généré par wiremock ne fournit pas de nom alternatifs `subjectAltNames`.
+
+Avec le code équivalent avec du _vanilla_ Java : 
+
+```java
+// Autorise tous les certificats
+HttpsURLConnection.setDefaultSSLSocketFactory(trustAllSslContext().getSocketFactory());
+new URL("https://localhost:" + wireMock.httpsPort()).openConnection().connect();
+```
+
+Il faut ajouter un [`HostnameVerifier`](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/HostnameVerifier.html) qui ne vérifie rien, et de configurer `HttpsURLConnection` avant d'établir la connection :
+
+```java
+HostnameVerifier allHostsValid = (hostname, session) -> true;
+HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+```
+
+En appliquant le même `HostnameVerifier` au client OkHttp :
+
+```java
+public static HostnameVerifier allowAllHostNames() {
+    return (hostname, sslSession) -> true;
+}
+```
+
+```java
+new OkHttpClient.Builder().sslSocketFactory(trustAllSslContext().getSocketFactory(),
+                                            TrustAllX509TrustManager.INSTANCE)
+                          .hostnameVerifier(HttpClients.allowAllHostNames())
+                          .build()
+                          .newCall(new Request.Builder().get()
+                                                        .url("https://localhost:" + wireMock.httpsPort())
+                                                        .build())
+                          .execute();
+```
+
+Ce code fonctionnera, il est maintenant possible de se connecter à wiremock en HTTPS.
+
+En revanche, cette configuration ne doit pas être utilisée sur du code de production, car ce la revient à désactiver la sécurité sur toutes les connections SSL. Il faudra donc prévoir un mécanisme de configuration de connection SSL dans le code de production pour conserver des réglages sains en prod et relaxer la sécurité pour le serveur de test.
+
+À noter par exemple que cet exemple est pensé pour du back-end, mais ce sujet touche de près les applications mobile. Par exemple la [documentation Android](https://developer.android.com/training/articles/security-ssl.html#CommonHostnameProbs) explique très bien les soucis liés à la vérification du hostname.
+
+#### Faire confiance aux certificats autosigné
+
+Comment sait-on identifier un certificat auto-signé ? Lorsque OpenSSL se connecte sur le serveur HTTPS wiremock
+
+> `s_client` est une commande de OpenSSL qui fait office de client SSL/TLS.
+
+```sh
+echo -n | \
+        openssl s_client -connect localhost:8443 2>&1
+```
+
+Cette commande donne en retour plein de donnée intéressante :
+
+```
+CONNECTED(00000003)
+depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
+verify error:num=18:self signed certificate
+verify return:1
+depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
+verify return:1
+---
+Certificate chain
+ 0 s:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+   i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIDgzCCAmugAwIBAgIEHYkuTzANBgkqhkiG9w0BAQsFADBxMRAwDgYDVQQGEwdV
+bmtub3duMRAwDgYDVQQIEwdVbmtub3duMRAwDgYDVQQHEwdVbmtub3duMRAwDgYD
+VQQKEwdVbmtub3duMRAwDgYDVQQLEwdVbmtub3duMRUwEwYDVQQDEwxUb20gQWtl
+aHVyc3QwIBcNMTUwMjI0MTM1ODUwWhgPMjExNTAxMzExMzU4NTBaMHExEDAOBgNV
+BAYTB1Vua25vd24xEDAOBgNVBAgTB1Vua25vd24xEDAOBgNVBAcTB1Vua25vd24x
+EDAOBgNVBAoTB1Vua25vd24xEDAOBgNVBAsTB1Vua25vd24xFTATBgNVBAMTDFRv
+bSBBa2VodXJzdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAIAIvMUo
+vy4ufnWKxMU0tBdXqtX6RzKYgQvj/82qPAmRiNki8PpPGrF70Lb3WzsUDYB9CsXw
+m5VWc9l1XBdGh6zZVFkkSzBtRjyHy8Z8azsIv/YzQF5bRxE2Cvruh7o01Sq1qz5B
+kxt0u/NbUUErxKZeA0li1W/op7RC94h0dzob7auruHUvb56NXAJZcu8r2G9jxh9w
+WBPC6lSozuCzwfdS4v2ZOQBYpmMz9oJm3ElQUbOrhnVQtgxQicU2oDETwz37IIEw
+FV12la+qNIMSOTe6uJj1jEZP22NL2IYq06BT/ZnK6HYIOXAtwURSsf0MN0b8NKBB
+NOLQN2juRj+vn6UCAwEAAaMhMB8wHQYDVR0OBBYEFDZ6soXRxD/N2n5b++CVrWbr
+XLKWMA0GCSqGSIb3DQEBCwUAA4IBAQBiPfCUg7EHz8poRgZL60PzMdyaKLwafGtF
+dshmY1y9vzpPJIoFcIH7crSsmUcRk+XSj5WhSr4RT3y15JsfZy935057f0knEXEf
+or+Gi8BlDaC33qX+6twiAaub1inEDc028ZFtEwbzJQYgJo1GvLG2o2BMZB1C5F+k
+Nm9jawu4rTNtXktXloNhoxrSWtyEUoDAvGgBVnAJwQXcfayWq3AsCr9kpHI3bBwL
+J9NAGC4M8j7z9Aw71JGmwBDk1ooAO6L82W7DWBYPzpLXXeXmHRCxpujKWaveAV2T
+cgsQaCmzy29i+F03pLl7Vio4Ei+z9XQgZiN4Awiwz9D+lshnKuII
+-----END CERTIFICATE-----
+subject=/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+issuer=/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+---
+No client certificate CA names sent
+Peer signing digest: SHA512
+Server Temp Key: ECDH, P-256, 256 bits
+---
+SSL handshake has read 1387 bytes and written 434 bytes
+---
+New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-GCM-SHA256
+Server public key is 2048 bit
+Secure Renegotiation IS supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : ECDHE-RSA-AES128-GCM-SHA256
+    Session-ID: 59D642ED8CCB7F4219617B3739CB93E1C294F873854C2A284D28A77D674AC050
+    Session-ID-ctx: 
+    Master-Key: A43DF026E3FA620BC7CC5207D5BCB87828B7E3D673CFEEF12CAB425619B63610F443FB96FEC33CC50FBBAC73C152572B
+    Key-Arg   : None
+    PSK identity: None
+    PSK identity hint: None
+    SRP username: None
+    Start Time: 1507214061
+    Timeout   : 300 (sec)
+    Verify return code: 18 (self signed certificate)
+---
+DONE
+```
+
+Typiquement :
+
+```
+depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
+verify error:num=18:self signed certificate
+```
+
+La chaine de certificat avec, par certificat, la première ligne `s` qui indique le _sujet_ du certificat,
+et une deuxième ligne `i` qui indique l'_issuer_ du certificat.
+
+```
+Certificate chain
+ 0 s:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+   i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+```
+
+Enfin la session SSL rappelle le status de la vérification
+
+```
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : ECDHE-RSA-AES128-GCM-SHA256
+    ...
+    Verify return code: 18 (self signed certificate)
+```
+
+La vérification du certificat indique le code `18` et indique qu'il s'agit d'un certificat auto-signé. Plus précisement le [wiki openssl](https://wiki.openssl.org/index.php/Manual:Verify(1)) indique :
+
+> **18 X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT**: self signed certificate
+
+Une chaine avec une profondeur de 0 correspond en fait à un certificat non-signé
+
+Il est possible d'écrire un trust manager capable de vérifier les chaines de certificats usuelles et à la fois les certificats auto-signés. L'idée est donc d'écrie un trust manager qui délègue au système les chaines de certificats classiques mais qui a comportement spécial pour les certificats auto-signés.
+
+
+```java
+public static class TrustSelfSignedX509TrustManager implements X509TrustManager {
+    private X509TrustManager delegate;
+
+    private TrustSelfSignedX509TrustManager(X509TrustManager delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        delegate.checkClientTrusted(chain, authType);
+    }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        if (isSelfSigned(chain)) {
+            return;
+        }
+        delegate.checkServerTrusted(chain, authType);
+    }
+
+    private boolean isSelfSigned(X509Certificate[] chain) {
+        return chain.length == 1;
+    }
+
+    @Override
+    public X509Certificate[] getAcceptedIssuers() {
+        return delegate.getAcceptedIssuers();
+    }
+
+    public static X509TrustManager[] singletonArray(X509TrustManager delegate) {
+        return new X509TrustManager[]{new TrustSelfSignedX509TrustManager(delegate)};
+    }
+}
+```
+
+Il s'utilisera de la manière suivante : 
+
+```java
+public static SSLContext sslContext(KeyManager[] keyManagers, TrustManager[] trustManagers) {
+    try {
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagers,
+                        trustManagers,
+                        null);
+        return sslContext;
+    } catch (NoSuchAlgorithmException | KeyManagementException e) {
+        throw new IllegalStateException("Couldn't init TLS context", e);
+    }
+}
+
+public static X509TrustManager systemTrustManager() {
+    TrustManager[] trustManagers = systemTrustManagerFactory().getTrustManagers();
+    if (trustManagers.length != 1) {
+        throw new IllegalStateException("Unexpected default trust managers:"
+                                        + Arrays.toString(trustManagers));
+    }
+    TrustManager trustManager = trustManagers[0];
+    if (trustManager instanceof X509TrustManager) {
+        return (X509TrustManager) trustManager;
+    }
+    throw new IllegalStateException("'" + trustManager + "' is not a X509TrustManager");
+}
+
+private static TrustManagerFactory systemTrustManagerFactory() {
+    try {
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init((KeyStore) null);
+        return trustManagerFactory;
+    } catch (NoSuchAlgorithmException | KeyStoreException e) {
+        throw new IllegalStateException("Can't load default trust manager algorithm", e);
+    }
+}
+```
+
+```java
+X509TrustManager trustManager = TrustSelfSignedX509TrustManager.wrap(systemTrustManager());
+new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new X509TrustManager[] { trustManager }).getSocketFactory(),
+                                            trustManager)
+                          .hostnameVerifier(allowAllHostname())
+                          .build()
+                          .newCall(new Request.Builder().get()
+                                                        .url("https://localhost:" + wireMock.httpsPort())
+                                                        .build())
+                          .execute();
+```
+
+
+Bien que celà fonctionne la même mise en garde sur la mise en prod d'un tel code. Il n'est pas improbable que certains server n'expose qu'un certificat auto-signé. Il peut donc être intéréssant d'aller plus loin dans la vérification de ce certificat. Ce code peut donc être poussé pour vérfier le certificat.
+
+```java
+if (isSelfSigned(chain)) {
+    return;
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------------------------------------
+
+https://security.stackexchange.com/questions/107240/how-to-read-certificate-chains-in-openssl
+https://security.stackexchange.com/questions/72077/validating-an-ssl-certificate-chain-according-to-rfc-5280-am-i-understanding-th/72085#72085
 
 
 
@@ -206,27 +624,6 @@ Avec ce contexte on peut initialiser la majeure partie des clients HTTP.
 
 
 
-
-Attention la javadoc de `SSLContext#init` indique que seul le premier élément du tableau sera utilisé.
-
-> ```
-> javax.net.ssl.SSLContext
-> public final void init(KeyManager[] km,
->                       TrustManager[] tm,
->                       SecureRandom random)
->                throws KeyManagementException
-> ```
->
-> Initializes this context. Either of the first two parameters may be null in which case the installed security providers will be searched for the highest priority implementation of the appropriate factory. Likewise, the secure random parameter may be null in which case the default implementation will be used.
->
-**Only the first instance** of a particular key and/or trust manager implementation type in the array is used. (For example, only the first javax.net.ssl.X509KeyManager in the array will be used.)
->
-> Parameters:
->     km - the sources of authentication keys or null
->     tm - the sources of peer authentication trust decisions or null
->     random - the source of randomness for this generator or null
-> Throws:
->    KeyManagementException - if this operation fails
 
 
 
