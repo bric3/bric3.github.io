@@ -95,7 +95,7 @@ public static SSLContext trustAllSslContext() {
     try {
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(null,
-                        TrustAllX509TrustManager.singleInstanceTrustManagerArray(),
+                        TrustAllX509TrustManager.ARRAY_INSTANCE,
                         null);
         return sslContext;
     } catch (NoSuchAlgorithmException | KeyManagementException e) {
@@ -130,7 +130,8 @@ Enfin la seule implémentation du `TrustManager` est le `X509TrustManager`, qu'i
 
 ```java
 public static class TrustAllX509TrustManager implements X509TrustManager {
-    public static final TrustAllX509TrustManager INSTANCE = new TrustAllX509TrustManager();
+    public static final X509TrustManager INSTANCE = new TrustAllX509TrustManager();
+    public static final X509TrustManager[] ARRAY_INSTANCE = new X509TrustManager[]{INSTANCE};
 
     @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
@@ -141,10 +142,6 @@ public static class TrustAllX509TrustManager implements X509TrustManager {
     @Override
     public X509Certificate[] getAcceptedIssuers() {
         return new X509Certificate[0];
-    }
-
-    public static TrustManager[] singleInstanceTrustManagerArray() {
-        return new TrustManager[]{INSTANCE};
     }
 }
 ```
@@ -191,7 +188,7 @@ public static HostnameVerifier allowAllHostNames() {
 ```java
 new OkHttpClient.Builder().sslSocketFactory(trustAllSslContext().getSocketFactory(),
                                             TrustAllX509TrustManager.INSTANCE)
-                          .hostnameVerifier(HttpClients.allowAllHostNames())
+                          .hostnameVerifier(allowAllHostNames())
                           .build()
                           .newCall(new Request.Builder().get()
                                                         .url("https://localhost:" + wireMock.httpsPort())
@@ -205,7 +202,7 @@ En revanche, cette configuration ne doit pas être utilisée sur du code de prod
 
 À noter par exemple que cet exemple est pensé pour du back-end, mais ce sujet touche de près les applications mobile. Par exemple la [documentation Android](https://developer.android.com/training/articles/security-ssl.html#CommonHostnameProbs) explique très bien les soucis liés à la vérification du hostname.
 
-#### Faire confiance aux certificats autosigné
+#### Faire confiance aux certificats autosignés
 
 Comment sait-on identifier un certificat auto-signé ? Lorsque OpenSSL se connecte sur le serveur HTTPS wiremock
 
@@ -349,7 +346,7 @@ public static class TrustSelfSignedX509TrustManager implements X509TrustManager 
         return delegate.getAcceptedIssuers();
     }
 
-    public static X509TrustManager[] singletonArray(X509TrustManager delegate) {
+    public static X509TrustManager[] wrap(X509TrustManager delegate) {
         return new X509TrustManager[]{new TrustSelfSignedX509TrustManager(delegate)};
     }
 }
@@ -414,6 +411,125 @@ if (isSelfSigned(chain)) {
     return;
 }
 ```
+
+
+## Comment supporter des certificats auto-signés dans du code de production ?
+
+Que faire si le code de production doit faire confiance à un serveur dont le certificat est auto-signé ?
+
+Dans le cas d'un certificat auto-signé, la JVM n'est pas capable d'accorder de la confiance à ce certificat parce que aucune autorité de certification (les _CA_) n'a signé / émis ce dit certificat. Pour remédier à ça il faut _installer_ ce certificat.
+
+Avant de l'installer toutefois, il faut le récupérer.
+
+### Récupération du certificat auto-signé
+
+À l'établissement de la connection TLS, plus précisement durant la phase de négociation, le serveur envoie ses certificats.
+
+Il est possible de les récupérer au format `PEM` avec `openssl`.
+
+```sh
+echo -n | \
+  /usr/local/opt/libressl/bin/openssl s_client -prexit -connect host:port 2>&1 | \
+  /usr/local/opt/libressl/bin/openssl x509 \
+  > certificate-host.pem
+```
+
+On indique au client ssl de `openssl` d'établir la connection sur `host:port` puis le résultat est passé à la commande `x509` pour décoder le certificat (à la norme x509) afin de l'extraire sous la forme du format PEM. On peut assui 
+
+```sh
+echo -n | \
+  /usr/local/opt/libressl/bin/openssl s_client -connect host:port 2>&1 | \
+  /usr/local/opt/libressl/bin/openssl x509 -text
+```
+
+Le format PEM étant encodé, il est possible de les _ouvrir_ avec soit `openssl` ou `keytool` l'outils de la JVM.
+
+```sh
+keytool -printcert -file certificate-host.pem
+openssl x509 -in certificate-host.pem -text
+```
+
+### Utilisation du certificat autosigné sur la JVM
+
+#### En installant le certificat dans le _cacerts_ de la JVM
+
+La JVM vient avec un dossier `cacerts` qui représente les _certificats des autorités de certification_. Le certificat auto-signé n'a pas été signé / émis par une de ces autorités, mais étant donné qu'il se signe lui-même, il est possible de l'installer dans le répertoire de la JVM avec l'outils `keytool`. En fonction des permissions il faudra passer cette commande avec `sudo`. Le mot de passe par défaut du keystore de la JVM est `changeit`.
+
+```sh
+# Nous n'éxecuterons pas cette commande
+keytool -import -alias wiremock -file wiremock.pem -keystore $JAVA_HOME/jre/lib/security/cacerts
+```
+
+En supposant le certificat d'un serveur wiremock ait été récupéré dans le fichier `wiremock.pem` (au format **PEM** donc), cette commande l'importera avec l'alias `wiremock` dans le _keystore_ `cacerts` (fichier du JRE). 
+
+> Il également est possible de regarder le contenu du store `cacerts` :
+> 
+> ```sh
+> keytool -list -keystore $JAVA_HOME/jre/lib/security/cacerts
+> ```
+> 
+> On y retrouvera notre certificat `wiremock` à coté de ceux de Verisign, Digital Certs, Geo Trust, etc.
+
+Une fois celà fait, le code suivant se connectera sans problème au serveur wiremock ayant ce certificat auto-signé.
+
+```java
+new OkHttpClient.Builder().hostnameVerifier(allowAllHostNames())
+                          .build()
+                          .newCall(new Request.Builder().get()
+                                                        .url("https://localhost:8443")
+                                                        .build())
+                          .execute();
+```
+
+À noter que dans ce cas il y a toujours besoin d'un _hostname verifier_ car le certificat de wiremock ne permet pas de valider que le hostname _localhost_ ou de ses IPs associées correspond à ce certificat.
+
+En revanche cette étape demande une modification de la configuration de l'installation de JVM. Il y a moyen de mieux faire.
+
+
+
+#### En utilisant un truststore aternatif
+
+Avec cette approche un truststore alternatif est créé avec le même `keytool` :
+
+À noter que le **certificat** au format `PEM` sera stockée dans un **key** store. L'extension `jks` vient du type de keystore, et correspond à Java Key Store.
+
+```sh
+# Creates local truststore, the tool will ask for a password and if the certificate can be trusted
+keytool -import -alias wiremock -file wiremock.pem -keystore ./wiremock-truststore.jks
+```
+
+Le certificat est toujours au format PEM et sera stocké dans un fichier keystore `wiremock-truststore.jks` de type `jks` (pour Java Key Store).
+
+> Plutot que de rentrer _interractivement_ le mot de passe, en ajoutant `-noprompt` et `-storepass <password>` on peut créer ce keystore sans interation.
+
+```sh
+# Create the truststore without user interaction
+keytool -import -noprompt -storepass changeit -alias wiremock -file wiremock.pem -keystore ./wiremock-truststore.jks
+```
+
+
+Ensuite il faut lancer le programme java en passant les options 
+
+* `-Djavax.net.ssl.trustStore=./wiremock-truststore.jks`
+* `-Djavax.net.ssl.trustStorePassword=changeit`
+
+```sh
+java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit SSLConnect localhost 8443
+```
+
+`SSLConnect` est le programme sensé établir la connection au serveur wiremock, c'est le code OkHttp vu plus haut. S'il n'y a pas d'erreur SSL, alors le truststore alternatif contenant le certificat autosigné a bien été utilisé.
+
+
+En revanche en gardant si un programme java doit se connecter à ce serveur alternatif, mais aussi à un autre site ayant lui des certificat d'autorités connues par exemple google, le programme lèvera une `SSLHandshakeException`
+
+```sh
+java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit SSLConnect google.com 443
+```
+
+Sans le truststore `java SSLConnect google.com 443`, la connection est établie avec succès.
+
+Cette approche n'est donc pas sans défaut, car les options de la JVM changent le truststore global de cette instance de la JVM, en fonction des besoins du programme ce ne sera peut-être pas une solution acceptable.
+
 
 
 
@@ -537,7 +653,7 @@ Nous ne voulons pas changer les paramètres de la JVM, par conséquent nous ne r
 keytool -import -alias host -file host.pem -keystore $JAVA_HOME/jre/lib/security/cacerts
 ```
 
-En revanche nous voulons créer un truststore alternatif, our cela nous utilisons `keytool` un outils du JDK pour gérer
+En revanche nous voulons créer un truststore alternatif, pour cela nous utilisons `keytool` un outils du JDK pour gérer
 clés et certificats.
 
 À noter que le **certificat** au format `pem` sera stocké dans un **key** store. L'extension `jks` vient du type de keystore, et correspond à Java Key Store.
@@ -547,7 +663,7 @@ clés et certificats.
 keytool -import -alias host -file host.pem -keystore host-truststore.jks
 ```
 
-Ce java keystore peut être créé sans interation
+Ce java keystore peut être créé sans interation de l'utilisateur dans le terminal
 
 ```sh
 # Create the truststore without user interaction
