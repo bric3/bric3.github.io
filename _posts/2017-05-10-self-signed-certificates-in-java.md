@@ -680,7 +680,7 @@ Cette approche n'est donc pas non plus sans défaut, car les options de la JVM c
 le truststore global de cette instance de la JVM, en fonction des besoins du programme 
 ce ne sera peut-être pas une solution acceptable.
 
-#### Utiliser programmatiquement le certificat auto-signé
+#### En utilisant programmatiquement le certificat auto-signé
 
 ##### À partir d'un truststore JKS
 
@@ -738,7 +738,7 @@ Enfin il faut initiliser le client OkHttp avec la socket factory
 X509TrustManager trustManager = trustManagerFor(readJavaKeyStore(Paths.get("./wiremock-truststore.jks"), "changeit"));
 new OkHttpClient.Builder()
         .sslSocketFactory(sslContext(null, new TrustManager[]{trustManager}).getSocketFactory(),
-                            trustManager)
+                          trustManager)
         .hostnameVerifier(allowAllHostNames())
         .build()
         .newCall(new Request.Builder().get()
@@ -752,11 +752,11 @@ Avec ce contexte on peut initialiser la majeure partie des clients HTTP.
 ##### À partir du certificat au format `PEM`
 
 Le code suivant va créer un keystore en mémoire qui va acceuillir le certificat 
-X.509 (c'est à dire le certificat extrait depuis la commande `openssl x509 -text`).
+X.509 (c'est à dire le certificat extrait depuis la commande `openssl x509 -outform pem`).
 
 ```java
-public static KeyStore makeJavaKeyStore(Path pemCertificatePath, String password) {
-    try (BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(pemCertificatePath))) {
+public static KeyStore makeJavaKeyStore(Path certificatePath) {
+    try (BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(certificatePath))) {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -770,14 +770,14 @@ public static KeyStore makeJavaKeyStore(Path pemCertificatePath, String password
     } catch (IOException e) {
         throw new UncheckedIOException(e);
     } catch (CertificateException e) {
-        throw new IllegalStateException("Can't load certificate : " + pemCertificatePath, e);
+        throw new IllegalStateException("Can't load certificate : " + certificatePath, e);
     } catch (KeyStoreException | NoSuchAlgorithmException e) {
-        throw new IllegalStateException("Can't create the internal keystore for certificate : " + pemCertificatePath, e);
+        throw new IllegalStateException("Can't create the internal keystore for certificate : " + certificatePath, e);
     }
 }
 ```
 
-**Poour rappel  :**
+**Pour rappel  :**
 
 > La javadoc de la méthode [`CertificateFactory.generateCertificate(InputStream)`](https://docs.oracle.com/javase/8/docs/api/java/security/cert/CertificateFactory.html#generateCertificate-java.io.InputStream-) 
 > indique précisément que le format supporté doit être **X.509** 
@@ -792,6 +792,145 @@ public static KeyStore makeJavaKeyStore(Path pemCertificatePath, String password
 > printable (Base64) encoding. If the certificate is provided in Base64 encoding, 
 > it must be bounded at the beginning by -----BEGIN CERTIFICATE-----, and must be 
 > bounded at the end by -----END CERTIFICATE-----.
+
+Il suffira de créer un trust manager avec le KeyStore créé par cette méthode :
+
+```java
+X509TrustManager trustManager = trustManagerFor(makeJavaKeyStore(Paths.get("./wiremock.pem")));
+new OkHttpClient.Builder()
+        .sslSocketFactory(sslContext(null, new TrustManager[]{trustManager}).getSocketFactory(),
+                          trustManager)
+        .hostnameVerifier(allowAllHostNames())
+        .build()
+        .newCall(new Request.Builder().get()
+                                        .url("https://localhost:8443")
+                                        .build())
+        .execute();
+```
+
+
+### En utilisant à la fois la chaine de confiance existante et le certificat autosigné
+
+Si le client HTTPS doit se connecter à la fois à des tiers ayant une chaine de 
+confiance remontant à une autorité connue et à un ou des tiers ayant un certificat
+autosigné.
+
+L'idée est simple, on peut fabriquer un trust manager composite qui va déléguer 
+la validation aux trust managers configurés.
+
+```java
+public class CompositeX509TrustManager implements X509TrustManager {
+    private final List<X509TrustManager> trustManagers;
+
+    public CompositeX509TrustManager(X509TrustManager... trustManagers) {
+        this.trustManagers = Arrays.asList(trustManagers);
+    }
+
+    @Override
+    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        new MultiException<>(new CertificateException("This certification chain couldn't be trusted"))
+                .collectFrom(trustManagers.stream(),
+                             trustManager -> trustManager.checkClientTrusted(chain, authType))
+                .scream(UNLESS_ANY_SUCCESS);
+    }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        new MultiException<>(new CertificateException("This certification chain couldn't be trusted"))
+                .collectFrom(trustManagers.stream(),
+                             trustManager -> trustManager.checkServerTrusted(chain, authType))
+                .scream(UNLESS_ANY_SUCCESS);
+    }
+
+    @Override
+    public X509Certificate[] getAcceptedIssuers() {
+        return trustManagers.stream()
+                            .map(X509TrustManager::getAcceptedIssuers)
+                            .flatMap(Arrays::stream)
+                            .toArray(X509Certificate[]::new);
+    }
+}
+```
+
+`MultiException` est un petit utilitaire qui me permet de collecter plusieurs 
+exceptions remontées par une variété d'appels, et de ne lever qu'une seule 
+exception (parente), ce mécanisme utilise `Throwable.addSuppressed` ajouté 
+en Java 1.7 pour supporter les blocs _try-with-resources_.
+
+```java
+public class MultiException<E extends Exception> {
+    private final E parent;
+    private boolean successMarker = false;
+
+    public MultiException(E parent, Exception... exceptions) {
+        this.parent = parent;
+        Arrays.stream(exceptions).forEach(parent::addSuppressed);
+    }
+
+    public <T> MultiException<E> collectFrom(Stream<T> stream, ThrowingConsumer<T> invocation) {
+        stream.forEach(t -> collect(t, invocation).ifPresent(parent::addSuppressed));
+        return this;
+    }
+
+    private <T> Optional<Exception> collect(T type, ThrowingConsumer<T> throwing) {
+        try {
+            throwing.accept(type);
+
+            successMarker = true;
+            return Optional.empty();
+        } catch (Exception e) {
+            return Optional.of(e);
+        }
+    }
+
+    public void scream(Mode mode) throws E {
+        if (Mode.UNLESS_ANY_SUCCESS == mode && successMarker) {
+            return;
+        }
+        if (parent.getSuppressed().length > 0) {
+            throw parent;
+        }
+    }
+
+    @FunctionalInterface
+    public interface ThrowingConsumer<T> {
+        void accept(T type) throws Exception;
+    }
+
+    public enum Mode {
+        UNLESS_ANY_SUCCESS,
+        ANY_FAILURE
+    }
+}
+```
+
+Ce gestionaire composite s'utilisera de cette façon :
+
+```java
+X509TrustManager compositeTrustManager = new CompositeX509TrustManager(
+        trustManagerFor(makeJavaKeyStore(Paths.get("./wiremock.pem"))),
+        systemTrustManager());
+OkHttpClient okHttpClient = httpClient(sslContext(null,
+                                                  new TrustManager[]{compositeTrustManager}),
+                                        compositeTrustManager)
+        .newBuilder()
+        .hostnameVerifier(allowAllHostname())
+        .build();
+```
+
+Ce client pourra éxécuter sans problèmes des requêtes sur des serveurs dont les autorités
+de certifications sont connus et sur des serveurs ayant une chaine de certification
+plus obscure.
+
+
+
+
+
+
+
+
+
+
 
 
 
