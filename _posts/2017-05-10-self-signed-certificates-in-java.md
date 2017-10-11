@@ -5,27 +5,24 @@ date: 2017-05-10
 published: false
 tags:
 - ssl
+- tls
 - https
 - java
 - okhttp
 - openssl
-- libressl
 - trustmanager
 - certificate authority
-- self-signed certificates
-- auto-signé certificats
+- self-signed certificate
+- certificat auto-signé
 author: Brice Dutheil
 ---
 
-Requirement, il faut écrire un test pour un service exposé en HTTPS. Le test utilisera un server HTTP mocké comme wiremock, mock-server, etc.
-Celui-ci exposera un port HTTPS.
+Nouveau requirement: votre application doit se connecter à un serveur HTTPS. 
+Normalement pas de problème, l'URI aura la forme `https://authority/path`, 
+en craftman on se dit qu'il faudrait faire un test unitaire.
 
-## En test
-
-Tout part de wiremock en HTTPS, au premier usage du serveur de mock le client HTTP 
-se plain d'une erreur SSL.
-
-### Reproduire le problème
+Le code suivant utilise **wiremock**, le test va juste vérifier que le 
+client se connecte sans problème.
 
 ```java
 public class WireMockSSLTest {
@@ -37,14 +34,15 @@ public class WireMockSSLTest {
     public void ssl_poke() throws IOException {
         new OkHttpClient.Builder().build()
                                   .newCall(new Request.Builder().get()
-                                                                .url("https://localhost:" + wireMock.httpsPort())
+                                                                .url("https://localhost:" 
+                                                                     + wireMock.httpsPort())
                                                                 .build())
                                   .execute();
     }
 }
 ```
 
-Ce code lève l'exception suivante
+Ce code lève l'exception suivante:
 
 ```
 javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
@@ -57,15 +55,60 @@ Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to
 	... 16 more
 ```
 
-Comment comprendre cette stacktrace : ce serveur expose un certificat, mais le client n'arrive pas à remonter la chaine des certificats jusqu'à une **autorité** connue pour le vérifier. **C'est un certificat auto-signé.**
+Que dit cette exception : 
+
+* `SSLHandshakeException` : il s'agit d'une erreur de négocation SSL
+* `ValidatorException: PKIX path building failed` : le client n'arrive pas à 
+  construire la _chaine_ des certificats en suivant la norme **PKIX**
+
+Autrement dit, ce serveur (wiremock) expose un certificat, mais le client n'arrive 
+pas à remonter la chaine des certificats jusqu'à une **autorité** connue pour le 
+vérifier. En effet **il s'agit d'un certificat auto-signé**.
+
+Dans cet article, nous allons voir les différentes approches pour gérer un 
+**certificat auto-signé**.
+
+## Bref rappel sur SSL, enfin plutôt TLS ?
+
+Qaund on parle de _SSL_ aujourd'hui, on fait l'amalgmae de deux protocoles, TLS et son prédécésseur SSL.
+
+* SSL est l'acronyme de **S**ecure **S**ockets **L**ayer, ce protocole a été développé 
+  par **Netscape** (pour ceux qui se rappellent du navigateur concurrent de Internet Explorer).
+  La dernière version SSLv3 est considérée comme dépréciée depuis 2015.
+* TLS est l'acronyme de **T**ransport **L**ayer **S**ecurity, ce protocole est le successeur 
+  direct du protocole SSLv3 mais ils sont cependant incompatible entre eux.
+
+[[source]](https://en.wikipedia.org/wiki/Transport_Layer_Security)
+
+Ce que fait TLS c'est de s'assurer que le communication entre deux peer soit sécurisée.
+TLS [s'appuit notamment sur **PKIX**](https://tools.ietf.org/html/rfc5246#section-7) 
+([**P**ublic **K**ey **I**nfrastrcture **X**.509](https://tools.ietf.org/html/rfc5280)) 
+et que l'identité du serveur est bien celui qu'il prétend être (grâce à son certificat)
+et à celui d'un tier de confiance. En général il s'agit d'une chaine de confiance.
+
+Par exemple :
+
+> À la connection sur https://github.com, en premier il faut vérifier le certificat 
+> de github, regarder qui a signé ce certificat, vérifier le certificat du signataire
+> et ainsi de suite jusqu'à finir sur un certificat d'un tier de confiance, en 
+> général ce dernier certificat est celui d'une autorité de certification.
+
+Ces certificats appelés certificats **X.509** portent des informations comme le 
+nom du serveur, le nom du signataire, la signature, etc.
+
+Un certificat peut-être sauvé dans un fichier encodé soit au format binaire `DER`
+soit encodé au format US-ASCII `PEM`.
+
+> À noter l'extension `CRT` correspond au certificat qu'il soit encodé au format 
+> `DER` ou au format `PEM`. L'extension `CER` est une forme alternative de microsoft.
 
 
-### Fixer le problème du test
+## Fixer le code pour que le test passe
 
-#### Faire confiance à tout le monde
+### Faire confiance à tout le monde
 
-Pour accepter ce certificat auto-signé, on peut par exemple configurer notre socket SSL pour accepter tous les certificats.
-
+Pour accepter ce certificat auto-signé, il est possible de configurer la 
+socket SSL pour accepter tous les certificats. 
 
 ```java
 public class WireMockSSLTest {
@@ -75,36 +118,43 @@ public class WireMockSSLTest {
 
     @Test
     public void ssl_poke() throws IOException {
-        new OkHttpClient.Builder().sslSocketFactory(trustAllSslContext().getSocketFactory(),
+        new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new TrustManager[] {TrustAllX509TrustManager.INSTANCE}).getSocketFactory(),
                                                     TrustAllX509TrustManager.INSTANCE)
                                   .build()
                                   .newCall(new Request.Builder().get()
-                                                                .url("https://localhost:" + wireMock.httpsPort())
+                                                                .url("https://localhost:" 
+                                                                     + wireMock.httpsPort())
                                                                 .build())
                                   .execute();
     }
 }
 ```
 
-Pour faire ce code il faut créer un contexte SSL pour une connection de type **TLS**, et
-passer un _trust manager_. Le role du trust manager est de vérifier si cette connection est 
-fiable à partir de la chaine de certificat de cette connection.
+OkHttp prend en paramètre une factory de socket SSL, ce contexte SSL devra être 
+initialisé avec un gestionnaire de confiance personnalisé pour accepter 
+n'importe quel certificat. Pour fluidifier la lecture du code la création du 
+contexte SSL est faite à part.
 
 ```java
-public static SSLContext trustAllSslContext() {
+public static SSLContext sslContext(KeyManager[] keyManagers, TrustManager[] trustManagers) {
     try {
         SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null,
-                        TrustAllX509TrustManager.ARRAY_INSTANCE,
+        sslContext.init(keyManagers,
+                        trustManagers,
                         null);
         return sslContext;
     } catch (NoSuchAlgorithmException | KeyManagementException e) {
-        throw new IllegalStateException("Couldn't init TLS with trust all X509 manager", e);
+        throw new IllegalStateException("Couldn't init TLS context", e);
     }
 }
 ```
 
-La javadoc de la méthode [`SSLContext#init`](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/SSLContext.html#init-javax.net.ssl.KeyManager:A-javax.net.ssl.TrustManager:A-java.security.SecureRandom-) indique que seul le premier élément du tableau sera utilisé, pour cette raison nous ne créons qu'un seul trust manager.
+Le l'architecture du code de cryptographie en Java est très générique, 
+ce qui soulève certaines questions sur ces APIs, par exemple pourquoi la méthode 
+`SSLContext#init` force l'utilisation de tableaux.
+Dans ce cas précis la javadoc de la méthode [`SSLContext#init`](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/SSLContext.html#init-javax.net.ssl.KeyManager:A-javax.net.ssl.TrustManager:A-java.security.SecureRandom-) 
+indique que seul le premier élément du tableau sera utilisé, pour cette raison 
+le code plus haut passe un tableau d'un seul élément.
 
 > ```
 > javax.net.ssl.SSLContext
@@ -112,11 +162,15 @@ La javadoc de la méthode [`SSLContext#init`](https://docs.oracle.com/javase/8/d
 >                       TrustManager[] tm,
 >                       SecureRandom random)
 >                throws KeyManagementException
-> ```
 >
-> Initializes this context. Either of the first two parameters may be null in which case the installed security providers will be searched for the highest priority implementation of the appropriate factory. Likewise, the secure random parameter may be null in which case the default implementation will be used.
+> Initializes this context. Either of the first two parameters may be null in which 
+> case the installed security providers will be searched for the highest priority 
+> implementation of the appropriate factory. Likewise, the secure random parameter 
+> may be null in which case the default implementation will be used.
 >
-> **Only the first instance** of a particular key and/or trust manager implementation type in the array is used. (For example, only the first javax.net.ssl.X509KeyManager in the array will be used.)
+> **Only the first instance** of a particular key and/or trust manager implementation 
+> type in the array is used. (For example, only the first javax.net.ssl.X509KeyManager 
+> in the array will be used.)
 >
 > Parameters:
 >     km - the sources of authentication keys or null
@@ -124,20 +178,28 @@ La javadoc de la méthode [`SSLContext#init`](https://docs.oracle.com/javase/8/d
 >     random - the source of randomness for this generator or null
 > Throws:
 >    KeyManagementException - if this operation fails
+> ```
 
+L'interface `TrustManager` est une interface vide, mais étant donné qu'il s'agit 
+d'un gestionaire de confiance pour TLS, et que la spécification est uniquement 
+basé sur PKIX (X.509), la seule implémentation sera du type `X509TrustManager`,
+interface qui défini les méthodes nécéssaires pour procéder à la vérification
+des certificats.
 
-Enfin la seule implémentation du `TrustManager` est le `X509TrustManager`, qu'il faut spécialiser pour tout accepter : le code ne vérifiera pas la chaine de certificats.
+Pour cette approche le gestionnaire de confiance acceptera tous les certificats,
+il ne procède à aucune vérification de la chaine de certificats.
 
 ```java
 public static class TrustAllX509TrustManager implements X509TrustManager {
     public static final X509TrustManager INSTANCE = new TrustAllX509TrustManager();
-    public static final X509TrustManager[] ARRAY_INSTANCE = new X509TrustManager[]{INSTANCE};
 
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+    public void checkClientTrusted(X509Certificate[] chain, String authType) 
+    throws CertificateException { }
 
     @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException { }
+    public void checkServerTrusted(X509Certificate[] chain, String authType) 
+    throws CertificateException { }
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {
@@ -146,7 +208,8 @@ public static class TrustAllX509TrustManager implements X509TrustManager {
 }
 ```
 
-Avec ça on peut imaginer que notre code fonctionne, et bien non, il y a toujours une erreur lors de l'accès à notre wiremock : 
+Avec ça le code est censé fonctionner, mais il y a toujours une erreur lors de 
+l'accès à notre serveur wiremock : 
 
 ```
 javax.net.ssl.SSLPeerUnverifiedException: Hostname localhost not verified:
@@ -158,11 +221,50 @@ javax.net.ssl.SSLPeerUnverifiedException: Hostname localhost not verified:
 	...
 ```
 
-Tous les clients HTTPS ([RFC 2818](https://tools.ietf.org/html/rfc2818)) doivent en fait vérifier l'identité du serveur avec le hostname afin de prévenir les attaques _man-in-the-middle_ voir [§3.1 server identity](https://tools.ietf.org/html/rfc2818#section-3.1).
+En effet, le code du dessus addresse la question de confiance pour la _couche_ TLS.
+Mais en HTTPS, tous les client doivent en fait vérifier l'identité du serveur avec 
+le hostname ([RFC 2818](https://tools.ietf.org/html/rfc2818#section-3.1)) ceci 
+afin de prévenir les attaques _man-in-the-middle_.
 
-Le problème ici est que ce certificat autosigné généré par wiremock ne fournit pas de nom alternatifs `subjectAltNames`.
+Dans ce cas précis le certificat auto-signé de wiremock ne fournit pas de noms 
+alternatifs `subjectAltNames` qui correspondent soit à `localhost` soit aux IPs
+locales.
 
-Avec le code équivalent avec du _vanilla_ Java : 
+Il est possible d'écrire un `HostnameVerifier` qui accepte tous les hostnames :
+
+```java
+public static HostnameVerifier allowAllHostNames() {
+    return (hostname, sslSession) -> true;
+}
+```
+
+```java
+new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new TrustManager[] {TrustAllX509TrustManager.INSTANCE}).getSocketFactory(),
+                                                    TrustAllX509TrustManager.INSTANCE)
+                          .hostnameVerifier(allowAllHostNames())
+                          .build()
+                          .newCall(new Request.Builder().get()
+                                                        .url("https://localhost:" + wireMock.httpsPort())
+                                                        .build())
+                          .execute();
+```
+
+Ce code fonctionnera, il est maintenant possible de se connecter à wiremock en HTTPS.
+
+En revanche, cette configuration ne doit pas être utilisée sur du code de production, 
+car ce la revient à désactiver la sécurité sur toutes les connections SSL. 
+Il faudra donc prévoir un mécanisme de configuration de connection SSL dans le 
+code de production pour conserver des réglages sains en prod et relaxer la sécurité 
+pour le serveur de test.
+
+À noter par exemple que cet exemple est pensé pour du back-end, mais ce sujet 
+touche de près les applications mobiles. Par exemple la 
+[documentation Android](https://developer.android.com/training/articles/security-ssl.html#CommonHostnameProbs) 
+explique très bien les soucis liés à la vérification du hostname.
+
+#### Vanilla Java
+
+Pour ceux que ça intéresse le code équivalent en configurant `HttpsUrlConnection` :
 
 ```java
 // Autorise tous les certificats
@@ -175,45 +277,25 @@ Il faut ajouter un [`HostnameVerifier`](https://docs.oracle.com/javase/8/docs/ap
 ```java
 HostnameVerifier allHostsValid = (hostname, session) -> true;
 HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+HttpsURLConnection.setDefaultSSLSocketFactory(trustAllSslContext().getSocketFactory());
+new URL("https://localhost:" + wireMock.httpsPort()).openConnection().connect();
 ```
 
-En appliquant le même `HostnameVerifier` au client OkHttp :
 
-```java
-public static HostnameVerifier allowAllHostNames() {
-    return (hostname, sslSession) -> true;
-}
-```
+### Faire confiance aux certificats autosignés
 
-```java
-new OkHttpClient.Builder().sslSocketFactory(trustAllSslContext().getSocketFactory(),
-                                            TrustAllX509TrustManager.INSTANCE)
-                          .hostnameVerifier(allowAllHostNames())
-                          .build()
-                          .newCall(new Request.Builder().get()
-                                                        .url("https://localhost:" + wireMock.httpsPort())
-                                                        .build())
-                          .execute();
-```
+Plutôt que d'_éteindre_ la sécurité, une approche plus fine serait de désactiver
+la vérification uniquement pour un certificat aut-signé. Mais comment sait-on 
+identifier un certificat auto-signé ?
 
-Ce code fonctionnera, il est maintenant possible de se connecter à wiremock en HTTPS.
-
-En revanche, cette configuration ne doit pas être utilisée sur du code de production, car ce la revient à désactiver la sécurité sur toutes les connections SSL. Il faudra donc prévoir un mécanisme de configuration de connection SSL dans le code de production pour conserver des réglages sains en prod et relaxer la sécurité pour le serveur de test.
-
-À noter par exemple que cet exemple est pensé pour du back-end, mais ce sujet touche de près les applications mobile. Par exemple la [documentation Android](https://developer.android.com/training/articles/security-ssl.html#CommonHostnameProbs) explique très bien les soucis liés à la vérification du hostname.
-
-#### Faire confiance aux certificats autosignés
-
-Comment sait-on identifier un certificat auto-signé ? Lorsque OpenSSL se connecte sur le serveur HTTPS wiremock
-
-> `s_client` est une commande de OpenSSL qui fait office de client SSL/TLS.
+En se connectant avec OpenSSL sur le serveur HTTPS wiremock avec la sous-commande
+`s_client` qui fait office de client SSL/TLS.
 
 ```sh
-echo -n | \
-        openssl s_client -connect localhost:8443 2>&1
+echo -n | openssl s_client -connect localhost:8443 2>&1
 ```
 
-Cette commande donne en retour plein de donnée intéressante :
+Cette commande donne en retour plein de donnée intéressantes :
 
 ```
 CONNECTED(00000003)
@@ -288,8 +370,18 @@ depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = 
 verify error:num=18:self signed certificate
 ```
 
-La chaine de certificat avec, par certificat, la première ligne `s` qui indique le _sujet_ du certificat,
-et une deuxième ligne `i` qui indique l'_issuer_ du certificat.
+La vérification du certificat indique le code `18` et indique qu'il s'agit d'un 
+certificat auto-signé. Plus précisement le [wiki openssl](https://wiki.openssl.org/index.php/Manual:Verify(1)) 
+indique :
+
+> **18 X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT**: self signed certificate
+
+Donc une chaine avec une profondeur de `0` correspond en fait à un certificat non-signé
+
+Il y a aussi la chaine de certificat elle même avec, pour chaque certificat, la 
+première ligne **`s`** qui indique le _sujet_ du certificat, et une deuxième 
+ligne **`i`** qui indique l'_issuer_ du certificat. Le chiffre indique la _profondeur_
+du certificat.
 
 ```
 Certificate chain
@@ -297,24 +389,9 @@ Certificate chain
    i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
 ```
 
-Enfin la session SSL rappelle le status de la vérification
-
-```
-SSL-Session:
-    Protocol  : TLSv1.2
-    Cipher    : ECDHE-RSA-AES128-GCM-SHA256
-    ...
-    Verify return code: 18 (self signed certificate)
-```
-
-La vérification du certificat indique le code `18` et indique qu'il s'agit d'un certificat auto-signé. Plus précisement le [wiki openssl](https://wiki.openssl.org/index.php/Manual:Verify(1)) indique :
-
-> **18 X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT**: self signed certificate
-
-Une chaine avec une profondeur de 0 correspond en fait à un certificat non-signé
-
-Il est possible d'écrire un trust manager capable de vérifier les chaines de certificats usuelles et à la fois les certificats auto-signés. L'idée est donc d'écrie un trust manager qui délègue au système les chaines de certificats classiques mais qui a comportement spécial pour les certificats auto-signés.
-
+Ce que ça veut dire c'est qu'il est possible d'écrire un trust manager capable 
+de vérifier les chaines de certificats usuelles et de détecter les certificats 
+auto-signés pour leur appliquer une vérification spécifique. 
 
 ```java
 public static class TrustSelfSignedX509TrustManager implements X509TrustManager {
@@ -352,21 +429,26 @@ public static class TrustSelfSignedX509TrustManager implements X509TrustManager 
 }
 ```
 
-Il s'utilisera de la manière suivante : 
+Ce code _décore_ un trust manager existant en ajoutant un comportement spécifique
+pour les certificats auto-signés.
+
+Il s'utilisera de la manière suivante en décorant le gestionnaire de confiance par défaut de la JVM : 
 
 ```java
-public static SSLContext sslContext(KeyManager[] keyManagers, TrustManager[] trustManagers) {
-    try {
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(keyManagers,
-                        trustManagers,
-                        null);
-        return sslContext;
-    } catch (NoSuchAlgorithmException | KeyManagementException e) {
-        throw new IllegalStateException("Couldn't init TLS context", e);
-    }
-}
+X509TrustManager trustManager = TrustSelfSignedX509TrustManager.wrap(systemTrustManager());
+new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new TrustManager[] { trustManager }).getSocketFactory(),
+                                            trustManager)
+                          .hostnameVerifier(allowAllHostname())
+                          .build()
+                          .newCall(new Request.Builder().get()
+                                                        .url("https://localhost:" + wireMock.httpsPort())
+                                                        .build())
+                          .execute();
+```
 
+On accède au gestionaire par défaut avec ce code.
+
+```java
 public static X509TrustManager systemTrustManager() {
     TrustManager[] trustManagers = systemTrustManagerFactory().getTrustManagers();
     if (trustManagers.length != 1) {
@@ -382,85 +464,125 @@ public static X509TrustManager systemTrustManager() {
 
 private static TrustManagerFactory systemTrustManagerFactory() {
     try {
-        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trustManagerFactory.init((KeyStore) null);
-        return trustManagerFactory;
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init((KeyStore) null);
+        return tmf;
     } catch (NoSuchAlgorithmException | KeyStoreException e) {
-        throw new IllegalStateException("Can't load default trust manager algorithm", e);
+        throw new IllegalStateException("Can't load default trust manager", e);
     }
 }
 ```
 
-```java
-X509TrustManager trustManager = TrustSelfSignedX509TrustManager.wrap(systemTrustManager());
-new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new X509TrustManager[] { trustManager }).getSocketFactory(),
-                                            trustManager)
-                          .hostnameVerifier(allowAllHostname())
-                          .build()
-                          .newCall(new Request.Builder().get()
-                                                        .url("https://localhost:" + wireMock.httpsPort())
-                                                        .build())
-                          .execute();
-```
+`TrustManagerFactory.getDefaultAlgorithm()` ne renverra que `PKIX` car c'est le 
+seul algorithme utilisé par SSL. Toutefois des _algorithmes_ spécifiques peuvent 
+être chargées, comme par exemple sur une JVM Sun/Oracle `SunX509` (ce qui ne sera bien 
+évidement pas disponible sur IBM J9 ou sur Android. En revanche ces implémentations
+sont toutes du type `X509TrustManager`.
+
+À noter aussi le coté très générique cette API fait que `TrustManager.getTrustManagers()` 
+renvoie un tableau de `TrustManager` pour chaque _type_ de gestion de confiance.
+La javadoc:
+
+> ```
+> public final TrustManager[] getTrustManagers()
+>
+> Returns one trust manager for each type of trust material.
+>
+> Returns:
+>     the trust managers
+> Throws:
+>     IllegalStateException - if the factory is not initialized.
+> ```
+
+Dans les fais jusqu'à aujourd'hui PKIX / X509 est le seul type possible pour une 
+connection TLS. Et la factory de la JVM ne créé qu'une seule instance de trust 
+manager de type `X509Trustmanager`.
 
 
-Bien que celà fonctionne la même mise en garde sur la mise en prod d'un tel code. Il n'est pas improbable que certains server n'expose qu'un certificat auto-signé. Il peut donc être intéréssant d'aller plus loin dans la vérification de ce certificat. Ce code peut donc être poussé pour vérfier le certificat.
+Bien que celà fonctionne et que la sécurité ait été rafinée la sécurité est 
+toujours désactivée pour les certificats auto-signés. C'est acceptable pour 
+du test mais si le code de production doit parler à des serveurs dont le 
+certificat est auto-signé alors il est crucial de vérifier ce certificat
+pour accorder la confiance au tier.
+
+À noter que ce code peut-être étendu pour aller plus loin dans la vérification 
+du certificat auto-signé.
 
 ```java
 if (isSelfSigned(chain)) {
-    return;
+    verifyMoreStuff(chain);
 }
 ```
 
 
-## Comment supporter des certificats auto-signés dans du code de production ?
+## Comment vérifier proprement des certificats auto-signés ?
 
-Que faire si le code de production doit faire confiance à un serveur dont le certificat est auto-signé ?
+Que faire si le code de production doit faire confiance à un serveur dont le 
+certificat est auto-signé ?
 
-Dans le cas d'un certificat auto-signé, la JVM n'est pas capable d'accorder de la confiance à ce certificat parce que aucune autorité de certification (les _CA_) n'a signé / émis ce dit certificat. Pour remédier à ça il faut _installer_ ce certificat.
+Dans le cas d'un certificat auto-signé, la JVM n'est pas capable d'accorder 
+de la confiance à ce certificat parce que aucune autorité de certification 
+(les _CA_) n'a signé / émis ce dit certificat. Pour remédier à ça il faut 
+_installer_ ce certificat.
 
 Avant de l'installer toutefois, il faut le récupérer.
 
 ### Récupération du certificat auto-signé
 
-À l'établissement de la connection TLS, plus précisement durant la phase de négociation, le serveur envoie ses certificats.
+À l'établissement de la connection TLS, plus précisement durant la phase de 
+négociation, le serveur envoie ses certificats.
 
 Il est possible de les récupérer au format `PEM` avec `openssl`.
 
 ```sh
 echo -n | \
-  /usr/local/opt/libressl/bin/openssl s_client -prexit -connect host:port 2>&1 | \
-  /usr/local/opt/libressl/bin/openssl x509 \
+  openssl s_client -prexit -connect host:port 2>&1 | \
+  openssl x509 -outform pem \
   > certificate-host.pem
 ```
 
-On indique au client ssl de `openssl` d'établir la connection sur `host:port` puis le résultat est passé à la commande `x509` pour décoder le certificat (à la norme x509) afin de l'extraire sous la forme du format PEM. On peut assui 
+On indique au client ssl de `openssl` d'établir la connection sur `host:port` 
+puis le résultat est passé à la commande `x509` pour décoder le certificat 
+(à la norme x509) afin de l'extraire sous la forme du format PEM.
+
+On peut également afficher dans la console une représentation lisible par 
+les humains :
 
 ```sh
 echo -n | \
-  /usr/local/opt/libressl/bin/openssl s_client -connect host:port 2>&1 | \
-  /usr/local/opt/libressl/bin/openssl x509 -text
+  openssl s_client -connect host:port 2>&1 | \
+  openssl x509 -text
 ```
 
-Le format PEM étant encodé, il est possible de les _ouvrir_ avec soit `openssl` ou `keytool` l'outils de la JVM.
+Pour lire le contenu du certificat stocké au format PEM on peut soit utiliser `openssl` 
+soit `keytool` l'outils de la JVM.
 
 ```sh
 keytool -printcert -file certificate-host.pem
-openssl x509 -in certificate-host.pem -text
+openssl x509 -inform pem -in certificate-host.pem -text
 ```
 
 ### Utilisation du certificat autosigné sur la JVM
 
 #### En installant le certificat dans le _cacerts_ de la JVM
 
-La JVM vient avec un dossier `cacerts` qui représente les _certificats des autorités de certification_. Le certificat auto-signé n'a pas été signé / émis par une de ces autorités, mais étant donné qu'il se signe lui-même, il est possible de l'installer dans le répertoire de la JVM avec l'outils `keytool`. En fonction des permissions il faudra passer cette commande avec `sudo`. Le mot de passe par défaut du keystore de la JVM est `changeit`.
+La JVM vient avec un dossier `cacerts` qui représente les _certificats des autorités 
+de certification_. Le certificat auto-signé n'a pas été signé / émis par une de 
+ces autorités, mais étant donné qu'il se signe lui-même, il est possible de 
+l'installer dans le répertoire de la JVM avec l'outils `keytool`. En fonction 
+des permissions il faudra passer cette commande avec `sudo`. Le mot de passe par 
+défaut du keystore de la JVM est `changeit`.
 
 ```sh
-# Nous n'éxecuterons pas cette commande
-keytool -import -alias wiremock -file wiremock.pem -keystore $JAVA_HOME/jre/lib/security/cacerts
+keytool -import \
+        -alias wiremock \
+        -file wiremock.pem \
+        -keystore $JAVA_HOME/jre/lib/security/cacerts
 ```
 
-En supposant le certificat d'un serveur wiremock ait été récupéré dans le fichier `wiremock.pem` (au format **PEM** donc), cette commande l'importera avec l'alias `wiremock` dans le _keystore_ `cacerts` (fichier du JRE). 
+En supposant le certificat d'un serveur wiremock ait été récupéré dans le 
+fichier `wiremock.pem` (au format **PEM** donc), cette commande l'importera 
+avec l'alias `wiremock` dans le _keystore_ `cacerts` (fichier du JRE). 
 
 > Il également est possible de regarder le contenu du store `cacerts` :
 > 
@@ -468,9 +590,11 @@ En supposant le certificat d'un serveur wiremock ait été récupéré dans le f
 > keytool -list -keystore $JAVA_HOME/jre/lib/security/cacerts
 > ```
 > 
-> On y retrouvera notre certificat `wiremock` à coté de ceux de Verisign, Digital Certs, Geo Trust, etc.
+> On y retrouvera notre certificat `wiremock` à coté de ceux de Verisign, Digital 
+> Certs, Geo Trust, etc.
 
-Une fois celà fait, le code suivant se connectera sans problème au serveur wiremock ayant ce certificat auto-signé.
+Une fois celà fait, le code suivant se connectera sans problème au serveur 
+wiremock ayant ce certificat auto-signé.
 
 ```java
 new OkHttpClient.Builder().hostnameVerifier(allowAllHostNames())
@@ -481,9 +605,12 @@ new OkHttpClient.Builder().hostnameVerifier(allowAllHostNames())
                           .execute();
 ```
 
-À noter que dans ce cas il y a toujours besoin d'un _hostname verifier_ car le certificat de wiremock ne permet pas de valider que le hostname _localhost_ ou de ses IPs associées correspond à ce certificat.
+À noter que dans ce cas il y a toujours besoin d'un _hostname verifier_ car le 
+certificat de wiremock ne permet pas de valider que le hostname _localhost_ ou 
+de ses IPs associées correspond à ce certificat.
 
-En revanche cette étape demande une modification de la configuration de l'installation de JVM. Il y a moyen de mieux faire.
+En revanche cette étape demande une modification de la configuration de 
+l'installation de JVM. Il y a moyen de mieux faire.
 
 
 
@@ -491,20 +618,32 @@ En revanche cette étape demande une modification de la configuration de l'insta
 
 Avec cette approche un truststore alternatif est créé avec le même `keytool` :
 
-À noter que le **certificat** au format `PEM` sera stockée dans un **key** store. L'extension `jks` vient du type de keystore, et correspond à Java Key Store.
+À noter que le **certificat** au format `PEM` sera stockée dans un **key** store. 
+L'extension `jks` vient du type de keystore, et correspond à Java Key Store.
 
 ```sh
-# Creates local truststore, the tool will ask for a password and if the certificate can be trusted
-keytool -import -alias wiremock -file wiremock.pem -keystore ./wiremock-truststore.jks
+# Creates local truststore, the tool will ask for a password and if the 
+# certificate can be trusted
+keytool -import \
+        -alias wiremock \
+        -file wiremock.pem \
+        -keystore ./wiremock-truststore.jks
 ```
 
-Le certificat est toujours au format PEM et sera stocké dans un fichier keystore `wiremock-truststore.jks` de type `jks` (pour Java Key Store).
+Le certificat est toujours au format PEM et sera stocké dans un fichier keystore 
+`wiremock-truststore.jks` de type `jks` (pour Java Key Store).
 
-> Plutot que de rentrer _interractivement_ le mot de passe, en ajoutant `-noprompt` et `-storepass <password>` on peut créer ce keystore sans interation.
+> Plutot que de rentrer _interractivement_ le mot de passe, en ajoutant 
+> `-noprompt` et `-storepass <password>` on peut créer ce keystore sans interation.
 
 ```sh
 # Create the truststore without user interaction
-keytool -import -noprompt -storepass changeit -alias wiremock -file wiremock.pem -keystore ./wiremock-truststore.jks
+keytool -import \
+        -noprompt \
+        -storepass changeit \
+        -alias wiremock \
+        -file wiremock.pem \
+        -keystore ./wiremock-truststore.jks
 ```
 
 
@@ -514,21 +653,210 @@ Ensuite il faut lancer le programme java en passant les options
 * `-Djavax.net.ssl.trustStorePassword=changeit`
 
 ```sh
-java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit SSLConnect localhost 8443
+java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks \
+     -Djavax.net.ssl.trustStorePassword=changeit \
+     SSLConnect localhost 8443
 ```
 
-`SSLConnect` est le programme sensé établir la connection au serveur wiremock, c'est le code OkHttp vu plus haut. S'il n'y a pas d'erreur SSL, alors le truststore alternatif contenant le certificat autosigné a bien été utilisé.
+`SSLConnect` est le programme sensé établir la connection au serveur wiremock, 
+c'est le code OkHttp vu plus haut. S'il n'y a pas d'erreur SSL, alors le truststore 
+alternatif contenant le certificat autosigné a bien été utilisé.
 
 
-En revanche en gardant si un programme java doit se connecter à ce serveur alternatif, mais aussi à un autre site ayant lui des certificat d'autorités connues par exemple google, le programme lèvera une `SSLHandshakeException`
+En revanche en gardant si un programme java doit se connecter à ce serveur alternatif, 
+mais aussi à un autre site ayant lui des certificats d'autorités connues par exemple 
+google, le programme lèvera une `SSLHandshakeException`
 
 ```sh
-java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit SSLConnect google.com 443
+java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks \
+     -Djavax.net.ssl.trustStorePassword=changeit \
+     SSLConnect google.com 443
 ```
 
-Sans le truststore `java SSLConnect google.com 443`, la connection est établie avec succès.
+Sans le truststore `java SSLConnect google.com 443`, la connection est établie 
+avec succès.
 
-Cette approche n'est donc pas sans défaut, car les options de la JVM changent le truststore global de cette instance de la JVM, en fonction des besoins du programme ce ne sera peut-être pas une solution acceptable.
+Cette approche n'est donc pas non plus sans défaut, car les options de la JVM changent 
+le truststore global de cette instance de la JVM, en fonction des besoins du programme 
+ce ne sera peut-être pas une solution acceptable.
+
+#### Utiliser programmatiquement le certificat auto-signé
+
+##### À partir d'un truststore JKS
+
+Pour commencer on peut commencer par utiliser le truststore déjà créé par 
+`keytool`. Le code qui suit est séparé en plusieurs responsabilités : 
+
+* charger la factory de `TrustManager`, par défaut l'algorithme choisi est 
+  [`PKIX`](https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#TrustManagerFactory)
+* charger le truststore, par défaut `KeyStore.getDefauktType()` retourne 
+  `jks` [1](https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore)|[2](https://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html#getDefaultType--).
+* construire un nouveau trust manager à partir des données du truststore
+
+```java
+public static X509TrustManager trustManagerFor(KeyStore keyStore) {
+    TrustManagerFactory tmf = trustManagerFactoryFor(keyStore);
+
+    TrustManager[] trustManagers = tmf.getTrustManagers();
+    if (trustManagers.length != 1) {
+        throw new IllegalStateException("Unexpected number of trust managers:"
+                                                + Arrays.toString(trustManagers));
+    }
+    TrustManager trustManager = trustManagers[0];
+    if (trustManager instanceof X509TrustManager) {
+        return (X509TrustManager) trustManager;
+    }
+    throw new IllegalStateException("'" + trustManager + "' is not a X509TrustManager");
+}
+
+public static TrustManagerFactory trustManagerFactoryFor(KeyStore keyStore) {
+    try {
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStore);
+        return tmf;
+    } catch (KeyStoreException | NoSuchAlgorithmException e) {
+        throw new IllegalStateException("Can't load trust manager for keystore : " + keyStore, e);
+    }
+}
+
+public static KeyStore readJavaKeyStore(Path javaKeyStorePath, String password) {
+    try (InputStream inputStream = new BufferedInputStream(Files.newInputStream(javaKeyStorePath))) {
+        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        ks.load(inputStream, password.toCharArray());
+        return ks;
+    } catch (IOException e) {
+        throw new UncheckedIOException(e);
+    } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
+        throw new IllegalStateException(e);
+    }
+}
+```
+
+Enfin il faut initiliser le client OkHttp avec la socket factory
+
+```java
+X509TrustManager trustManager = trustManagerFor(readJavaKeyStore(Paths.get("./wiremock-truststore.jks"), "changeit"));
+new OkHttpClient.Builder()
+        .sslSocketFactory(sslContext(null, new TrustManager[]{trustManager}).getSocketFactory(),
+                            trustManager)
+        .hostnameVerifier(allowAllHostNames())
+        .build()
+        .newCall(new Request.Builder().get()
+                                        .url("https://localhost:8443")
+                                        .build())
+        .execute();
+```
+
+Avec ce contexte on peut initialiser la majeure partie des clients HTTP.
+
+##### À partir du certificat au format `PEM`
+
+Le code suivant va créer un keystore en mémoire qui va acceuillir le certificat 
+X.509 (c'est à dire le certificat extrait depuis la commande `openssl x509 -text`).
+
+```java
+public static KeyStore makeJavaKeyStore(Path pemCertificatePath, String password) {
+    try (BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(pemCertificatePath))) {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+
+        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        ks.load(null, null);
+        int certificate_counter = 0;
+        for (X509Certificate certificate : (Collection<X509Certificate>) cf.generateCertificates(bis)) {
+            ks.setCertificateEntry("cert_" + certificate_counter++, certificate);
+        }
+
+        return ks;
+    } catch (IOException e) {
+        throw new UncheckedIOException(e);
+    } catch (CertificateException e) {
+        throw new IllegalStateException("Can't load certificate : " + pemCertificatePath, e);
+    } catch (KeyStoreException | NoSuchAlgorithmException e) {
+        throw new IllegalStateException("Can't create the internal keystore for certificate : " + pemCertificatePath, e);
+    }
+}
+```
+
+**Poour rappel  :**
+
+> La javadoc de la méthode [`CertificateFactory.generateCertificate(InputStream)`](https://docs.oracle.com/javase/8/docs/api/java/security/cert/CertificateFactory.html#generateCertificate-java.io.InputStream-) 
+> indique précisément que le format supporté doit être **X.509** 
+> * au format `PEM`, c'est à dire le fichier contiens les balises 
+>   `-----BEGIN CERTIFICATE-----` et `-----END CERTIFICATE-----` avec une payload 
+>   ASCII encodée en _base 64_
+> * au format `DER` qui en est la représentation binaire (qu'on peut obtenir avec 
+>   `openssl x509 -in wiremock.pem -outform der > wiremock.der`).
+> 
+> In the case of a certificate factory for X.509 certificates, the certificate 
+> provided in inStream must be DER-encoded and may be supplied in binary or 
+> printable (Base64) encoding. If the certificate is provided in Base64 encoding, 
+> it must be bounded at the beginning by -----BEGIN CERTIFICATE-----, and must be 
+> bounded at the end by -----END CERTIFICATE-----.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* X.509
+    X.509 defines a certificate (and some other things not relevant here) in ASN.1, a (very!) general data structuring method which has several defined encodings, of which DER Distinguished Encoding Representation is quite common and is used here.
+
+
+* PKCS7 (Public-Key Crypto Standard number 7)
+
+    PKCS #7 can be thought of as a format that allows multiple certificates to be bundled together, either DER- or PEM- encoded, and may include certificates and certificate revocation lists (CRLs).
+
+    Per RFC2315, PKCS#7 is
+
+    a general syntax for data that may have
+    cryptography applied to it, such as digital signatures and digital
+    envelopes. The syntax admits recursion, so that, for example, one
+    envelope can be nested inside another, or one party can sign some
+    previously enveloped digital data.
+
+* PkiPath
+
+https://security.stackexchange.com/questions/73156/whats-the-difference-between-x-509-and-pkcs7-certificate
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -552,6 +880,11 @@ Cette approche n'est donc pas sans défaut, car les options de la JVM changent l
 
 https://security.stackexchange.com/questions/107240/how-to-read-certificate-chains-in-openssl
 https://security.stackexchange.com/questions/72077/validating-an-ssl-certificate-chain-according-to-rfc-5280-am-i-understanding-th/72085#72085
+https://security.stackexchange.com/questions/83372/what-is-the-difference-of-trustmanager-pkix-and-sunx509
+https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04
+http://blog.palominolabs.com/2011/10/18/java-2-way-tlsssl-client-certificates-and-pkcs12-vs-jks-keystores/index.html
+
+---------------------------------------------------
 
 
 
@@ -843,6 +1176,10 @@ The easiest way to combine certs keys and chains is to convert each to a PEM enc
 Extraction
 
 Some certs will come in a combined form.  Where one file can contain any one of: Certificate, Private Key, Public Key, Signed Certificate, Certificate Authority (CA), and/or Authority Chain.
+
+
+
+
 
 ### Composite TrustManager
 
