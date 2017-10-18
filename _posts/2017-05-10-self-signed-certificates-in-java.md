@@ -111,21 +111,25 @@ Pour accepter ce certificat auto-signé, il est possible de configurer la
 socket SSL pour accepter tous les certificats. 
 
 ```java
-public class WireMockSSLTest {
-    @Rule
-    public WireMockRule wireMock = new WireMockRule(wireMockConfig().dynamicPort()
-                                                                    .dynamicHttpsPort());
+@Rule
+public WireMockRule wireMock = new WireMockRule(wireMockConfig().dynamicPort()
+                                                                .dynamicHttpsPort());
 
-    @Test
-    public void ssl_poke() throws IOException {
-        new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new TrustManager[] {TrustAllX509TrustManager.INSTANCE}).getSocketFactory(),
-                                                    TrustAllX509TrustManager.INSTANCE)
-                                  .build()
-                                  .newCall(new Request.Builder().get()
-                                                                .url("https://localhost:" 
-                                                                     + wireMock.httpsPort())
-                                                                .build())
-                                  .execute();
+@Test
+public void ssl_poke() throws IOException {
+    X509TrustManager trustManager = TrustAllX509TrustManager.INSTANCE;
+    OkHttpClient client = new OkHttpClient.Builder()
+            .sslSocketFactory(
+                    sslContext(null,
+                                new TrustManager[]{trustManager}).getSocketFactory(),
+                    trustManager)
+            .build();
+    try (Response r = client.newCall(new Request.Builder().get()
+                                                          .url("https://localhost:"
+                                                               + wireMock.httpsPort())
+                                                          .build())
+                            .execute()) {
+        // noop / success
     }
 }
 ```
@@ -239,14 +243,17 @@ public static HostnameVerifier allowAllHostNames() {
 ```
 
 ```java
-new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new TrustManager[] {TrustAllX509TrustManager.INSTANCE}).getSocketFactory(),
-                                                    TrustAllX509TrustManager.INSTANCE)
-                          .hostnameVerifier(allowAllHostNames())
-                          .build()
-                          .newCall(new Request.Builder().get()
-                                                        .url("https://localhost:" + wireMock.httpsPort())
-                                                        .build())
-                          .execute();
+new OkHttpClient.Builder()
+            .sslSocketFactory(
+                    sslContext(null, 
+                               new TrustManager[] {TrustAllX509TrustManager.INSTANCE}).getSocketFactory(),
+                    TrustAllX509TrustManager.INSTANCE)
+            .hostnameVerifier(allowAllHostNames())
+            .build()
+            .newCall(new Request.Builder().get()
+                                          .url("https://localhost:" + wireMock.httpsPort())
+                                          .build())
+            .execute();
 ```
 
 Ce code fonctionnera, il est maintenant possible de se connecter à wiremock en HTTPS.
@@ -272,7 +279,8 @@ HttpsURLConnection.setDefaultSSLSocketFactory(trustAllSslContext().getSocketFact
 new URL("https://localhost:" + wireMock.httpsPort()).openConnection().connect();
 ```
 
-Il faut ajouter un [`HostnameVerifier`](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/HostnameVerifier.html) qui ne vérifie rien, et de configurer `HttpsURLConnection` avant d'établir la connection :
+Il faut ajouter un [`HostnameVerifier`](https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/HostnameVerifier.html) 
+qui ne vérifie rien, et de configurer `HttpsURLConnection` avant d'établir la connection :
 
 ```java
 HostnameVerifier allHostsValid = (hostname, session) -> true;
@@ -436,14 +444,17 @@ Il s'utilisera de la manière suivante en décorant le gestionnaire de confiance
 
 ```java
 X509TrustManager trustManager = TrustSelfSignedX509TrustManager.wrap(systemTrustManager());
-new OkHttpClient.Builder().sslSocketFactory(sslContext(null, new TrustManager[] { trustManager }).getSocketFactory(),
-                                            trustManager)
-                          .hostnameVerifier(allowAllHostname())
-                          .build()
-                          .newCall(new Request.Builder().get()
-                                                        .url("https://localhost:" + wireMock.httpsPort())
-                                                        .build())
-                          .execute();
+new OkHttpClient.Builder()
+            .sslSocketFactory(
+                    sslContext(null, 
+                               new TrustManager[] { trustManager }).getSocketFactory(),
+                    trustManager)
+            .hostnameVerifier(allowAllHostname())
+            .build()
+            .newCall(new Request.Builder().get()
+                                          .url("https://localhost:" + wireMock.httpsPort())
+                                          .build())
+            .execute();
 ```
 
 On accède au gestionaire par défaut avec ce code.
@@ -461,6 +472,7 @@ public static X509TrustManager systemTrustManager() {
     }
     throw new IllegalStateException("'" + trustManager + "' is not a X509TrustManager");
 }
+
 
 private static TrustManagerFactory systemTrustManagerFactory() {
     try {
@@ -597,12 +609,13 @@ Une fois celà fait, le code suivant se connectera sans problème au serveur
 wiremock ayant ce certificat auto-signé.
 
 ```java
-new OkHttpClient.Builder().hostnameVerifier(allowAllHostNames())
-                          .build()
-                          .newCall(new Request.Builder().get()
-                                                        .url("https://localhost:8443")
-                                                        .build())
-                          .execute();
+new OkHttpClient.Builder()
+            .hostnameVerifier(allowAllHostNames())
+            .build()
+            .newCall(new Request.Builder().get()
+                                          .url("https://localhost:8443")
+                                          .build())
+            .execute();
 ```
 
 À noter que dans ce cas il y a toujours besoin d'un _hostname verifier_ car le 
@@ -709,6 +722,7 @@ public static X509TrustManager trustManagerFor(KeyStore keyStore) {
     throw new IllegalStateException("'" + trustManager + "' is not a X509TrustManager");
 }
 
+
 public static TrustManagerFactory trustManagerFactoryFor(KeyStore keyStore) {
     try {
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -718,6 +732,7 @@ public static TrustManagerFactory trustManagerFactoryFor(KeyStore keyStore) {
         throw new IllegalStateException("Can't load trust manager for keystore : " + keyStore, e);
     }
 }
+
 
 public static KeyStore readJavaKeyStore(Path javaKeyStorePath, String password) {
     try (InputStream inputStream = new BufferedInputStream(Files.newInputStream(javaKeyStorePath))) {
@@ -923,23 +938,523 @@ de certifications sont connus et sur des serveurs ayant une chaine de certificat
 plus obscure.
 
 
+## Coté serveur
+
+On a vu le coté client, mais se baser sur le certificat de wiremock, n'est 
+peut-être pas le plus correct d'un point de vue test.
+
+
+### Génération du certificat auto-sigé avec `keytool`
+
+Créons notre propre certificat auto-signé : 
+
+```sh
+keytool -genkey \
+        -keyalg RSA \
+        -alias bric3 \
+        -keystore bric3.jks \
+        -storepass the_password \
+        -validity 360 \
+        -keysize 2048
+```
+
+`keytool` va nous poser des question pour remplir successivement ces différents
+attribut :
+
+* `CN` (**C**ommon **N**ame)
+* `OU` (**O**rganizational **U**nit)
+* `O` (**O**rganization)
+* `L` (**L**ocality)
+* `ST` (**ST**ate)
+* `C` (**C**ountry)
+
+et enfin `keytool` finira par le password du certificat, à ne pas confondre 
+avec le password du keystore. On peut rendre la génération non interractive en 
+donnant les options : 
+
+* `-keypass password`
+* `-dname 'CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR'`
+
+> `dname` correspond à **D**istinguished **N**ames
+
+Enfin ce certificat a le même problème que celui qui vient avec wiremock,
+car il demande de modifier le hostname verifier. Ce problème peut être corrigé
+en ajoutant une section [`SAN` (**S**ubject **A**lternative **N**ames)](https://tools.ietf.org/html/rfc5280#section-4.2.1.6)
+qui peut notamment contenir des noms DNS et des addresses IP. Avec
+`keytool` il faut passer l'option `-ext` et passer les options `dns` ou `ip` :
+
+```
+-ext SAN=dns:domain.com,dns:localhost,ip:127.0.0.1
+```
+
+Par exmple si je veux indiquer que ce certificat est valide pour les serveurs 
+
+* `blog.arkey.pro`
+* `blog`
+* `127.0.0.1`
+* `::1`
+
+```sh
+keytool -genkey \
+        -keyalg RSA \
+        -alias bric3 \
+        -keystore bric3.jks \
+        -storepass the_password \
+        -validity 360 \
+        -keysize 2048 \
+        -keypass the_password \
+        -dname 'CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR' \
+        -ext 'SAN=dns:blog.arkey.fr,dns:blog,dns:localhost,ip:127.0.0.1,ip:::1'
+```
+
+Pour utiliser ce certificat, il faut le charger dans wiremock et dans le client : 
+
+```java
+@Rule
+public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort()
+                                                                    .keystorePath("./bric3.jks")
+                                                                    .keystorePassword("the_password")
+                                                                    .dynamicHttpsPort());
+
+@Test
+public void my_precious_self_signed_certificate() throws IOException {
+    X509TrustManager compositeTrustManager = new CompositeX509TrustManager(
+            trustManagerFor(readJavaKeyStore(Paths.get("./bric3.jks"), "the_password")),
+            systemTrustManager());
+    OkHttpClient okHttpClient = httpClient(sslContext(null,
+                                                        new TrustManager[]{compositeTrustManager}),
+                                            compositeTrustManager)
+            .newBuilder()
+            .build();
+    try (Response response = okHttpClient.newCall(new Request.Builder().get()
+                                                                       .url(format("https://%s:%d",
+                                                                                   "localhost",
+                                                                                   wireMockRule.httpsPort()))
+                                                                       .build())
+                                         .execute()) {
+        // successfully established connection
+    }
+}
+```
+
+**À noter :**
+
+1.  `keytool` génère le certificat et le stocke directement dans le **J**ava **K**ey **S**tore
+2.  wiremock ne permet de configurer qu'un seul mot de passe du certificat, à la fois pour 
+    la clé du certificat et pour le **J**ava **K**ey **S**tore ; à la création il faut donc
+    absolument utiliser même mot de passe pour le JKS et le certificat e.g. :
+    `-storepass the_password` et `-keypass the_password`.
+
+**À noter #2:**
+
+`keytool` valide l'entrée DNS, mais ne gère pas tous les caractères possibles
+d'un domaine, pour cette raison il est préférable d'utiliser `openssl` ou équivalent
+pour générer ces certificats. Une partie intéréssante de la spécification PKIX / X509 est 
+l'extension _Subject Alt Names_ du format X509 version 3; 
+elle permet de donner d'indiquer les _noms_ de serveurs pour les quels ce certificat a été émis
+(plutôt que le nom renseigné dans l'attribut _Common Name_). 
+Un intérêt de cet attribut est qu'il est également possible de donner des noms ayant un
+[wildcards](https://tools.ietf.org/html/rfc5280#section-4.2.1.6), ceci dit la logique du client
+n'est pas couverte dans cette RFC.
+
+> Finally, the semantics of subject alternative names that include
+> wildcard characters (e.g., as a placeholder for a set of names) are
+> not addressed by this specification.  Applications with specific
+> requirements MAY use such names, but they must define the semantics.
+
+Par exemple le certificat de **google.com** est configuré avec des domaines étant préfixés par
+un wildcard:
+
+```sh
+echo -n | openssl s_client -showcerts -connect google.com:443 2>&1 | openssl x509 -text
+```
+
+```
+X509v3 Subject Alternative Name: 
+    DNS:*.google.com, DNS:*.android.com, DNS:*.appengine.google.com, DNS:*.cloud.google.com, DNS:*.db833953.google.cn, DNS:*.g.co, DNS:*.gcp.gvt2.com, DNS:*.google-analytics.com, DNS:*.google.ca, DNS:*.google.cl, DNS:*.google.co.in, DNS:*.google.co.jp, DNS:*.google.co.uk, DNS:*.google.com.ar, DNS:*.google.com.au, DNS:*.google.com.br, DNS:*.google.com.co, DNS:*.google.com.mx, DNS:*.google.com.tr, DNS:*.google.com.vn, DNS:*.google.de, DNS:*.google.es, DNS:*.google.fr, DNS:*.google.hu, DNS:*.google.it, DNS:*.google.nl, DNS:*.google.pl, DNS:*.google.pt, DNS:*.googleadapis.com, DNS:*.googleapis.cn, DNS:*.googlecommerce.com, DNS:*.googlevideo.com, DNS:*.gstatic.cn, DNS:*.gstatic.com, DNS:*.gvt1.com, DNS:*.gvt2.com, DNS:*.metric.gstatic.com, DNS:*.urchin.com, DNS:*.url.google.com, DNS:*.youtube-nocookie.com, DNS:*.youtube.com, DNS:*.youtubeeducation.com, DNS:*.yt.be, DNS:*.ytimg.com, DNS:android.clients.google.com, DNS:android.com, DNS:developer.android.google.cn, DNS:developers.android.google.cn, DNS:g.co, DNS:goo.gl, DNS:google-analytics.com, DNS:google.com, DNS:googlecommerce.com, DNS:source.android.google.cn, DNS:urchin.com, DNS:www.goo.gl, DNS:youtu.be, DNS:youtube.com, DNS:youtubeeducation.com, DNS:yt.be
+```
+
+### Génération avec `openssl`
+
+`keytool` c'est bien, mais l'outillage de référence est quand même le couteau suisse openssl.
+
+Pour générer un certificat auto-signé il faut en réalité plusieurs étapes
+
+1. Générer une clé privée pour le domaine
+
+    ```sh
+    openssl genrsa \
+        -out bric3-private.key \
+        2048
+    ```
+
+    Cette commande créé un clé privée de 2048 bit en utilisant l'algorithme RSA.
+    Cette clé n'est pas protégé par mot de passe (option `-des3`).
+
+2. Faire la demande d'un certificat (façon non-interactive)
+
+    ```sh
+    openssl req \
+        -new \
+        -outform pem \
+        -out bric3-self.csr \
+        -keyform pem \
+        -key bric3-private.key \
+        -sha256 \
+        -config <(cat <<-EOF
+
+    [req]
+    prompt = no
+    req_extensions = bric3_req_ext
+    distinguished_name = dn
+    
+    [dn]
+    # Distinguished name
+    CN=Brice Dutheil
+    O=Arkey
+    OU=Arkey
+    L=Paris
+    ST=France
+    C=FR
+
+    [bric3_req_ext]
+    # Extensions to add to a certificate request
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = localhost
+    DNS.2 = arkey.fr
+    DNS.3 = *.arkey.fr
+    DNS.4 = arkey.pro
+    DNS.5 = *.arkey.pro
+    DNS.6 = blog
+    IP.1 = 127.0.0.1
+    IP.1 = ::1
+
+    EOF
+    )
+    ```
+
+    Ce demande génère un fichier CSR (**C**ertificate **S**ign **R**equest) au format PEM.
+    Il prend la clé privé du propriétaire des serveurs au format PEM. Les informations qui 
+    concernent la configuration de l'émission du CSR sont indiquées dans un fichier de config 
+    (dans cette commande passée via un stream `<(cat <<-MARKER ... MARKER)`). 
+    
+    On y retrouve une section `[req]`, indiquant le mode non interactif `prompt = no`, 
+    le lien vers la section du **D**istinguished **N**ame `distinguished_name = dn`, 
+    l'emplacement de l'extension portant sur les le **S**ubject **A**lt **N**ame 
+    `req_extensions = bric3_req_ext`.
+
+    La section`[dn]` contiens ce qui compose le DN, le **C**ommon **N**ame, etc. 
+    
+    La section des noms alternatifs aura les différentes entrées possibles, de type `DNS`,
+    de type `IP`, etc.
+
+    Enfin à noter que sans le paramètre `req_extensions = bric3_req_ext`, il aurait 
+    fallu passer l'option en ligne de commande `-requexts bric3_req_ext`).
+
+    Pour plus d'info sur la commande req et sa configuration, il faut parcourir la page 
+    [man (branche master)](https://www.openssl.org/docs/manmaster/man1/req.html).
+
+
+3. Signer la requête pour générer le certificat
+
+    ```sh
+    openssl x509 \
+        -req \
+        -days 3650 \
+        -inform pem \
+        -in bric3-self.csr \
+        -signkey bric3-private.key \
+        -outform pem \
+        -out bric3-self.pem \
+        -extensions bric3_ext \
+        -extfile <(cat <<-EOF
+    [bric3_ext]
+    # Extensions to add to the emitted certificate
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = localhost
+    DNS.2 = arkey.fr
+    DNS.3 = *.arkey.fr
+    DNS.4 = arkey.pro
+    DNS.5 = *.arkey.pro
+    DNS.6 = blog
+    IP.1 = 127.0.0.1
+    IP.1 = ::1
+    EOF
+    )
+    ```
+
+    Cette commande génère un certificat X509 depuis la requête de signature (`-req`).
+    En entrée il y a donc la requête `-in bric3-self.csr` et comme il s'agit d'un certificat 
+    autosigné il faut donner sa propre clé privée `-signkey bric3-private.key`, (autrement il 
+    s'agirait de la clé privée de l'autorité de certification). La validation emet un certificat
+    valide pour 10 ans (`-days 3650`).
+
+    Cette commande ne récupère pas les extensions depuis la requête de signature de certificat,
+    par conséquent il faut lui donner l'info dans un fichier de configuration ou par un stream 
+    `-extfile <(cat <<-EOF ... EOF)`, il faut également passer le nom de la section, ici 
+    `-extensions bric3_ext`.
+
+    Si tout est bon un certificat `bric3-self.pem` est généré.
+
+Le paramétrage est bien entendu plus compliqué lorsqu'il faut faire les étapes complètes
+avec un autorité et une chaine de certificat plus élaborée.
+
+Ces trois étapes peuvent être réduite à une seule pour les certificats autosignés.
+
+
+```sh
+openssl req \
+    -new \
+    -nodes \
+    -sha256 \
+    -days 3650 \
+    -newkey rsa:2048 \
+    -keyout bric3-openssl.key \
+    -x509 \
+    -outform pem \
+    -out bric3-openssl.pem \
+    -config <(
+cat <<-EOF
+[req]
+prompt = no
+distinguished_name = dn
+req_extensions = bric3_ext
+x509_extensions = bric3_ext
+
+[dn]
+# Distinguished name
+CN=Brice Dutheil
+O=Arkey
+OU=Arkey
+L=Paris
+ST=France
+C=FR
+
+[bric3_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+DNS.2 = arkey.fr
+DNS.3 = *.arkey.fr
+DNS.4 = arkey.pro
+DNS.5 = *.arkey.pro
+DNS.6 = blog
+IP.1 = 127.0.0.1
+IP.1 = ::1
+EOF
+)
+```
 
 
 
 
+```sh
+openssl x509 \
+    -req \
+    -days 3650 \
+    -inform pem \
+    -in bric3-self.csr \
+    -signkey bric3-private.key \
+    -outform pem \
+    -noout -text -extensions bric3_ext \
+    -extfile <(cat <<-EOF
+[bric3_ext]
+# Extensions to add to a certificate request
+subjectAltName = DNS.1 : localhost, DNS.3 : arkey.fr, DNS.3 : *.arkey.fr, DNS.4 : arkey.pro, DNS.5 : *.arkey.pro, DNS.6 : blog, IP.1 : 127.0.0.1, IP.2 : ::1
+EOF
+)
+```
 
 
 
+```sh
+# csr
+openssl req \
+    -new \
+    -out bric3-self.csr \
+    -outform pem \
+    -key bric3-private.key \
+    -keyform pem \
+    -days 3650 \
+    -sha256 \
+    -reqexts req_ext \
+    -config <(cat <<-EOF
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+emailAddress=bric3@arkey.pro
+[dn]
+# Distinguished name
+CN=Brice Dutheil
+O=Arkey
+OU=Arkey
+L=Paris
+ST=France
+C=FR
+
+[req_ext]
+# Extensions to add to a certificate request
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+DNS.2 = arkey.fr
+DNS.3 = *.arkey.fr
+DNS.4 = arkey.pro
+DNS.5 = *.arkey.pro
+DNS.6 = blog
+IP.1 = 127.0.0.1
+IP.1 = ::1
+EOF
+)
+```
+
+
+https://stackoverflow.com/questions/17695297/importing-the-private-key-public-certificate-pair-in-the-java-keystore
+
+
+```sh
+
+
+# export
+openssl pkcs12 \
+    -export \
+    -in san_domain_com.crt \
+    -inkey san_domain_com.key \
+    -out san_domiain_com.p12
+```
+
+http://apetec.com/support/GenerateSAN-CSR.htm
+
+
+> You need to tell openssl to create a CSR that includes x509 V3 extensions and you also need to tell openssl to include a list of subject alternative names in your CSR.
+
+```sh
+openssl req \
+    -newkey rsa:2048 \
+    -x509 \
+    -nodes \
+    -keyout selfsigned.key \
+    -new \
+    -out selfsigned.crt \
+    -subj /CN=Brice\ Dutheil/O=Arkey/OU=Arkey/L=Paris/ST=France/C=FR \
+    -reqexts SAN \
+    -extensions SAN \
+    -config <(cat /System/Library/OpenSSL/openssl.cnf \
+        <(printf '[SAN]\nsubjectAltName=DNS:localhost')) \
+    -sha256 \
+    -days 3650
+```
+
+
+```sh
+openssl req \
+    -new \
+    -nodes \
+    -sha256 \
+    -days 3650 \
+    -newkey rsa:2048 \
+    -keyout bric3-openssl.key \
+    -x509 \
+    -outform pem \
+    -out bric3-openssl.pem \
+    -reqexts req_ext \
+    -extensions req_ext \
+    -config <(
+cat <<-EOF
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+
+[dn]
+# Distinguished name
+CN=Brice Dutheil
+O=Arkey
+OU=Arkey
+L=Paris
+ST=France
+C=FR
+ 
+[req_ext]
+# Extensions to add to a certificate request
+subjectAltName = @alt_names
+ 
+[alt_names]
+DNS.1 = localhost
+DNS.2 = arkey.fr
+DNS.3 = *.arkey.fr
+DNS.4 = arkey.pro
+DNS.5 = *.arkey.pro
+DNS.6 = blog
+IP.1 = 127.0.0.1
+IP.1 = ::1
+emailAddress=bric3@arkey.pro
+EOF
+)
 
 
 
+openssl req \
+    -new \
+    -nodes \
+    -sha256 \
+    -days 3650 \
+    -newkey rsa:2048 \
+    -keyout bric3-openssl.key \
+    -x509 \
+    -outform pem \
+    -out bric3-openssl.pem \
+    -config <(
+cat <<-EOF
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = req_ext
+distinguished_name = dn
+x509_extensions = req_ext
 
+[dn]
+# Distinguished name
+CN=Brice Dutheil
+O=Arkey
+OU=Arkey
+L=Paris
+ST=France
+C=FR
+emailAddress=bric3@arkey.pro
 
+[req_ext]
+# Extensions to add to a certificate request
+subjectAltName = @alt_names
 
+[alt_names]
+DNS.1 = localhost
+DNS.2 = arkey.fr
+DNS.3 = *.arkey.fr
+DNS.4 = arkey.pro
+DNS.5 = *.arkey.pro
+DNS.6 = blog
+IP.1 = 127.0.0.1
+IP.1 = ::1
+EOF
+)
+```
 
+## xxxxxx
 
-
-
+Il y a plus de chose à voir avec l'authentification 2-way
 
 
 
@@ -1022,6 +1537,12 @@ https://security.stackexchange.com/questions/72077/validating-an-ssl-certificate
 https://security.stackexchange.com/questions/83372/what-is-the-difference-of-trustmanager-pkix-and-sunx509
 https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04
 http://blog.palominolabs.com/2011/10/18/java-2-way-tlsssl-client-certificates-and-pkcs12-vs-jks-keystores/index.html
+https://typesafehub.github.io/ssl-config/CertificateGeneration.html
+https://stackoverflow.com/a/33844921/48136
+
+https://stackoverflow.com/questions/906402/how-to-import-an-existing-x509-certificate-and-private-key-in-java-keystore-to-u/8224863#8224863
+http://blog.endpoint.com/2014/10/openssl-csr-with-alternative-names-one.html
+https://security.stackexchange.com/a/166645/30540
 
 ---------------------------------------------------
 
