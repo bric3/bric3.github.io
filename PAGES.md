@@ -1,13 +1,23 @@
 # Getting started
 https://pages.github.com/
 
-# More
+
+## Run locally
+
+### With docker
+
+```sh
+sudo docker run -t --rm -v "$PWD":/usr/src/app -p "4000:4000" starefossen/github-pages
+```
+
+Eventually remove the old `Gemfile.lock`
+
+### By installing stuffs locally
+#### More
 * https://help.github.com/articles/configuring-jekyll/
 * http://jekyllrb.com/docs/github-pages/
 
-
 Nokogiri installed with :
-
 
 ```sh
 sudo gem install nokogiri -v '1.7.1' --                                \
@@ -17,22 +27,24 @@ sudo gem install nokogiri -v '1.7.1' --                                \
 
 Answer source http://stackoverflow.com/a/35113383/48136
 
-# Serve locally
+And then
 
 ```sh
 bundle exec jekyll serve -w --port 4000
 ```
 
-# Styling the pre tag
+## Jekyll styling
+
+### Styling the pre tag
 http://mediatemple.net/blog/tips/considerations-for-styling-the-pre-tag/
 
-# Liquid templates with functions, filters, tags
+### Liquid templates with functions, filters, tags
 http://jekyllrb.com/docs/templates/
 https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#tags
 https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#standard-filters
 
 
-# GH Blog setup
+# blog.arkey.fr GH Blog setup
 
 See
 * http://www.adamwadeharris.com/how-to-convert-a-wordpress-site-to-jekyll-with-github-pages/
@@ -71,7 +83,7 @@ See
 - [x] DNS
     https://www.lewagon.com/blog/siteweb-domaine-mail-personalise
 - [x] Move some file to `_pages`
-- [ ] Fix SSL for custom CNAME once GH handles it
+- [x] Fix SSL for custom CNAME once GH handles it (using cloudflare now)
     See :
     * http://blog.webjeda.com/jekyll-ssl/
     * https://konklone.com/post/github-pages-now-sorta-supports-https-so-use-it
