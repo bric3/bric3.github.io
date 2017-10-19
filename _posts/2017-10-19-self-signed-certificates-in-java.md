@@ -1413,5 +1413,6 @@ https://security.stackexchange.com/a/166645/30540
 https://security.stackexchange.com/questions/73156/whats-the-difference-between-x-509-and-pkcs7-certificate
 http://apetec.com/support/GenerateSAN-CSR.htm
 https://gist.github.com/jchandra74/36d5f8d0e11960dd8f80260801109ab0
+https://www.pixelstech.net/article/1420427307-Different-types-of-keystore-in-Java----PKCS12
 
 {% endif %}

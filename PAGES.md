@@ -42,6 +42,7 @@ http://mediatemple.net/blog/tips/considerations-for-styling-the-pre-tag/
 http://jekyllrb.com/docs/templates/
 https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#tags
 https://github.com/Shopify/liquid/wiki/Liquid-for-Designers#standard-filters
+http://hamishwillee.github.io/2014/06/11/public-drafts-in-jekyll/
 
 
 # blog.arkey.fr GH Blog setup
