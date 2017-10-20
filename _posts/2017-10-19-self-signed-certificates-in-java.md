@@ -513,8 +513,8 @@ La javadoc:
 >     IllegalStateException - if the factory is not initialized.
 > ```
 
-Dans les fais jusqu'à aujourd'hui PKIX / X509 est le seul type possible pour une 
-connexion TLS. Et la factory de la JVM ne créé qu'une seule instance de trust 
+Dans les faits jusqu'à aujourd'hui PKIX / X509 est le seul type possible pour une 
+connexion TLS. Et la factory de la JVM ne crée qu'une seule instance de trust 
 manager de type `X509Trustmanager`.
 
 
