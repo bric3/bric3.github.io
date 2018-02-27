@@ -292,7 +292,7 @@ Ce qui permet d'être simple à mettre en place pour des resources ultérieures.
 Le code technique est géré à un seul endroit et évite donc les détériorations
 possibles si le code était dupliqué sur plusieurs resources.
 
-# Éléments à prendre ne compte
+# Éléments à prendre en compte
 
 * Faut-il utiliser une IRI absolue ou relative?
 
