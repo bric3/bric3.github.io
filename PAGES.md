@@ -7,7 +7,7 @@ https://pages.github.com/
 ### With docker
 
 ```sh
-sudo docker run -t --rm -v "$PWD":/usr/src/app -p "4000:4000" starefossen/github-pages
+docker run --name blog --tty --rm --volume "$PWD":/usr/src/app:delegated --volume site:/usr/src/app/_site --publish "4000:4000" starefossen/github-pages
 ```
 
 Eventually remove the old `Gemfile.lock`
