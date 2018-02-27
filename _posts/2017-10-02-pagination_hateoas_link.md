@@ -117,7 +117,7 @@ public void search(@BeanParam QueryParams queryParams,
                                  .links(linkPagination.toLinks(uriInfo)
                                                       .toArray(Link[]::new))
                                  .header(X_TOTAL_COUNT, results.totalCount())
-                                 .entity(results.current())
+                                 .entity(results.currentPage())
                                  .build());
 }
 ```
@@ -228,8 +228,8 @@ conséquence.
 ```java
 @Provider
 public class LinkPaginationContainerResponseFilter implements ContainerResponseFilter {
-
     public static final String X_TOTAL_COUNT = "X-Total-Count";
+    public static final String X_PAGE_COUNT = "X-Page-Count";
 
     @Override
     public void filter(ContainerRequestContext requestContext,
@@ -246,11 +246,12 @@ public class LinkPaginationContainerResponseFilter implements ContainerResponseF
         responseContext.getHeaders()
                        .addAll(LINK,
                                new LinkPagination(
-                                   entity.currentPageIndex,
-                                   entity.pageCount
+                                   entity.currentPageIndex(),
+                                   entity.pageCount()
                                ).toLinks(uriInfo).toArray(Link[]::new)
                        );
-        responseContext.getHeaders().add(X_TOTAL_COUNT, entity.totalCount);
+        responseContext.getHeaders().add(X_TOTAL_COUNT, entity.totalCount());
+        responseContext.getHeaders().add(X_PAGE_COUNT, entity.pageCount());
     }
 }
 ```
@@ -272,7 +273,7 @@ public interface Paginated<T> {
 ```
 
 ```java
-public class SomePaginated implements Paginated { /* ... */ }
+public class SomePaginated implements Paginated<Page> { /* ... */ }
 ```
 
 Puis il suffira d'écrire :
@@ -291,7 +292,29 @@ Ce qui permet d'être simple à mettre en place pour des resources ultérieures.
 Le code technique est géré à un seul endroit et évite donc les détériorations
 possibles si le code était dupliqué sur plusieurs resources.
 
+# Éléments à prendre ne compte
 
+* Faut-il utiliser une IRI absolue ou relative?
+
+  Par exemple l'api pourrait être utilisée par un serveur intermédiaire exposé 
+  sur un autre domaine, rendant l'exploitation de ces liens délicate.
+
+* Faut-il pour la payload utiliser un type collection ou un type objet?
+
+  Un tableau a l'avantage de représenter une collection d'éléments directement.
+  Cependant pour des raisons métier il pourrait être voulu que le serveur 
+  retourne également des méta-données métiers sur cette collection :
+  un flag d'A/B testing, pour une recherche quelles options étaient actives, 
+  etc. Ces informations peuvent être exposée dans les entêtes, mais est-ce 
+  le bon endroit?
+
+* Ce qui amène alors à une autre réflexion si ces meta-donnés sant dans la 
+  payload, est-ce les informations de paginations devrait y être aussi ?
+
+  Mon avis est que non car la pagination est une notion liée au protocole
+  d'accès à la données, alors que les meta-données du métiers ne le sont 
+  pas. Également le fait que ces données soient dans les entêtes n'oblige 
+  pas à parser la payload pour les utiliser.
 
 ------------------------------
 
