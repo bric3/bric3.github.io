@@ -321,6 +321,14 @@ only place where bugfix or improvements will take place.
   information may be exposed via headers, but is it the right place for 
   business data ?
 
+* That last point lead to another thought, if meta-data are in the payload
+  does the pagination data must be there as well ?
+
+  My opinion is it shouldn't. The pagination is elated to the protocol and 
+  how to access pages of a resource, while other business related data isn't.
+  Besides having this pagination data in the response headers don't force 
+  someone to parse the payload to access and use them.
+
 ------------------------------
 
 [Blog post](https://psamsotha.github.io/jersey/2017/01/07/jersey-pagination-with-spring-data.html) 
