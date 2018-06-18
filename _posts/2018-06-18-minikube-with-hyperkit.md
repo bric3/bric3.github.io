@@ -14,19 +14,19 @@ author: Brice Dutheil
 ---
 
 While Docker for mac in the edge channel offers a Kubernetes integration,
-I wanted to have the same tool as my pals on linux, who re most likely 
+I wanted to have the same tool as my pals on linux, who're most likely 
 using [minikube](https://github.com/kubernetes/minikube).
 
-However Minikube on OSX requires a virtual machine which is by default 
-VirtualBox, since it requires boot2docker and bootstrapping a VM, I 
-wanted a more modern approach. Docker **on** mac required a virtual machine 
-first, then people ported [bhyve](http://www.bhyve.org/) (BSD hypervisor) 
+Minikube on OSX requires a virtual machine which is by default 
+VirtualBox, since minikube is using the docker a the container runtime it bootstrap the VM environment with `boot2docker`. 
+
+I wanted an approach that felt a bit more _modern_. Early docker **on** mac required a virtual machine, then people ported [bhyve](http://www.bhyve.org/) (BSD hypervisor) 
 to OSX, under the name [xhyve](https://github.com/mist64/xhyve) using OSX 
 [Hypervisor.framework](https://developer.apple.com/library/mac/documentation/DriversKernelHardware/Reference/Hypervisor/index.html). 
 That one allowed to _light virtual machines_ and gave birth the 
 [docker-machine-xhyve-driver](https://github.com/zchee/docker-machine-driver-xhyve).
 
-So let's start to install minikube with _xhyve_.
+So let's start to install Minikube with _xhyve_.
 
 ```sh
 ➜ brew update
