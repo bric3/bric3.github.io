@@ -26,6 +26,12 @@ to OSX, under the name [xhyve](https://github.com/mist64/xhyve) using OSX
 That one allowed to _light virtual machines_ and gave birth the 
 [docker-machine-xhyve-driver](https://github.com/zchee/docker-machine-driver-xhyve).
 
+In case minikube is not installed, let's do it :
+
+```sh
+brew cask install minikube
+```
+
 So let's start to install Minikube with _xhyve_.
 
 ```sh
@@ -144,7 +150,8 @@ configuring SSH, installing kubelet, kubeadm, especially.
 Since I wondered about versions, what is the docker version ?
 
 ```sh
-➜ minikube ssh$ docker version
+➜ minikube ssh
+$ docker version
 Client:
  Version:	17.12.1-ce
  API version:	1.35
