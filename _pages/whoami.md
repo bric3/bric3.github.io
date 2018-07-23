@@ -7,32 +7,33 @@ categories: []
 author: Brice Dutheil
 ---
 
-Plutôt orienté sur le **Java** et sur les technologies périphériques,
-je m'intéresse en particulier au code même, à son design et à l'architecture. Je me suis
-récemment pris d'intérêt pour les architectures orientées évènement particulièrement
-attrayante en terme de design, d'évolutivité, de résilience.
+I'm mostly a **Java** guy. I'm still trying to acquire new skills.
 
-Dans la même veine je m'oriente vers l'ingénierie des système distribués, j'ai mis
-un pas dans **Cassandra**, et j'investigue `RxJava` ainsi que d'autres projets de Netflix.
+I spent more than ten years on backends in various industries mostly as 
+a consultant or a freelance contractor. Now I'm working at [Blablacar](blablacar.com).
 
-Ah oui, je commite sur **mockito**, donc je m'intéresse sur les
-fonctionnements internes de la JVM (bytecode, classloader, JIT, etc....)
+I used some of my free time as a **mockito** core commiter, contributing random stuff on various open source projects.
+ attending Parisian _xxxx_ 
+user groups.
 
-Plus jeune c'était sur mon temps libre, mais après 30 ans il faut le chercher ce temps libre ;)
+At some point I co-created the **Hackergarten Paris** with **Mathilde Lemée** 
+and **Éric Lefevre**, now this event is the hands of **Florent Biville**.
 
-Avec **Mathilde Lemée** et **Éric Lefevre**, nous nous sommes 
-regroupé pour lancer le **Hackergarten**, un évènement qui permet de regrouper
-des commiteurs actifs avec des volontaires pour participer à certains projets Open Source.
-Depuis d'autres personnes, comme **Florent Biville**, entretiennent cet évènement.
+Well that was before I was a father of two, now it gets physically more 
+difficult ;)
 
-Je suis un partisan de l'**open source**, du **pair programming**,
-des **pull request**, de **[GitHub](https://github.com)** (et donc bien sûr **git**).
+[<i class="fa fa-linkedin"></i>](http://fr.linkedin.com/in/dutheilbrice) | [<i class="fa fa-twitter"></i>](https://twitter.com/BriceDutheil) | [<i class="fa fa-github-alt"></i>](https://github.com/bric3) | [<i class="fa fa-desktop"></i>](https://speakerdeck.com/bric3) | [<i class="fa fa-stack-overflow"></i>](https://stackoverflow.com/users/48136/brice)
 
-Depuis fin 2011, je fais partie de l'équipe qui monte **Devoxx France**,
-**LA** conférence française du développement, une conférence résolument tournée vers l'avenir.
 
-Vous voulez en savoir plus sur l'expérience professionnelle ; mon profil est sur
-[LinkedIn](http://fr.linkedin.com/in/dutheilbrice) et [Viadéo](http://www.viadeo.com/fr/profile/brice.dutheil).
-Suivez moi sur [twitter](https://twitter.com/BriceDutheil).
+----------
 
-Je suis indépendant.
+Je suis plutôt un devélopeur **Java**, mais je lutte encore pour acquérir de nouvelles compétences.
+
+J'ai passé 10 ans dans différents secteur sur les back-ends en tant que consultant employé ou en tant qu'indépendant. Aujourd'hui je travaille pour [Blablacar](blablacar.com).
+
+Durant mon temps libre j'ai notamment été au coeur de l'équipe **mockito**, et en donnant des contributions variées sur différents projets open-source.
+Appréciant certaines qualité du model open-source collaboratif, j'ai co-créé le **Hackergarten Paris** avec **Mathilde Lemée** et **Éric Lefevre**, aujourd'hui cet évènement a été repris par **Florent Biville**. Bien sûr j'étais présent au nombreux user groups et meetups parisien.
+
+C'était avant de devenir le papa de deux enfants, c'est physiquement trop dur de tout faire ;)
+
+[<i class="fa fa-linkedin"></i>](http://fr.linkedin.com/in/dutheilbrice) | [<i class="fa fa-twitter"></i>](https://twitter.com/BriceDutheil) | [<i class="fa fa-github-alt"></i>](https://github.com/bric3) | [<i class="fa fa-desktop"></i>](https://speakerdeck.com/bric3) | [<i class="fa fa-stack-overflow"></i>](https://stackoverflow.com/users/48136/brice)
