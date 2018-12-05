@@ -1,6 +1,6 @@
 ---
 layout: post
-title: When Java's WatchService is not enough
+title: When Java's WatchService is not enough in your container
 date: 2018-06-18
 published: false
 tags:
@@ -24,9 +24,56 @@ the file is modified. How is it possible ?
 
 
 
-```bash
-touch /etc/hosts
+The code to reproduce is quite boring:
+
+
+```java
+import java.lang.Exception;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.FileSystems;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+
+public class WatchFile {
+    public static void main(String... args) throws Exception {
+        String filepath = args[0];
+        Path path = FileSystems.getDefault()
+                               .getPath(filepath);
+        System.out.printf("Watching : %s%n", path);
+        try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
+            WatchKey watchKey = (Files.isDirectory(path) ? path : path.getParent()).register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            while (true) {
+                WatchKey wk = watchService.take();
+                for (WatchEvent<?> event : wk.pollEvents()) {
+                    Path changed = (Path) event.context();
+                    System.out.printf("Modified : %s%n", changed);
+                    if (changed.endsWith(path.getFileName().toString())) {
+                        System.out.printf("  -> : %s%n", path);
+                    }
+                }
+            }
+        }
+    }
+}
 ```
+
+This simple code expects an argument that is a path to a directory or a file.
+
+```
+############ terminal A ###########|############ terminal B ###########
+> java WatchFile /etc/hosts        |
+Watching : /etc/hosts              | > touch /etc/hosts
+Modified : hosts                   |
+  -> : /etc/hosts                  |
+```
+
+So what may happen under the hood, the first thing to notice is that
+`WatchService` abstracts what the underlying OS provides to be notified 
+when something changed in the file system.
+
 
 
 
@@ -180,3 +227,11 @@ Plenty of issues :
 https://github.com/docker/for-mac/issues/2375
 https://github.com/moby/moby/issues/11705
 https://github.com/libuv/libuv/issues/1201
+
+
+
+---------------------
+
+
+We could have hoped for a way to tweak the behavior but the linux implementation
+do not yet support any modifiers ([`// no modifiers supported at this time`](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l230))
