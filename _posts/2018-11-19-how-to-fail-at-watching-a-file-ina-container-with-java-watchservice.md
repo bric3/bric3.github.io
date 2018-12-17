@@ -11,6 +11,8 @@ tags:
 author: Brice Dutheil
 ---
 
+## Boring code that should be written once and run everywhere
+
 Suppose the application you're working on needs to monitor changes to a 
 file and rely on Java's `WatchService` introduced in Java 7. Developing 
 it and testing it locally works, in unit tests as you want to control 
@@ -44,7 +46,9 @@ public class WatchFile {
                                .getPath(filepath);
         System.out.printf("Watching : %s%n", path);
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
-            WatchKey watchKey = (Files.isDirectory(path) ? path : path.getParent()).register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            WatchKey watchKey = (Files.isDirectory(path) ? path : path.getParent())
+                                    .register(watchService, 
+                                              StandardWatchEventKinds.ENTRY_MODIFY);
             while (true) {
                 WatchKey wk = watchService.take();
                 for (WatchEvent<?> event : wk.pollEvents()) {
@@ -60,24 +64,53 @@ public class WatchFile {
 }
 ```
 
-This simple code expects an argument that is a path to a directory or a file.
+This simple code expects an argument that is a path to a directory or a file,
+for example when run locally:
 
 ```
-############ terminal A ###########|############ terminal B ###########
-> java WatchFile /etc/hosts        |
-Watching : /etc/hosts              | > touch /etc/hosts
-Modified : hosts                   |
-  -> : /etc/hosts                  |
+############ terminal A ##############|############ terminal B ###########
+> java WatchFile /etc/hosts           | 
+Watching : /etc/hosts                 | # wait for WatchFile to be started
+                                      | > touch /etc/hosts
+Modified : hosts                      |
+  -> : /etc/hosts                     |
 ```
 
 So what may happen under the hood, the first thing to notice is that
-`WatchService` abstracts what the underlying OS provides to be notified 
-when something changed in the file system.
+`WatchService` abstracts (or not) what the underlying OS provides to be 
+notified when something changed in the file system.
+
+For example the JDK on MacOs the following statement 
+`FileSystems.getDefault().newWatchService()` will return a _KISS_ [polling
+watcher](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/share/classes/sun/nio/fs/PollingWatchService.java).
 
 
+So we are running in a container, and on Linux, so the following should 
+just work, write once run everywhere, that was the promise of Java right:
+
+```
+############ terminal A ##############|############ terminal B ###########
+> docker container run -it \          | > docker container exec -it \
+  adoptopenjdk/openjdk8:latest \      |   612f6247d0b7 \
+  /bin/bash                           |   /bin/bash
+root@612f6247d0b7:/# \                | # wait for WatchFile to be started
+  java WatchFile /etc/hosts           | root@612f6247d0b7:/# \
+Watching : /etc/hosts                 |   touch /etc/hosts
+                                      | 
+# nothing happens                     | 
+```
+
+So no it doesn't work everywhere, it works fine on my local machines 
+wether it is Linux or OSX, but not in a container ?!
 
 
-[`sun.nio.fs.LinuxWatchService`](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java)
+## Linux Watch Service uses `inotify`
+
+Let's dig a little bit in the `WatchService` implementation on Linux.
+
+On Linux the implementation [`sun.nio.fs.LinuxWatchService`](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java)
+makes use of `inotify` which is a proven technology to watch Linux 
+filesystems.
 
 ```java
 /**
@@ -90,35 +123,38 @@ when something changed in the file system.
  */
 ```
 
-So this is based on `inotify`, the Linux API that allow to receive notifications 
-on file-system change events. So let's try with system tools.
+In shorts `inotify` allows to register a _watch_ and receive notifications 
+on file-system change events. So let's try with the system tools in our 
+container.
 
-Install ``
-
-In the container let's setup a watch on `/etc/hosts`, in shell session A
-
-```bash
-# inotifywait -m /etc/hosts
-Setting up watches.
-Watches established.
-```
-
-In shell session B, enter
+First install `inotify-tools` in the running container.
 
 ```bash
-# touch /etc/hosts
+root@612f6247d0b7:/# apt-get update
+...
+root@612f6247d0b7:/# apt-get install -y inotify-tools
 ```
 
-In console A, the expected events are observed, so inotify appears to be working
-as expected.
+Then let's add a watch on `/etc/hosts` in shell session _A_, once 
+_established_ modify the watched file in session B.
 
-```bash
-/etc/hosts OPEN
-/etc/hosts ATTRIB
-/etc/hosts CLOSE_WRITE,CLOSE
+```
+############ terminal A ##############|############ terminal B ###########
+root@612f6247d0b7:/# \                | 
+  inotifywait -m /etc/hosts           | 
+Setting up watches.                   | 
+Watches established.                  | 
+                                      | root@612f6247d0b7:/# \
+                                      |   touch /etc/hosts
+/etc/hosts OPEN                       | 
+/etc/hosts ATTRIB                     | 
+/etc/hosts CLOSE_WRITE,CLOSE          | 
 ```
 
-But remember that JVM `WatchService` only allow to register a directory
+In console A, the expected events are observed, so inotify appears to be 
+working as expected.
+
+But remember that Java `WatchService` API only allow to register a directory
 
 > ```java
 > /**
@@ -128,27 +164,63 @@ But remember that JVM `WatchService` only allow to register a directory
 >  * when files are created or deleted.
 > ```
 
-So let's retry with a watch on `/etc` folder instead, in shell session A
+So let's try again with a watch on the `/etc` folder instead with the 
+same scenario, in shell session A set-up a watch, then once ready modify 
+the actual file:
 
-```bash
-# inotifywait -m /etc
-Setting up watches.
-Watches established.
+```
+############ terminal A ##############|############ terminal B ###########
+root@612f6247d0b7:/# \                | 
+  inotifywait -m /etc                 | 
+Setting up watches.                   | 
+Watches established.                  | 
+                                      | root@612f6247d0b7:/# \
+                                      |   touch /etc/hosts
+/etc/ OPEN ld.so.cache                | 
+/etc/ CLOSE_NOWRITE,CLOSE ld.so.cache | 
 ```
 
-In shell session B, enter
+In console A, different set of events are observed ; no ATTRIB or MODIFY 
+events and interestingly the events are about a `ld.so.cache`.
 
-```bash
-# touch /etc/hosts
+So not quite what the Linux implementation relying on `inotify` expects to 
+notice file modifications if you inspects the [source code (line 382)](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l382).
+
+That's weird, let's trying the same scenario on a different file in `/etc`,
+that is a newly created file named `somefile`
+
+```
+############ terminal A ##############|############ terminal B ###########
+root@612f6247d0b7:/# \                | 
+  inotifywait -m /etc                 | 
+Setting up watches.                   | 
+Watches established.                  | 
+                                      | root@612f6247d0b7:/# \
+                                      |   touch /etc/somefile
+/etc/ OPEN ld.so.cache                | 
+/etc/ CLOSE_NOWRITE,CLOSE ld.so.cache | 
+/etc/ CREATE somefile
+/etc/ OPEN somefile
+/etc/ ATTRIB somefile
+/etc/ CLOSE_WRITE,CLOSE somefile
 ```
 
-In console A, different events are observed, not quite what the Linux implementation
-relying on `inotify` expects to notice modifications (no ATTRIB or MODIFY events, and interestingly it open `ld.so.cache`).
+OK we got the wanted events, if we run our Java `WatchFile` program it is 
+notified by the file change.
 
-```bash
-/etc/ OPEN ld.so.cache
-/etc/ CLOSE_NOWRITE,CLOSE ld.so.cache
 ```
+############ terminal A ##############|############ terminal B ###########
+root@612f6247d0b7:/# \                |
+  java WatchFile /etc/somefile        | 
+Watching : /etc/somefile              | # wait for WatchFile to be started
+                                      | root@612f6247d0b7:/# \
+                                      |   touch /etc/somefile
+Modified : somefile                   |
+  -> : /etc/somefile                  |
+```
+
+So there is something with `/etc/hosts` in particular that prevents 
+`inotify` to see the change if the watch is set up on  the directory.
 
 ## The clue
 
@@ -161,47 +233,62 @@ Interestingly I remembered this paragraph in the `WatchService` javadoc :
 >  * detected.
 > ```
 
-So since this app is running in a rocket container, let's have a look at mounts
+So since this app is running in a container, let's have a look at mounts
 
 ```bash
-# findmnt
-TARGET                           SOURCE                                          FSTYPE  OPTIONS
-/                                overlay                                         overlay rw,relatime,lowerdir=/var/lib/rkt/cas/tree/deps-sha512-e6b558999a3ec87f0c8e85897c1f048e00735697307
-|-/dev/termination-log           /dev/sda9[/var/lib/kubelet/pods/355881c1-e9c0-11e8-8dbd-2ee986b3f310/containers/edge-api/5eb32d80-e9c0-11e8-b832-5eb71c2a1aa1]
-|                                                                                ext4    rw,relatime,seclabel,data=ordered
-|-/dgr/attributes/k8s-attributes /dev/sda9[/var/lib/kubelet/pods/355881c1-e9c0-11e8-8dbd-2ee986b3f310/volumes/kubernetes.io~configmap/edge-api]
-|                                                                                ext4    rw,relatime,seclabel,data=ordered
-|-/etc/hosts                     /dev/sda9[/var/lib/kubelet/pods/355881c1-e9c0-11e8-8dbd-2ee986b3f310/etc-hosts]
-|                                                                                ext4    rw,relatime,seclabel,data=ordered
-|-/run/secrets/kubernetes.io/serviceaccount
-|                                tmpfs                                           tmpfs   ro,relatime,seclabel
-|-/dev/null                      tmpfs[/null]                                    tmpfs   rw,nosuid,seclabel,mode=755
-|-/dev/zero                      tmpfs[/zero]                                    tmpfs   rw,nosuid,seclabel,mode=755
-|-/dev/full                      tmpfs[/full]                                    tmpfs   rw,nosuid,seclabel,mode=755
-|-/dev/random                    tmpfs[/random]                                  tmpfs   rw,nosuid,seclabel,mode=755
-|-/dev/urandom                   tmpfs[/urandom]                                 tmpfs   rw,nosuid,seclabel,mode=755
-|-/dev/tty                       tmpfs[/tty]                                     tmpfs   rw,nosuid,seclabel,mode=755
-|-/dev/net/tun                   tmpfs[/net/tun]                                 tmpfs   rw,nosuid,seclabel,mode=755
-|-/dev/console                   devpts[/6]                                      devpts  rw,nosuid,noexec,relatime,seclabel,gid=5,mode=620,ptmxmode=000
-|-/proc                          proc                                            proc    rw,nosuid,nodev,noexec,relatime
-| |-/proc/sys                    proc[/sys]                                      proc    ro,nosuid,nodev,noexec,relatime
-| | `-/proc/sys/kernel/random/boot_id
-| |                              tmpfs[/proc-sys-kernel-random-boot-id//deleted] tmpfs   ro,nosuid,nodev,seclabel,mode=755
-| |-/proc/sysrq-trigger          proc[/sysrq-trigger]                            proc    ro,nosuid,nodev,noexec,relatime
-| |-/proc/sys/kernel/random/boot_id
-| |                              tmpfs[/proc-sys-kernel-random-boot-id//deleted] tmpfs   rw,nosuid,nodev,seclabel,mode=755
-| `-/proc/kmsg                   tmpfs[/kmsg//deleted]                           tmpfs   rw,nosuid,nodev,seclabel,mode=755
-|-/dev/shm                       tmpfs                                           tmpfs   rw,nosuid,nodev,seclabel
-|-/dev/pts                       devpts                                          devpts  rw,nosuid,noexec,relatime,seclabel,gid=5,mode=620,ptmxmode=666
-|-/run/systemd/journal           tmpfs[/systemd/journal]                         tmpfs   rw,nosuid,nodev,seclabel,mode=755
-|-/sys                           sysfs                                           sysfs   ro,nosuid,nodev,noexec,relatime,seclabel
-|-/etc/resolv.conf               overlay[/etc/rkt-resolv.conf]                   overlay rw,relatime,lowerdir=/var/lib/rkt/cas/tree/deps-sha512-8cae658164e36d41cb6485422dd6b66dbc787e1a4c1
-|-/etc/hostname                  proc[/sys/kernel/hostname]                      proc    ro,nosuid,nodev,noexec,relatime
-`-/run/systemd/notify            tmpfs[/systemd/notify]                          tmpfs   rw,nosuid,nodev,seclabel,mode=755
+root@612f6247d0b7:/# findmnt
+TARGET                          SOURCE                                                                               FSTYPE  OPTIONS
+/                               overlay                                                                              overlay rw,relatime,lowerdir=/var/lib/docker/overlay2/l/TZPBTDTJWKHEY
+|-/proc                         proc                                                                                 proc    rw,nosuid,nodev,noexec,relatime
+| |-/proc/bus                   proc[/bus]                                                                           proc    ro,relatime
+| |-/proc/fs                    proc[/fs]                                                                            proc    ro,relatime
+| |-/proc/irq                   proc[/irq]                                                                           proc    ro,relatime
+| |-/proc/sys                   proc[/sys]                                                                           proc    ro,relatime
+| |-/proc/sysrq-trigger         proc[/sysrq-trigger]                                                                 proc    ro,relatime
+| |-/proc/acpi                  tmpfs                                                                                tmpfs   ro,relatime
+| |-/proc/kcore                 tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+| |-/proc/keys                  tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+| |-/proc/timer_list            tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+| `-/proc/sched_debug           tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+|-/dev                          tmpfs                                                                                tmpfs   rw,nosuid,size=65536k,mode=755
+| |-/dev/console                devpts[/0]                                                                           devpts  rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666
+| |-/dev/pts                    devpts                                                                               devpts  rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666
+| |-/dev/mqueue                 mqueue                                                                               mqueue  rw,nosuid,nodev,noexec,relatime
+| `-/dev/shm                    shm                                                                                  tmpfs   rw,nosuid,nodev,noexec,relatime,size=65536k
+|-/sys                          sysfs                                                                                sysfs   ro,nosuid,nodev,noexec,relatime
+| |-/sys/firmware               tmpfs                                                                                tmpfs   ro,relatime
+| `-/sys/fs/cgroup              tmpfs                                                                                tmpfs   ro,nosuid,nodev,noexec,relatime,mode=755
+|   |-/sys/fs/cgroup/cpuset     cpuset[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]     cgroup  ro,nosuid,nodev,noexec,relatime,cpuset
+|   |-/sys/fs/cgroup/cpu        cpu[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]        cgroup  ro,nosuid,nodev,noexec,relatime,cpu
+|   |-/sys/fs/cgroup/cpuacct    cpuacct[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,cpuacct
+|   |-/sys/fs/cgroup/blkio      blkio[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]      cgroup  ro,nosuid,nodev,noexec,relatime,blkio
+|   |-/sys/fs/cgroup/memory     memory[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]     cgroup  ro,nosuid,nodev,noexec,relatime,memory
+|   |-/sys/fs/cgroup/devices    devices[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,devices
+|   |-/sys/fs/cgroup/freezer    freezer[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,freezer
+|   |-/sys/fs/cgroup/net_cls    net_cls[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,net_cls
+|   |-/sys/fs/cgroup/perf_event perf_event[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8] cgroup  ro,nosuid,nodev,noexec,relatime,perf_event
+|   |-/sys/fs/cgroup/net_prio   net_prio[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]   cgroup  ro,nosuid,nodev,noexec,relatime,net_prio
+|   |-/sys/fs/cgroup/hugetlb    hugetlb[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,hugetlb
+|   |-/sys/fs/cgroup/pids       pids[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]       cgroup  ro,nosuid,nodev,noexec,relatime,pids
+|   `-/sys/fs/cgroup/systemd    cgroup[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]     cgroup  ro,nosuid,nodev,noexec,relatime,name=systemd
+|-/etc/resolv.conf              /dev/sda1[/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/resolv.conf]
+|                                                                                                                    ext4    rw,relatime,stripe=1024,data=ordered
+|-/etc/hostname                 /dev/sda1[/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/hostname]
+|                                                                                                                    ext4    rw,relatime,stripe=1024,data=ordered
+`-/etc/hosts                    /dev/sda1[/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/hosts]
+                                                                                                                     ext4    rw,relatime,stripe=1024,data=ordered
 ```
 
-bind mount ?
-https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount
+You can find the same content in the container at the following location 
+`/proc/self/mountinfo`.
+
+This looks interesting, `/etc/hosts` appears to be a [_bind mount_](http://man7.org/linux/man-pages/man8/mount.8.html) where the
+source comes from another filesystem.
+(For a more human and comprehensive answer check this [StackExchange answer](https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount)).
+
+So like some other tooling when there's a _filesystem boundary_ `inotify` 
+encounter some limitations in it's ability to report events, their man page 
+is not quite clear on the matter :
 
 > Limitations and caveats
 >       The inotify API provides no information about the user or process
@@ -222,16 +309,33 @@ https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount
 
 source: [man7.org](http://man7.org/linux/man-pages/man7/inotify.7.html)
 
+For `/etc/hosts` and some other specific files this causes some trouble
+for many different tool, e.g (non exhaustive list of issues).
 
-Plenty of issues : 
-https://github.com/docker/for-mac/issues/2375
-https://github.com/moby/moby/issues/11705
-https://github.com/libuv/libuv/issues/1201
+* https://github.com/docker/for-mac/issues/2375
+* https://github.com/moby/moby/issues/11705
+* https://github.com/libuv/libuv/issues/1201
+
+
+## How to fix this
+
+So you're left with two approaches: 
+
+* Either poll the file regularly 
+* or get yourself an implementation that uses the right `inotify` 
+  abstraction (i.e. that do not only allow to watch folder).
+
+Some implementations exists for both approach, I wouldn't list or recommend any
+because I'm not yet sure if they should be trusted at this time.
 
 
 
 ---------------------
 
+XXXXXX TODO
+
+* why the Java watchservice only allow to register folders ?
+* Why not allowing a modifier to tweak the inotify usage ?
 
 We could have hoped for a way to tweak the behavior but the linux implementation
 do not yet support any modifiers ([`// no modifiers supported at this time`](http://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l230))
