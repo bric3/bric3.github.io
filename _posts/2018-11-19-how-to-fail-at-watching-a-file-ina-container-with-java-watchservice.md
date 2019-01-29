@@ -335,6 +335,9 @@ because I'm not yet sure if they should be trusted at this time.
 XXXXXX TODO
 
 * why the Java watchservice only allow to register folders ?
+  See this thread? http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/thread.html#1059
+  http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/001070.html
+  
 * Why not allowing a modifier to tweak the inotify usage ?
 
 We could have hoped for a way to tweak the behavior but the linux implementation
