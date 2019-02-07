@@ -1,6 +1,6 @@
 ---
 layout: post
-title: When Java's WatchService is not enough in your container
+title: When Java's WatchService is not the right tool in a container
 date: 2018-06-18
 published: false
 tags:
@@ -8,21 +8,23 @@ tags:
 - Linux
 - docker
 - inotify
+- WatchService
 author: Brice Dutheil
 ---
 
 ## Boring code that should be written once and run everywhere
 
 Suppose the application you're working on needs to monitor changes to a 
-file and rely on Java's `WatchService` introduced in Java 7. Developing 
-it and testing it locally works, in unit tests as you want to control 
-the content of the file the test rely on a `TemporaryFolder` Junit rule.
+file and rely on Java's `WatchService` introduced in Java 7. Developmemt 
+and test on the local machine works ; the unit tests rely on a 
+`TemporaryFolder` Junit rule as you want to control the content of the file, 
+running the code on the actual machine just works as expected.
 Everything is green to go live.
 
-This file is `/etc/hosts`.
+The file is `/etc/hosts`.
 
 However when the application is live in production, nothing happen when
-the file is modified. How is it possible ?
+the file is modified. How is it possible ? What did I missed ?
 
 
 
@@ -326,11 +328,20 @@ So you're left with two approaches:
   abstraction (i.e. that do not only allow to watch folder).
 
 Some implementations exists for both approach, I wouldn't list or recommend any
-because I'm not yet sure if they should be trusted at this time.
+because I'm not yet sure if they should be trusted or simply right for any 
+your use case.
+When watching files there's some tricky details that cannot be overlooked 
+when using the whole set of events offered by inotify or other OS native 
+file watching API.
 
 
 
 ---------------------
+
+The Java's `WatchService` design targets both simplicity and portability at 
+a time where containers (and their funky filesystem) were simply not a thing.
+
+
 
 XXXXXX TODO
 
