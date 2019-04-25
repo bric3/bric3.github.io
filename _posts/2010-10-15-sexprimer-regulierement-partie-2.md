@@ -38,7 +38,7 @@ les bases des expressions régulières, j'ai juste abordé les ancres et les opt
 
 Certaines des constructions présentées ici démontrent que le moteur de regex de java fait partie des toutes
 dernières générations. Afin de mieux expliquer la manière de fonctionner des quantificateurs, je vais faire un tour
-sur la technique de backtracling du moteur de regex, feature essentiel pour faire fonctionner ces constructions.
+sur la technique de backtracking du moteur de regex, feature essentiel pour faire fonctionner ces constructions.
 
 Et aussi pourquoi certaines expressions régulières sont risquées en ce qui concerne les performances.
 
