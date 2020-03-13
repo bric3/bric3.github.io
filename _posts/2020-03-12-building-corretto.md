@@ -291,10 +291,38 @@ So I had to increase the project language level.
 
 ## Let's play with the jdk
 
-### Jshell
+### Quicly hack something in jshell (2)
 
 I always have the habit to type `/quit` within `jshell`, let's see how to add an alias to
 `/exit`
+
+Let's explore the code base by searching a specific text, like the one in the `/help intro`
+like 
+
+> The jshell tool allows you to execute Java code, getting immediate results.
+
+This can be found here, in `src/jdk.jshell/share/classes/jdk/internal/jshell/tool/resources/l10n.properties`
+
+```
+help.intro =\
+The jshell tool allows you to execute Java code, getting immediate results.\n\
+You can enter a Java definition (variable, method, class, etc), like:  int x = 8\n\
+or a Java expression, like:  x + x\n\
+or a Java statement or import.\n\
+These little chunks of Java code are called 'snippets'.\n\
+```
+
+following the resource eky we can stumble on `src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java`
+and this code especially
+
+```java
+        registerCommand(new Command("intro",
+                "help.intro",
+                CommandKind.HELP_SUBJECT));
+```
+
+Quickly hacking a duplicate command of the actual `/exit` to register the 
+additional `/quit`...
 
 ```diff
 diff --git i/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java w/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java
@@ -356,6 +384,7 @@ index 9ccb4e888..73cb61ff6 100644
                  envCompletion()));
 ```
 
+Recompile the images.
 
 ```bash
 coretto-11/src❯ make images
@@ -369,6 +398,8 @@ Stopping sjavac server
 Finished building target 'images' in configuration 'macosx-x86_64-normal-server-release'
 ```
 
+and discover the result
+
 ```bash
 coretto-11/src❯ build/macosx-x86_64-normal-server-release/images/jdk/bin/jshell
 |  Welcome to JShell -- Version 11.0.6-internal
@@ -379,4 +410,92 @@ jshell> /quit
 ```
 
 Jobs done !
+
+### Quicly hack something in jshell (2)
+
+Now I'd like something easier to work with, creating images makes the feedback 
+loop too long and I can not debug the program which is cumbersome.
+First we need to set the JDK in the project, which is not another JDK but this JDK
+(otherwise the classes that will be loaded will be from the SDK not from the JDK sources).
+The JDK we want can be found at this location, after the the `make images`
+
+But we need the `jdk` target
+
+```
+corretto-11/src/build/macosx-x86_64-normal-server-release/jdk
+```
+
+which includes `java`
+
+```
+corretto-11/src❯ tree -L 1 build/macosx-x86_64-normal-server-release/jdk/bin
+build/macosx-x86_64-normal-server-release/jdk/bin
+...
+├── jarsigner
+├── jarsigner.dSYM
+├── java
+├── javac
+├── javac.dSYM
+├── javadoc
+├── javadoc.dSYM
+...
+```
+
+![Setting freshly built JDK as Project SDK]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-feesh-build-jdk-as-sdk.png)
+
+**That the JDK we need to add to IntelliJ and to set to the current project.**
+
+Now let's find something to run like a main method, hoefully for `jshell` (<kbd>cmd</kbd> + <kbd>alt</kbd> + <kbd>o</kbd>)
+
+![Looking for main methods]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-looking-for-main.png)
+
+There's one, let then run `jdk.internal.jshell.tool.JShellToolProvider#main`
+
+![Running JShellToolProvider#main]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-run-JshellToolProvider.main.png)
+
+Later in `JShellTool` we can find this method, let's set a break point to see how 
+commands are processed.
+
+```java
+    /**
+     * Process a command (as opposed to a snippet) -- things that start with
+     * slash.
+     *
+     * @param input
+     */
+    private void processCommand(String input) {
+        if (input.startsWith("/-")) {
+```
+
+At boot strap we see a lot of `/set` commands, so it may be necessary to toggle the breakpoint once 
+the init phase is over.
+
+* `/set mode verbose -command`
+* `/set prompt verbose '\njshell> '   '   ...> '`
+* `/set format verbose pre '|  '`
+* `/set format verbose post '%n'`
+* `/set format verbose errorpre '|  '`
+* `/set format verbose errorpost '%n'`
+* `/set format verbose errorline '{post}{pre}    {err}'`
+* `/set format verbose action 'created' added-primary`
+* `...`
+* `/set format verbose typeKind 'interface'              interface`
+* `...`
+
+I'm not sure yet how to use the build command within IntelliJ IDEA yet,
+so modifications were not added to the jdk here `corretto-11/src/build/macosx-x86_64-normal-server-release/jdk`.
+
+But if we are not generating the images, which is what we want, there's this `make` 
+target that is faster.
+
+```bash
+corretto/src❯ make jdk
+Building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'
+Warning: No SCM configuration present and no .src-rev
+Compiling 94 files for jdk.jshell
+Stopping sjavac server
+Finished building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'
+```
+
+The compilation appear to be incremental, and doesn't recompile every JDK modules.
 
