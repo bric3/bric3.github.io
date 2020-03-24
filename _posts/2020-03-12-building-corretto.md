@@ -497,5 +497,225 @@ Stopping sjavac server
 Finished building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'
 ```
 
-The compilation appear to be incremental, and doesn't recompile every JDK modules.
+The compilation appear to be incremental, and doesn't recompile every JDK modules which is
+somewhat sufficient to shorten the feedback loop.
 
+
+Now let's get something a tad more involved.
+
+### Extending the `jshell` repl to support map syntax suggar
+
+Currently jshell allows to write correct java code, e.g.
+
+```
+jshell> var m = Map.of("k1", "v1", "k2", "v2");
+m ==> {k2=v2, k1=v1}
+jshell> m.get("k2")
+$4 ==> "v2"
+```
+
+What I would like is to be able to write 
+
+```
+jshell> var m = { "k1", "v1", "k2", "v2" }
+m ==> {k2=v2, k1=v1}
+jshell> m["k2"]
+$4 ==> "v2"
+```
+
+#### Discovering how the repl work 
+
+This is likely to happen in some _parser_, why not inspect `jdk.jshell.ReplParser`, it has two public methods
+
+* the constructor 
+
+  ```java
+  public ReplParser(ParserFactory fac,
+              com.sun.tools.javac.parser.Lexer S,
+              boolean keepDocComments,
+              boolean keepLineMap,
+              boolean keepEndPositions,
+              boolean forceExpression)
+              
+  ```
+  
+* the `parseCompilationUnit()` method which happens to be an override of 
+`com.sun.tools.javac.parser.JavacParser.parseCompilationUnit`.
+
+
+I don't have a reflex when it comes to navigate this code base, so let's put a breakpoint in this method a start 
+the evaluation of a statement like `String s = "s"` in debug mode.
+
+> CAUTION : IntelliJ IDEA disables step into (<kbd>F7</kbd>) in debug mode for types/methods that are in some packages
+> unfortunately this setting is global and not per project, so you may need to toggle this options if switching
+> between different projects.
+> 
+> ![Step Into setting]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-step-into-ij-setting.png) 
+
+So here's what the break point leads to 
+
+```
+parseCompilationUnit:94, ReplParser (jdk.jshell)                      <== Break point
+parse:639, JavaCompiler (com.sun.tools.javac.main)                    <== Starts the unit parsing 
+parse:676, JavaCompiler (com.sun.tools.javac.main)
+parseFiles:1026, JavaCompiler (com.sun.tools.javac.main)
+parseInternal:249, JavacTaskImpl (com.sun.tools.javac.api)            <== Starts the whole parsing
+call:-1, 1278254413 (com.sun.tools.javac.api.JavacTaskImpl$$Lambda$214)
+handleExceptions:147, JavacTaskImpl (com.sun.tools.javac.api)
+parse:243, JavacTaskImpl (com.sun.tools.javac.api)
+parse:356, TaskFactory$ParseTask (jdk.jshell)
+<init>:345, TaskFactory$ParseTask (jdk.jshell)
+lambda$parse$0:144, TaskFactory (jdk.jshell)
+apply:-1, 1359953204 (jdk.jshell.TaskFactory$$Lambda$203)
+lambda$runTask$4:213, TaskFactory (jdk.jshell)
+withTask:-1, 770947228 (jdk.jshell.TaskFactory$$Lambda$205)
+getTask:182, JavacTaskPool (com.sun.tools.javac.api)
+runTask:206, TaskFactory (jdk.jshell)
+parse:140, TaskFactory (jdk.jshell)
+parse:238, TaskFactory (jdk.jshell)
+lambda$scan$1:90, CompletenessAnalyzer (jdk.jshell)
+apply:-1, 428566321 (jdk.jshell.CompletenessAnalyzer$$Lambda$193)
+disambiguateDeclarationVsExpression:688, CompletenessAnalyzer$Parser (jdk.jshell)
+parseUnit:632, CompletenessAnalyzer$Parser (jdk.jshell)
+scan:91, CompletenessAnalyzer (jdk.jshell)
+analyzeCompletion:183, SourceCodeAnalysisImpl (jdk.jshell)
+isComplete:115, ConsoleIOContext$2 (jdk.internal.jshell.tool)
+add:172, EditingHistory (jdk.internal.jline.extra)
+finishBuffer:738, ConsoleReader (jdk.internal.jline.console)
+accept:2030, ConsoleReader (jdk.internal.jline.console)
+readLine:2756, ConsoleReader (jdk.internal.jline.console)
+readLine:2383, ConsoleReader (jdk.internal.jline.console)
+readLine:2371, ConsoleReader (jdk.internal.jline.console)
+readLine:142, ConsoleIOContext (jdk.internal.jshell.tool)
+getInput:1273, JShellTool (jdk.internal.jshell.tool)
+run:1186, JShellTool (jdk.internal.jshell.tool)                       <== Handles the inpout
+start:987, JShellTool (jdk.internal.jshell.tool)
+start:254, JShellToolBuilder (jdk.internal.jshell.tool)
+main:120, JShellToolProvider (jdk.internal.jshell.tool)
+```
+
+Here's some interesting elements executing before, as expected `JShellTool`
+will handle the input, then at some point jshell configures the java compiler
+to parse the input. Especially `parseInternal` that is configured with files (FileObject)
+
+```java
+private Iterable<? extends CompilationUnitTree> parseInternal() {
+    try {
+        prepareCompiler(true);
+        List<JCCompilationUnit> units = compiler.parseFiles(args.getFileObjects());
+        for (JCCompilationUnit unit: units) {
+            JavaFileObject file = unit.getSourceFile();
+            if (notYetEntered.containsKey(file))
+                notYetEntered.put(file, unit);
+        }
+        return units;
+    }
+```                                                                                      
+
+In reality jshell uses an internal memory store to represent these file objects - I've already 
+[used this API 10 years ago in this blog entry about memory leaks](/2010/02/12/une-fuite-memoire-beaucoup-de-reflection-et-pas-de-outofmemoryerror/),
+sorry it's in french -, here's the `.toString()` of the single file object.
+
+```
+WrappedJavaFileObject[jdk.jshell.MemoryFileManager$SourceMemoryJavaFileObject[string:///$NeverUsedName$.java]] 
+```
+
+Then the unit is parsed by the `JavaCompiler` class.
+
+```java 
+protected JCCompilationUnit parse(JavaFileObject filename, CharSequence content) {
+    long msec = now();
+    JCCompilationUnit tree = make.TopLevel(List.nil());
+    if (content != null) {
+        if (verbose) {
+            log.printVerbose("parsing.started", filename);
+        }
+        if (!taskListener.isEmpty()) {
+            TaskEvent e = new TaskEvent(TaskEvent.Kind.PARSE, filename);
+            taskListener.started(e);
+            keepComments = true;
+            genEndPos = true;
+        }
+        Parser parser = parserFactory.newParser(content, keepComments(), genEndPos,
+                            lineDebugInfo, filename.isNameCompatible("module-info", Kind.SOURCE));
+        tree = parser.parseCompilationUnit();
+```
+
+The `Parser` object is a `ReplParser` that extends `com.sun.tools.javac.parser.JavacParser`, on which 
+the `parseCompilationUnit` is invoked. the javadoc of this method indicates this method mimic the one
+from the actual Java compiler to allow the compilation of stand-alone snippets. 
+
+```java 
+/**
+ * As faithful a clone of the overridden method as possible while still
+ * achieving the goal of allowing the parse of a stand-alone snippet.
+ * As a result, some variables are assigned and never used, tests are
+ * always true, loops don't, etc.  This is to allow easy transition as the
+ * underlying method changes.
+ * @return a snippet wrapped in a compilation unit
+ */
+@Override
+public JCCompilationUnit parseCompilationUnit() {
+```
+
+Now let's debug a bit. The parser _eat_ tokens until `TokenKind.EOF`, then form
+a `ReplUnit` from the snippet, and during this phase the String variable declaration
+goes through an interesting method `variableInitializer`.  
+ 
+
+```
+variableInitializer:2323, JavacParser (com.sun.tools.javac.parser)
+variableDeclaratorRest:3054, JavacParser (com.sun.tools.javac.parser)
+variableDeclaratorsRest:3024, JavacParser (com.sun.tools.javac.parser)
+replUnit:237, ReplParser (jdk.jshell)
+parseCompilationUnit:120, ReplParser (jdk.jshell)
+...
+main:120, JShellToolProvider (jdk.internal.jshell.tool)
+```                                                      
+
+```java 
+/** VariableInitializer = ArrayInitializer | Expression
+ */
+public JCExpression variableInitializer() {
+    return token.kind == LBRACE ? arrayInitializer(token.pos, null) : parseExpression();
+}
+```
+
+What is interesting there, is that this method explicitly checks for a left brace to perform
+specific initialization, actually the one we now for arrays. In the current debugging it's a 
+string literal, so this method will evaluate the `parseExpression` method.
+
+#### Hacking the javac parser 
+
+Inspecting how the parser is doing for the array, we notice that for the token king `LBRACE` 
+the parser creates a specific `JCExpression`.
+
+```java
+/** ArrayInitializer = "{" [VariableInitializer {"," VariableInitializer}] [","] "}"
+ */
+JCExpression arrayInitializer(int newpos, JCExpression t) {
+    List<JCExpression> elems = arrayInitializerElements(newpos, t);
+    return toP(F.at(newpos).NewArray(t, List.nil(), elems));
+} 
+```       
+
+Notice the `NewArray(...)` method, this method creates a new _tree_, `new JCNewArray(elemtype, dims, elems)` 
+for this expression. And `JCNewArray` implements the tree interface `NewArrayTree` that has the `Tree.Kind.NEW_ARRAY`.
+
+This immediately suggests we can plug our own `NewMapTree` 
+
+
+
+![Map.ofEntries tree]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-map-ofentries-tree.png)
+
+
+### Extending the syntax to homebrewed data classes
+
+record()
+
+
+### Allow to omit the `new` keyword
+
+```
+Object a = Object()
+```
