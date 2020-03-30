@@ -13,7 +13,7 @@ author: Brice Dutheil
 ## How to build your corretto JDK
 
 
-Let's git clone the `master` branch, otherwise the default is `develop`
+Let us `git clone` the `master` branch, otherwise the default is `develop`.
 
 ```bash
 ❯ git clone git@github.com:corretto/corretto-11.git --master
@@ -70,7 +70,7 @@ _The impatient should really read the TLDR of this documentation._
 The first step would be to configure the build. I already have the bare minimum 
 requirement : `make`, `autoconf`, `bash` and XCode.
 
-However I encoutered this error
+However, I encountered this error
 
 ```bash
 corretto-11/src❯ bash configure
@@ -81,7 +81,7 @@ configure: error: No xcodebuild tool and no system framework headers found, use 
 ```
 
 All I had to do was to select the current XCode tooling, this command 
-wasn't properly documented in the buidling doc.
+wasn't properly documented in the building doc.
 
 ```bash
 ❯ sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
@@ -119,11 +119,11 @@ configure exiting with result code 1
 
 Then another constraint is the need for an N or N-1 jdk to be present to be able 
 to build the JDK sources. In my setup I use brew to install the latest java, at this time java 13, 
-to run java apps and I use a distribution manager to manage different JDK versions for developemt 
-purpose, like java 11 or java 8. Currently I'm experimenting with `asdf-vm`.
+to run java apps, and I use a distribution manager to manage different JDK versions for development 
+purpose, like java 11 or java 8. Currently, I'm experimenting with `asdf-vm`.
 From the logs `configure` sees the asdf _shims_, but doesn't know where this JDK is located.
 
-Use your sdk environement mangement to get the java home
+Use your sdk environment mmanagement to get the java home
 
 * `$(jenv javahome)`
 * `$(asdf where java amazon-corretto-11.0.6.10.1-2)`
@@ -209,11 +209,11 @@ Finished building target 'images' in configuration 'macosx-x86_64-normal-server-
 ```
 
 The process took ~20 min on my laptop (16GB 2,7 GHz Quad-Core Intel Core i7) with
-2 browser and many tabs opened, slack, intellij, and other apps running.
+2 active browser and many tabs opened, slack, intellij, and other apps running.
 
 Let's try to see if it worked :
 
-```java
+```bash
 coretto-11/src❯ build/macosx-x86_64-normal-server-release/images/jdk/bin/java --version
 openjdk 11.0.6-internal 2020-01-14
 OpenJDK Runtime Environment (build 11.0.6-internal+0-adhoc.bric3.src)
@@ -246,7 +246,7 @@ Targets for Hotspot
 
 ## Opening the JDK in IntelliJ.
 
-Now let's naviagte the code base using IntelliJ IDEA, for that just run 
+Now let us navigate the code base using IntelliJ IDEA, for that just run 
 
 ```bash
 coretto-11/src❯ bash bin/idea.sh
@@ -260,10 +260,10 @@ coretto-11/src❯ bash bin/idea.sh
 mkdir: /Users/bric3/opensource/corretto-11/src/.idea: File exists
 ```
 
-The tool complans that this folder already exists, it's a nice thing to prevent 
+The tool complains that this folder already exists, it's a nice thing to prevent 
 this script to overwrite this folder as IntelliJ IDEA may add or modify some of these files.
-In my case I just remote it since they were incorrect. Also if for some reason,
-`bin/idea.sh` does not pick up ant, you coud always set `ANT_HOME` it this way, that's 
+In my case I just remote it since they were incorrect. Also, if for some reason
+`bin/idea.sh` does not pick up ant, you could always set `ANT_HOME` it this way, that's 
 what I had to do:
 
 ```bash
@@ -282,7 +282,7 @@ And voilà
 ![OpenJDK browsing in IntelliJ IDEA]({{ site.baseurl }}/assets/corretto-11-in-intellij-idea.png)
 
 
-One thing I noticed is that the project is set for Java 9 language level,
+One thing I noticed is that the project has been set for Java 9 language level,
 but some Java code actually have language features from Java 10, like `var`.
 So I had to increase the project language level.
 
@@ -291,7 +291,7 @@ So I had to increase the project language level.
 
 ## Let's play with the jdk
 
-### Quicly hack something in jshell (2)
+### Quickly hack something in `jshell` (2)
 
 I always have the habit to type `/quit` within `jshell`, let's see how to add an alias to
 `/exit`
@@ -411,13 +411,13 @@ jshell> /quit
 
 Jobs done !
 
-### Quicly hack something in jshell (2)
+### Quickly hack something in `jshell` (2)
 
 Now I'd like something easier to work with, creating images makes the feedback 
-loop too long and I can not debug the program which is cumbersome.
+loop too long, and I cannot debug the program which is cumbersome.
 First we need to set the JDK in the project, which is not another JDK but this JDK
 (otherwise the classes that will be loaded will be from the SDK not from the JDK sources).
-The JDK we want can be found at this location, after the the `make images`
+The JDK we want can be found at this location, after the `make images`
 
 But we need the `jdk` target
 
@@ -445,7 +445,7 @@ build/macosx-x86_64-normal-server-release/jdk/bin
 
 **That the JDK we need to add to IntelliJ and to set to the current project.**
 
-Now let's find something to run like a main method, hoefully for `jshell` (<kbd>cmd</kbd> + <kbd>alt</kbd> + <kbd>o</kbd>)
+Now let's find something to run like a main method, hopefully for `jshell` (<kbd>cmd</kbd> + <kbd>alt</kbd> + <kbd>o</kbd>)
 
 ![Looking for main methods]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-looking-for-main.png)
 
@@ -454,7 +454,7 @@ There's one, let then run `jdk.internal.jshell.tool.JShellToolProvider#main`
 ![Running JShellToolProvider#main]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-run-JshellToolProvider.main.png)
 
 Later in `JShellTool` we can find this method, let's set a break point to see how 
-commands are processed.
+commands are being processed.
 
 ```java
     /**
@@ -483,7 +483,7 @@ the init phase is over.
 * `...`
 
 I'm not sure yet how to use the build command within IntelliJ IDEA yet,
-so modifications were not added to the jdk here `corretto-11/src/build/macosx-x86_64-normal-server-release/jdk`.
+and my modifications were not being compiled to the jdk build at `corretto-11/src/build/macosx-x86_64-normal-server-release/jdk`.
 
 But if we are not generating the images, which is what we want, there's this `make` 
 target that is faster.
@@ -495,17 +495,63 @@ Warning: No SCM configuration present and no .src-rev
 Compiling 94 files for jdk.jshell
 Stopping sjavac server
 Finished building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'
+```           
+
+But there's more focuses commands, inspecting the `Makefile` and other gnu makefiles (`make/*gmk`)
+there's this task that is interesting
+
+```bash
+corretto/src❯ make print-targets | tr " " "\n"
+```
+
+And focusing on `jshell`, shows even more specific tasks
+
+```bash
+corretto/src❯ make print-targets | tr " " "\n" | grep jshell
+clean-jdk.jshell
+clean-jdk.jshell-gensrc
+clean-jdk.jshell-include
+clean-jdk.jshell-java
+clean-jdk.jshell-native
+jdk.jshell
+jdk.jshell-gensrc
+jdk.jshell-gensrc-moduleinfo
+jdk.jshell-gensrc-moduleinfo-only
+jdk.jshell-gensrc-only
+jdk.jshell-gensrc-src
+jdk.jshell-gensrc-src-only
+jdk.jshell-java
+jdk.jshell-java-only
+jdk.jshell-jmod
+jdk.jshell-jmod-only
+jdk.jshell-launchers
+jdk.jshell-launchers-only
+jdk.jshell-only           
+
+corretto/src❯ make jdk.jshell
+Building target 'jdk.jshell' in configuration 'macosx-x86_64-normal-server-release'
+Compiling 396 files for BUILD_jdk.compiler.interim
+Compiling 299 files for BUILD_jdk.javadoc.interim
+Compiling 400 files for jdk.compiler
+Stopping sjavac server
+Finished building target 'jdk.jshell' in configuration 'macosx-x86_64-normal-server-release'
 ```
 
 The compilation appear to be incremental, and doesn't recompile every JDK modules which is
-somewhat sufficient to shorten the feedback loop.
+somewhat sufficient to shorten significantly the feedback loop.
+
+_Also, at the time of writing there's a Makefile plugin for IntelliJ IDEA, and it's possible to
+create a Run configuration that execute any makefile target, this run configuration can be executed
+before the `JShellToolProvider`.
+
+![Configure make jdk.jshell before running JShellToolProvider]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-run-JShellToolProvider.main-with-make-jdk.jshell-before.png)   
 
 
 Now let's get something a tad more involved.
 
-### Extending the `jshell` repl to support map syntax suggar
+### Extending the `jshell` repl to support _new map_ syntax sugar
 
-Currently jshell allows to write correct java code, e.g.
+Currently, `jshell` requires writing correct java code as defined for Java 11, e.g.
 
 ```
 jshell> var m = Map.of("k1", "v1", "k2", "v2");
@@ -700,9 +746,11 @@ JCExpression arrayInitializer(int newpos, JCExpression t) {
 ```       
 
 Notice the `NewArray(...)` method, this method creates a new _tree_, `new JCNewArray(elemtype, dims, elems)` 
-for this expression. And `JCNewArray` implements the tree interface `NewArrayTree` that has the `Tree.Kind.NEW_ARRAY`.
+for this expression. `JCNewArray` implements the tree interface `NewArrayTree` that has the `Tree.Kind.NEW_ARRAY`.
 
-This immediately suggests we can plug our own `NewMapTree` 
+This immediately suggests we can plug our own langage representation, such as a `NewMapTree`.
+
+  
 
 
 
