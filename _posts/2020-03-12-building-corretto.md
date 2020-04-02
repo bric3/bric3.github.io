@@ -8,6 +8,7 @@ tags:
 - Corretto
 - OpenJDK
 author: Brice Dutheil
+language: en
 ---
 
 ## How to build your corretto JDK
@@ -748,7 +749,7 @@ JCExpression arrayInitializer(int newpos, JCExpression t) {
 Notice the `NewArray(...)` method, this method creates a new _tree_, `new JCNewArray(elemtype, dims, elems)` 
 for this expression. `JCNewArray` implements the tree interface `NewArrayTree` that has the `Tree.Kind.NEW_ARRAY`.
 
-This immediately suggests we can plug our own langage representation, such as a `NewMapTree`.
+This immediately suggests we can plug our own language representation, such as a `NewMapTree`.
 
   
 

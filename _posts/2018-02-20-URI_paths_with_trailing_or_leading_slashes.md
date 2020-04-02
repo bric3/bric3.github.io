@@ -15,6 +15,7 @@ tags:
 - trailing
 - opinion
 author: Brice Dutheil
+language: en
 ---
 
 In the past months I have been using extensively the infamous HTTP client 

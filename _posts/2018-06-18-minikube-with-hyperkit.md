@@ -11,6 +11,7 @@ tags:
 - osx
 - hyperkit
 author: Brice Dutheil
+language: en
 ---
 
 While Docker for mac in the edge channel offers a Kubernetes integration,

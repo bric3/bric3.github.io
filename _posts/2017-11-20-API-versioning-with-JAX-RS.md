@@ -15,6 +15,7 @@ tags:
 - mediatype
 - media type
 author: Brice Dutheil
+language: en
 ---
 
 # The Quest to API versioning with JAX-RS

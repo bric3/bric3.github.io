@@ -10,6 +10,7 @@ tags:
 - 1password
 - secret
 author: Brice Dutheil
+language: en
 ---
 
 Every once in a while, you may need to bootstrap a new machine, and along with it 

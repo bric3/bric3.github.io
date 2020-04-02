@@ -10,6 +10,7 @@ tags:
 - lombok
 - immutable
 author: Brice Dutheil
+language: en
 ---
 
 ## The quest to immutable objects

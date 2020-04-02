@@ -11,6 +11,7 @@ tags:
 - inotify
 - WatchService
 author: Brice Dutheil
+language: en
 ---
 
 ## Boring code that should be written once and run everywhere
