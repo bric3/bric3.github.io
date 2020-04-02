@@ -25,7 +25,7 @@ Everything is green to go live.
 
 The file is `/etc/hosts` (that's important).
 
-However when the application is live in production, nothing happen when
+However, when the application is live in production, nothing happen when
 the file is modified.
 
 
@@ -70,8 +70,8 @@ public class WatchFile {
 
 ### Running this code locally (on a physical machine)
 
-This simple code expects an argument that is a path to a directory or a file.
-When this code is run locally on the a physical machine:
+This simple code expects an argument that is a path to a directory or, a file.
+When this code is run locally on the physical machine:
 
 ```
 ############ terminal A ##############|############ terminal B ###########
@@ -86,8 +86,8 @@ The code work as expected.
 
 ### Running this code in a container
 
-So we are running in a container (and on Linux), so the following should 
-just work. Write once run everywhere!
+Then we are running in a container (and on Linux), expecting the following should 
+just work. _Write once run everywhere!_
 
 ```
 ############ terminal A ##############|############ terminal B ###########
@@ -101,22 +101,23 @@ Watching : /etc/hosts                 |   touch /etc/hosts
 # nothing happens                     | 
 ```
 
-And no, it doesn't ! If it works fine on a physical machine, and 
-in a JUnit test what is happening for it to not work in a container ?!
+But no, it doesn't ! If it works fine on a physical machine, and 
+in a JUnit test what is happening for this code to not work within a container ?!
 
 
 ## Understanding how this code is working differently on these two platforms
 
 When using `WatchService` the first thing to understand about it is that 
 it tries to abstract filesystems and platform facilities regarding file 
-changes that happen on the file-system. However while the API tries 
-it's best to be platform agnostic their is substantial variations in behavior 
-for all platform implementation.
+changes that happen on the file-system. However, while the API tries 
+its best to be platform agnostic there are substantial variations in behavior 
+in each platform implementation.
 
 For example the JDK 8 on MacOs the following statement 
 `FileSystems.getDefault().newWatchService()` will return a very basic 
-[polling watcher](https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/share/classes/sun/nio/fs/PollingWatchService.java), other platforms may benefit from more intimate knowledge of the OS 
-and file-system, but Linux uses `inotify`.
+[polling watcher](https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/share/classes/sun/nio/fs/PollingWatchService.java), 
+other platforms integration code may benefit from more intimate knowledge of the OS 
+and the file-system. Linux uses `inotify` and its integration appears to leverage it.
 
 
 ### Linux Watch Service uses `inotify`
@@ -131,6 +132,7 @@ repository.
 [`sun.nio.fs.LinuxWatchService`](https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java)
 makes use of `inotify` and `inotify` has been around for a long time, it 
 is a proven technology to watch file-system events on Linux. 
+
 The issue has to be between the chair and the keyboard!
 
 
@@ -173,13 +175,14 @@ Watches established.                  |
 /etc/hosts CLOSE_WRITE,CLOSE          | 
 ```
 
-In console _A_, the expected events are observed, so `inotify` appears to be 
-working as expected.
+In terminal _A_, the expected events are being observed, meaning that `inotify` 
+appears to be working as desired.
 
-So why is this working when using system tools but not in the Java program.
+The question remains ; why is this working when using system tools but not in 
+the Java program?
 
 
-Remember that the Java `WatchService` API only allow to register a directory.
+Now remember that the Java `WatchService` API only allow to register a directory.
 
 ```java
 /**
@@ -207,11 +210,11 @@ Watches established.                  |
 /etc/ CLOSE_NOWRITE,CLOSE ld.so.cache | 
 ```
 
-The first thing to notice is that in console _A_, different set of events 
-are observed ; but neither `ATTRIB` or `MODIFY` events and there's something 
+The first thing to notice is that in terminal _A_, a different set of events 
+are being observed ; but neither `ATTRIB` or `MODIFY` events and there's something 
 especially that catches our attention: the events are about `ld.so.cache`.
 
-That's weird, let's trying the same scenario on a different file in `/etc`,
+That's unexpected, let's try the same scenario on a different file in `/etc`,
 that is a newly created file named `somefile`
 
 ```
@@ -230,8 +233,8 @@ Watches established.                  |
 /etc/ CLOSE_WRITE,CLOSE somefile
 ```
 
-OK we got the wanted events, if we run our Java `WatchFile` program it is 
-notified by the file change.
+OK, we've got `ld.so.cache` events plus the wanted events. If we run our 
+Java `WatchFile` program it is notified by the file change, as expected.
 
 ```
 ############ terminal A ##############|############ terminal B ###########
@@ -244,8 +247,8 @@ Modified : somefile                   |
   -> : /etc/somefile                  |
 ```
 
-So there is something with `/etc/hosts` in particular that prevents 
-`inotify` to see the change if the watch is set up on  the directory.
+This raises questions about `/etc/hosts` in particular, there is something that 
+prevents `inotify` to see the change if the watch is set up on the parent directory.
 
 In the example with `/etc/hosts`, `inotify` only emitted `OPEN`, 
 `CLOSE_NO_WRITE` and `CLOSE` events, those events alone are not what 
@@ -268,9 +271,11 @@ When reading the javadoc of `WatchService` one paragraph caught my eye :
  */
 ```
 
-Changes carried out on remote filesystems may not be not detected.
-While `/etc/hosts` may seem local, this is run in a container, and
-containers may do fancy stuff especially on the `hosts` file
+This means that changes carried out on remote filesystems may not be detected.
+It's natural to think that `/etc/hosts` is present on the local filesystem, but 
+this code run in a container, and containers ~~may~~ do fancy stuff especially 
+on the `hosts` file.
+
 Let's have a look at mounts:
 
 ```bash
@@ -317,8 +322,8 @@ TARGET                          SOURCE                                          
                                                                                                                      ext4    rw,relatime,stripe=1024,data=ordered
 ```
 
-_You can find the same content in the container at the following location 
-`/proc/self/mountinfo`._
+> _You can find the same content in the container at the following location 
+> `/proc/self/mountinfo`._
 
 The information above looks interesting, `/etc/hosts` appears to be a 
 [_bind mount_](http://man7.org/linux/man-pages/man8/mount.8.html) where the
@@ -328,7 +333,7 @@ pedagogic explanation in this
 [StackExchange answer](https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount)).
 
 When there's a _filesystem boundary_ `inotify` encounter some 
-limitations in it's ability to report events, the man page 
+limitations in its ability to report events, the man page 
 is not quite clear on the matter though:
 
 > ```
@@ -360,31 +365,32 @@ e.g (non exhaustive list of issues) :
 * https://github.com/moby/moby/issues/11705
 * https://github.com/libuv/libuv/issues/1201
 
-So this explains why the code was working when being tested with 
-JUnit 4's `TemporaryFolder` and on a physical machine as these paths
-files that were watched were not bind mounted.
+Concretely this explains why the code was working when being tested with 
+JUnit 4's `TemporaryFolder` and on a physical machine because the watched 
+was not _bind mounted_.
 
 ## How to fix this
 
-This is interesting but the program still has to watch changes to this 
-file. This boils down to two approaches: 
+This knowledge is interesting, but the program still has to watch changes to this 
+file which in practice suggests two approaches: 
 
 1. Either poll the file regularly
 2. or use an implementation that leverage the right `inotify` 
    abstraction (i.e. that do not only allow to watch folder).
 
-There's implementations for both approaches. However at this time 
+Implementations for both approaches exist. However, at this time 
 I'm uneasy to share a list or to recommend any as I do not have 
-sufficient experience with any of these alternatives.
+sufficient experience with the second alternative and as such unable to 
+make a critical assessment comparing both.
 
-Typically when watching files there's some tricky details that cannot 
+Typically, when watching files there's some tricky details that cannot 
 be overlooked when using the whole set of events offered by `inotify` 
-or other OS native file watching API. And this depend of the use case
-that has to be solved.
+or when considering other OS native file watching API. Additionally, 
+this may very well depend on the actual use case that has to be solved.
 
 Note that this happened on `/etc/hosts`, but the same issue can happen 
-on any file that is bind mounted in the container, like it is customary 
-for configuration files in Kubernetes.
+on any file that is _bind mounted_ in the container, like it is customary 
+for configuration files (configmap) in Kubernetes.
 
 
 ## Remaining questions
@@ -398,21 +404,21 @@ behavior of the Linux integration as the current one does not
 yet support any modifiers 
 ([`// no modifiers supported at this time`](https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l230))
 
-But this could be implemented this way:
+This could be implemented this way:
 
-* The WatchService API allows customization using _modifiers_ 
-  `WatchKey Path.register(WatchService watcher, WatchEvent.Kind<?>[] events, WatchEvent.Modifier... modifiers)`.
-  For example `com.sun.nio.file.SensitivityWatchEventModifier`.
-  Using this, it could be possible to tweak `inotify` usage.
+> The WatchService API allows customization using _modifiers_ 
+> `WatchKey Path.register(WatchService watcher, WatchEvent.Kind<?>[] events, WatchEvent.Modifier... modifiers)`.
+> For example `com.sun.nio.file.SensitivityWatchEventModifier`.
+> Using this, it could be possible to tweak `inotify` usage.
 
-* Why the Java watchservice only allow to register folders ? 
-  Since there is some differences in the implementation already
-  why not relaxing the limitation for implementation to allow them 
-  to watch files and in the case of Linux it would allow to leverage 
-  the `inotify` event model. For backward compatibility this could be 
-  enabled only when the right modifier is passed to `Path.register(...)`.
+Also, why the Java watchservice only allow to register folders ? 
+Since there is some differences in the implementation already
+why not relaxing the limitation for implementation to allow them 
+to watch files and in the case of Linux it would allow to leverage 
+the `inotify` event model. For backward compatibility this could be 
+enabled only when the right modifier is passed to `Path.register(...)`.
 
-At this time I could only find these discussion on the matter:
+At this time I could only find these discussions on the matter:
 
 * http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/thread.html#1059
 * http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/001070.html
