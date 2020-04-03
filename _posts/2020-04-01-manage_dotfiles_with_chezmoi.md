@@ -17,12 +17,15 @@ Every once in a while, you may need to bootstrap a new machine, and along with i
 to _reconfigure_ home directory's _dot files_. Various approaches already exist,
 using simple archive, git the home directory, gnu stow (symlinks), etc.
 
-These approaches work more or less depending on your expectation, but `chezmoi`
-has one important feature for me : the **integration with password managers**.
+These approaches work more or less depending on your expectation, I wanted something
+that [`chezmoi`](https://github.com/twpayne/chezmoi) touts: 
+the **integration with password managers**.
 There are other features on the shelf too, like templating, and system bootstrap 
 facility.
 
-Here I will only focus on the management of the dot files.
+Here I will only focus on the management of the dot files and of the secrets.
+
+----
 
 After you've got `chezmoi` [installed](https://www.chezmoi.io/docs/install/), you 
 need to initialize it     
@@ -81,9 +84,10 @@ This repository can then be synchronized with a remote git repository.
 
 ## Managing changes
 
-Suppose the file `$HOME/.zshrc` evolves a bit, to see the difference
-between actual files, and the files that are backed up by `chezmoi` use the
-`chezmoi diff` command 
+Suppose the file `$HOME/.zshrc` evolves a bit, like declaring another 
+[oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh) plugin, in order to see 
+the difference between actual files, and the files that are backed up by
+`chezmoi` use the `chezmoi diff` command 
 
 ```bash
 ❯ chezmoi diff
@@ -104,13 +108,17 @@ install -m 644 /dev/null /Users/bric3/.zshrc
 * The lines starting with a minus `-` comes from the _target_ files, i.e. the files 
   in the `$HOME` directory.  
 * The lines starting with a plus `+` comes from the _source_ files, i.e. the files 
-  in the `$HOME` directory.  
+  in the `chezmoi` internal directory.  
 
-Knowing the above, this output can be understood as, source files only have the `man` entry,
-and the local file have `man osx`.
+Knowing the above, this output can be understood as, the source file only have the `man` 
+plugin entry on that line, while the local file have `man osx` plugin entries on that 
+same line.
 
-* `chezmoi apply` will change the local target `.zshrc` file converge to what's in the 
-  source file, i.e. after executing `chezmoi apply`, the file will only have the `man` entry. 
+Now let's look at the output of two other commands:
+
+* `chezmoi apply` will apply the source file to their local target, e.g. the `.zshrc` 
+  file will converge to what's in the source file, once `chezmoi apply` has been executed, 
+  this file will only declare the `man` plugin. 
   
   ```bash
   ❯ chezmoi apply --verbose --dry-run ~/.zshrc
@@ -163,28 +171,40 @@ the [how-to documentation](https://www.chezmoi.io/docs/how-to/#keep-data-private
 for other password manager support like Bitwarden or Keypassx.
 
 So I especially need to store securely files in my `.ssh` folder and
-my `.gnupg` folder.
+my `.gnupg` folders.
 
 ```bash      
-❯ chezmoi add .ssh/id_rsa.pub                                             
-❯ chezmoi add --template .ssh/id_rsa
+❯ chezmoi add .ssh/id_rsa_home.pub                                             
+```
+
+Regarding SSH, `id_rsa_home.pub` is a public key, so I'm just adding it raw, however 
+things get interesting for `id_rsa` which is my private key. 
+
+```bash      
+❯ chezmoi add --template .ssh/id_rsa_home
 ❯ chezmoi add --template .ssh/config
 ❯ chezmoi add --template .gnupg/trustdb.gpg
 ❯ chezmoi add --template .gnupg/pubring.kbx
 ```
 
-`id_rsa.pub` is a public key, so I'm just adding it raw, however things get 
-interesting for `id_rsa` which is my private key. Here I'm telling `chezmoi`
-to store `id_rsa` as a template. While the stored file template still contains
-the original:
+Here I'm telling `chezmoi` to store `id_rsa_home` as a template. While the stored 
+file template still contains the original:
+
+> Regarding GPG files, `chezmoi` supports GPG, but it's used as way to encrypt 
+> secrets not to _backup_ the GPG secrets. There's indeed a way to extract 
+> these secret keys as non-binary files using a few `gpg` commands, via 
+> [_run_ scripts](https://www.chezmoi.io/docs/how-to/#use-scripts-to-perform-actions),
+> however this break the declarative approach of `chezmoi`. So I chose to 
+> save the binary files, here only `trustdb.gpg` and `pubring.kbx`.  
 
 ```bash
-❯ chezmoi edit .ssh/id_rsa
-# template is the same as the actual $HOME/.ssh/id_rsa
+❯ chezmoi edit .ssh/id_rsa_home
+# template is the same as the actual $HOME/.ssh/id_rsa_home
 ```
    
-In order to tell make `chezmoi` aware of 1Password for this template, i first need 
-to store the documents on 1Password.
+In order to tell make `chezmoi` aware of 1Password for this template, I first need 
+to store the documents on 1Password. For that it is necessary to have a 1Password 
+subscription that lets you have an online vault.
 
 First sign-in
 
@@ -205,10 +225,11 @@ Then store documents using the 1Password cli tool `op`
 {"uuid":"losachuYeeho5Eiph2uzoquohl","createdAt":"2020-04-01T17:58:12.818754+02:00","updatedAt":"2020-04-01T17:58:12.818755+02:00","vaultUuid":"eith2iequievuthae9Eedaiboh"}
 ```                                                 
 
-> _All uuids have been edited of course._
+> _All UUIDs have been edited of course._
 
 To complete this operation, we need to modify the templates files 
-where to get the file, like that
+where to get the file, since there's a few binary files `vim` is not suited 
+for that, so I'm using another mean to replace the content by the template.
 
 ```bash
 ❯ chezmoi cd
@@ -217,7 +238,7 @@ where to get the file, like that
 ❯ echo -n '{{- onepasswordDocument "zi8ieleiphieTithiep2xieg3u" -}}' > private_dot_gnupg/private_trustdb.gpg.tmpl
 ❯ echo -n '{{- onepasswordDocument "losachuYeeho5Eiph2uzoquohl" -}}' > private_dot_gnupg/private_pubring.kbx.tmpl
 ❯ exit
-```            
+```
 
 Note that I'm replacing the binary file content of `.gnupg/trustdb.gpg` 
 and `.gnupg/pubring.kbx` with the template.
@@ -231,11 +252,12 @@ files to another _target_ directory.
 ❯ chezmoi apply --verbose --destination /Users/bric3/tmphome --dry-run
 ```
 
-> One thing you may notice is that now, this _global_ command require the 1Password `op`
-session to be active, and you may have to run again `eval $(op signin my)`.
+> One thing you may notice is that now, this is _global_ command, and all 
+> _global_ command will require the 1Password `op` session to be active, 
+> and you may have to run again `eval $(op signin my)` as a pre-requisite.
 
-If ready remove the `--dry-run`, and see the `tmphome` folder populated, after the 
-command as run as changes are applied atomically.
+If ready remove the `--dry-run`, and see the `tmphome` folder populated (after the 
+command has run because `chezmoi` applies changes atomically).
 
 ```bash
 ❯ l /Users/bric3/tmphome
@@ -263,13 +285,15 @@ just by adding the target absolute path `/Users/bric3/tmphome/.gnupg/`
 And what we wanted, make sure the templates are exactly the same as the original files
 
 ```bash  
-❯ b3sum /Users/bric3/tmpcm/.gnupg/pubring.kbx /Users/bric3/.gnupg/pubring.kbx
-1b51813215edef2e97846bfee51cd02dd8d6c2cb6a119b3681ac087597fb0197  /Users/bric3/tmpcm/.gnupg/pubring.kbx
+❯ b3sum /Users/bric3/tmphome/.gnupg/pubring.kbx /Users/bric3/.gnupg/pubring.kbx
+1b51813215edef2e97846bfee51cd02dd8d6c2cb6a119b3681ac087597fb0197  /Users/bric3/tmphome/.gnupg/pubring.kbx
 1b51813215edef2e97846bfee51cd02dd8d6c2cb6a119b3681ac087597fb0197  /Users/bric3/.gnupg/pubring.kbx
-❯ b3sum /Users/bric3/tmpcm/.gnupg/trustdb.gpg /Users/bric3/.gnupg/trustdb.gpg
-d2c67bb808b223cc6f1b7c95b627b4b5551daa1312e12dd0ad3c5bfa1ac35dc9  /Users/bric3/tmpcm/.gnupg/trustdb.gpg
+❯ b3sum /Users/bric3/tmphome/.gnupg/trustdb.gpg /Users/bric3/.gnupg/trustdb.gpg
+d2c67bb808b223cc6f1b7c95b627b4b5551daa1312e12dd0ad3c5bfa1ac35dc9  /Users/bric3/tmphome/.gnupg/trustdb.gpg
 d2c67bb808b223cc6f1b7c95b627b4b5551daa1312e12dd0ad3c5bfa1ac35dc9  /Users/bric3/.gnupg/trustdb.gpg
-```                                
+```
+
+Looks good !
 
 ## It's not over
 
@@ -284,7 +308,7 @@ Now the only thing I'll need to get my dotfiles is
 ❯ chezmoi init --apply --verbose https://githost.tld/path/to/dotfiles.git
 ```
 
-and to update the dotfiles from _upstream_
+Additionally, in order to synchronize the dotfiles from _upstream_ repository :
 
 ```bash
 ❯ eval $(op signin my)
