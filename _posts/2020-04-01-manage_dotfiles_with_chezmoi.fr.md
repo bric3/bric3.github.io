@@ -232,7 +232,7 @@ Puis il faut créer un document avec la commande `op`
 {"uuid":"zi8ieleiphieTithiep2xieg3u","createdAt":"2020-04-01T17:57:13.338949+02:00","updatedAt":"2020-04-01T17:57:13.338949+02:00","vaultUuid":"eith2iequievuthae9Eedaiboh"}
 ❯ op create document .gnupg/trustdb.gpg --tags chezmoi --title .gnupg/pubring.kbx
 {"uuid":"losachuYeeho5Eiph2uzoquohl","createdAt":"2020-04-01T17:58:12.818754+02:00","updatedAt":"2020-04-01T17:58:12.818755+02:00","vaultUuid":"eith2iequievuthae9Eedaiboh"}
-```                                                 
+```
 
 > _Bien évidement tous ces UUIDs ont été édité._
 
@@ -253,6 +253,11 @@ modifier, du coup je m'y prends autrement :
 
 Donc même le contenu des fichiers binaires `.gnupg/trustdb.gpg` et `.gnupg/pubring.kbx`
 sont remplacés par cette simple chaine de caractère {% raw %}`{{- onepasswordDocument "uuid" -}}`{% endraw %}.
+
+Pour le moment 1Password ne supporte pas la mise à jour de documents, il faut supprimer
+l'ancien avec son UUID puis ré-utiliser la sous commande `create` avec la nouvelle 
+version du fichier, et mettre à jour le template avec le nouvel UUID.
+
 
 ## Vérification des templates 
 

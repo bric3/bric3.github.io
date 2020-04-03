@@ -223,7 +223,7 @@ Then store documents using the 1Password cli tool `op`
 {"uuid":"zi8ieleiphieTithiep2xieg3u","createdAt":"2020-04-01T17:57:13.338949+02:00","updatedAt":"2020-04-01T17:57:13.338949+02:00","vaultUuid":"eith2iequievuthae9Eedaiboh"}
 ❯ op create document .gnupg/trustdb.gpg --tags chezmoi --title .gnupg/pubring.kbx
 {"uuid":"losachuYeeho5Eiph2uzoquohl","createdAt":"2020-04-01T17:58:12.818754+02:00","updatedAt":"2020-04-01T17:58:12.818755+02:00","vaultUuid":"eith2iequievuthae9Eedaiboh"}
-```                                                 
+```
 
 > _All UUIDs have been edited of course._
 
@@ -244,6 +244,12 @@ for that, so I'm using another mean to replace the content by the template.
 
 Note that I'm replacing the binary file content of `.gnupg/trustdb.gpg` 
 and `.gnupg/pubring.kbx` with the template character string {% raw %}`{{- onepasswordDocument "uuid" -}}`{% endraw %}.
+
+Also, one downside with 1Password at this time, is that documents cannot be updated,
+you need to remove the old document using the UUID and use the `create` sub-command
+on the new version of the file, you'll get a new uuid and as such you'll have to update 
+these template 
+
 
 ## Checking the templates 
 

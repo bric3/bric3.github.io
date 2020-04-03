@@ -1,8 +1,8 @@
 ---
 layout: post
-title: When Java's WatchService is not the right tool in a container
+title: Lorsque le WatchService de Java n'est pas le bon outil dans un conteneur
 date: 2019-09-13
-published: true
+published: false
 tags:
 - Java
 - Linux
