@@ -10,7 +10,7 @@ tags:
 - 1password
 - secret
 author: Brice Dutheil
-language:fr
+language: fr
 ---
 
 Régulièrement il nous arrive d'avoir à re-configurer une nouvelle machine, avec 
