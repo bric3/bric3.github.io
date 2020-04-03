@@ -240,7 +240,8 @@ L'étape finale c'est de modifier les fichiers template. Étant donné qu'il y a
 aussi des fichiers binaire `vim` n'est pas particulièrement approprié pour les 
 modifier, du coup je m'y prends autrement :
   
-```bash
+{% raw %}
+```bash  
 ❯ chezmoi cd
 ❯ echo -n '{{- onepasswordDocument "ti2adie9Aixaidae4dahpoh5io" -}}' > private_dot_gnupg/private_id_rsa.tmpl
 ❯ echo -n '{{- onepasswordDocument "pairahnietaluv5Moonahm2ea5" -}}' > private_dot_gnupg/config.tmpl
@@ -248,9 +249,10 @@ modifier, du coup je m'y prends autrement :
 ❯ echo -n '{{- onepasswordDocument "losachuYeeho5Eiph2uzoquohl" -}}' > private_dot_gnupg/private_pubring.kbx.tmpl
 ❯ exit
 ```
+{% endraw %}
 
 Donc même le contenu des fichiers binaires `.gnupg/trustdb.gpg` et `.gnupg/pubring.kbx`
-sont remplacés par cette simple chaine de caractère `{{- onepasswordDocument "uuid" -}}`.
+sont remplacés par cette simple chaine de caractère {% raw %}`{{- onepasswordDocument "uuid" -}}`{% endraw %}.
 
 ## Vérification des templates 
 
