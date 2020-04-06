@@ -1,6 +1,9 @@
 # Getting started
 https://pages.github.com/
 
+**OUTDATED FOR NOW**
+
+This will be updated at a later time.
 
 ## Run locally
 

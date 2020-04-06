@@ -1,0 +1,769 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-03-12T00:00:00Z"
+language: en
+published: false
+tags:
+- Java
+- Corretto
+- OpenJDK
+title: Building Java
+---
+
+## How to build your corretto JDK
+
+
+Let us `git clone` the `master` branch, otherwise the default is `develop`.
+
+```bash
+❯ git clone git@github.com:corretto/corretto-11.git --master
+```
+
+Giving a quick look at what the repo is made off we see 
+
+```bash
+corretto-11❯ tree -L 2
+..
+├── ADDITIONAL_LICENSE_INFO
+├── ASSEMBLY_EXCEPTION
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── LICENSE
+├── README.md
+├── TRADEMARKS.md
+├── amazon-cacerts
+├── build.gradle
+├── gradle
+│   └── wrapper
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── installers
+│   ├── linux
+│   ├── mac
+│   └── windows
+├── settings.gradle
+├── src
+│   ├── ADDITIONAL_LICENSE_INFO
+│   ├── ASSEMBLY_EXCEPTION
+│   ├── LICENSE
+│   ├── Makefile
+│   ├── README
+│   ├── bin
+│   ├── build
+│   ├── configure
+│   ├── doc
+│   ├── make
+│   ├── src
+│   └── test
+└── version.txt
+```
+
+So interestingly, corretto _installers_ appears to be built with gradle, let's
+skip that part for now and directly try to build the OpenJDK sources.
+
+For that let's go in the `src/` folder, open the building documentation,
+available either as markdown (`doc/building.md`) or as an html `doc/building.html` file.
+
+_The impatient should really read the TLDR of this documentation._
+
+The first step would be to configure the build. I already have the bare minimum 
+requirement : `make`, `autoconf`, `bash` and XCode.
+
+However, I encountered this error
+
+```bash
+corretto-11/src❯ bash configure
+
+...
+configure: error: No xcodebuild tool and no system framework headers found, use --with-sysroot or --with-sdk-name to provide a path to a valid SDK
+...
+```
+
+All I had to do was to select the current XCode tooling, this command 
+wasn't properly documented in the building doc.
+
+```bash
+❯ sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+```
+
+```bash
+corretto-11/src❯ bash configure
+
+...
+configure: Found potential Boot JDK using /usr/libexec/java_home
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+Unable to find any JVMs matching version "1.9".
+configure: Found potential Boot JDK using /usr/libexec/java_home -v 1.9
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+Unable to find any JVMs matching version "1.8".
+configure: Found potential Boot JDK using /usr/libexec/java_home -v 1.8
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+Unable to find any JVMs matching version "1.7".
+configure: Found potential Boot JDK using /usr/libexec/java_home -v 1.7
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+checking for javac... /Users/bric3/.asdf/shims/javac
+checking for java... /Users/bric3/.asdf/shims/java
+configure: Found potential Boot JDK using well-known locations (in /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk)
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+configure: Could not find a valid Boot JDK. You might be able to fix this by running 'brew cask install java'.
+configure: This might be fixed by explicitly setting --with-boot-jdk
+configure: error: Cannot continue
+configure exiting with result code 1
+```
+
+Then another constraint is the need for an N or N-1 jdk to be present to be able 
+to build the JDK sources. In my setup I use brew to install the latest java, at this time java 13, 
+to run java apps, and I use a distribution manager to manage different JDK versions for development 
+purpose, like java 11 or java 8. Currently, I'm experimenting with `asdf-vm`.
+From the logs `configure` sees the asdf _shims_, but doesn't know where this JDK is located.
+
+Use your sdk environment mmanagement to get the java home
+
+* `$(jenv javahome)`
+* `$(asdf where java amazon-corretto-11.0.6.10.1-2)`
+* etc.
+
+Finally configure works.
+
+```bash
+corretto-11/src❯ bash configure --with-boot-jdk=$(asdf where java amazon-corretto-11.0.6.10.1-2)
+
+...
+checking if build directory is on local disk... yes
+checking JVM features for JVM variant 'server'... "aot cds cmsgc compiler1 compiler2 dtrace epsilongc g1gc graal jfr jni-check jvmci jvmti management nmt parallelgc serialgc services vm-structs"
+configure: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/configure-support/config.status
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/spec.gmk
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/bootcycle-spec.gmk
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/buildjdk-spec.gmk
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/compare.sh
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/Makefile
+
+====================================================
+A new configuration has been successfully created in
+/Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release
+using configure arguments '--with-boot-jdk=/Users/bric3/.asdf/installs/java/amazon-corretto-11.0.6.10.1-2'.
+
+Configuration summary:
+* Debug level:    release
+* HS debug level: product
+* JVM variants:   server
+* JVM features:   server: 'aot cds cmsgc compiler1 compiler2 dtrace epsilongc g1gc graal jfr jni-check jvmci jvmti management nmt parallelgc serialgc services vm-structs'
+* OpenJDK target: OS: macosx, CPU architecture: x86, address length: 64
+* Version string: 11.0.6-internal+0-adhoc.bric3.src (11.0.6-internal)
+
+Tools summary:
+* Boot JDK:       openjdk version "11.0.6" 2020-01-14 LTS OpenJDK Runtime Environment Corretto-11.0.6.10.1 (build 11.0.6+10-LTS) OpenJDK 64-Bit Server VM Corretto-11.0.6.10.1 (build 11.0.6+10-LTS, mixed mode)  (at /Users/bric3/.asdf/installs/java/amazon-corretto-11.0.6.10.1-2)
+* Toolchain:      clang (clang/LLVM from Xcode 11.3.1)
+* C Compiler:     Version 11.0.0 (at /usr/bin/clang)
+* C++ Compiler:   Version 11.0.0 (at /usr/bin/clang++)
+
+Build performance summary:
+* Cores to use:   8
+* Memory limit:   16384 MB
+```
+
+
+It's possible to tweak the configuration by looking at the §common configure arguments
+however it may require additional dependencies.
+
+
+Let's start spinning the fans
+
+```bash
+❯ make images
+Building target 'images' in configuration 'macosx-x86_64-normal-server-release'
+Compiling 8 files for BUILD_TOOLS_LANGTOOLS
+Warning: No SCM configuration present and no .src-rev
+Parsing 2 properties into enum-like class for jdk.compiler
+Compiling 13 properties into resource bundles for jdk.javadoc
+Compiling 12 properties into resource bundles for jdk.jdeps
+Compiling 7 properties into resource bundles for jdk.jshell
+Compiling 19 properties into resource bundles for jdk.compiler
+Compiling 117 files for BUILD_java.compiler.interim
+Creating hotspot/variant-server/tools/adlc/adlc from 13 file(s)
+Compiling 2 files for BUILD_JVMTI_TOOLS
+Compiling 1 files for BUILD_JFR_TOOLS
+...
+Compiling 224 properties into resource bundles for jdk.localedata
+Compiling 90 properties into resource bundles for java.desktop
+Compiling 2982 files for java.base
+...
+Compiling 1586 files for jdk.internal.vm.compiler
+...
+Creating support/modules_libs/java.base/libverify.dylib from 2 file(s)
+Creating support/modules_libs/java.base/libjava.dylib from 60 file(s)
+...
+Creating images/jmods/jdk.management.agent.jmod
+Creating images/jmods/jdk.management.jfr.jmod
+Creating images/jmods/jdk.naming.dns.jmod
+...
+Creating jdk image
+Stopping sjavac server
+Finished building target 'images' in configuration 'macosx-x86_64-normal-server-release'
+```
+
+The process took ~20 min on my laptop (16GB 2,7 GHz Quad-Core Intel Core i7) with
+2 active browser and many tabs opened, slack, intellij, and other apps running.
+
+Let's try to see if it worked :
+
+```bash
+coretto-11/src❯ build/macosx-x86_64-normal-server-release/images/jdk/bin/java --version
+openjdk 11.0.6-internal 2020-01-14
+OpenJDK Runtime Environment (build 11.0.6-internal+0-adhoc.bric3.src)
+OpenJDK 64-Bit Server VM (build 11.0.6-internal+0-adhoc.bric3.src, mixed mode)
+```
+
+Other things are possible, like only building hotspot (the actual JVM).
+
+```bash
+coretto-11/src❯ make help
+
+OpenJDK Makefile help
+=====================
+
+Common make targets
+ make [default]         # Compile all modules and create a runnable "exploded"
+                        # image (alias for jdk or exploded-image)
+ make all               # Create all images: product, test, docs
+                        # (alias for all-images)
+ make images            # Create a complete jdk image
+                        # (alias for product-images)
+...
+Targets for Hotspot
+ make hotspot           # Build all of hotspot
+ make hotspot-<variant> # Build just the specified jvm variant
+ make hotspot-gensrc    # Only build the gensrc part of hotspot
+ make hotspot-<variant>-<phase> # Build the specified phase for the variant
+...
+```
+
+## Opening the JDK in IntelliJ.
+
+Now let us navigate the code base using IntelliJ IDEA, for that just run 
+
+```bash
+coretto-11/src❯ bash bin/idea.sh
+FATAL: cannot find ant. Try setting ANT_HOME.
+```
+
+I finally got rid of ant for it to come back this way. Let's `brew install ant` and rerun `idea.sh`
+
+```bash
+coretto-11/src❯ bash bin/idea.sh
+mkdir: /Users/bric3/opensource/corretto-11/src/.idea: File exists
+```
+
+The tool complains that this folder already exists, it's a nice thing to prevent 
+this script to overwrite this folder as IntelliJ IDEA may add or modify some of these files.
+In my case I just remote it since they were incorrect. Also, if for some reason
+`bin/idea.sh` does not pick up ant, you could always set `ANT_HOME` it this way, that's 
+what I had to do:
+
+```bash
+coretto-11/src❯ rm -rf .idea
+coretto-11/src❯ ANT_HOME=/usr/local/opt/ant/libexec/ bash bin/idea.sh
+```
+
+Open Idea, I'm using the shell launcher that is installed by the jetbrains toolbox installer.
+
+```bash
+coretto-11/src❯ idea .
+```
+
+And voilà
+
+![OpenJDK browsing in IntelliJ IDEA]({{ site.baseurl }}/assets/corretto-11-in-intellij-idea.png)
+
+
+One thing I noticed is that the project has been set for Java 9 language level,
+but some Java code actually have language features from Java 10, like `var`.
+So I had to increase the project language level.
+
+![corretto source project level]({{ site.baseurl }}/assets/corretto-11-project-source-level.png)
+
+
+## Let's play with the jdk
+
+### Quickly hack something in `jshell` (2)
+
+I always have the habit to type `/quit` within `jshell`, let's see how to add an alias to
+`/exit`
+
+Let's explore the code base by searching a specific text, like the one in the `/help intro`
+like 
+
+> The jshell tool allows you to execute Java code, getting immediate results.
+
+This can be found here, in `src/jdk.jshell/share/classes/jdk/internal/jshell/tool/resources/l10n.properties`
+
+```
+help.intro =\
+The jshell tool allows you to execute Java code, getting immediate results.\n\
+You can enter a Java definition (variable, method, class, etc), like:  int x = 8\n\
+or a Java expression, like:  x + x\n\
+or a Java statement or import.\n\
+These little chunks of Java code are called 'snippets'.\n\
+```
+
+following the resource eky we can stumble on `src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java`
+and this code especially
+
+```java
+        registerCommand(new Command("intro",
+                "help.intro",
+                CommandKind.HELP_SUBJECT));
+```
+
+Quickly hacking a duplicate command of the actual `/exit` to register the 
+additional `/quit`...
+
+```diff
+diff --git i/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java w/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java
+index 9ccb4e888..73cb61ff6 100644
+--- i/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java
++++ w/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java
+@@ -41,7 +41,6 @@ import java.lang.module.ModuleDescriptor;
+ import java.lang.module.ModuleFinder;
+ import java.lang.module.ModuleReference;
+ import java.net.MalformedURLException;
+-import java.net.URI;
+ import java.net.URISyntaxException;
+ import java.net.URL;
+ import java.nio.charset.Charset;
+@@ -260,6 +259,19 @@ public class JShellTool implements MessageHandler {
+
+     Map<Snippet, SnippetInfo> mapSnippet;
+
++    private List<Suggestion> exitCompletionSuggestions(String sn, int c, int[] a) {
++        if (analysis == null || sn.isEmpty()) {
++// No completions if uninitialized or snippet not started
++            return Collections.emptyList();
++        } else {
++// Give exit code an int context by prefixing the arg
++            List<Suggestion> suggestions = analysis.completionSuggestions(INT_PREFIX + sn,
++                    INT_PREFIX.length() + c, a);
++            a[0] -= INT_PREFIX.length();
++            return suggestions;
++        }
++    }
++
+     // Kinds of compiler/runtime init options
+     private enum OptionKind {
+         CLASS_PATH("--class-path", true),
+@@ -1782,19 +1794,11 @@ public class JShellTool implements MessageHandler {
+                 arg -> cmdImports(),
+                 EMPTY_COMPLETION_PROVIDER));
+         registerCommand(new Command("/exit",
+-                arg -> cmdExit(arg),
+-                (sn, c, a) -> {
+-                    if (analysis == null || sn.isEmpty()) {
+-                        // No completions if uninitialized or snippet not started
+-                        return Collections.emptyList();
+-                    } else {
+-                        // Give exit code an int context by prefixing the arg
+-                        List<Suggestion> suggestions = analysis.completionSuggestions(INT_PREFIX + sn,
+-                                INT_PREFIX.length() + c, a);
+-                        a[0] -= INT_PREFIX.length();
+-                        return suggestions;
+-                    }
+-                }));
++                this::cmdExit,
++                this::exitCompletionSuggestions));
++        registerCommand(new Command("/quit",
++                this::cmdExit,
++                this::exitCompletionSuggestions));
+         registerCommand(new Command("/env",
+                 arg -> cmdEnv(arg),
+                 envCompletion()));
+```
+
+Recompile the images.
+
+```bash
+coretto-11/src❯ make images
+Building target 'images' in configuration 'macosx-x86_64-normal-server-release'
+Warning: No SCM configuration present and no .src-rev
+Compiling 94 files for jdk.jshell
+Creating images/jmods/jdk.jshell.jmod
+Creating images/jmods/java.base.jmod
+Creating jdk image
+Stopping sjavac server
+Finished building target 'images' in configuration 'macosx-x86_64-normal-server-release'
+```
+
+and discover the result
+
+```bash
+coretto-11/src❯ build/macosx-x86_64-normal-server-release/images/jdk/bin/jshell
+|  Welcome to JShell -- Version 11.0.6-internal
+|  For an introduction type: /help intro
+
+jshell> /quit
+|  Goodbye
+```
+
+Jobs done !
+
+### Quickly hack something in `jshell` (2)
+
+Now I'd like something easier to work with, creating images makes the feedback 
+loop too long, and I cannot debug the program which is cumbersome.
+First we need to set the JDK in the project, which is not another JDK but this JDK
+(otherwise the classes that will be loaded will be from the SDK not from the JDK sources).
+The JDK we want can be found at this location, after the `make images`
+
+But we need the `jdk` target
+
+```
+corretto-11/src/build/macosx-x86_64-normal-server-release/jdk
+```
+
+which includes `java`
+
+```
+corretto-11/src❯ tree -L 1 build/macosx-x86_64-normal-server-release/jdk/bin
+build/macosx-x86_64-normal-server-release/jdk/bin
+...
+├── jarsigner
+├── jarsigner.dSYM
+├── java
+├── javac
+├── javac.dSYM
+├── javadoc
+├── javadoc.dSYM
+...
+```
+
+![Setting freshly built JDK as Project SDK]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-feesh-build-jdk-as-sdk.png)
+
+**That the JDK we need to add to IntelliJ and to set to the current project.**
+
+Now let's find something to run like a main method, hopefully for `jshell` (<kbd>cmd</kbd> + <kbd>alt</kbd> + <kbd>o</kbd>)
+
+![Looking for main methods]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-looking-for-main.png)
+
+There's one, let then run `jdk.internal.jshell.tool.JShellToolProvider#main`
+
+![Running JShellToolProvider#main]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-run-JshellToolProvider.main.png)
+
+Later in `JShellTool` we can find this method, let's set a break point to see how 
+commands are being processed.
+
+```java
+    /**
+     * Process a command (as opposed to a snippet) -- things that start with
+     * slash.
+     *
+     * @param input
+     */
+    private void processCommand(String input) {
+        if (input.startsWith("/-")) {
+```
+
+At boot strap we see a lot of `/set` commands, so it may be necessary to toggle the breakpoint once 
+the init phase is over.
+
+* `/set mode verbose -command`
+* `/set prompt verbose '\njshell> '   '   ...> '`
+* `/set format verbose pre '|  '`
+* `/set format verbose post '%n'`
+* `/set format verbose errorpre '|  '`
+* `/set format verbose errorpost '%n'`
+* `/set format verbose errorline '{post}{pre}    {err}'`
+* `/set format verbose action 'created' added-primary`
+* `...`
+* `/set format verbose typeKind 'interface'              interface`
+* `...`
+
+I'm not sure yet how to use the build command within IntelliJ IDEA yet,
+and my modifications were not being compiled to the jdk build at `corretto-11/src/build/macosx-x86_64-normal-server-release/jdk`.
+
+But if we are not generating the images, which is what we want, there's this `make` 
+target that is faster.
+
+```bash
+corretto/src❯ make jdk
+Building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'
+Warning: No SCM configuration present and no .src-rev
+Compiling 94 files for jdk.jshell
+Stopping sjavac server
+Finished building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'
+```           
+
+But there's more focuses commands, inspecting the `Makefile` and other gnu makefiles (`make/*gmk`)
+there's this task that is interesting
+
+```bash
+corretto/src❯ make print-targets | tr " " "\n"
+```
+
+And focusing on `jshell`, shows even more specific tasks
+
+```bash
+corretto/src❯ make print-targets | tr " " "\n" | grep jshell
+clean-jdk.jshell
+clean-jdk.jshell-gensrc
+clean-jdk.jshell-include
+clean-jdk.jshell-java
+clean-jdk.jshell-native
+jdk.jshell
+jdk.jshell-gensrc
+jdk.jshell-gensrc-moduleinfo
+jdk.jshell-gensrc-moduleinfo-only
+jdk.jshell-gensrc-only
+jdk.jshell-gensrc-src
+jdk.jshell-gensrc-src-only
+jdk.jshell-java
+jdk.jshell-java-only
+jdk.jshell-jmod
+jdk.jshell-jmod-only
+jdk.jshell-launchers
+jdk.jshell-launchers-only
+jdk.jshell-only           
+
+corretto/src❯ make jdk.jshell
+Building target 'jdk.jshell' in configuration 'macosx-x86_64-normal-server-release'
+Compiling 396 files for BUILD_jdk.compiler.interim
+Compiling 299 files for BUILD_jdk.javadoc.interim
+Compiling 400 files for jdk.compiler
+Stopping sjavac server
+Finished building target 'jdk.jshell' in configuration 'macosx-x86_64-normal-server-release'
+```
+
+The compilation appear to be incremental, and doesn't recompile every JDK modules which is
+somewhat sufficient to shorten significantly the feedback loop.
+
+_Also, at the time of writing there's a Makefile plugin for IntelliJ IDEA, and it's possible to
+create a Run configuration that execute any makefile target, this run configuration can be executed
+before the `JShellToolProvider`.
+
+![Configure make jdk.jshell before running JShellToolProvider]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-run-JShellToolProvider.main-with-make-jdk.jshell-before.png)   
+
+
+Now let's get something a tad more involved.
+
+### Extending the `jshell` repl to support _new map_ syntax sugar
+
+Currently, `jshell` requires writing correct java code as defined for Java 11, e.g.
+
+```
+jshell> var m = Map.of("k1", "v1", "k2", "v2");
+m ==> {k2=v2, k1=v1}
+jshell> m.get("k2")
+$4 ==> "v2"
+```
+
+What I would like is to be able to write 
+
+```
+jshell> var m = { "k1", "v1", "k2", "v2" }
+m ==> {k2=v2, k1=v1}
+jshell> m["k2"]
+$4 ==> "v2"
+```
+
+#### Discovering how the repl work 
+
+This is likely to happen in some _parser_, why not inspect `jdk.jshell.ReplParser`, it has two public methods
+
+* the constructor 
+
+  ```java
+  public ReplParser(ParserFactory fac,
+              com.sun.tools.javac.parser.Lexer S,
+              boolean keepDocComments,
+              boolean keepLineMap,
+              boolean keepEndPositions,
+              boolean forceExpression)
+              
+  ```
+  
+* the `parseCompilationUnit()` method which happens to be an override of 
+`com.sun.tools.javac.parser.JavacParser.parseCompilationUnit`.
+
+
+I don't have a reflex when it comes to navigate this code base, so let's put a breakpoint in this method a start 
+the evaluation of a statement like `String s = "s"` in debug mode.
+
+> CAUTION : IntelliJ IDEA disables step into (<kbd>F7</kbd>) in debug mode for types/methods that are in some packages
+> unfortunately this setting is global and not per project, so you may need to toggle this options if switching
+> between different projects.
+> 
+> ![Step Into setting]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-step-into-ij-setting.png) 
+
+So here's what the break point leads to 
+
+```
+parseCompilationUnit:94, ReplParser (jdk.jshell)                      <== Break point
+parse:639, JavaCompiler (com.sun.tools.javac.main)                    <== Starts the unit parsing 
+parse:676, JavaCompiler (com.sun.tools.javac.main)
+parseFiles:1026, JavaCompiler (com.sun.tools.javac.main)
+parseInternal:249, JavacTaskImpl (com.sun.tools.javac.api)            <== Starts the whole parsing
+call:-1, 1278254413 (com.sun.tools.javac.api.JavacTaskImpl$$Lambda$214)
+handleExceptions:147, JavacTaskImpl (com.sun.tools.javac.api)
+parse:243, JavacTaskImpl (com.sun.tools.javac.api)
+parse:356, TaskFactory$ParseTask (jdk.jshell)
+<init>:345, TaskFactory$ParseTask (jdk.jshell)
+lambda$parse$0:144, TaskFactory (jdk.jshell)
+apply:-1, 1359953204 (jdk.jshell.TaskFactory$$Lambda$203)
+lambda$runTask$4:213, TaskFactory (jdk.jshell)
+withTask:-1, 770947228 (jdk.jshell.TaskFactory$$Lambda$205)
+getTask:182, JavacTaskPool (com.sun.tools.javac.api)
+runTask:206, TaskFactory (jdk.jshell)
+parse:140, TaskFactory (jdk.jshell)
+parse:238, TaskFactory (jdk.jshell)
+lambda$scan$1:90, CompletenessAnalyzer (jdk.jshell)
+apply:-1, 428566321 (jdk.jshell.CompletenessAnalyzer$$Lambda$193)
+disambiguateDeclarationVsExpression:688, CompletenessAnalyzer$Parser (jdk.jshell)
+parseUnit:632, CompletenessAnalyzer$Parser (jdk.jshell)
+scan:91, CompletenessAnalyzer (jdk.jshell)
+analyzeCompletion:183, SourceCodeAnalysisImpl (jdk.jshell)
+isComplete:115, ConsoleIOContext$2 (jdk.internal.jshell.tool)
+add:172, EditingHistory (jdk.internal.jline.extra)
+finishBuffer:738, ConsoleReader (jdk.internal.jline.console)
+accept:2030, ConsoleReader (jdk.internal.jline.console)
+readLine:2756, ConsoleReader (jdk.internal.jline.console)
+readLine:2383, ConsoleReader (jdk.internal.jline.console)
+readLine:2371, ConsoleReader (jdk.internal.jline.console)
+readLine:142, ConsoleIOContext (jdk.internal.jshell.tool)
+getInput:1273, JShellTool (jdk.internal.jshell.tool)
+run:1186, JShellTool (jdk.internal.jshell.tool)                       <== Handles the inpout
+start:987, JShellTool (jdk.internal.jshell.tool)
+start:254, JShellToolBuilder (jdk.internal.jshell.tool)
+main:120, JShellToolProvider (jdk.internal.jshell.tool)
+```
+
+Here's some interesting elements executing before, as expected `JShellTool`
+will handle the input, then at some point jshell configures the java compiler
+to parse the input. Especially `parseInternal` that is configured with files (FileObject)
+
+```java
+private Iterable<? extends CompilationUnitTree> parseInternal() {
+    try {
+        prepareCompiler(true);
+        List<JCCompilationUnit> units = compiler.parseFiles(args.getFileObjects());
+        for (JCCompilationUnit unit: units) {
+            JavaFileObject file = unit.getSourceFile();
+            if (notYetEntered.containsKey(file))
+                notYetEntered.put(file, unit);
+        }
+        return units;
+    }
+```                                                                                      
+
+In reality jshell uses an internal memory store to represent these file objects - I've already 
+[used this API 10 years ago in this blog entry about memory leaks](/2010/02/12/une-fuite-memoire-beaucoup-de-reflection-et-pas-de-outofmemoryerror/),
+sorry it's in french -, here's the `.toString()` of the single file object.
+
+```
+WrappedJavaFileObject[jdk.jshell.MemoryFileManager$SourceMemoryJavaFileObject[string:///$NeverUsedName$.java]] 
+```
+
+Then the unit is parsed by the `JavaCompiler` class.
+
+```java 
+protected JCCompilationUnit parse(JavaFileObject filename, CharSequence content) {
+    long msec = now();
+    JCCompilationUnit tree = make.TopLevel(List.nil());
+    if (content != null) {
+        if (verbose) {
+            log.printVerbose("parsing.started", filename);
+        }
+        if (!taskListener.isEmpty()) {
+            TaskEvent e = new TaskEvent(TaskEvent.Kind.PARSE, filename);
+            taskListener.started(e);
+            keepComments = true;
+            genEndPos = true;
+        }
+        Parser parser = parserFactory.newParser(content, keepComments(), genEndPos,
+                            lineDebugInfo, filename.isNameCompatible("module-info", Kind.SOURCE));
+        tree = parser.parseCompilationUnit();
+```
+
+The `Parser` object is a `ReplParser` that extends `com.sun.tools.javac.parser.JavacParser`, on which 
+the `parseCompilationUnit` is invoked. the javadoc of this method indicates this method mimic the one
+from the actual Java compiler to allow the compilation of stand-alone snippets. 
+
+```java 
+/**
+ * As faithful a clone of the overridden method as possible while still
+ * achieving the goal of allowing the parse of a stand-alone snippet.
+ * As a result, some variables are assigned and never used, tests are
+ * always true, loops don't, etc.  This is to allow easy transition as the
+ * underlying method changes.
+ * @return a snippet wrapped in a compilation unit
+ */
+@Override
+public JCCompilationUnit parseCompilationUnit() {
+```
+
+Now let's debug a bit. The parser _eat_ tokens until `TokenKind.EOF`, then form
+a `ReplUnit` from the snippet, and during this phase the String variable declaration
+goes through an interesting method `variableInitializer`.  
+ 
+
+```
+variableInitializer:2323, JavacParser (com.sun.tools.javac.parser)
+variableDeclaratorRest:3054, JavacParser (com.sun.tools.javac.parser)
+variableDeclaratorsRest:3024, JavacParser (com.sun.tools.javac.parser)
+replUnit:237, ReplParser (jdk.jshell)
+parseCompilationUnit:120, ReplParser (jdk.jshell)
+...
+main:120, JShellToolProvider (jdk.internal.jshell.tool)
+```                                                      
+
+```java 
+/** VariableInitializer = ArrayInitializer | Expression
+ */
+public JCExpression variableInitializer() {
+    return token.kind == LBRACE ? arrayInitializer(token.pos, null) : parseExpression();
+}
+```
+
+What is interesting there, is that this method explicitly checks for a left brace to perform
+specific initialization, actually the one we now for arrays. In the current debugging it's a 
+string literal, so this method will evaluate the `parseExpression` method.
+
+#### Hacking the javac parser 
+
+Inspecting how the parser is doing for the array, we notice that for the token king `LBRACE` 
+the parser creates a specific `JCExpression`.
+
+```java
+/** ArrayInitializer = "{" [VariableInitializer {"," VariableInitializer}] [","] "}"
+ */
+JCExpression arrayInitializer(int newpos, JCExpression t) {
+    List<JCExpression> elems = arrayInitializerElements(newpos, t);
+    return toP(F.at(newpos).NewArray(t, List.nil(), elems));
+} 
+```       
+
+Notice the `NewArray(...)` method, this method creates a new _tree_, `new JCNewArray(elemtype, dims, elems)` 
+for this expression. `JCNewArray` implements the tree interface `NewArrayTree` that has the `Tree.Kind.NEW_ARRAY`.
+
+This immediately suggests we can plug our own language representation, such as a `NewMapTree`.
+
+  
+
+
+
+![Map.ofEntries tree]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-map-ofentries-tree.png)
+
+
+### Extending the syntax to homebrewed data classes
+
+record()
+
+
+### Allow to omit the `new` keyword
+
+```
+Object a = Object()
+```
