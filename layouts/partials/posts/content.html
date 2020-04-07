@@ -1,0 +1,18 @@
+<span class="section__title">{{ .Title }}</span>
+<ul class="posts">
+    {{ $paginator := .Paginate (where .Pages "Type" "in" "posts") }}
+    {{ template "_internal/pagination.html" . }}
+    <br/>
+    {{ range $paginator.Pages }}
+    <li>
+        <span class="list__title--small">
+        <a href="{{ .RelPermalink }}" {{if .Draft}}class="draft"{{end}}>{{ .Title }}</a>
+          {{if not .Date.IsZero}}
+          <time class="pull-right hidden-tablet">{{ .Date.Format (.Site.Params.dateformat | default "Jan 02 '06") }}</time>
+          {{end}}
+      </span>
+    </li>
+    {{ end }}
+    <br/>
+    {{ template "_internal/pagination.html" . }}
+</ul>
