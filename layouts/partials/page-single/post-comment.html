@@ -1,0 +1,30 @@
+{{ if ne .Params.showcomments false }}
+
+{{- $pc := .Site.Config.Privacy.Disqus -}}
+{{- /* modified from https://github.com/gohugoio/hugo/blob/master/tpl/tplimpl/embedded/templates/disqus.html */ -}}
+{{- if not $pc.Disable -}}
+{{ if .Site.DisqusShortname }}<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        // For reasons that I don't understand, the .RelPermalink / .Permalink Hugo functions 
+        // escape the URLs slashes with backslashes when the template function is placed inside a single quotes
+        // the only workaround was to use printf "'%s%s'" then pipe to safeJS function
+        this.page.identifier = {{with .Params.disqus_identifier }}'{{ . }}'{{else}}{{ printf "'%s%s'" .Site.Params.disqusIdentifierBaseURL .RelPermalink | safeJS }}{{end}};
+        this.page.title = {{with .Params.disqus_title }}'{{ . }}'{{ else }}'{{ .Title }}'{{end}};
+        this.page.url = {{with .Params.disqus_url }}'{{ . | html  }}'{{else}}{{ printf "'%s%s'" .Site.Params.disqusIdentifierBaseURL .RelPermalink | safeJS }}{{end}};
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + {{ .Site.DisqusShortname }} + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>{{end}}
+{{- end -}}
+{{ end }}
