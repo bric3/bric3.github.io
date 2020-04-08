@@ -15,6 +15,7 @@ tags:
 - OutOfMemoryError
 - performance
 - reflection
+slug: une-fuite-memoire-beaucoup-de-reflection-et-pas-de-outofmemoryerror
 title: Une fuite mémoire, beaucoup de reflection et pas de OutOfMemoryError
 type: post
 ---

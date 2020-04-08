@@ -16,6 +16,7 @@ tags:
 - equals
 - fuite
 - hashcode
+slug: a-propos-du-design-de-vos-objets-des-getters-et-setters-de-equalshashcode-et-de-la-mutabilite
 title: A propos du design de vos objets, des getters et setters, de equals/hashCode
   et de la mutabilité
 type: post

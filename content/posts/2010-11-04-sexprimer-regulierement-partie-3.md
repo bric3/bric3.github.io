@@ -18,6 +18,7 @@ tags:
 - regexp
 - regular expression
 - unicode
+slug: sexprimer-regulierement-partie-3
 title: Expressions régulières (Partie 3)
 type: post
 ---

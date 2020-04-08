@@ -8,6 +8,7 @@ tags:
 - pagination
 - http
 - github
+slug: pagination_hateoas_link
 title: Pagination en JAX-RS 2.0 avec le header Link
 ---
 

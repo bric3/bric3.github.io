@@ -18,6 +18,7 @@ tags:
 - regex
 - regexp
 - regular expression
+slug: sexprimer-regulierement-partie-1
 title: Expressions régulières (Partie 1)
 type: post
 ---

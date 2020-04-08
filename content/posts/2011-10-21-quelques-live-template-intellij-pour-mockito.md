@@ -15,6 +15,7 @@ tags:
 - template
 - test
 - test unitaire
+slug: quelques-live-template-intellij-pour-mockito
 title: Quelques Live Template IntelliJ pour Mockito
 type: post
 ---

@@ -12,6 +12,7 @@ tags:
 - lion
 - macosx
 - mountain lion
+slug: script-pour-installer-le-jdk-5-sur-macosx-lion
 title: Script d'installation du JDK 5 sur MacOSX Lion et Mountain Lion (Mis à jour)
 type: post
 ---

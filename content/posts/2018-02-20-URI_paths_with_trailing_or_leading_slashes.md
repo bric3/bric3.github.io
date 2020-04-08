@@ -14,6 +14,7 @@ tags:
 - leading
 - trailing
 - opinion
+slug: URI_paths_with_trailing_or_leading_slashes
 title: Opinion, should we prefix JAX-RS Path value with a slash ?
 ---
 

@@ -6,6 +6,7 @@ tags:
 - kafka
 - zookeeper
 - java
+slug: kafka-a-walking-skeleton
 title: Kafka, a walking skeleton
 ---
 

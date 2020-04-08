@@ -22,6 +22,7 @@ tags:
 - metrics
 - microbenchmark
 - performance
+slug: caliper-ou-pourquoi-les-microbenchmarks-aident
 title: 'Caliper me : Ou pourquoi les microbenchmarks aident !'
 type: post
 ---

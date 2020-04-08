@@ -8,6 +8,7 @@ tags:
 - wine
 - Linux
 - systemd
+slug: 1Password-wine
 title: Install 1Password & browser agent with wine on Linux
 ---
 

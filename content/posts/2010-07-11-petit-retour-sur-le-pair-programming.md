@@ -15,6 +15,7 @@ tags:
 - expérience
 - agile
 - scrum
+slug: petit-retour-sur-le-pair-programming
 title: Petit retour sur le pair-programming
 type: post
 ---

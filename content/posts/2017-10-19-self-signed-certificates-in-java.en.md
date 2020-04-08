@@ -13,6 +13,7 @@ tags:
 - trustmanager
 - certificate authority
 - self-signed certificate
+slug: self-signed-certificates-in-java.en
 title: HTTPS in Java with a self-signed certificate
 ---
 

@@ -13,6 +13,7 @@ tags:
 - certificate authority
 - self-signed certificate
 - certificat auto-signé
+slug: self-signed-certificates-in-java
 title: HTTPS en Java avec un certificat auto-signé
 ---
 

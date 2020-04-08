@@ -10,6 +10,7 @@ tags:
 - kubernetes
 - inotify
 - WatchService
+slug: watchservice-and-bind-mount.fr
 title: Lorsque le WatchService de Java n'est pas le bon outil dans un conteneur
 ---
 

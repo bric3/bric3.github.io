@@ -20,6 +20,7 @@ tags:
 - mountain lion
 - thread dump
 - visualvm
+slug: note-pour-tard-quand-jvisualvm-ne-marche-pas-sur-sur-osx
 title: 'Note pour plus tard: Problème avec jVisualVM sur OSX'
 type: post
 ---

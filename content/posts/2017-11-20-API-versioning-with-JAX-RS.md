@@ -14,6 +14,7 @@ tags:
 - vendor tree
 - mediatype
 - media type
+slug: API-versioning-with-JAX-RS
 title: The Quest to API versioning with JAX-RS
 ---
 

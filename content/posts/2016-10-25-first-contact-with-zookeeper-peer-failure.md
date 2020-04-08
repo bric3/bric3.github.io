@@ -6,6 +6,7 @@ tags:
 - zookeeper
 - cluster
 - ensemble
+slug: first-contact-with-zookeeper-peer-failure
 title: Premier contact avec la perte d'instances Zookeeper
 ---
 

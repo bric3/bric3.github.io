@@ -20,6 +20,7 @@ tags:
 - Waiting On Condition
 - GC
 - Garbage Collector
+slug: lenteur-dune-appli-web-sur-une-jvm-ibm
 title: Lenteur d'une appli Web sur une JVM IBM
 type: post
 ---

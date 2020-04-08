@@ -9,6 +9,7 @@ tags:
 - Json
 - lombok
 - immutable
+slug: immutable-jackson-pojo-with-lombok
 title: Immutable jackson pojo with Lombok
 ---
 

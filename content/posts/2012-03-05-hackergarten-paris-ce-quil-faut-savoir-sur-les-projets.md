@@ -16,6 +16,7 @@ tags:
 - maven
 - mockito
 - open source
+slug: hackergarten-paris-ce-quil-faut-savoir-sur-les-projets
 title: Hackergarten Paris - ce qu'il faut savoir sur les projets
 type: post
 ---

@@ -15,6 +15,7 @@ tags:
 - jmx
 - TDD
 - test unitaire
+slug: tester-votre-code-jmx-dans-des-conditions-pseudo-reelle
 title: Tester votre code JMX dans des conditions pseudo réelle.
 type: post
 ---

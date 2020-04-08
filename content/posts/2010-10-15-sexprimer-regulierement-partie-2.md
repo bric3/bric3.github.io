@@ -17,6 +17,7 @@ tags:
 - regexp
 - regular expression
 - backreference
+slug: sexprimer-regulierement-partie-2
 title: Expressions régulières (Partie 2)
 type: post
 ---

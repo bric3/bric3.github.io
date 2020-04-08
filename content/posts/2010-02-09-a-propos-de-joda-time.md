@@ -10,6 +10,7 @@ status: publish
 tags:
 - code
 - joda-time
+slug: a-propos-de-joda-time
 title: A propos de Joda-Time
 type: post
 ---

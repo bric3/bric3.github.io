@@ -11,6 +11,7 @@ tags:
 - ant
 - maven
 - properties
+slug: afficher-les-properties-dun-projet-maven
 title: Afficher les properties d'un projet maven
 type: post
 ---

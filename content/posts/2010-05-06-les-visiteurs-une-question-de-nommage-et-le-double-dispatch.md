@@ -12,6 +12,7 @@ tags:
 - code
 - design
 - pattern
+slug: les-visiteurs-une-question-de-nommage-et-le-double-dispatch
 title: Les visiteurs, une question de nommage, et le double-dispatch
 type: post
 ---

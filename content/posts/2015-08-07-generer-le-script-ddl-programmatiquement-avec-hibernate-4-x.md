@@ -15,6 +15,7 @@ tags:
 - hibernate
 - java8
 - jpa
+slug: generer-le-script-ddl-programmatiquement-avec-hibernate-4-x
 title: Générer le script DDL programmatiquement avec Hibernate 4.x
 type: post
 ---

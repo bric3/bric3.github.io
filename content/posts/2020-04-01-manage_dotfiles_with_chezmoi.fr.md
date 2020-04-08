@@ -9,6 +9,7 @@ tags:
 - onepassword
 - 1password
 - secret
+slug: manage_dotfiles_with_chezmoi.fr
 title: Gestion des dotfiles et des secrets avec chezmoi
 ---
 

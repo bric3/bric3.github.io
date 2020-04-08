@@ -10,6 +10,7 @@ status: publish
 tags:
 - code
 - google-collections
+slug: les-collections-par-google-comment-sy-retrouver
 title: Les collections par Google, comment s'y retrouver?
 type: post
 ---

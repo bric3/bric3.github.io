@@ -7,6 +7,7 @@ tags:
 - Java
 - Corretto
 - OpenJDK
+slug: building-corretto
 title: Building Java
 ---
 

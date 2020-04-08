@@ -17,6 +17,7 @@ tags:
 - constructor injection
 - mockito
 - TDD
+slug: quoi-de-neuf-docteur-dans-mockito-1-9
 title: Mockito 1.9.0 is out - Bientôt sur les repos maven
 type: post
 ---

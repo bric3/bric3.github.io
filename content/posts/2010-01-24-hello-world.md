@@ -6,6 +6,7 @@ published: true
 status: publish
 tags:
 - miscellanées
+slug: hello-world
 title: Hello world!
 type: post
 ---

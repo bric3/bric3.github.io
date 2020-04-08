@@ -8,6 +8,7 @@ tags:
 - TCE
 - tail call elimination
 - recursion
+slug: programmatic-tail-call-elimination-in-java
 title: Programmatic tail call elimination in Java
 ---
 

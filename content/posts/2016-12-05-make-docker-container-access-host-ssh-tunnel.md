@@ -12,6 +12,7 @@ tags:
 - cqlsh
 - mac
 - osx
+slug: make-docker-container-access-host-ssh-tunnel
 title: Connecter un container docker sur un tunnel ssh OSX
 ---
 

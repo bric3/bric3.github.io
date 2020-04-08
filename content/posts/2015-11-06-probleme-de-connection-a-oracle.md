@@ -19,6 +19,7 @@ tags:
 - keepalive
 - oracle
 - random
+slug: probleme-de-connection-a-oracle
 title: Problème de connexion à Oracle
 type: post
 ---

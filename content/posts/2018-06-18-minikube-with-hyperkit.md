@@ -10,6 +10,7 @@ tags:
 - mac
 - osx
 - hyperkit
+slug: minikube-with-hyperkit
 title: Minikube with hyperkit
 ---
 
