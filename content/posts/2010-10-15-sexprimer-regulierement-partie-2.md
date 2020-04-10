@@ -66,11 +66,11 @@ public class Groups {
 
 Dans l'expression ci-dessus, il y a trois groupes définis dans l'expression rationnelle.
 
-* <code><span class="hljs-params" style="background-color: rgba(169, 68, 66, 0.19)">(</span><span class="n" style="background-color: rgba(169, 68, 66, 0.19);">[a-z]+</span><span class="hljs-params"  style="background-color: rgba(169, 68, 66, 0.19);">)</span> ( ?\[[a-z]+\] ([a-z]+))+</code>
+* {{< c highlight-red >}}`([a-z]+)`{{< /c >}}` ( ?\[[a-z]+\] ([a-z]+))+`
     qui est donc le **groupe 1**
-* <code>([a-z]+) <span class="hljs-params" style="background-color: rgba(169, 68, 66, 0.19)">(</span><span class="n" style="background-color: rgba(169, 68, 66, 0.19);"> ?\[[a-z]+\] ([a-z]+)</span><span class="hljs-params" style="background-color: rgba(169, 68, 66, 0.19)">)</span>+</code>
+* `([a-z]+) `{{< c highlight-red >}}`( ?\[[a-z]+\] ([a-z]+))`{{< /c >}}`+`
     qui est le **groupe 2**
-* <code>([a-z]+) ( ?\[[a-z]+\] <span class="hljs-params" style="background-color: rgba(169, 68, 66, 0.19)">(</span><span class="n" style="background-color: rgba(169, 68, 66, 0.19)">[a-z]+</span><span class="hljs-params" style="background-color: rgba(169, 68, 66, 0.19)">)</span>)+</code>
+* `([a-z]+) ( ?\[[a-z]+\] `{{< c highlight-red >}}`([a-z]+)`{{< /c >}}`)+`
     enfin qui est le **groupe 3** il est défini à l'intérieur du groupe 2
 
 Le moteur de l'expression régulière enregistre juste la référence du groupe, et lorsque qu'il y a récursion sur

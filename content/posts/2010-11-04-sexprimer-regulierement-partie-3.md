@@ -170,7 +170,7 @@ Et donc par opposition les quantificateurs `*` et `+` ne sont pas autorisés dan
 
 Bon, il existe certains cas un peu délicats ou les caractères adjacents d'une séquence font partie de
 la même classe. Dans le bout de texte utilisé dans le premier exemple, les noms variables correspondent typiquement
-à ça: <code><span class="hljs-string">anotherStaticVar</span><span class="hljs-keyword">Label</span></code>
+à ça: {{< c color-part-1 >}}anotherStaticVar{{< /c >}}{{< c color-part-2 >}}Label{{< /c >}}.
 
 Le nom de la variable appartient à la classe de caractère `[a-zA-Z0-9_]` ou encore à `\w`.
 
@@ -266,7 +266,6 @@ NetBeans je ne sais pas. En tous cas on trouve une réponse [là](http://www.uni
 
 {{< wrapTable >}}
 
-{:.alternate}
 | Abréviation reconnue par `Pattern` | Signification |
 | --- | --- |
 | L | Letter |
@@ -351,8 +350,8 @@ Plusieures choses sont à remarquer :
 
 
 > **À noter également** : Sur les deux dernières lignes noter que j'ai utilisé le code hexadécimal **UTF-16**
-> (j'y reviendrais après) pour obtenir les caractères <span style="font-size: large;">氣</span> et
-> <span style="font-size: large;">き</span> (Chi en chinois traditionnel, Ki avec l'alphabet Hiragana).
+> (j'y reviendrais après) pour obtenir les caractères **氣** et
+> **き** (Chi en chinois traditionnel, Ki avec l'alphabet Hiragana).
 > Pourquoi? Parce que Unicode c'est bien joli mais dans le monde réel il y a des limitations, pour moi il s'agit
 > de la police de caractère de mon éditeur qui ne possède pas ces blocs de caractères défini. Peut-être aurez vous
 > des limitations sur la police de votre navigateur.
