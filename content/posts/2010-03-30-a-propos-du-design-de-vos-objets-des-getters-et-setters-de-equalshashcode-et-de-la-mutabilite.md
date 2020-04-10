@@ -148,7 +148,7 @@ public class AJavaBean {
 
 En bref :
 
-![fail]({{ site.baseurl }}/assets/fail.jpg)
+![fail](/assets/fail.jpg)
 
 Que s'est-il passé? S'il n'y a pas de *hashCode* et de *equals*, ce sont les méthodes de la super classe qui sont utilisées, dans le code listé plus haut ce sont les méthodes de Object qui seront utilisées pour tester l'égalité et le hashCode.
 
@@ -211,7 +211,7 @@ Exemple :
 
 Surprise! You just got
 
-![pwned]({{ site.baseurl }}/assets/pwned.jpg)
+![pwned](/assets/pwned.jpg)
 
 Alors on sait que les méthodes *equals* et *hashCode* utilisent les deux propriétés *name* et *sellingDate*, donc quand on ajoute un objet dans le HashSet le hashCode correspondra au calcul fait partir des valeurs des ces attributs. Mais voilà le hashcode de l'objet n'est calculé qu'une fois, au moment de l'interaction dans la Map (ajout, suppression, contains, etc...).
 

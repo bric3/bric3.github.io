@@ -35,7 +35,7 @@ Lors de l'analyse des GC on remarque immédiatement une famine de mémoire, la J
 
 Pour avoir une représentation un peu compréhensible, on analyse ces logs avec [GCViewer](http://www.tagtraum.com/gcviewer.html). On a alors un graphe qui ressemble à ça :
 
-![application-gc]({{ site.baseurl }}/assets/application-gc.png)
+![application-gc](/assets/application-gc.png)
 
 On voit comment se passe le consommation de la mémoire dans l'application, on sait que l'application est lente, maintenant pourquoi la consommation mémoire monte autant sans être libéré. Effectivement les raisons peuvent varier **surtout qu'il n'y avait pas de OutOfMemoryError**!
 
@@ -349,7 +349,7 @@ Et le résultat est là, l'application ne plante toujours pas après 6 minutes.
 
 Effectivement les paramètres de la JVM donnent une allure différente d'une application en production, mais ici le but est de reproduire un scénario de fuite mémoire sans OutOfMemoryError. Le GC a donc l'allure suivante :
 
-![gc]({{ site.baseurl }}/assets/gc1.png)
+![gc](/assets/gc1.png)
 
 On voit un premier Full GC vers 1min30 ou les SoftReferences sont nettoyées, et puis vers 2min30 c'est la catastrophe, il n'y a que des Full GC, la JVM va constamment réclamer les références issues de l'introspection, le programme va constamment en recréer, avec la saturation de la mémoire la lenteur de tous les FullGC devient manifeste. Et comme dit plus haut les thread dump ne vont pas révéler de point de contention, ils vont juste montrer que l'application est lente. En particulier les thread dump vont surtout révéler les stacks des modules ou l'application est plus lente!
 
@@ -373,7 +373,7 @@ D'ailleurs sur la sortie standard, on voit au premier Full GC les traces suivant
 
 Autre outil à utiliser, jVisualVM qui est disponible en standard avec le JDK6. On se retrouve avec onglet de monitoring sympa. A noter que les graphes d'activité du CPU ne sont pas disponible en standard sur jVisualVM avec la JDK6.
 
-![visualvm-mon]({{ site.baseurl }}/assets/visualvm-mon1.png)
+![visualvm-mon](/assets/visualvm-mon1.png)
 
 Ce que je ne voyais pas avec GCViewer c'est que le nombre de threads actives a dramatiquement baissé, ce qui confirme la lenteur exécution, les traitements mettent vraiment plus longtemps, et les autres threads sont alors mises en standby. Si on fait attention à la fenêtre temporelle, ça passe vers 14h48, à ce moment là, la mémoire heap n'est pas encore complètement saturée les GC tenaient jusque là. C'est ensuite que **les** Full GC prennent le relai pour réclamer de la mémoire, c'est donc à ce moment que les SoftReference sont collectées. Et comme dit plus haut, ces références sont recréées par les *traitements métier*. Et comme le Full GC s'exerce en permanence après ce moment, les références qui viennent d'être recréés sont collectées à nouveau. Et voilà la boucle est bouclée.
 

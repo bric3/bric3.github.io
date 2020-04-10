@@ -211,7 +211,7 @@ Also minikube comes with a dashboard :
 Opening kubernetes dashboard in default browser...
 ```
 
-![minikube-kubernetes-dashboard]({{ site.baseurl }}/assets/minikube-discovery/minikube-kube-dashboard.png)
+![minikube-kubernetes-dashboard](/assets/minikube-discovery/minikube-kube-dashboard.png)
 
 
 And finally don't forget to stop the cluster

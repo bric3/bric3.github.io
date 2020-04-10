@@ -188,7 +188,7 @@ Après l'obtention du fameux log, il faut encore trouver un outil IBM pour analy
 
 Un petit graphique pour regarder ce qu'il se passe.
 
-![gclog]({{ site.baseurl }}/assets/gclog.png)
+![gclog](/assets/gclog.png)
 
 En rouge l'usage de la Heap, en bleu le marquage des objets à virer, et en vert les temps de compression de la mémoire. Effectivement le GC à l'air de bien s'amuser dans la mémoire, et d'être appelé assez souvent.
 
@@ -248,7 +248,7 @@ Ok, je m'en doutais déjà mais c'est quand même mieux que de dire que la mémo
 
 5MB quand même! Cela dit ça n'arrive pas souvent, c'est peut-être un cache qui charge des données depuis le disque. Le graphe suivant (choisir Object Size dans les templates de graphique sur la droite) montre la taille des allocations demandées.
 
-![object_sizes]({{ site.baseurl }}/assets/object_sizes.jpg)
+![object_sizes](/assets/object_sizes.jpg)
 
 Mais la concomitance de ses demandes d'allocation avec l'utilisation de la heap fait sourciller.
 
@@ -258,7 +258,7 @@ On continue
 
 Effectivement le temps passé dans l'application et le temps passé dans le GC indique manifestement qu'il y a une suractivité anormale du GC.
 
-![compaction_pauses]({{ site.baseurl }}/assets/compaction_pauses.jpg)
+![compaction_pauses](/assets/compaction_pauses.jpg)
 
 En fait on voit même que le GC est en train de compacter la mémoire au moment  de l'incident, c'est la courbe rouge clair (entre ~0.5s et 1s), ajouté à cela le temps de marquage des objets à virer (*bon en fait dans le graphique que j'ai fait, le temps de pause est principalement du au temps de marquage*), l'ensemble donnant un temps de pause pour laisser le GC travailler allant de 1 à 7s (par GC bien évidement).
 
@@ -373,7 +373,7 @@ Il faut savoir que dans le thread dump il y a l'identifiant de la thread en Java
 
 Je google "**1667157 in hex**" ce qui me renvoie **0x197055**. En utilisant l'outils IBM mentionné plus haut, on voit clairement que la thread en cause correspond à du code métier, développé ici.
 
-![tdump-cause]({{ site.baseurl }}/assets/tdump-cause2.png)
+![tdump-cause](/assets/tdump-cause2.png)
 
 Chacune des 3 threads passent dans le même bout de code. Autant au début j'ai des doutes, après toute la présomption d'innocence compte aussi pour le code, d'autant plus qu'il s'agit d'un code lent qui utilise beaucoup de reflection. Mais faut prendre en compte aussi le fait que la pile descend à chaque fois dans la couche Hibernate, ça vaut le coup d'aller voir. Les développeurs qui connaissent un peu mieux le code poussent dans cette direction.
 

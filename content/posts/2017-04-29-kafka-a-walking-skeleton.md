@@ -59,14 +59,14 @@ Une des primitives de base est le **topic**. Les messages sont **publiés** dans
 (producteurs) et les **consumers** (consommateurs) souscrivent à ce même topic pour traiter ces messages.
 Schématiquement une infrastructure utilisant Kafka peut être représenté de cette façon :
 
-![Vue globale de Kafka]({{ site.baseurl }}/assets/kafka-walking-skeleton/Kafka-global-view.jpeg)
+![Vue globale de Kafka](/assets/kafka-walking-skeleton/Kafka-global-view.jpeg)
 
 Techniquement un topic est un log partitionné auquel les messages sont ajoutés continuellement et ceci de manière
 ordonnée (dans une même partition). Pourquoi est-ce partitionné ? Avec Kafka il y a une relation forte entre le nombre
 de partitions et le nombre de consommateurs ; augmenter le nombre de partition revient à augmenter le parallélisme des
 consommateurs.
 
-![Topic et partitions]({{ site.baseurl }}/assets/kafka-walking-skeleton/Kafka-topic-partitions.jpeg)
+![Topic et partitions](/assets/kafka-walking-skeleton/Kafka-topic-partitions.jpeg)
 
 Les producers et les consumers
 ------------------------------
@@ -81,7 +81,7 @@ une seule instance dans le groupe.
 À noter sur le parallélisme, au sein d’un même consumer group, pour N partitions il ne peut y avoir que N consumers
 actifs. Il peut y avoir plusieurs consumer groups abonnés à un même topic (et donc sur les même partitions).
 
-![Groupes de consommateurs]({{ site.baseurl }}/assets/kafka-walking-skeleton/Kafka-consumer-groups.jpeg)
+![Groupes de consommateurs](/assets/kafka-walking-skeleton/Kafka-consumer-groups.jpeg)
 
 À propos de la réplication
 --------------------------
@@ -97,7 +97,7 @@ Si le leader s’arrête, un des suiveurs prend le relais et devient le nouveau 
 À noter que chaque serveur agit en tant que leader pour certaines partitions et en tant que follower pour d’autres
 partitions, ce qui permet de garder un cluster équilibré.
 
-![Réplication]({{ site.baseurl }}/assets/kafka-walking-skeleton/Kafka-replication.jpeg)
+![Réplication](/assets/kafka-walking-skeleton/Kafka-replication.jpeg)
 
 En rouge sont ce sont les partitions dont un des serveur Kafka est le leader, c’est donc la partition en rouge qui
 recevra les écritures des producers. En bleu sont dessinées les partitions répliquées.

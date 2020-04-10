@@ -195,7 +195,7 @@ On voit vite le problème ou le visiteur est forcé d'implémenter des opérat
 
 Pour cela il y a une solution un peu plus complexe qui est également un pattern, c'est le [Visiteur Acyclique](http://www.objectmentor.com/resources/articles/acv.pdf). Je n'approfondie pas trop, mais l'idée est d'avoir pour chaque sous type du domaine une interface de visiteur qui permet de vérifier que l'instance du visiteur est acceptable. Evidemment vous pourrez adapter le comportement, et vous n'êtes non plus obligé d'implémenter toutes les méthodes, c'est le but de ce pattern acyclique.
 
-![VisiteurAcyclique]({{ site.baseurl }}/assets/VisiteurAcyclique.png)
+![VisiteurAcyclique](/assets/VisiteurAcyclique.png)
 
 Et typiquement le code du accept pour chaque sous-type de collection aurait une tête du genre :
 

@@ -409,7 +409,7 @@ cette représentation.
 Dans le diagramme suivant chaque cadre correspond à l'état de la consommation de la séquence de caractère et à
 celui de l'expression régulière ainsi découpée en nœuds.
 
-![backtracking]({{ site.baseurl }}/assets/backtracking.png)
+![backtracking](/assets/backtracking.png)
 
 On comprend immédiatement le problèmes potentiels sur des expressions qui utilisent énormément les quantificateurs non-possessifs :
 

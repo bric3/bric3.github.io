@@ -22,7 +22,7 @@ type: post
 --------------------------------------------------
 **MAJ 29/07/2012**: Le script a été mis à jour pour fonctionner avec Mac OS X Mountain Lion. Le script a été mis à jour pour télécharger lui même le DMG chez Apple, en bref il n'y a plus qu'à commencer à l'étape 2.
 
-[!JDK 5 installation on Mountain Lion]({{ site.baseurl }}/assets/jdk5_install_mountain_lion.png)
+[!JDK 5 installation on Mountain Lion](/assets/jdk5_install_mountain_lion.png)
 
 --------------------------------------------------
 **Original 22/08/2011** : Avec l'arrivée de Lion, Apple change les choses avec Java. Heureusement s'il s'agit d'une mise à jour depuis Snow Leopard, vous ne perdrez pas votre runtime JDK 6, en revanche si vous faites une installation clean, et bien il faudra télécharger le runtime ici :
@@ -63,9 +63,9 @@ Certains ont trouvé l'astuce en téléchargeant la mise à jour Java pour Mac O
 
 En images, ça donne :
 
-![jdk5_lion_install_terminal]({{ site.baseurl }}/assets/jdk5_lion_install_terminal.png)
+![jdk5_lion_install_terminal](/assets/jdk5_lion_install_terminal.png)
 
-![lion_java_preferences]({{ site.baseurl }}/assets/lion_java_preferences.png)
+![lion_java_preferences](/assets/lion_java_preferences.png)
 
 Évidement si vous repérez une coquille, je suis à l'écoute. Bonne soirée :)
 
@@ -73,19 +73,19 @@ En images, ça donne :
 
 1. Donc une fois le projet ouvert, il faut aller dans les préférences du projet (Project Settings).
 
-    ![IntelliJ Project Setting]({{ site.baseurl }}/assets/project_setting-e1314642274278.png)
+    ![IntelliJ Project Setting](/assets/project_setting-e1314642274278.png)
 
 2. Ensuite ajouter le JSDK.
 
-    ![Add New JSDK]({{ site.baseurl }}/assets/add_new_jsdk.png)
+    ![Add New JSDK](/assets/add_new_jsdk.png)
 
 3. Puis sélectionner dans l'explorateur le dossier `/System/Library/Java/JavaVirtualMachines/1.5.0/Contents/Home`
 
-    ![Choose JDK 5 Home]({{ site.baseurl }}/assets/choose_jdk5_home-e1314642723756.png)
+    ![Choose JDK 5 Home](/assets/choose_jdk5_home-e1314642723756.png)
 
 4. Hop, c'est fini, dans IntelliJ vous avez le JDK 5
 
-    ![IntelliJ found it]({{ site.baseurl }}/assets/intellij_found_it-e1314642860664.png)
+    ![IntelliJ found it](/assets/intellij_found_it-e1314642860664.png)
 
 Idée originale : [Zend Studio *5*.x for OS X *Lion* (*Java* SE 6)](http://www.s-seven.net/zend_5x_lion)
 

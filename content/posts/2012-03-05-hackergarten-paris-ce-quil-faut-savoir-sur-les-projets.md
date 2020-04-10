@@ -22,7 +22,7 @@ type: post
 ---
 Hello à tous,
 
-![Hackergarten Logo BW]({{ site.baseurl }}/assets/hackergarten_b_and_w_small.png)
+![Hackergarten Logo BW](/assets/hackergarten_b_and_w_small.png)
 **Mercredi 7 mars** (à 19h) aura lieu la 2ème session Hackergarten. Après **Soat**, on a le plaisir d'être hébergé par **Valtech** (103 Rue de Grenelle, 75007 Paris) et il y aura des **pizzas**, gros merci à eux.
 
 > Hackergarten c'est le rendez-vous des gens qui veulent participer aux projets opensource. L'idée c'est, dans un format de 3h, de **contribuer** un **logiciel**, un **fix**, un **feature**, une **documentation** dont d'autres pourraient avoir l'usage. Il s'articule autour de commiters actifs pour mentorer les hackers qui participent à l'évènement.

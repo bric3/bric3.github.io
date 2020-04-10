@@ -280,14 +280,14 @@ coretto-11/src❯ idea .
 
 And voilà
 
-![OpenJDK browsing in IntelliJ IDEA]({{ site.baseurl }}/assets/corretto-11-in-intellij-idea.png)
+![OpenJDK browsing in IntelliJ IDEA](/assets/corretto-11-in-intellij-idea.png)
 
 
 One thing I noticed is that the project has been set for Java 9 language level,
 but some Java code actually have language features from Java 10, like `var`.
 So I had to increase the project language level.
 
-![corretto source project level]({{ site.baseurl }}/assets/corretto-11-project-source-level.png)
+![corretto source project level](/assets/corretto-11-project-source-level.png)
 
 
 ## Let's play with the jdk
@@ -442,17 +442,17 @@ build/macosx-x86_64-normal-server-release/jdk/bin
 ...
 ```
 
-![Setting freshly built JDK as Project SDK]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-feesh-build-jdk-as-sdk.png)
+![Setting freshly built JDK as Project SDK](/assets/hacking-corretto-11/corretto-11-feesh-build-jdk-as-sdk.png)
 
 **That the JDK we need to add to IntelliJ and to set to the current project.**
 
 Now let's find something to run like a main method, hopefully for `jshell` (<kbd>cmd</kbd> + <kbd>alt</kbd> + <kbd>o</kbd>)
 
-![Looking for main methods]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-looking-for-main.png)
+![Looking for main methods](/assets/hacking-corretto-11/corretto-11-looking-for-main.png)
 
 There's one, let then run `jdk.internal.jshell.tool.JShellToolProvider#main`
 
-![Running JShellToolProvider#main]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-run-JshellToolProvider.main.png)
+![Running JShellToolProvider#main](/assets/hacking-corretto-11/corretto-11-run-JshellToolProvider.main.png)
 
 Later in `JShellTool` we can find this method, let's set a break point to see how 
 commands are being processed.
@@ -545,7 +545,7 @@ _Also, at the time of writing there's a Makefile plugin for IntelliJ IDEA, and i
 create a Run configuration that execute any makefile target, this run configuration can be executed
 before the `JShellToolProvider`.
 
-![Configure make jdk.jshell before running JShellToolProvider]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-run-JShellToolProvider.main-with-make-jdk.jshell-before.png)   
+![Configure make jdk.jshell before running JShellToolProvider](/assets/hacking-corretto-11/corretto-11-run-JShellToolProvider.main-with-make-jdk.jshell-before.png)   
 
 
 Now let's get something a tad more involved.
@@ -597,7 +597,7 @@ the evaluation of a statement like `String s = "s"` in debug mode.
 > unfortunately this setting is global and not per project, so you may need to toggle this options if switching
 > between different projects.
 > 
-> ![Step Into setting]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-step-into-ij-setting.png) 
+> ![Step Into setting](/assets/hacking-corretto-11/corretto-11-step-into-ij-setting.png) 
 
 So here's what the break point leads to 
 
@@ -755,7 +755,7 @@ This immediately suggests we can plug our own language representation, such as a
 
 
 
-![Map.ofEntries tree]({{ site.baseurl }}/assets/hacking-corretto-11/corretto-11-map-ofentries-tree.png)
+![Map.ofEntries tree](/assets/hacking-corretto-11/corretto-11-map-ofentries-tree.png)
 
 
 ### Extending the syntax to homebrewed data classes
