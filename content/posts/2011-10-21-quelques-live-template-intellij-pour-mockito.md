@@ -50,14 +50,14 @@ J'ai défini toutes ces annotations dans un nouveau groupe **test**, et j'ai act
 
 * Les variables du templates sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Name | Expression | Default value | Skip if defined |
 | :--- | :--- | --- | --- |
 | TYPE | variableOfType("Object") | | |
 | MOCK_FIELD | suggestVariableName() | | |
 
-</div>
+{{< /wrapTable >}}
 
 ------------------------------------
 * Description : Creates a field with the `@Spy` annotation
@@ -70,14 +70,14 @@ J'ai défini toutes ces annotations dans un nouveau groupe **test**, et j'ai act
 
 * Les variables du templates sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Name | Expression | Default value | Skip if defined |
 | :--- | :--- | --- | --- |
 | TYPE | variableOfType("Object") | | |
 | MOCK_FIELD | suggestVariableName() | | |
 
-</div>
+{{< /wrapTable >}}
 
 
 ------------------------------------
@@ -91,14 +91,14 @@ J'ai défini toutes ces annotations dans un nouveau groupe **test**, et j'ai act
 
 * Les variables du templates sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Name | Expression | Default value | Skip if defined |
 | :--- | :--- | --- | --- |
 | TYPE | variableOfType("Object") | | |
 | MOCK_FIELD | suggestVariableName() | | |
 
-</div>
+{{< /wrapTable >}}
 
 
 ------------------------------------
@@ -121,14 +121,14 @@ given($MOCK$).willReturn($ARGS$)$END$
 
 * Les variables du templates sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Name | Expression | Default value | Skip if defined |
 | :--- | :--- | --- | --- |
 | TYPE | variableOfType("Object") | | |
 | ARGS | | | |
 
-</div>
+{{< /wrapTable >}}
 
 
 ------------------------------------
@@ -142,7 +142,7 @@ org.mockito.BDDMockito.willReturn($RETURNED$).given($MOCK$).$CALL$ $END$
 
 * Les variables du templates sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Name | Expression | Default value | Skip if defined |
 | :--- | :--- | --- | --- |
@@ -150,7 +150,7 @@ org.mockito.BDDMockito.willReturn($RETURNED$).given($MOCK$).$CALL$ $END$
 | MOCK | variableOfType("Object") | | |
 | CALL | complete() | | |
 
-</div>
+{{< /wrapTable >}}
 
 
 ------------------------------------
@@ -164,7 +164,7 @@ org.mockito.Mockito.verify($MOCK$).$CALL$
 
 * Les variables du templates sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Name | Expression | Default value | Skip if defined |
 | :--- | :--- | --- | --- |
@@ -172,7 +172,7 @@ org.mockito.Mockito.verify($MOCK$).$CALL$
 | MOCK | variableOfType("Object") | | |
 | CALL | complete() | | |
 
-</div>
+{{< /wrapTable >}}
 
 
 ------------------------------------
@@ -188,7 +188,7 @@ $IN_ORDER_VAR$.verify($MOCK$).$CALL$;
 
 * Les variables du templates sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Name | Expression | Default value | Skip if defined |
 | :--- | :--- | --- | --- |
@@ -197,7 +197,7 @@ $IN_ORDER_VAR$.verify($MOCK$).$CALL$;
 | MOCK | variableOfType("Object") | | |
 | CALL | complete() | | |
 
-</div>
+{{< /wrapTable >}}
 
 ------------------------------------
 

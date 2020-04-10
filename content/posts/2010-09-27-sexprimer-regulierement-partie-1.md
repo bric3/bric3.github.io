@@ -67,7 +67,7 @@ s'assembler.
 En théorie des langages il a été identifié que les **langages** avaient des propriétés différentes. Ces **langages**
 sont classifiés par la [hiérarchie de Chomsky](https://fr.wikipedia.org/wiki/Hi%C3%A9rarchie_de_Chomsky):
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Grammaire | Langage | Automate |
 | --- | --- | --- |
@@ -76,7 +76,7 @@ sont classifiés par la [hiérarchie de Chomsky](https://fr.wikipedia.org/wiki/H
 | Type-2 | algébrique | Automate à pile non déterministe |
 | Type-3 | **rationnel** (**régulier**) | Automate fini |
 
-</div>
+{{< /wrapTable >}}
 
 Le tableau ci-dessus se lit de la façon suivante :
 
@@ -230,7 +230,7 @@ On a vu qu'on pouvait activer des options pour une expression régulière, effec
 
 Les options possibles utilisables à la construction ou dans le pattern sont dans la javadoc, mais les plus intéressantes sont :
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Option | Flag | Flag à la construction |
 | --- | --- | --- |
@@ -239,7 +239,7 @@ Les options possibles utilisables à la construction ou dans le pattern sont dan
 | Matching de la casse relatif aux règles Unicode | `u` | `Pattern.UNICODE_CASE` |
 | Matching des caractère en fonction de leur forme canonique |  | `Pattern.CANON_EQ` |
 
-</div>
+{{< /wrapTable >}}
 
 Certaines options comme vu dans le tableau n'ont pas d'équivalence dans les options _en-ligne_ de la regex.
 

@@ -1,0 +1,19 @@
+{{/*
+    This shortcodes allow to wrap a table in a div,
+    the CSS class allows to apply CSS like an horizontal scrollbar
+*/}}
+
+{{/* When there's nested shortcodes,  */}}
+{{- if gt (len .Params) 1 -}}
+{{- if eq .Get 0 "open" -}}
+<div class="table-wrapper">
+{{ else if eq .Get 0 "close" }}
+</div>
+{{ else }}
+{{ errorf "Expected wrapTable to have either 'open', 'close' or no params: % " .Position }}
+{{ end }}
+{{ else }}
+<div class="table-wrapper">
+    {{ .Inner | $.Page.RenderString }}
+</div>
+{{ end }}

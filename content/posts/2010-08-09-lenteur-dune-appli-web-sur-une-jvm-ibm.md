@@ -66,7 +66,7 @@ Bon hop, déjà pour commencer j'écarte pour le moment Introscope. Et j'ai un t
 
 A l'ouverture un rapport apparait, il commence par ça en rouge :
 
-> <span style="color: #ec2500;">**WARNING** Java heap is almost exhausted : 0% free Java heap Please enable verbosegc trace and use IBM Pattern Modeling and Analysis Tool(http://www.alphaworks.ibm.com/tech/pmat) to analyze garbage collection activities. If heapdumps are generated at the same time, please use IBM HeapAnalyzer(http://www.alphaworks.ibm.com/tech/heapanalyzer) to analyze Java heap.</span>
+> {{< c red-span >}}**WARNING** Java heap is almost exhausted : 0% free Java heap Please enable verbosegc trace and use IBM Pattern Modeling and Analysis Tool(http://www.alphaworks.ibm.com/tech/pmat) to analyze garbage collection activities. If heapdumps are generated at the same time, please use IBM HeapAnalyzer(http://www.alphaworks.ibm.com/tech/heapanalyzer) to analyze Java heap.{{< /c >}}
 
 
 Ok, là c'est assez facile de savoir ou ça va! Mais allons plus loin!
@@ -104,18 +104,18 @@ Le rapport est sympa, il donne la répartition de la mémoire de la JVM :
 
 **Memory Segment Analysis:**
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable open />}}
 
 | Memory Type | # of Segments | Used Memory(bytes) | Used Memory(%) | Free Memory(bytes) | Free Memory(%) | Total Memory(bytes) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Internal | 13 | 1 191 740 | <span style="background-color: #ffff0082; display: block;">**88,4**</span> | 156 452 | 11,6 | 1 348 192 |
-| Object (reversed) | 1 | 402 653 184 | <span style="background-color: #ffff0082; display: block;">**100**</span> | 0 | 0 | <span style="background-color: #ffff0082; display: block;">**402 653 184**</span> |
-| Class | 9 735 | 228 637 344 | <span style="background-color: #ffff0082; display: block;">**90,96**</span> | 22 724 116 | 9,04 | <span style="background-color: #ffff0082; display: block;">**251 361 460**</span> |
-| JIT Code Cache | 5 | 41 943 040 | <span style="background-color: #ffff0082; display: block;">**100**</span> | 0 | 0 | 41 943 040 |
+| Internal | 13 | 1 191 740 | {{< mark >}}**88,4**{{< /mark >}} | 156 452 | 11,6 | 1 348 192 |
+| Object (reversed) | 1 | 402 653 184 | {{< mark >}}**100**{{< /mark >}} | 0 | 0 | {{< mark >}}**402 653 184**{{< /mark >}} |
+| Class | 9 735 | 228 637 344 | {{< mark >}}**90,96**{{< /mark >}} | 22 724 116 | 9,04 | {{< mark >}}**251 361 460**{{< /mark >}} |
+| JIT Code Cache | 5 | 41 943 040 | {{< mark >}}**100**{{< /mark >}} | 0 | 0 | 41 943 040 |
 | JIT Data Cache | 3 | 17 018 496 | 67,63 | 8 147 328 | 32,37 | 25 165 824 |
 | Overall | 9 757 | 691 443 804 | 95,71 | 31 027 896 | 4,29 | 722 471 700 |
 
-</div>
+{{< wrapTable close />}}
 
 
 
@@ -132,7 +132,7 @@ Mais à 100% d'utilisation, ça sent le GC qui s'excite pour garder ses petits. 
 
 **Thread Status Analysis :**
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Status | Number of Threads : 170 | Percentage |
 | --- | ---: | ---: |
@@ -145,7 +145,7 @@ Mais à 100% d'utilisation, ça sent le GC qui s'excite pour garder ses petits. 
 | Blocked | 0 | 0 % |
 | Parked | 0 | 0 % |
 
-</div>
+{{< /wrapTable >}}
 
 
 Vous vous souvenez des threads vues en **Wait on Condition** au tout début, on les retrouve donc ici dans les stats du thread dump. Il y a environ 158 thread qui ne font rien et 12 threads qui travaillent. Alors petite parenthèse, qu'est ce que ça veut dire ce Waiting on Condition. Les raisons peuvent être les suivantes :
@@ -162,7 +162,7 @@ Le prochain tableau du rapport nous indique ou sont (toutes) nos threads, mais p
 
 **Thread Method Analysis :**
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 | Method Name | Number of Threads : 170 | Percentage |
 | --- | ---: | ---: |
@@ -174,7 +174,7 @@ Le prochain tableau du rapport nous indique ou sont (toutes) nos threads, mais p
 | com/ibm/misc/SignalDispatcher.waitForSignal(**Native Method**) | 1 | 1 % |
 | d'autres ligne à 1%... |  |  |
 
-</div>
+{{< /wrapTable >}}
 
 Pas mal de thread sont en attente, et beaucoup d'autres dorment. Quelques threads sans stack Java, ce sont des threads qui appartiennent à la JVM.
 
@@ -268,22 +268,22 @@ On peut regarder vraiment beaucoup de chose avec cet outils, même s'il y a des 
 
 Je termine sur un petit résumé des valeurs intéressantes que nous donne cet outils.
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable open />}}
 
 | Allocation failure count | 59971 |
 | --- | ---: |
 | Forced collection count | 3 |
-| GC Mode | <span style="background-color: #ffff0082; display: block;">**optthruput**</span> |
+| GC Mode | {{< mark >}}**optthruput**{{< /mark >}} |
 | Largest memory request (bytes) | 5242904 |
 | Mean garbage collection pause (ms) | 491 |
 | Mean heap unusable due to fragmentation (MB) | 0.2 |
-| Mean interval between collections (minutes) | <span style="background-color: #ffff0082; display: block;">**0.01**</span> |
+| Mean interval between collections (minutes) | {{< mark >}}**0.01**{{< /mark >}} |
 | Number of collections | 59974 |
-| Proportion of time spent in garbage collection pauses (%) | <span style="background-color: #ffff0082; display: block;">**58.24**</span> |
-| Proportion of time spent unpaused (%) | <span style="background-color: #ffff0082; display: block;">**41.76**</span> |
-| Rate of garbage collection (MB/minutes) | <span style="background-color: #ffff0082; display: block;">**13250**</span> |
+| Proportion of time spent in garbage collection pauses (%) | {{< mark >}}**58.24**{{< /mark >}} |
+| Proportion of time spent unpaused (%) | {{< mark >}}**41.76**{{< /mark >}} |
+| Rate of garbage collection (MB/minutes) | {{< mark >}}**13250**{{< /mark >}} |
 
-</div>
+{{< wrapTable close />}}
 
 
 Tiens le mode GC est `optthruput`, en fait c'est une des polices du comportement du GC, et probablement de la manière de segmenter la mémoire (Nursery (Young), Old (Tenured)).

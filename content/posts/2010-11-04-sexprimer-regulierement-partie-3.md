@@ -264,7 +264,7 @@ mais pas d'explication sur la signification de ces blocs de caractères Unicode.
 NetBeans je ne sais pas. En tous cas on trouve une réponse [là](http://www.unicode.org/Public/5.1.0/ucd/UCD.html)
 à propos des blocs Unicode:
 
-<div class="table-wrapper" markdown="block">
+{{< wrapTable >}}
 
 {:.alternate}
 | Abréviation reconnue par `Pattern` | Signification |
@@ -310,7 +310,7 @@ NetBeans je ne sais pas. En tous cas on trouve une réponse [là](http://www.uni
 | - | Assigned* |
 | - | ASCII* |
 
-</div>
+{{< /wrapTable >}}
 
 ## Matcher les caractères d'un alphabet seulement
 
