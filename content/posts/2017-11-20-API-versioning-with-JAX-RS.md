@@ -89,7 +89,7 @@ not a problem in practice as strings constants can be used.
 
 
 
-{% if notes %}
+{{< draftNotes >}}
 
 HTTP : https://tools.ietf.org/html/rfc2616#section-14.1
 
@@ -107,7 +107,7 @@ HTTP : https://tools.ietf.org/html/rfc2616#section-14.1
 >     4) */*
 
 
-{% endif %}
+{{< /draftNotes >}}
 
 ## End words
 

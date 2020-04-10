@@ -16,6 +16,7 @@ slug: script-pour-installer-le-jdk-5-sur-macosx-lion
 title: Script d'installation du JDK 5 sur MacOSX Lion et Mountain Lion (Mis à jour)
 type: post
 ---
+
 **MAJ 14/06/2016**: La dernière version du script est maintenant sur un [repository github dédié](https://github.com/bric3/osx-jdk5-installer).
 
 --------------------------------------------------
@@ -88,4 +89,4 @@ En images, ça donne :
 
 Idée originale : [Zend Studio *5*.x for OS X *Lion* (*Java* SE 6)](http://www.s-seven.net/zend_5x_lion)
 
-{% gist 1163008 %}
+{{< gist bric3 1163008 >}}

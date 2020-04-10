@@ -231,7 +231,6 @@ To complete this operation, we need to modify the templates files
 where to get the file, since there's a few binary files `vim` is not suited 
 for that, so I'm using another mean to replace the content by the template.
 
-{% raw %}
 ```bash
 ❯ chezmoi cd
 ❯ echo -n '{{- onepasswordDocument "ti2adie9Aixaidae4dahpoh5io" -}}' > private_dot_gnupg/private_id_rsa.tmpl
@@ -240,7 +239,6 @@ for that, so I'm using another mean to replace the content by the template.
 ❯ echo -n '{{- onepasswordDocument "losachuYeeho5Eiph2uzoquohl" -}}' > private_dot_gnupg/private_pubring.kbx.tmpl
 ❯ exit
 ```       
-{% endraw %}
 
 Note that I'm replacing the binary file content of `.gnupg/trustdb.gpg` 
 and `.gnupg/pubring.kbx` with the template character string `{{- onepasswordDocument "uuid" -}}`.

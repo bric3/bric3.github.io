@@ -1519,7 +1519,7 @@ This article has been elaborated with the following versions
 
 
 
-{% if notes %}
+{{< draftNotes >}}
 
 https://security.stackexchange.com/questions/107240/how-to-read-certificate-chains-in-openssl
 https://security.stackexchange.com/questions/72077/validating-an-ssl-certificate-chain-according-to-rfc-5280-am-i-understanding-th/72085#72085
@@ -1538,4 +1538,4 @@ http://apetec.com/support/GenerateSAN-CSR.htm
 https://gist.github.com/jchandra74/36d5f8d0e11960dd8f80260801109ab0
 https://www.pixelstech.net/article/1420427307-Different-types-of-keystore-in-Java----PKCS12
 
-{% endif %}
+{{< /draftNotes >}}

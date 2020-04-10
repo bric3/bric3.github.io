@@ -69,6 +69,9 @@ public class HibernateDDLGenerator {
 ```
 
 [Source : gist 370654ecad0eb81aca22](https://gist.github.com/bric3/370654ecad0eb81aca22)
-{% comment %}
-{% gist 370654ecad0eb81aca22 %}
-{% endcomment %}
+
+{{< draftNotes >}}
+
+{{< gist bric3 370654ecad0eb81aca22 >}}
+
+{{< /draftNotes >}}

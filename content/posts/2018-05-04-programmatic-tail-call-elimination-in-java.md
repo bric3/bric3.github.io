@@ -35,7 +35,7 @@ Define :
    Illustrate tail call elimination
 
 
-{% if notes %}
+{{< draftNotes >}}
 Ideas
  - [ ] Show VisualVM screenshot for regular recursive function
  - [ ] Show VisualVm screenshot for programmatic TCE
@@ -48,4 +48,4 @@ Links
  - Maning (func programming in Java)
  - Devoxx fr ?
 
-{% endif %}
+{{< /draftNotes >}}
