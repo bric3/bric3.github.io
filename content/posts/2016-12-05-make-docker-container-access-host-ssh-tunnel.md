@@ -21,7 +21,7 @@ sur mon poste. Hors `cqlsh` ne fonctionne plus correctement lorsque python est �
 j'utilise cette version, ou que j'utilise le moyen alternatif documenté dans ce ticket, qui consiste en installant
 le driver et `cqlsh` avec `pip`. Mais cette approche a d'autres problèmes.
 
-<i class="fa fa-lightbulb-o" aria-hidden="true"></i> Idée utiliser les images docker officielles de cassandra.
+{{< fas fa-lightbulb >}} Idée utiliser les images docker officielles de cassandra.
 
 > Disclaimer : J'utilise OSX 10.11 et Docker for Mac 1.12
 
