@@ -358,6 +358,8 @@ Plusieures choses sont à remarquer :
 > À noter également que l'encodage de vos fichier peut faire mal quand on joue avec les caractères en dehors du
 > latin basique.
 >
+> | | |
+> |-|-|
 > | ![0x6C23](/assets/0x6C23-chi.png) | [Chi (0x6C23)](http://www.fileformat.info/info/unicode/char/6c23/index.htm) |
 > | ![0x304D](/assets/0x304D-ki-hiragana.png) | [Ki (0x304D)](http://www.fileformat.info/info/unicode/char/304d/index.htm) |
 
