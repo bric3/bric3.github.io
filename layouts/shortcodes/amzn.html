@@ -1,0 +1,49 @@
+{{/*
+    orignal notes from 2016
+    Idea from gist https://gist.github.com/ioddly/5589077
+
+    https://www.safaribooksonline.com/library/view/amazon-hacks/0596005423/ch01s07.html
+    http://aaugh.com/imageabuse.html
+    size argument can be small : `SCTZZZZZZZ`, medium `SCMZZZZZZZ`, large `SCLZZZZZZZ` or huge `SCRM` (huge available on zoomable pictures only)
+    URIS :
+     - http://ec2.images-amazon.com/images/P/B0015T963C.01._SCLZZZZZZZ_.jpg
+     - http://images.amazon.com/images/P/0321503627.01._SCRM_.jpg
+
+    2020 
+    new amzon.com image link :
+     - https://images-na.ssl-images-amazon.com/images/I/51fUKOog3VL._SX380_BO1,204,203,200_.jpg
+
+    By looking at this documentation
+     - https://docs.aws.amazon.com/AWSECommerceService/latest/DG/EX_RetrievingImages.html
+    we can read
+
+    > Images are returned in two ways:
+    >  - The images under Item are specified by the SmallImage, MediumImage, and LargeImage child elements.
+    >  - The image sizes under ImageSets are specified by the _SLXXX_ suffix in the URL, where XXX is the 
+    >    number of pixels on the longest side of the image. For example, the LargeImage has 500 pixels on 
+    >    its longest side, so it has the suffix _SL500_.jpg. When you reference images, include the _SLXXX_ suffix.
+
+    So I have tried this approach successfully : 
+     - https://images-na.ssl-images-amazon.com/images/P/{{ $itemId }}._SL500_.jpg
+
+    But it seems that even without specifying the size, we can get the largest image by default,
+    so this uri works too:
+     - https://images-na.ssl-images-amazon.com/images/P/{{ $itemId }}._SL500_.jpg
+
+    I've noted that some images cannot be grabbed using the ASIN number, however one can get the ID
+    by looking at the image id of the image location on amazon.com directly.
+*/}}
+{{- $itemId := .Get 0 -}}
+<!-- {{- $image_size := "SL500" -}} -->
+<!-- {{- $image_size := "SCMZZZZZZZ" -}} -->
+
+<a href="https://www.amazon.com/exec/obidos/ASIN/{{ $itemId }}/" class="amazon-shortcode" target="\_blank">
+    <figure>
+        {{- if eq (len .Params) 1 -}}
+        <img src="https://images-na.ssl-images-amazon.com/images/P/{{ $itemId }}.jpg"/>
+        {{- else if eq (len .Params) 2 -}}
+        {{- $imageId := .Get 1 -}}
+        <img src="https://images-na.ssl-images-amazon.com/images/I/{{ $imageId }}.jpg"/>
+        {{- end -}}
+    </figure>
+</a>

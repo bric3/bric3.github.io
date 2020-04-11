@@ -8,45 +8,36 @@ categories: []
 tags: [amazon, book]
 author: Brice Dutheil
 ---
-# Le mouvement anti-if
+# A few book to posess
 
-_Pour que le design de notre code soit un peu plus orienté objet!_
+| | |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| {{< amzn "B07XW76VHZ" >}} | **Database Internals: A Deep Dive into How Distributed Data Systems Work** by **Alex Petrov** |
+| {{< amzn "B081ZDXNL3" >}} | **BPF Performance Tools** by **Brendan Gregg** |
+| {{< amzn "0321503627" >}} | **Growing Object Oriented Software, Guided by Tests** by **Steve Freeman** and **Nat Pryce** |
+| {{< amzn "1617291803" >}} | **Reactive Design Patterns** by **Dr. Roland Kuhn**, **Brian Hanafee** and **Jamie Allen** |
+| {{< amzn "0596809484" >}} | **97 Things Every Programmer Should Know** Collective Wisdom |
+| {{< amzn "B078H61SCH" >}} | **Effective Java (3nd Edition)** by **Joshua Bloch** |
+| {{< amzn "B005R4NELQ" >}} | **Java Performance** by **Charlie Hunt** |
+| {{< amzn "B00MH6EMN6" >}} | **Seven Concurrency Models in Seven Weeks: When Threads Unravel** by **Paul Butcher** |
+| {{< amzn "0132350882" >}} | **Clean Code** by **Rober C. Martin** |
+| {{< amzn "0321125215" >}} | **Domain Driven Design** by **Eric Evans** |
+| {{< amzn "0321349601" >}} | **Java Concurrency in Practice** by **Brian Goetz** |
+| {{< amzn "0557078326" >}} | **Real World Java EE Patterns** by **Adam Bien** |
+| {{< amzn "1934356050" >}} | **Pragmatic Thinking & Learning** by **Andy Hunt** |
+| {{< amzn "0321200683" >}} | **Enterprise Integration Patterns** by **Gregor Hohpe** and **Bobby Woolf** |
+| {{< amzn "143022889X" >}} | **Java EE 6** by **Antonio Goncalves** |
+| {{< amzn "0321127420" >}} | **Patterns of Enterprise Application Architecture** by **Martin Fowler** |
+| {{< amzn "0470876417" "51itZr3SM8L" >}} | **Business Model Generation** by **Alexander Osterwalter** and **Yves Pigneur** |
+| {{< amzn "0201633612" >}} | **Design Patterns** by **John Vlissides**, **Richard Helm**, **Ralph Johnson** and **Erich Gamma** |
 
-[![I have joined Anti-IF Campaign](http://antiifcampaign.com/assets/banner_ive-joined.gif)](http://www.antiifcampaign.com)
+
+# Anti-if movement
+
+> Have you ever wondered how IFs impact on your code? Avoid dangerous IFs and use Objects to build a code that is flexible, changeable and easily testable, and will help avoid a lot of headaches and weekends spent debugging! Share how to write effective code the easy way!
+>
+> The goal of the Anti-IF Campaign is to raise awareness of the effective use of software design principles and practices, by first of all removing bad, dangerous IFs.
+
+[![I have joined Anti-IF Campaign](https://cdn.shopify.com/s/files/1/0257/1675/t/152/assets/banner_ive-joined.gif)](https://francescocirillo.com/pages/anti-if-campaign)
 
 
-# Quelques livres à posséder
-
-{% comment %}
-Idea from gist https://gist.github.com/ioddly/5589077
-{% endcomment %}
-
-{% comment %}
-// https://www.safaribooksonline.com/library/view/amazon-hacks/0596005423/ch01s07.html
-// http://aaugh.com/imageabuse.html
-// size argument can be small : `SCTZZZZZZZ`, medium `SCMZZZZZZZ`, large `SCLZZZZZZZ` or huge `SCRM` (huge available on zoomable pictures only)
-// URIS :
-//  - http://ec2.images-amazon.com/images/P/B0015T963C.01._SCLZZZZZZZ_.jpg
-//  - http://images.amazon.com/images/P/0321503627.01._SCRM_.jpg
-{% endcomment %}
-{% assign amazon_product_image_link = "[![book](http://ec2.images-amazon.com/images/P/$asin$.01._$size$_.jpg)](http://amazon.com/exec/obidos/ASIN/$asin$/)" %}
-{% assign img_size = "SCMZZZZZZZ" %}
-
-<div class="table-wrapper" markdown="block">
-
-| {{ amazon_product_image_link | replace:'$asin$','0321503627' | replace:'$size$',img_size }} | **Growing Object Oriented Software,<br /> Guided by Tests** <br /> by **Steve Freeman** and **Nat Pryce** |
-| {{ amazon_product_image_link | replace:'$asin$','0132350882' | replace:'$size$',img_size }} | **Clean Code** <br /> by **Rober C. Martin** |
-| {{ amazon_product_image_link | replace:'$asin$','0321125215' | replace:'$size$',img_size }} | **Domain Driven Design** <br /> by **Eric Evans** |
-| {{ amazon_product_image_link | replace:'$asin$','0596809484' | replace:'$size$',img_size }} | **97 Things Every Programmer Should Know** <br /> Collective Wisdom |
-| {{ amazon_product_image_link | replace:'$asin$','0321349601' | replace:'$size$',img_size }} | **Java Concurrency in Practice** <br /> by **Brian Goetz** |
-| {{ amazon_product_image_link | replace:'$asin$','0321356683' | replace:'$size$',img_size }} | **Effective Java (2nd Edition)** <br /> by **Joshua Bloch** |
-| {{ amazon_product_image_link | replace:'$asin$','0557078326' | replace:'$size$',img_size }} | **Real World Java EE Patterns** <br /> by **Adam Bien** |
-| {{ amazon_product_image_link | replace:'$asin$','1934356050' | replace:'$size$',img_size }} | **Pragmatic Thinking & Learning** <br /> by **Andy Hunt** |
-| {{ amazon_product_image_link | replace:'$asin$','0321200683' | replace:'$size$',img_size }} | **Enterprise Integration Patterns** <br /> by **Gregor Hohpe** and **Bobby Woolf** |
-| {{ amazon_product_image_link | replace:'$asin$','143022889X' | replace:'$size$',img_size }} | **Java EE 6** <br /> by **Antonio Goncalves** |
-| {{ amazon_product_image_link | replace:'$asin$','0321127420' | replace:'$size$',img_size }} | **Patterns of Enterprise Application Architecture** <br /> by **Martin Fowler** |
-| {{ amazon_product_image_link | replace:'$asin$','0470876417' | replace:'$size$',img_size }} | **Business Model Generation** <br /> by **Alexander Osterwalter** and **Yves Pigneur** |
-| {{ amazon_product_image_link | replace:'$asin$','0201633612' | replace:'$size$',img_size }} | **Design Patterns** <br /> by **John Vlissides**, **Richard Helm**, **Ralph Johnson** and **Erich Gamma** |
-| {{ amazon_product_image_link | replace:'$asin$','1617291803' | replace:'$size$',img_size }} | **Reactive Design Patterns** <br /> by **Dr. Roland Kuhn**, **Brian Hanafee** and **Jamie Allen** |
-
-</div>
