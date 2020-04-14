@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh
 
 if [ "`git status -s`" ]
 then
@@ -7,23 +7,27 @@ then
 fi
 
 echo "Deleting old publication"
-rm -rf public
-mkdir public
+rm -rf ./public
+mkdir ./public
 git worktree prune
 rm -rf .git/worktrees/public/
 
-echo "Checking out gh-pages branch into public"
-git worktree add -B gh-pages public origin/gh-pages
+echo "Checking out 'master' branch into './public'"
+git worktree add -B master ./public origin/master
 
 echo "Removing existing files"
-rm -rf public/*
+rm -rf ./public/*
+cp CNAME ./public
+
 
 echo "Generating site"
 hugo
 # docker run --rm -v $PWD:/src gunnarmorling/hugo-builder bash -c "cd /src && /hugo/hugo -F"
 
-echo "Updating gh-pages branch"
-cd public && git add --all && git commit -m "Publishing to gh-pages (publish.sh)"
+echo "Updating 'master' branch"
+cd ./public && git add --all && git commit -m "Publishing to 'master' (publish.sh)"
+
+
 
 #echo "Pushing to github"
 #git push --all
