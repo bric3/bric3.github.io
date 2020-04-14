@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>A propos du design de vos objets, des getters et setters, de equals/hashCode et de la mutabilité • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="A propos du design de vos objets, des getters et setters, de equals/hashCode et de la mutabilité"/>
+<meta name="twitter:description" content="Prologue A l&#39;école nos professeurs nous apprenaient ce qu&#39;était la programmation orientée objet; en particulier l&rsquo;encapsulation. En effet avoir un accès public aux variables internes d&rsquo;un objet n&rsquo;est pas particulièrement recommandé, pourtant nous avons connaissons tous la convention JavaBean :"/>
+
+<meta property="og:title" content="A propos du design de vos objets, des getters et setters, de equals/hashCode et de la mutabilité" />
+<meta property="og:description" content="Prologue A l&#39;école nos professeurs nous apprenaient ce qu&#39;était la programmation orientée objet; en particulier l&rsquo;encapsulation. En effet avoir un accès public aux variables internes d&rsquo;un objet n&rsquo;est pas particulièrement recommandé, pourtant nous avons connaissons tous la convention JavaBean :" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2010/03/30/a-propos-du-design-de-vos-objets-des-getters-et-setters-de-equalshashcode-et-de-la-mutabilite/" />
+<meta property="article:published_time" content="2010-03-30T18:20:52+00:00" />
+<meta property="article:modified_time" content="2010-03-30T18:20:52+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>A propos du design de vos objets, des getters et setters, de equals/hashCode et de la mutabilité</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2010-03-30
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/pattern">pattern</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/tdd">tdd</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/code">code</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/contrat">contrat</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/design">design</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/equals">equals</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/fuite">fuite</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/hashcode">hashcode</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 11 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <h1 id="prologue">Prologue</h1>
+<p>A l'école nos professeurs nous apprenaient ce qu'était la programmation orientée objet; en particulier l&rsquo;encapsulation. En effet avoir un accès public aux variables internes d&rsquo;un objet n&rsquo;est pas particulièrement recommandé, pourtant nous avons connaissons tous la convention JavaBean :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">Bean</span> <span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#998;font-style:italic">/** constructeur sans argument, optionnel si c&#39;est le seul constructeur de la classe */</span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#900;font-weight:bold">Bean</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">setBeanName</span><span style="color:#000;font-weight:bold">(</span>String name<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    beanName <span style="color:#000;font-weight:bold">=</span> name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> String <span style="color:#900;font-weight:bold">getBeanName</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> beanName<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Manque de bol, cette convention qui a pourtant son utilité -voire sa nécéssité- peut dans certains contextes  briser l&rsquo;encapsulation, et plus dangereux pour votre code, elle permet à vos objets d'être mutable, c&rsquo;est à dire de pouvoir modifier l'état d&rsquo;un objet après sa création. Bien que dans certains cas le design ou le rôle de la classe demande cette caractéristique, dans beaucoup d&rsquo;autres situations la mutabilité peut poser problème.</p>
+<p>D&rsquo;ailleurs historiquement les JavaBeans ont été pensé pour être utilisé par des applications  graphiques afin d'être construit itérativement et finalement pour être facilement dé/sérialisés [1]. Mais ces objets exposent publiquement leurs états, du coup :</p>
+<ol>
+<li>Il y a de l&rsquo;adhérence à des propriétés internes d&rsquo;un objet, s&rsquo;il y a beaucoup de code qui utilise ces propriétés internes, l'évolutivité et la maintenance de ce code peut très vite devenir difficile et donc couteuse.</li>
+<li>Ce n&rsquo;est plus vraiment de la programmation orientée objet. C&rsquo;est en quelque sorte des variables globales, ça fait plus de 30 ans qu&rsquo;on sait que les variables globales c&rsquo;est mal! Demandez à Barbara Liskov [2].</li>
+<li>Avec cette possibilité de muter les objets, il peut y avoir des problèmes au runtime, et croyez moi avec l&rsquo;arrivée de la parallélisation en plus dans vos applications il va y avoir des surprises.</li>
+</ol>
+<p>Bon revenons au design, et aux problèmes rencontrés.</p>
+<h1 id="illustration-des-problèmes-de-design-du-code">Illustration des problèmes de design du code</h1>
+<h2 id="hashcode-et-equals">hashCode et equals</h2>
+<p>Donc pour commencer, on va juste faire quelques tests sur un objet sans les méthodes <em>hashCode()</em> et <em>equals()</em>. Prenons les test suivants, je créé 4 instances de beans, <em>obj1</em> et <em>obj3</em> puis <em>obj2</em> et <em>obj4</em> ont les mêmes propriétés.</p>
+<p>Ce test montre les problèmes quand on oublie les méthodes <em>equals</em> et <em>hashCode</em>.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">MutabilityCanBeBadTest</span> <span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#000;font-weight:bold">private</span> AJavaBean obj1<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> AJavaBean obj2<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> AJavaBean obj3<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> AJavaBean obj4<span style="color:#000;font-weight:bold">;</span>
+
+  <span style="color:#3c5d5d;font-weight:bold">@Before</span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">initTheBeans</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    obj1 <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> AJavaBean<span style="color:#000;font-weight:bold">();</span>
+    obj1<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;paraboot&#34;</span><span style="color:#000;font-weight:bold">);</span>
+    obj1<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setSellingDate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> GregorianCalendar<span style="color:#000;font-weight:bold">(</span>2010<span style="color:#000;font-weight:bold">,</span> 03<span style="color:#000;font-weight:bold">,</span> 30<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">getTime</span><span style="color:#000;font-weight:bold">());</span>
+
+    obj2 <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> AJavaBean<span style="color:#000;font-weight:bold">();</span>
+    obj2<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;ethnies&#34;</span><span style="color:#000;font-weight:bold">);</span>
+    obj2<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setSellingDate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> GregorianCalendar<span style="color:#000;font-weight:bold">(</span>2010<span style="color:#000;font-weight:bold">,</span> 10<span style="color:#000;font-weight:bold">,</span> 30<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">getTime</span><span style="color:#000;font-weight:bold">());</span>
+
+    obj3 <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> AJavaBean<span style="color:#000;font-weight:bold">();</span>
+    obj3<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;paraboot&#34;</span><span style="color:#000;font-weight:bold">);</span>
+    obj3<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setSellingDate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> GregorianCalendar<span style="color:#000;font-weight:bold">(</span>2010<span style="color:#000;font-weight:bold">,</span> 03<span style="color:#000;font-weight:bold">,</span> 30<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">getTime</span><span style="color:#000;font-weight:bold">());</span>
+
+    obj4 <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> AJavaBean<span style="color:#000;font-weight:bold">();</span>
+    obj4<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;ethnies&#34;</span><span style="color:#000;font-weight:bold">);</span>
+    obj4<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setSellingDate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> GregorianCalendar<span style="color:#000;font-weight:bold">(</span>2010<span style="color:#000;font-weight:bold">,</span> 10<span style="color:#000;font-weight:bold">,</span> 30<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">getTime</span><span style="color:#000;font-weight:bold">());</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#3c5d5d;font-weight:bold">@Test</span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">objectsShouldBeEquals</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
+    assertEquals<span style="color:#000;font-weight:bold">(</span>obj2<span style="color:#000;font-weight:bold">,</span> obj4<span style="color:#000;font-weight:bold">);</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>    assertEquals<span style="color:#000;font-weight:bold">(</span>obj1<span style="color:#000;font-weight:bold">,</span> obj3<span style="color:#000;font-weight:bold">);</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#3c5d5d;font-weight:bold">@Test</span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">hashCodeShouldBeEquals</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
+    assertEquals<span style="color:#000;font-weight:bold">(</span>obj1<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hashCode</span><span style="color:#000;font-weight:bold">(),</span> obj3<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hashCode</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>    assertEquals<span style="color:#000;font-weight:bold">(</span>obj2<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hashCode</span><span style="color:#000;font-weight:bold">(),</span> obj4<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hashCode</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#3c5d5d;font-weight:bold">@Test</span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">addAndRemoveToHashBasedCollection</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
+    Set<span style="color:#000;font-weight:bold">&lt;</span>AJavaBean<span style="color:#000;font-weight:bold">&gt;</span> set <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> HashSet<span style="color:#000;font-weight:bold">&lt;</span>AJavaBean<span style="color:#000;font-weight:bold">&gt;();</span>
+
+    assertTrue<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>obj1<span style="color:#000;font-weight:bold">));</span>
+    assertTrue<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>obj2<span style="color:#000;font-weight:bold">));</span>
+    assertFalse<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>obj3<span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>    assertFalse<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>obj4<span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>
+    assertEquals<span style="color:#000;font-weight:bold">(</span>2<span style="color:#000;font-weight:bold">,</span> set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">size</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>
+    assertTrue<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">remove</span><span style="color:#000;font-weight:bold">(</span>obj1<span style="color:#000;font-weight:bold">));</span>
+    assertTrue<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">remove</span><span style="color:#000;font-weight:bold">(</span>obj2<span style="color:#000;font-weight:bold">));</span>
+    assertFalse<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">remove</span><span style="color:#000;font-weight:bold">(</span>obj3<span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>    assertFalse<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">remove</span><span style="color:#000;font-weight:bold">(</span>obj4<span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// fail
+</span><span style="color:#998;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Si l&rsquo;implémentation de AJavaBean oublie donc le <em>hashCode</em> et le <em>equals</em>, la plus part des assertions ne marchent plus.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">AJavaBean</span> <span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#000;font-weight:bold">private</span> String name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> Date sellingDate<span style="color:#000;font-weight:bold">;</span>
+
+  <span style="color:#000;font-weight:bold">public</span> String <span style="color:#900;font-weight:bold">getName</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">setName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">final</span> String name<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">name</span> <span style="color:#000;font-weight:bold">=</span> name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> Date <span style="color:#900;font-weight:bold">getSellingDate</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> sellingDate<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">setSellingDate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">final</span> Date uid<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sellingDate</span> <span style="color:#000;font-weight:bold">=</span> uid<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+  <span style="color:#000;font-weight:bold">public</span> String <span style="color:#900;font-weight:bold">toString</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> <span style="color:#d14">&#34;AJavaBean [name=&#34;</span> <span style="color:#000;font-weight:bold">+</span> name <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;, sellingDate=&#34;</span> <span style="color:#000;font-weight:bold">+</span> sellingDate <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;]&#34;</span><span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>En bref :</p>
+<p><img src="/assets/fail.jpg" alt="fail"></p>
+<p>Que s&rsquo;est-il passé? S&rsquo;il n&rsquo;y a pas de <em>hashCode</em> et de <em>equals</em>, ce sont les méthodes de la super classe qui sont utilisées, dans le code listé plus haut ce sont les méthodes de Object qui seront utilisées pour tester l'égalité et le hashCode.</p>
+<ul>
+<li>Donc pour l'égalité Object.equals(Object) vérifie uniquement si l&rsquo;instance est la même. Ce qui explique que les tests d'égalité échouent plus haut.</li>
+<li>Pour le hashCode, c&rsquo;est la JVM qui le génère, bref autant dire que le hashcode est différent pour chaque instance. Ceci explique que les instances <em>obj1</em> et <em>obj2</em> sont ajoutées au HashSet, si le hashcode avait été le même alors les opérations d&rsquo;ajout et de suppression auraient renvoyé <em>false</em> (n&rsquo;oublions pas qu&rsquo;il s&rsquo;agit d&rsquo;un <strong>Hash</strong> Set).</li>
+</ul>
+<h2 id="et-donc-pour-le-code-mutable">Et donc pour le code mutable</h2>
+<p>Ok, bon maintenant qu&rsquo;on a vu ça, notre bean implémente les méthodes equals et hashCode de manière idoine, c&rsquo;est à dire dans notre cas que le code se base sur les attributs <em>name</em> et <em>sellingDate</em>. Pas de mystère, on peut utiliser l&rsquo;outils de génération de l&rsquo;IDE.</p>
+<p>Eclipse génère ça:</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Override</span>
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">hashCode</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#000;font-weight:bold">final</span> <span style="color:#458;font-weight:bold">int</span> prime <span style="color:#000;font-weight:bold">=</span> 31<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#458;font-weight:bold">int</span> result <span style="color:#000;font-weight:bold">=</span> 1<span style="color:#000;font-weight:bold">;</span>
+  result <span style="color:#000;font-weight:bold">=</span> prime <span style="color:#000;font-weight:bold">*</span> result <span style="color:#000;font-weight:bold">+</span> <span style="color:#000;font-weight:bold">((</span>name <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">?</span> 0 <span style="color:#000;font-weight:bold">:</span> name<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hashCode</span><span style="color:#000;font-weight:bold">());</span>
+  result <span style="color:#000;font-weight:bold">=</span> prime <span style="color:#000;font-weight:bold">*</span> result <span style="color:#000;font-weight:bold">+</span> <span style="color:#000;font-weight:bold">((</span>sellingDate <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">?</span> 0 <span style="color:#000;font-weight:bold">:</span> sellingDate<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hashCode</span><span style="color:#000;font-weight:bold">());</span>
+  <span style="color:#000;font-weight:bold">return</span> result<span style="color:#000;font-weight:bold">;</span>
+<span style="color:#000;font-weight:bold">}</span>
+
+<span style="color:#3c5d5d;font-weight:bold">@Override</span>
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">boolean</span> <span style="color:#900;font-weight:bold">equals</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">final</span> Object obj<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">this</span> <span style="color:#000;font-weight:bold">==</span> obj<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">true</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>obj <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">false</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>getClass<span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">!=</span> obj<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getClass</span><span style="color:#000;font-weight:bold">())</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">false</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000;font-weight:bold">}</span>
+  AJavaBean other <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">(</span>AJavaBean<span style="color:#000;font-weight:bold">)</span> obj<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>name <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>other<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">name</span> <span style="color:#000;font-weight:bold">!=</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">false</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(!</span>name<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">equals</span><span style="color:#000;font-weight:bold">(</span>other<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">name</span><span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">false</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>sellingDate <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>other<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sellingDate</span> <span style="color:#000;font-weight:bold">!=</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">false</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(!</span>sellingDate<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">equals</span><span style="color:#000;font-weight:bold">(</span>other<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sellingDate</span><span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">false</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">true</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Bon à priori on se dit que notre code est safe puisqu&rsquo;on a nos méthodes <em>equals</em> et <em>hashcode</em>, mais on se fourvoie ; notre objet est mutable!</p>
+<p>Exemple :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">  <span style="color:#3c5d5d;font-weight:bold">@Test</span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">playWithMutabilityWithABeanInHashBasedCollection</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
+    Set<span style="color:#000;font-weight:bold">&lt;</span>AJavaBean<span style="color:#000;font-weight:bold">&gt;</span> set <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> HashSet<span style="color:#000;font-weight:bold">&lt;</span>AJavaBean<span style="color:#000;font-weight:bold">&gt;();</span>
+
+    assertTrue<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>obj1<span style="color:#000;font-weight:bold">));</span>
+    assertTrue<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>obj2<span style="color:#000;font-weight:bold">));</span>
+
+    obj2<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setSellingDate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> GregorianCalendar<span style="color:#000;font-weight:bold">(</span>2010<span style="color:#000;font-weight:bold">,</span> 05<span style="color:#000;font-weight:bold">,</span> 30<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">getTime</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// valeur précédente : 2010-10-30
+</span><span style="color:#998;font-style:italic"></span>
+    assertTrue<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">remove</span><span style="color:#000;font-weight:bold">(</span>obj2<span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// owned
+</span><span style="color:#998;font-style:italic"></span>    assertEquals<span style="color:#000;font-weight:bold">(</span>2<span style="color:#000;font-weight:bold">,</span> set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">size</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// owned
+</span><span style="color:#998;font-style:italic"></span>    assertFalse<span style="color:#000;font-weight:bold">(</span>set<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>obj2<span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// owned
+</span><span style="color:#998;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Surprise! You just got</p>
+<p><img src="/assets/pwned.jpg" alt="pwned"></p>
+<p>Alors on sait que les méthodes <em>equals</em> et <em>hashCode</em> utilisent les deux propriétés <em>name</em> et <em>sellingDate</em>, donc quand on ajoute un objet dans le HashSet le hashCode correspondra au calcul fait partir des valeurs des ces attributs. Mais voilà le hashcode de l&rsquo;objet n&rsquo;est calculé qu&rsquo;une fois, au moment de l&rsquo;interaction dans la Map (ajout, suppression, contains, etc&hellip;).</p>
+<p>Donc ce qu&rsquo;il se passe c&rsquo;est qu&rsquo;on a fait muter l'état de notre objet, du coup le hashcode est différent, mais la collection conserve la référence de l&rsquo;objet qu&rsquo;elle contiens et ne recalcule pas son hashcode! C&rsquo;est aussi avec avec ce genre de code que vous pouvez avoir des fuites mémoires. Et on est même pas dans un contexte multithreadé, alors imaginez si la collection est partagée entre plusieurs thread!</p>
+<h2 id="attention-aux-collections-ou-aux-dates-du-jdk">Attention aux collections ou aux dates du JDK</h2>
+<p>Par ignorance puis par laxisme, j&rsquo;avoue que j&rsquo;ai écris du code qui ressemble à ça (et j&rsquo;ai honte de le dire) :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">AnotherSupposedImmutableClass</span> <span style="color:#000;font-weight:bold">{</span>
+
+  <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> String name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> Date aDate<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> Map<span style="color:#000;font-weight:bold">&lt;</span>String <span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">&gt;</span> aMap<span style="color:#000;font-weight:bold">;</span>
+
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#900;font-weight:bold">AnotherSupposedImmutableClass</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">final</span> String name<span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">final</span> Date aDate<span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">final</span> Map<span style="color:#000;font-weight:bold">&lt;</span>String <span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">&gt;</span> aMap<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">super</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">name</span> <span style="color:#000;font-weight:bold">=</span> name<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">aDate</span> <span style="color:#000;font-weight:bold">=</span> aDate<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">aMap</span> <span style="color:#000;font-weight:bold">=</span> aMap<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> String <span style="color:#900;font-weight:bold">getName</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> Date <span style="color:#900;font-weight:bold">getADate</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> aDate<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> Map<span style="color:#000;font-weight:bold">&lt;</span>String <span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">getAMap</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> aMap<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Et forcement il y a des hics! A priori notre classe n&rsquo;est pas mutable. Mais cela ne vous aura pas échappé, les propriétés <em>aDate</em> et <em>aMap</em> sont mutable!</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">playWithInternalMutability</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
+  Map<span style="color:#000;font-weight:bold">&lt;</span>String <span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">&gt;</span> map <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> HashMap<span style="color:#000;font-weight:bold">&lt;</span>String <span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">&gt;();</span>
+  AnotherSupposedImmutableClass supposedImmutableClass <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> AnotherSupposedImmutableClass<span style="color:#000;font-weight:bold">(</span>
+    <span style="color:#d14">&#34;name&#34;</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000;font-weight:bold">new</span> GregorianCalendar<span style="color:#000;font-weight:bold">(</span>2010<span style="color:#000;font-weight:bold">,</span> 05<span style="color:#000;font-weight:bold">,</span> 30<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">getTime</span><span style="color:#000;font-weight:bold">(),</span>
+    map
+    <span style="color:#000;font-weight:bold">);</span>
+  supposedImmutableBean<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getADate</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">setTime</span><span style="color:#000;font-weight:bold">(</span>123456789l<span style="color:#000;font-weight:bold">);</span> <span style="color:#998;font-style:italic">// oups
+</span><span style="color:#998;font-style:italic"></span>  supposedImmutableBean<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getAMap</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;trente quatre&#34;</span><span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">valueOf</span><span style="color:#000;font-weight:bold">(</span>34<span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// oups
+</span><span style="color:#998;font-style:italic"></span>  supposedImmutableBean<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getAMap</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">clear</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#998;font-style:italic">// oups, again
+</span><span style="color:#998;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Et là, vous vous retrouverez les mêmes surprises que celles vu plus haut, ou évidement pire si vous êtes dans une application multithreadée.  A ce sujet j&rsquo;ai vu des <em>ConcurrentModificationException</em> parceque levé par du code à priori immutable, une optimisation d&rsquo;un vieux code multithreadé avait déplacé une section qui modifiait une Map.</p>
+<p>Je vous conseille vivement d&rsquo;utiliser des objets immutables pour vos property, les librairies Joda-Time [3] et Google-Collections [4] fournissent des objets immutables.</p>
+<h2 id="le-pattern-builder-de-joshua-bloch">Le pattern Builder de Joshua Bloch</h2>
+<p>Pour Joshua Bloch, c&rsquo;est un peu une référence en Java, je pense qu&rsquo;on peut lui faire confiance. Il est l&rsquo;auteur du fameux livre <em>Effective Java</em> [5].</p>
+<p>Alors pourquoi le <strong>pattern Builder de Joshua Bloch</strong> et non le **pattern Builder du **<strong>GoF</strong> ? En fait ce design vient d&rsquo;une constatation au sujet de la construction d&rsquo;objet complexes et pour s&rsquo;affranchir des inconvénients des accesseurs.</p>
+<p>En gros un objet du genre agrégat pourrait être construit avec un constructeur avec un paquet d&rsquo;argument ou itérativement avec une foule de setter. Mais, un les gros constructeur ce n&rsquo;est pas très pratique, puis deux les setters ça peux vite être lourd et ça rends votre objet mutable (ce qui n&rsquo;est donc pas souhaité dans tous les cas).</p>
+<p>Cette déclinaison du builder permet de construire un objet itérativement sans forcer la mutabilité.</p>
+<p>Exemple les collections google :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">abstract</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">ImmutableMap</span><span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">implements</span> Map<span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;,</span> Serializable <span style="color:#000;font-weight:bold">{</span>
+
+  <span style="color:#998;font-style:italic">// ...
+</span><span style="color:#998;font-style:italic"></span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> Builder<span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">builder</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">new</span> Builder<span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;();</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#998;font-style:italic">// ...
+</span><span style="color:#998;font-style:italic"></span>
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">Builder</span><span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">final</span> List<span style="color:#000;font-weight:bold">&lt;</span>Entry <span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;&gt;</span> entries <span style="color:#000;font-weight:bold">=</span> Lists<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newArrayList</span><span style="color:#000;font-weight:bold">();</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#900;font-weight:bold">Builder</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> Builder<span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">put</span><span style="color:#000;font-weight:bold">(</span>K key<span style="color:#000;font-weight:bold">,</span> V value<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+      entries<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>entryOf<span style="color:#000;font-weight:bold">(</span>key<span style="color:#000;font-weight:bold">,</span> value<span style="color:#000;font-weight:bold">));</span>
+      <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#998;font-style:italic">// ...
+</span><span style="color:#998;font-style:italic"></span>
+    <span style="color:#000;font-weight:bold">public</span> ImmutableMap<span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">build</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+      <span style="color:#000;font-weight:bold">return</span> fromEntryList<span style="color:#000;font-weight:bold">(</span>entries<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> ImmutableMap<span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">fromEntryList</span><span style="color:#000;font-weight:bold">(</span>List<span style="color:#000;font-weight:bold">&lt;</span>Entry <span style="color:#000;font-weight:bold">&lt;</span>K <span style="color:#000;font-weight:bold">,</span> V<span style="color:#000;font-weight:bold">&gt;&gt;</span> entries<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+      <span style="color:#998;font-style:italic">// ...
+</span><span style="color:#998;font-style:italic"></span>    <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#998;font-style:italic">// ...
+</span><span style="color:#998;font-style:italic"></span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Ou encore avec une classe de notre domaine :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">ACoolImmutableClass</span> <span style="color:#000;font-weight:bold">{</span>
+  <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> String name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> DateTime sometime<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> List<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">&gt;</span> listOfStuff<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#998;font-style:italic">// many other fields
+</span><span style="color:#998;font-style:italic"></span>
+  <span style="color:#000;font-weight:bold">public</span> String <span style="color:#900;font-weight:bold">getName</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> name<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> DateTime <span style="color:#900;font-weight:bold">getSometime</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> sometime<span style="color:#000;font-weight:bold">;</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">Builder</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">private</span> String name<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">private</span> DateTime sometime<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">private</span> List<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">&gt;</span> listOfStuff <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> ArrayList<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">&gt;();</span>
+
+    <span style="color:#000;font-weight:bold">public</span> Builder <span style="color:#900;font-weight:bold">withName</span><span style="color:#000;font-weight:bold">(</span>String name<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+      <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">name</span> <span style="color:#000;font-weight:bold">=</span> name<span style="color:#000;font-weight:bold">;</span>
+      <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> Builder <span style="color:#900;font-weight:bold">at</span><span style="color:#000;font-weight:bold">(</span>DateTime moment<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+      <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sometime</span> <span style="color:#000;font-weight:bold">=</span> moment<span style="color:#000;font-weight:bold">;</span>
+      <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> Builder <span style="color:#900;font-weight:bold">addThisThing</span><span style="color:#000;font-weight:bold">(</span>String thing<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+      <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">listOfStuff</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>thing<span style="color:#000;font-weight:bold">);</span>
+      <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> ACoolImmutableClass <span style="color:#900;font-weight:bold">build</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+      <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">new</span> ACoolImmutableClass<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+  <span style="color:#000;font-weight:bold">}</span>
+
+  <span style="color:#000;font-weight:bold">private</span> <span style="color:#900;font-weight:bold">ACoolImmutableClass</span><span style="color:#000;font-weight:bold">(</span>Builder builder<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">name</span> <span style="color:#000;font-weight:bold">=</span> builder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">name</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sometime</span> <span style="color:#000;font-weight:bold">=</span> builder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sometime</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">listOfStuff</span> <span style="color:#000;font-weight:bold">=</span> ImmutableList<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">copyOf</span><span style="color:#000;font-weight:bold">(</span>builder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">listOfStuff</span><span style="color:#000;font-weight:bold">);</span>
+  <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>A noter que cette classe utilise des objets immutables pour ces attributs (<code>DateTime</code>, et <code>ImmutableList</code>).</p>
+<p>Un des avantages, c&rsquo;est qu&rsquo;il est possible de valider les propriétés avant la création effective de l&rsquo;objet. Avec les setters c&rsquo;est faisable mais ça peut être délicat dans certaines situations.</p>
+<p>Il y a un plugin Eclipse, qui permet de générer ces Builder, celà dit il est loin d'être super user friendly.</p>
+<p><a href="http://code.google.com/p/bpep/">http://code.google.com/p/bpep/</a></p>
+<p>Quoiqu&rsquo;il en soit en aucun cas ce pattern n&rsquo;est un remplacement du pattern Builder du GoF, il s&rsquo;agit plus d&rsquo;un pattern à appliquer dans un contexte ou il faut des objets immutable. Et encore ce n&rsquo;est pas la seule solution, JodaTime typiquement n&rsquo;utilise pas de builders.</p>
+<h1 id="comment-gérer-la-modification-de-lobjet">Comment gérer la modification de l&rsquo;objet</h1>
+<p>Si un comportement qui fait partit du domaine de l&rsquo;objet et doit modifier l'état, alors il faut peut-être créer une nouvelle instance. La bibliothèque Joda-Time fait typiquement ça lorsqu&rsquo;il y a modification d&rsquo;un champs.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">DateTime instance1 <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> DateTime<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;2009-04-01&#34;</span><span style="color:#000;font-weight:bold">);</span>
+DateTime instance2 <span style="color:#000;font-weight:bold">=</span> instance1<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">withYear</span><span style="color:#000;font-weight:bold">(</span>2010<span style="color:#000;font-weight:bold">);</span>
+
+</code></pre></div><p>Je ne m'étends pas sur le sujet, mais ce genre de choses dépends de votre contexte, du rôle et du besoin. Un objet devrait être par défaut immutable, sauf si vraiment votre domaine identifie un cas ou l'état doit bouger et alors vous aurez des méthodes documentées qui appliqueront cette modification.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>Mieux vaut des objets bien pensés et immutables que d&rsquo;introduire la possibilité de changer l'état d&rsquo;un objet et avoir des surprises. Et puis aussi :</p>
+<ul>
+<li>Il y a un risque fort d&rsquo;avoir des problèmes au runtime, d&rsquo;autant plus 10 ans après lorsqu&rsquo;il y a une évolution à apporter et que plus personne ne sait qu'à tel endroit dans le code il y a le truc qui fout tout en l&rsquo;air. Et les problèmes au runtime ca peut vite couter cher à analyser.</li>
+<li>Si vos objets ne peuvent pas être modifié alors vous n&rsquo;aurez pas à vous soucier des problèmes de concurrences, c&rsquo;est manifestement un gain de temps au développement et en maintenance. (Et donc un gain d&rsquo;argent sur le long terme.)</li>
+<li>Bon ces objets sont bien cool, mais voilà il y a encore plein de framework (à tord ou à raison) qui se basent sur la convention JavaBean, je pense notamment aux objets marshallés en XML et consort.</li>
+<li>Ce code basé sur les builders est propre, mais il faut passer un petit peut plus de temps pour le faire. Il y a bien un plugin pour Eclipse, mais quid des autres IDE.</li>
+</ul>
+<p><strong>Quoi qu&rsquo;il en soit, ces solutions sont toujours à appliquer avec du recul et toujours en fonction du contexte de votre domaine.</strong></p>
+<p>D&rsquo;ailleurs cette entrée parle des problèmes rencontrés avec les collections du JDK, mais le problème pourrait se manifester différemment si une collection ou un de vos objets fonctionne autrement.</p>
+<p>Encore une fois les remarques sont les bienvenues, ça fait plus de 40 ans que l&rsquo;Homme fait du logiciel, et mafois on se plante encore assez souvent.</p>
+<h1 id="références">Références</h1>
+<ul>
+<li><a href="http://www.javaworld.com/javaworld/jw-09-2003/jw-0905-toolbox.html">http://www.javaworld.com/javaworld/jw-09-2003/jw-0905-toolbox.html</a></li>
+<li><a href="http://www.infoq.com/presentations/liskov-power-of-abstraction">http://www.infoq.com/presentations/liskov-power-of-abstraction</a></li>
+<li><a href="http://dutheil.brice.online.fr/blog/index.php/2010/02/09/a-propos-de-joda-time/">http://dutheil.brice.online.fr/blog/index.php/2010/02/09/a-propos-de-joda-time/</a></li>
+<li><a href="http://dutheil.brice.online.fr/blog/index.php/2010/02/16/les-collections-par-google-comment-sy-retrouver/">http://dutheil.brice.online.fr/blog/index.php/2010/02/16/les-collections-par-google-comment-sy-retrouver/</a></li>
+<li><a href="http://www.amazon.fr/Effective-Java-Joshua-Bloch/dp/0321356683/ref=sr_1_1?ie=UTF8&amp;s=english-books&amp;qid=1269958692&amp;sr=8-1">http://www.amazon.fr/Effective-Java-Joshua-Bloch/dp/0321356683/ref=sr_1_1?ie=UTF8&amp;s=english-books&amp;qid=1269958692&amp;sr=8-1</a></li>
+<li><a href="http://rwhansen.blogspot.com/2007/07/theres-builder-pattern-that-joshua.html">http://rwhansen.blogspot.com/2007/07/theres-builder-pattern-that-joshua.html</a></li>
+</ul>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2010/03/09/mockito-1-8-3/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Mockito 1.8.3</span>
+    </a>
+    
+    
+    <a href="/2010/05/06/les-visiteurs-une-question-de-nommage-et-le-double-dispatch/" class="navigation-next">
+      <span class="navigation-tittle">Les visiteurs, une question de nommage, et le double-dispatch</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2010/03/30/a-propos-du-design-de-vos-objets-des-getters-et-setters-de-equalshashcode-et-de-la-mutabilite/';
+        this.page.title = 'A propos du design de vos objets, des getters et setters, de equals\/hashCode et de la mutabilité';
+        this.page.url = 'https://blog.arkey.fr/2010/03/30/a-propos-du-design-de-vos-objets-des-getters-et-setters-de-equalshashcode-et-de-la-mutabilite/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
+
+    
+    
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Caliper me : Ou pourquoi les microbenchmarks aident ! • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Caliper me : Ou pourquoi les microbenchmarks aident !"/>
+<meta name="twitter:description" content="ATTENTION : Cet article n&rsquo;est plus d&rsquo;actualité, pour les microbenchmark il faut maintenant utiliser JMH (développé par Aleksey Shipilev, en ce moment employé par Oracle, 2016-06-14), Caliper et les autres outils de microbenchmark ont de graves problèmes qui ne permettent pas de faire des microbenchmarks correctes."/>
+
+<meta property="og:title" content="Caliper me : Ou pourquoi les microbenchmarks aident !" />
+<meta property="og:description" content="ATTENTION : Cet article n&rsquo;est plus d&rsquo;actualité, pour les microbenchmark il faut maintenant utiliser JMH (développé par Aleksey Shipilev, en ce moment employé par Oracle, 2016-06-14), Caliper et les autres outils de microbenchmark ont de graves problèmes qui ne permettent pas de faire des microbenchmarks correctes." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2012/08/29/caliper-ou-pourquoi-les-microbenchmarks-aident/" />
+<meta property="article:published_time" content="2012-08-29T00:47:50+00:00" />
+<meta property="article:modified_time" content="2012-08-29T00:47:50+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>Caliper me : Ou pourquoi les microbenchmarks aident !</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2012-08-29
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/code">code</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/design">design</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/performance">performance</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/big-o">big o</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/cailper">cailper</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/complexity">complexity</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/java">java</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/maven">maven</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/measure">measure</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/memory">memory</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/metrics">metrics</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/microbenchmark">microbenchmark</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/performance">performance</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 28 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <p><strong>ATTENTION : Cet article n&rsquo;est plus d&rsquo;actualité, pour les microbenchmark il faut maintenant utiliser
+<a href="http://openjdk.java.net/projects/code-tools/jmh/">JMH</a> (développé par <a href="http://shipilev.net/">Aleksey Shipilev</a>,
+en ce moment employé par Oracle, 2016-06-14), Caliper et les autres outils de microbenchmark ont de graves problèmes
+qui ne permettent pas de faire des microbenchmarks correctes.</strong></p>
+<hr>
+<h1 id="contexte">Contexte</h1>
+<p>Dans les news récemment</p>
+<ul>
+<li>Guava 13.0 réduit la consommation en mémoire de plusieurs structures [<a href="http://code.google.com/p/guava-libraries/wiki/Release13">source</a>]</li>
+<li>J&rsquo;ai passé des tests d&rsquo;algorithmie [<a href="#">source</a>]</li>
+</ul>
+<p>Premier point, on sait que Google est attentif sur les performances de ses librairies. Sur le deuxième point, ben j&rsquo;ai finalement loupé un des exercices &ldquo;timeboxés&rdquo;, je n&rsquo;ai pas eu le temps de le finir a temps, du coup le code soumis était 100 % foireux. Mais bon ce n&rsquo;est pas le sujet du billet, ce qui est important c&rsquo;est que j&rsquo;ai fini après cet algo, puis je me suis rendu compte que celui-ci n'était pas optimal, il ressemblait à un algo en <del>O(n²)</del> O(n log n) (<a href="#comment-834"><em>Merci Sam pour cette correction</em></a>). Du coup j&rsquo;ai repris le papier et le crayon, et je me suis rendu compte que je pouvais utiliser une technique similaire à celle que j&rsquo;ai utilisé sur le premier algo du test (comment n&rsquo;ai-je pas pu y penser à ce moment d&rsquo;ailleurs ?).</p>
+<p>De mémoire l&rsquo;algo porte grosso modo sur le comptage de paires d&rsquo;entier distante d&rsquo;un nombre K dans un tableau A.</p>
+<p>Ma première version :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">PairCounts_V1</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">countPairsWithKDistance</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> K<span style="color:#000;font-weight:bold">,</span> <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> A<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">if</span><span style="color:#000;font-weight:bold">(</span>A <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span> <span style="color:#000;font-weight:bold">||</span> A<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span> <span style="color:#000;font-weight:bold">&lt;</span> 2<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">return</span> 0<span style="color:#000;font-weight:bold">;</span>
+
+        Arrays<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sort</span><span style="color:#000;font-weight:bold">(</span>A<span style="color:#000;font-weight:bold">);</span>
+
+        <span style="color:#458;font-weight:bold">int</span> paircounter <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span>
+
+        <span style="color:#458;font-weight:bold">int</span> j <span style="color:#000;font-weight:bold">=</span> A<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span> <span style="color:#000;font-weight:bold">-</span> 1<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> i <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span> i <span style="color:#000;font-weight:bold">&lt;=</span> j<span style="color:#000;font-weight:bold">;</span> i<span style="color:#000;font-weight:bold">++)</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#458;font-weight:bold">int</span> val_i <span style="color:#000;font-weight:bold">=</span> A<span style="color:#000;font-weight:bold">[</span>i<span style="color:#000;font-weight:bold">];</span>
+
+            <span style="color:#000;font-weight:bold">for</span><span style="color:#000;font-weight:bold">(;</span> i <span style="color:#000;font-weight:bold">&lt;</span> j <span style="color:#000;font-weight:bold">&amp;&amp;</span> K <span style="color:#000;font-weight:bold">-</span> A<span style="color:#000;font-weight:bold">[</span>j<span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">!=</span> val_i<span style="color:#000;font-weight:bold">;</span> j<span style="color:#000;font-weight:bold">--);</span>
+            <span style="color:#458;font-weight:bold">int</span> val_j <span style="color:#000;font-weight:bold">=</span> A<span style="color:#000;font-weight:bold">[</span>j<span style="color:#000;font-weight:bold">];</span>
+
+            <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">((</span><span style="color:#458;font-weight:bold">long</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span>val_i <span style="color:#000;font-weight:bold">+</span> val_j<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">==</span> K<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                paircounter <span style="color:#000;font-weight:bold">=</span> incrementPairCounter<span style="color:#000;font-weight:bold">(</span>paircounter<span style="color:#000;font-weight:bold">,</span> i<span style="color:#000;font-weight:bold">,</span> j<span style="color:#000;font-weight:bold">);</span>
+
+                <span style="color:#998;font-style:italic">// count duplicates
+</span><span style="color:#998;font-style:italic"></span>                <span style="color:#000;font-weight:bold">while</span><span style="color:#000;font-weight:bold">(</span>val_j <span style="color:#000;font-weight:bold">==</span> A<span style="color:#000;font-weight:bold">[--</span>j<span style="color:#000;font-weight:bold">])</span> paircounter <span style="color:#000;font-weight:bold">=</span>
+                              incrementPairCounter<span style="color:#000;font-weight:bold">(</span>paircounter<span style="color:#000;font-weight:bold">,</span> i<span style="color:#000;font-weight:bold">,</span> j<span style="color:#000;font-weight:bold">);</span>
+            <span style="color:#000;font-weight:bold">}</span>
+            j <span style="color:#000;font-weight:bold">=</span> A<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">-</span>1<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#000;font-weight:bold">return</span> kpaircounter<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">incrementPairCounter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> paircounter<span style="color:#000;font-weight:bold">,</span> <span style="color:#458;font-weight:bold">int</span> i<span style="color:#000;font-weight:bold">,</span> <span style="color:#458;font-weight:bold">int</span> j<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        paircounter<span style="color:#000;font-weight:bold">++;</span>
+        <span style="color:#000;font-weight:bold">if</span><span style="color:#000;font-weight:bold">(</span>i <span style="color:#000;font-weight:bold">!=</span> j <span style="color:#000;font-weight:bold">)</span> paircounter<span style="color:#000;font-weight:bold">++;</span>
+        <span style="color:#000;font-weight:bold">return</span> paircounter<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Alors pourquoi je pense que cet algo n&rsquo;est pas optimal : simplement du fait des boucles inbriquée, on dirait du <del>O(n²)</del> O(n log n) (<em><a href="#comment-834">voir ici pourquoi</a></em>). Mais quand on parle de la performance ou de la complexité d&rsquo;un algorithme il ne faut prendre uniquement compte de l&rsquo;invariant mais aussi <strong>du jeu de données : quelle taille ? quelle distribution ? quel type de données ?</strong></p>
+<p>En effet un algorithme pour être efficace doit être adapté aux jeux de données qu&rsquo;il aura à traiter et à l&rsquo;usage qu&rsquo;on en a ; peut-être à travers des paramètres ou des structures différentes, typiquement un des constructeur d&rsquo;une HashMap prend des paramètres comme <a href="http://docs.oracle.com/javase/1.5.0/docs/api/java/util/HashMap.html">HashMap</a> si la recherche est un cas d&rsquo;utilisation de la structure de donnée.</p>
+<p>Bref du coup voilà à quoi ressemble la nouvelle version de cet algo :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">PairCounts_V2</span> <span style="color:#000;font-weight:bold">{</span>
+
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">countPairsWithKDistance</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> K<span style="color:#000;font-weight:bold">,</span> <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> A<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">if</span><span style="color:#000;font-weight:bold">(</span>A <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span> <span style="color:#000;font-weight:bold">||</span> A<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span> <span style="color:#000;font-weight:bold">&lt;</span> 2<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">return</span> 0<span style="color:#000;font-weight:bold">;</span>
+
+        HashMap<span style="color:#000;font-weight:bold">&lt;</span>Long<span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">&gt;</span> complements <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> HashMap<span style="color:#000;font-weight:bold">&lt;</span>Long<span style="color:#000;font-weight:bold">,</span> Integer<span style="color:#000;font-weight:bold">&gt;();</span>
+        <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> number <span style="color:#000;font-weight:bold">:</span> A<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#458;font-weight:bold">long</span> complement <span style="color:#000;font-weight:bold">=</span> K <span style="color:#000;font-weight:bold">-</span> number<span style="color:#000;font-weight:bold">;</span>
+
+            Integer complementCount <span style="color:#000;font-weight:bold">=</span> complements<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">(</span>complement<span style="color:#000;font-weight:bold">);</span>
+            complementCount <span style="color:#000;font-weight:bold">=</span> complementCount <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span> <span style="color:#000;font-weight:bold">?</span>
+                                  Integer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">valueOf</span><span style="color:#000;font-weight:bold">(</span>1<span style="color:#000;font-weight:bold">)</span>
+                                  <span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">++</span>complementCount<span style="color:#000;font-weight:bold">;</span>
+            complements<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>complement<span style="color:#000;font-weight:bold">,</span> complementCount<span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#458;font-weight:bold">int</span> paircounter <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> number <span style="color:#000;font-weight:bold">:</span> A<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+            Long key <span style="color:#000;font-weight:bold">=</span> Long<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">valueOf</span><span style="color:#000;font-weight:bold">(</span>number<span style="color:#000;font-weight:bold">);</span>
+            Integer complementCount <span style="color:#000;font-weight:bold">=</span> complements<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">(</span>key<span style="color:#000;font-weight:bold">);</span>
+            paircounter <span style="color:#000;font-weight:bold">=</span> complementCount <span style="color:#000;font-weight:bold">==</span> <span style="color:#000;font-weight:bold">null</span> <span style="color:#000;font-weight:bold">?</span>
+                              paircounter
+                              <span style="color:#000;font-weight:bold">:</span> paircounter <span style="color:#000;font-weight:bold">+</span> complementCount<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#000;font-weight:bold">return</span> paircounter<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Donc ici l&rsquo;idée c&rsquo;est de préparer dans un premier temps un dictionnaire  inversé basé sur un des entier et la distance demandée, en incrémentant pour chaque occurence. Ici une seule boucle for, car on parcours en entier le tableau. Dans un second temps on cherche les entiers qui correspondent effectivement à l&rsquo;entrée de ce dictionnaire, et si oui on incrémente le compteur de paires. Là aussi une seule boucle sur le tableau donc O(n). Sachant qu&rsquo;une HashMap a souvant une complexité de O(1) pour l&rsquo;insertion et la recherche, a vue de nez l&rsquo;algo est plutot pas mal.</p>
+<p>Bon mais dans la réalité ca donne quoi, en effet comme Kirk Pepperdine et bien d&rsquo;autres disaient : <em><strong>Measure ! Don&rsquo;t guess !</strong></em></p>
+<h1 id="caliper-me-voilà-">Caliper me voilà !</h1>
+<p><a href="http://code.google.com/p/guava-libraries/source/browse/#git%2Fguava-tests%2Fbenchmark%2Fcom%2Fgoogle%2Fcommon%2Fcollect">ici</a> par exemple.</p>
+<p>Avec un projet &ldquo;mavenisé&rdquo; on récupère la dernière version de <strong>caliper</strong>, la version <strong>0.5-rc1</strong> aujourd&rsquo;hui.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-xml" data-lang="xml"><span style="color:#000080">&lt;dependency&gt;</span>
+    <span style="color:#000080">&lt;groupid&gt;</span>com.google.caliper<span style="color:#000080">&lt;/groupid&gt;</span>
+    <span style="color:#000080">&lt;artifactid&gt;</span>caliper<span style="color:#000080">&lt;/artifactid&gt;</span>
+    <span style="color:#000080">&lt;version&gt;</span>0.5-rc1<span style="color:#000080">&lt;/version&gt;</span>
+<span style="color:#000080">&lt;/dependency&gt;</span>
+</code></pre></div><p>Pour écrire un benchmark caliper il suffit d'étendre la classe <code>[@Param](http://caliper.googlecode.com/svn/static/api/reference/com/google/caliper/Param.html)</code>.</p>
+<p>Enfin comme Caliper lance une nouvelle VM, fait quelques travaux pour chauffer la VM (warmup), etc, il faut pour l&rsquo;instant lancer ces tests avec une commande manuelle :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">java -classpath <span style="color:#008080">$THE_CLASSPATH</span> com.google.caliper.Runner PairCountsBenchmark
+</code></pre></div><p>La ligne de commande pourra varier suivant les besoins ; on peut notamment se rendre sur leur site pour y voir les <a href="http://code.google.com/p/caliper/source/browse/caliper/src/main/java/com/google/caliper/Runner.java?name=v0.5-rc1">code</a>) à passer au <code>Runner</code> Caliper. Malgré la jeunesse du framework sa documentation parfois spartiate, le projet a de réelles forces et s&rsquo;avère de plus en plus populaire dans le domaine. Bien que le développement de ce projet avance lentement, ce projet est aujourd&rsquo;hui maintenu par des membres de l'équipe Guava.</p>
+<p>Donc le benchmark que j&rsquo;ai mis en place :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">PairCountsBenchmark</span> <span style="color:#000;font-weight:bold">extends</span> SimpleBenchmark <span style="color:#000;font-weight:bold">{</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Param</span><span style="color:#000;font-weight:bold">({</span> <span style="color:#d14">&#34;1&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;6&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;25&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;7&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;111111111&#34;</span> <span style="color:#000;font-weight:bold">})</span> <span style="color:#000;font-weight:bold">private</span> <span style="color:#458;font-weight:bold">int</span> K<span style="color:#000;font-weight:bold">;</span>  <span style="color:#998;font-style:italic">// différentes valeurs de la distance de la paire
+</span><span style="color:#998;font-style:italic"></span>    <span style="color:#3c5d5d;font-weight:bold">@Param</span><span style="color:#000;font-weight:bold">({</span><span style="color:#d14">&#34;10&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;100&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;1000&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;10000&#34;</span><span style="color:#000;font-weight:bold">})</span> <span style="color:#000;font-weight:bold">private</span> <span style="color:#458;font-weight:bold">int</span> length<span style="color:#000;font-weight:bold">;</span>   <span style="color:#998;font-style:italic">// différentes tailles du tableau d&#39;entier
+</span><span style="color:#998;font-style:italic"></span>
+    <span style="color:#3c5d5d;font-weight:bold">@Param</span> <span style="color:#000;font-weight:bold">private</span> Distribution distribution<span style="color:#000;font-weight:bold">;</span>                    <span style="color:#998;font-style:italic">// Type de distribution SAWTOOTH, RANDOM, une autre
+</span><span style="color:#998;font-style:italic"></span>
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> values<span style="color:#000;font-weight:bold">;</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span> <span style="color:#000;font-weight:bold">protected</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">setUp</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>          <span style="color:#998;font-style:italic">// Création du tableau d&#39;entier
+</span><span style="color:#998;font-style:italic"></span>        values <span style="color:#000;font-weight:bold">=</span> distribution<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">create</span><span style="color:#000;font-weight:bold">(</span>length<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">timePairCounts_V1</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> repetition<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#458;font-weight:bold">int</span> dummy <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> i <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span> i <span style="color:#000;font-weight:bold">&lt;</span> repetition<span style="color:#000;font-weight:bold">;</span> i<span style="color:#000;font-weight:bold">++)</span> <span style="color:#000;font-weight:bold">{</span>
+            dummy <span style="color:#000;font-weight:bold">+=</span> <span style="color:#000;font-weight:bold">new</span> PairCounts_V1<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">complementary_pairs</span><span style="color:#000;font-weight:bold">(</span>K<span style="color:#000;font-weight:bold">,</span> values<span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">}</span>
+        <span style="color:#000;font-weight:bold">return</span> dummy<span style="color:#000;font-weight:bold">;</span>                                            <span style="color:#998;font-style:italic">// Variable modifiée dans la boucle pour forcer la JVM a ne pas supprimer cette boucle for.
+</span><span style="color:#998;font-style:italic"></span>    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">timePairCounts_V2</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> repetition<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#458;font-weight:bold">int</span> dummy <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> i <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span> i <span style="color:#000;font-weight:bold">&lt;</span> repetition<span style="color:#000;font-weight:bold">;</span> i<span style="color:#000;font-weight:bold">++)</span> <span style="color:#000;font-weight:bold">{</span>
+            dummy <span style="color:#000;font-weight:bold">+=</span> <span style="color:#000;font-weight:bold">new</span> PairCounts_V2<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">complementary_pairs</span><span style="color:#000;font-weight:bold">(</span>K<span style="color:#000;font-weight:bold">,</span> values<span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">}</span>
+        <span style="color:#000;font-weight:bold">return</span> dummy<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">enum</span> Distribution <span style="color:#000;font-weight:bold">{</span>                                   <span style="color:#998;font-style:italic">// Le code de la distribution voulue
+</span><span style="color:#998;font-style:italic"></span>        SAWTOOTH <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+            <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">create</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> length<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> result <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[</span>length<span style="color:#000;font-weight:bold">];</span>
+                <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> i <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span> i <span style="color:#000;font-weight:bold">&lt;</span> length<span style="color:#000;font-weight:bold">;</span> i <span style="color:#000;font-weight:bold">+=</span> 5<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                    result<span style="color:#000;font-weight:bold">[</span>i<span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span>
+                    result<span style="color:#000;font-weight:bold">[</span>i <span style="color:#000;font-weight:bold">+</span> 1<span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> 1<span style="color:#000;font-weight:bold">;</span>
+                    result<span style="color:#000;font-weight:bold">[</span>i <span style="color:#000;font-weight:bold">+</span> 2<span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> 2<span style="color:#000;font-weight:bold">;</span>
+                    result<span style="color:#000;font-weight:bold">[</span>i <span style="color:#000;font-weight:bold">+</span> 3<span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> 3<span style="color:#000;font-weight:bold">;</span>
+                    result<span style="color:#000;font-weight:bold">[</span>i <span style="color:#000;font-weight:bold">+</span> 4<span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> 4<span style="color:#000;font-weight:bold">;</span>
+                <span style="color:#000;font-weight:bold">}</span>
+                <span style="color:#000;font-weight:bold">return</span> result<span style="color:#000;font-weight:bold">;</span>
+            <span style="color:#000;font-weight:bold">}</span>
+        <span style="color:#000;font-weight:bold">},</span>
+        RANDOM <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+            <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">create</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> length<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                Random random <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> Random<span style="color:#000;font-weight:bold">();</span>
+                <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> result <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[</span>length<span style="color:#000;font-weight:bold">];</span>
+                <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> i <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span> i <span style="color:#000;font-weight:bold">&lt;</span> length<span style="color:#000;font-weight:bold">;</span> i<span style="color:#000;font-weight:bold">++)</span> <span style="color:#000;font-weight:bold">{</span>
+                    result<span style="color:#000;font-weight:bold">[</span>i<span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> random<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">nextInt</span><span style="color:#000;font-weight:bold">();</span>
+                <span style="color:#000;font-weight:bold">}</span>
+                <span style="color:#000;font-weight:bold">return</span> result<span style="color:#000;font-weight:bold">;</span>
+            <span style="color:#000;font-weight:bold">}</span>
+        <span style="color:#000;font-weight:bold">};</span>
+
+        <span style="color:#000;font-weight:bold">abstract</span> <span style="color:#458;font-weight:bold">int</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">create</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> length<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><h2 id="dans-le-temps">Dans le temps</h2>
+<p>Voilà il faut maintenant lancer le benchmark en ligne de commande. Et voici une partie de la sortie standard :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text"> 0% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10} 117.03 ns; σ=0.53 ns @ 3 trials
+ 1% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=10} 410.92 ns; σ=3.93 ns @ 5 trials
+ 3% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=10} 118.95 ns; σ=0.54 ns @ 3 trials
+ 4% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=10} 346.11 ns; σ=1.04 ns @ 3 trials
+ 5% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=10} 124.75 ns; σ=0.42 ns @ 3 trials
+ 6% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=10} 343.76 ns; σ=0.60 ns @ 3 trials
+ 8% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=10} 116.55 ns; σ=0.11 ns @ 3 trials
+ 9% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=10} 340.24 ns; σ=0.88 ns @ 3 trials
+10% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=10} 124.34 ns; σ=1.17 ns @ 8 trials
+11% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=10} 375.23 ns; σ=2.22 ns @ 3 trials
+13% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=10} 120.60 ns; σ=0.56 ns @ 3 trials
+14% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=10} 399.89 ns; σ=6.66 ns @ 10 trials
+15% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=10} 122.83 ns; σ=0.50 ns @ 3 trials
+16% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=10} 405.20 ns; σ=6.81 ns @ 10 trials
+18% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=10} 121.31 ns; σ=0.82 ns @ 3 trials
+19% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=10} 406.40 ns; σ=7.90 ns @ 10 trials
+20% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=10} 123.25 ns; σ=0.44 ns @ 3 trials
+21% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=10} 403.80 ns; σ=4.77 ns @ 10 trials
+23% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=10} 122.23 ns; σ=0.95 ns @ 3 trials
+24% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=10} 401.21 ns; σ=9.94 ns @ 10 trials
+25% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=100} 3554.64 ns; σ=13.22 ns @ 3 trials
+26% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=100} 3353.02 ns; σ=28.50 ns @ 4 trials
+28% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=100} 3616.36 ns; σ=23.17 ns @ 3 trials
+29% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=100} 2759.35 ns; σ=7.49 ns @ 3 trials
+30% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=100} 3230.40 ns; σ=6.89 ns @ 3 trials
+31% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=100} 2630.14 ns; σ=11.76 ns @ 3 trials
+33% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=100} 3470.91 ns; σ=21.03 ns @ 3 trials
+34% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=100} 2703.77 ns; σ=2.87 ns @ 3 trials
+35% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=100} 3237.29 ns; σ=31.98 ns @ 3 trials
+36% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=100} 3462.79 ns; σ=14.26 ns @ 3 trials
+38% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=100} 3664.38 ns; σ=22.84 ns @ 3 trials
+39% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=100} 4782.95 ns; σ=21.09 ns @ 3 trials
+40% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=100} 3666.78 ns; σ=11.56 ns @ 3 trials
+41% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=100} 4829.99 ns; σ=18.42 ns @ 3 trials
+43% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=100} 3669.01 ns; σ=3.86 ns @ 3 trials
+44% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=100} 4800.20 ns; σ=27.45 ns @ 3 trials
+45% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=100} 3697.72 ns; σ=16.69 ns @ 3 trials
+46% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=100} 4867.33 ns; σ=39.87 ns @ 3 trials
+48% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=100} 3663.00 ns; σ=18.92 ns @ 3 trials
+49% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=100} 4792.09 ns; σ=23.93 ns @ 3 trials
+50% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=1000} 253205.17 ns; σ=2409.40 ns @ 3 trials
+51% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=1000} 28733.38 ns; σ=57.50 ns @ 3 trials
+53% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=1000} 252201.82 ns; σ=1916.34 ns @ 3 trials
+54% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=1000} 26003.20 ns; σ=79.01 ns @ 3 trials
+55% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=1000} 254835.90 ns; σ=1142.59 ns @ 3 trials
+56% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=1000} 24830.33 ns; σ=96.51 ns @ 3 trials
+57% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=1000} 336495.11 ns; σ=3182.70 ns @ 3 trials
+59% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=1000} 25425.31 ns; σ=236.34 ns @ 4 trials
+60% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=1000} 254613.30 ns; σ=591.19 ns @ 3 trials
+61% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=1000} 31176.21 ns; σ=34.10 ns @ 3 trials
+63% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=1000} 264752.16 ns; σ=1911.17 ns @ 3 trials
+64% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=1000} 53425.63 ns; σ=530.29 ns @ 5 trials
+65% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=1000} 268841.98 ns; σ=1489.84 ns @ 3 trials
+66% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=1000} 58635.35 ns; σ=387.69 ns @ 3 trials
+68% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=1000} 266655.10 ns; σ=1012.10 ns @ 3 trials
+69% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=1000} 59015.10 ns; σ=814.55 ns @ 10 trials
+70% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=1000} 268504.45 ns; σ=482.22 ns @ 3 trials
+71% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=1000} 58601.33 ns; σ=568.63 ns @ 3 trials
+73% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=1000} 265022.05 ns; σ=1939.79 ns @ 3 trials
+74% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=1000} 58487.85 ns; σ=587.15 ns @ 10 trials
+75% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10000} 23462428.57 ns; σ=79476.07 ns @ 3 trials
+76% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=10000} 285100.65 ns; σ=3403.03 ns @ 10 trials
+78% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=10000} 42566217.39 ns; σ=189344.42 ns @ 3 trials
+79% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=10000} 273497.95 ns; σ=2738.46 ns @ 7 trials
+80% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=10000} 24271754.10 ns; σ=74440.46 ns @ 3 trials
+81% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=10000} 257143.69 ns; σ=1045.68 ns @ 3 trials
+83% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=10000} 33062666.67 ns; σ=154823.32 ns @ 3 trials
+84% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=10000} 270617.53 ns; σ=1484.45 ns @ 3 trials
+85% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=10000} 24082112.90 ns; σ=67162.43 ns @ 3 trials
+86% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=10000} 296935.84 ns; σ=197.58 ns @ 3 trials
+88% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=10000} 24617137.50 ns; σ=222519.79 ns @ 4 trials
+89% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=10000} 837504.04 ns; σ=7730.54 ns @ 4 trials
+90% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=10000} 24380700.00 ns; σ=28021.86 ns @ 3 trials
+91% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=10000} 861687.14 ns; σ=7389.43 ns @ 3 trials
+93% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=10000} 24449950.00 ns; σ=137734.32 ns @ 3 trials
+94% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=10000} 865862.78 ns; σ=6500.68 ns @ 3 trials
+95% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=10000} 24474200.00 ns; σ=49916.49 ns @ 3 trials
+96% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=10000} 860750.64 ns; σ=8304.85 ns @ 6 trials
+98% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=10000} 24364925.00 ns; σ=72881.36 ns @ 3 trials
+99% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=10000} 840977.96 ns; σ=8104.18 ns @ 10 trials
+
+    benchmark length distribution         K       ns linear runtime
+PairCounts_V1     10     SAWTOOTH         1      117 =
+PairCounts_V1     10     SAWTOOTH         6      119 =
+PairCounts_V1     10     SAWTOOTH        25      125 =
+PairCounts_V1     10     SAWTOOTH         7      117 =
+PairCounts_V1     10     SAWTOOTH 111111111      124 =
+PairCounts_V1     10       RANDOM         1      121 =
+PairCounts_V1     10       RANDOM         6      123 =
+PairCounts_V1     10       RANDOM        25      121 =
+PairCounts_V1     10       RANDOM         7      123 =
+PairCounts_V1     10       RANDOM 111111111      122 =
+PairCounts_V1    100     SAWTOOTH         1     3555 =
+PairCounts_V1    100     SAWTOOTH         6     3616 =
+PairCounts_V1    100     SAWTOOTH        25     3230 =
+PairCounts_V1    100     SAWTOOTH         7     3471 =
+PairCounts_V1    100     SAWTOOTH 111111111     3237 =
+PairCounts_V1    100       RANDOM         1     3664 =
+PairCounts_V1    100       RANDOM         6     3667 =
+PairCounts_V1    100       RANDOM        25     3669 =
+PairCounts_V1    100       RANDOM         7     3698 =
+PairCounts_V1    100       RANDOM 111111111     3663 =
+PairCounts_V1   1000     SAWTOOTH         1   253205 =
+PairCounts_V1   1000     SAWTOOTH         6   252202 =
+PairCounts_V1   1000     SAWTOOTH        25   254836 =
+PairCounts_V1   1000     SAWTOOTH         7   336495 =
+PairCounts_V1   1000     SAWTOOTH 111111111   254613 =
+PairCounts_V1   1000       RANDOM         1   264752 =
+PairCounts_V1   1000       RANDOM         6   268842 =
+PairCounts_V1   1000       RANDOM        25   266655 =
+PairCounts_V1   1000       RANDOM         7   268504 =
+PairCounts_V1   1000       RANDOM 111111111   265022 =
+PairCounts_V1  10000     SAWTOOTH         1 23462429 ================
+PairCounts_V1  10000     SAWTOOTH         6 42566217 ==============================
+PairCounts_V1  10000     SAWTOOTH        25 24271754 =================
+PairCounts_V1  10000     SAWTOOTH         7 33062667 =======================
+PairCounts_V1  10000     SAWTOOTH 111111111 24082113 ================
+PairCounts_V1  10000       RANDOM         1 24617138 =================
+PairCounts_V1  10000       RANDOM         6 24380700 =================
+PairCounts_V1  10000       RANDOM        25 24449950 =================
+PairCounts_V1  10000       RANDOM         7 24474200 =================
+PairCounts_V1  10000       RANDOM 111111111 24364925 =================
+PairCounts_V2     10     SAWTOOTH         1      411 =
+PairCounts_V2     10     SAWTOOTH         6      346 =
+PairCounts_V2     10     SAWTOOTH        25      344 =
+PairCounts_V2     10     SAWTOOTH         7      340 =
+PairCounts_V2     10     SAWTOOTH 111111111      375 =
+PairCounts_V2     10       RANDOM         1      400 =
+PairCounts_V2     10       RANDOM         6      405 =
+PairCounts_V2     10       RANDOM        25      406 =
+PairCounts_V2     10       RANDOM         7      404 =
+PairCounts_V2     10       RANDOM 111111111      401 =
+PairCounts_V2    100     SAWTOOTH         1     3353 =
+PairCounts_V2    100     SAWTOOTH         6     2759 =
+PairCounts_V2    100     SAWTOOTH        25     2630 =
+PairCounts_V2    100     SAWTOOTH         7     2704 =
+PairCounts_V2    100     SAWTOOTH 111111111     3463 =
+PairCounts_V2    100       RANDOM         1     4783 =
+PairCounts_V2    100       RANDOM         6     4830 =
+PairCounts_V2    100       RANDOM        25     4800 =
+PairCounts_V2    100       RANDOM         7     4867 =
+PairCounts_V2    100       RANDOM 111111111     4792 =
+PairCounts_V2   1000     SAWTOOTH         1    28733 =
+PairCounts_V2   1000     SAWTOOTH         6    26003 =
+PairCounts_V2   1000     SAWTOOTH        25    24830 =
+PairCounts_V2   1000     SAWTOOTH         7    25425 =
+PairCounts_V2   1000     SAWTOOTH 111111111    31176 =
+PairCounts_V2   1000       RANDOM         1    53426 =
+PairCounts_V2   1000       RANDOM         6    58635 =
+PairCounts_V2   1000       RANDOM        25    59015 =
+PairCounts_V2   1000       RANDOM         7    58601 =
+PairCounts_V2   1000       RANDOM 111111111    58488 =
+PairCounts_V2  10000     SAWTOOTH         1   285101 =
+PairCounts_V2  10000     SAWTOOTH         6   273498 =
+PairCounts_V2  10000     SAWTOOTH        25   257144 =
+PairCounts_V2  10000     SAWTOOTH         7   270618 =
+PairCounts_V2  10000     SAWTOOTH 111111111   296936 =
+PairCounts_V2  10000       RANDOM         1   837504 =
+PairCounts_V2  10000       RANDOM         6   861687 =
+PairCounts_V2  10000       RANDOM        25   865863 =
+PairCounts_V2  10000       RANDOM         7   860751 =
+PairCounts_V2  10000       RANDOM 111111111   840978 =
+
+vm: java
+trial: 0
+
+Process finished with exit code 0
+</code></pre></div><p>Donc en fait Caliper créé une matrice multi-dimensionnelle des différents paramètres et pour chaque coordonnée dans cette matrice lance le test, bref un Scénario.</p>
+<p>On voit dans les mesures faites par Caliper le temps pris par chaque méthode, l'écart type, et le nombre d&rsquo;essai. Enfin dans une deuxième partie Caliper donne un synopsis des différents run et en particulier une colonne très intéressante &lsquo;<strong>linear time</strong>'.</p>
+<p>En observant le temps pris en fonction du nombre d'éléments pour chaque algo, on s&rsquo;aperçoit que le temps pris par le premier algo augmente en effet par rapport au deuxième algo d&rsquo;un facteur 5 qui augmente avec la taille du tableau. Bref on est loin d&rsquo;un temps linéaire aka O(n).</p>
+<p>Ce qui est aussi intéressant, c&rsquo;est que le premier algo est plus efficace tant que le nombre d'élément dans le tableau d&rsquo;entrée est inférieur à 100. Alors que la deuxième  qui utilise une structure plus élaboré ne montre des signes avantageux qu'à partir d&rsquo;une centaine d'éléments. Ca me rappelle étrangement l'électronique ou les comportements des capacités et inductances changeant de nature lorsqu&rsquo;on passe en haute fréquence.</p>
+<h2 id="dans-lespace">Dans l&rsquo;espace</h2>
+<p>Alors pour faire les mesures des allocations, on peut aussi utiliser caliper, mais à l&rsquo;heure de l'écriture de ce blog, il faut faire quelques petites choses en plus.</p>
+<ol>
+<li>Caliper 0.5 RC1 vient avec le jar <code>java-allocation-instrumenter-2.0.jar</code> qui est sensé servir d&rsquo;agent, cependant ce jar n&rsquo;a pas été généré correctement pour servir d&rsquo;agent. En fait il faut télécharger le jar <code>allocation.jar</code> de ce projet : <a href="http://code.google.com/p/java-allocation-instrumenter/downloads/detail?name=allocation.jar&amp;can=2&amp;q=">1 er février 2012</a>.</li>
+<li>Avant de lancer le Runner en ligne de commande il faut ajouter la variable d&rsquo;environnement <code>ALLOCATION_JAR</code></li>
+</ol>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh"><span style="color:#0086b3">export</span> <span style="color:#008080">ALLOCATION_JAR</span><span style="color:#000;font-weight:bold">=</span>/path/to/downloaded/allocation.jar
+</code></pre></div><ol start="3">
+<li>Enfin il est possible de lancer le même benchmark avec des tests sur la mémoire :</li>
+</ol>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">java <span style="color:#000;font-weight:bold">-</span>classpath $THE_CLASSPATH <span style="color:#000;font-weight:bold">--</span>measureMemory com<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">google</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">caliper</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Runner</span> PairCountsBenchmark
+</code></pre></div><blockquote>
+<p>A noter : Ne pas renommer <code>allocation.jar</code> en autre chose, sans ça vous n&rsquo;aurez pas d&rsquo;instrumentation !</p>
+</blockquote>
+<p>Ce qui donne le résultat suivant, quasiment la même chose, mais avec les infos sur les allocations mémoire.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-text" data-lang="text"> 0% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10} 119.06 ns; σ=1.08 ns @ 5 trials, allocated 1 instances for a total of 16B
+ 1% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=10} 468.80 ns; σ=4.56 ns @ 3 trials, allocated 9 instances for a total of 320B
+ 3% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=10} 115.83 ns; σ=0.46 ns @ 3 trials, allocated 1 instances for a total of 16B
+ 4% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=10} 426.45 ns; σ=3.65 ns @ 3 trials, allocated 9 instances for a total of 320B
+ 5% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=10} 125.06 ns; σ=0.52 ns @ 3 trials, allocated 1 instances for a total of 16B
+ 6% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=10} 407.38 ns; σ=1.42 ns @ 3 trials, allocated 9 instances for a total of 320B
+ 8% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=10} 116.38 ns; σ=1.11 ns @ 6 trials, allocated 1 instances for a total of 16B
+ 9% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=10} 425.28 ns; σ=0.46 ns @ 3 trials, allocated 9 instances for a total of 320B
+10% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=10} 125.12 ns; σ=0.18 ns @ 3 trials, allocated 1 instances for a total of 16B
+11% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=10} 439.33 ns; σ=3.29 ns @ 3 trials, allocated 19 instances for a total of 560B
+13% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=10} 121.67 ns; σ=0.46 ns @ 3 trials, allocated 1 instances for a total of 16B
+14% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=10} 482.23 ns; σ=3.74 ns @ 3 trials, allocated 34 instances for a total of 960B
+15% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=10} 120.69 ns; σ=0.71 ns @ 3 trials, allocated 1 instances for a total of 16B
+16% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=10} 455.67 ns; σ=3.55 ns @ 3 trials, allocated 34 instances for a total of 960B
+18% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=10} 121.64 ns; σ=0.42 ns @ 3 trials, allocated 1 instances for a total of 16B
+19% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=10} 464.34 ns; σ=7.45 ns @ 10 trials, allocated 34 instances for a total of 960B
+20% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=10} 120.85 ns; σ=0.38 ns @ 3 trials, allocated 1 instances for a total of 16B
+21% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=10} 454.11 ns; σ=5.22 ns @ 10 trials, allocated 34 instances for a total of 960B
+23% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=10} 122.14 ns; σ=1.12 ns @ 4 trials, allocated 1 instances for a total of 16B
+24% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=10} 481.91 ns; σ=7.18 ns @ 10 trials, allocated 34 instances for a total of 960B
+25% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=100} 3530.68 ns; σ=18.40 ns @ 3 trials, allocated 1 instances for a total of 16B
+26% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=100} 3095.60 ns; σ=7.39 ns @ 3 trials, allocated 9 instances for a total of 320B
+28% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=100} 3677.07 ns; σ=36.07 ns @ 3 trials, allocated 1 instances for a total of 16B
+29% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=100} 2871.70 ns; σ=96.87 ns @ 10 trials, allocated 9 instances for a total of 320B
+30% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=100} 3253.18 ns; σ=16.46 ns @ 3 trials, allocated 1 instances for a total of 16B
+31% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=100} 2830.61 ns; σ=61.72 ns @ 10 trials, allocated 9 instances for a total of 320B
+33% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=100} 3868.67 ns; σ=36.13 ns @ 3 trials, allocated 1 instances for a total of 16B
+34% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=100} 2747.84 ns; σ=26.29 ns @ 3 trials, allocated 9 instances for a total of 320B
+35% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=100} 3240.13 ns; σ=12.72 ns @ 3 trials, allocated 1 instances for a total of 16B
+36% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=100} 2941.78 ns; σ=39.47 ns @ 10 trials, allocated 109 instances for a total of 2720B
+38% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=100} 3703.12 ns; σ=9.85 ns @ 3 trials, allocated 1 instances for a total of 16B
+39% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=100} 4598.91 ns; σ=18.33 ns @ 3 trials, allocated 308 instances for a total of 10144B
+40% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=100} 3709.97 ns; σ=12.28 ns @ 3 trials, allocated 1 instances for a total of 16B
+41% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=100} 4520.00 ns; σ=27.93 ns @ 3 trials, allocated 308 instances for a total of 10144B
+43% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=100} 3665.28 ns; σ=13.51 ns @ 3 trials, allocated 1 instances for a total of 16B
+44% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=100} 4527.80 ns; σ=35.77 ns @ 3 trials, allocated 308 instances for a total of 10144B
+45% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=100} 3701.99 ns; σ=22.06 ns @ 3 trials, allocated 1 instances for a total of 16B
+46% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=100} 4498.57 ns; σ=45.15 ns @ 3 trials, allocated 308 instances for a total of 10144B
+48% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=100} 3729.27 ns; σ=16.84 ns @ 3 trials, allocated 1 instances for a total of 16B
+49% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=100} 4579.87 ns; σ=8.15 ns @ 3 trials, allocated 308 instances for a total of 10144B
+50% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=1000} 254954.05 ns; σ=648.33 ns @ 3 trials, allocated 1 instances for a total of 16B
+51% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=1000} 29495.00 ns; σ=202.71 ns @ 3 trials, allocated 374 instances for a total of 6160B
+53% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=1000} 272123.84 ns; σ=1947.52 ns @ 3 trials, allocated 1 instances for a total of 16B
+54% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=1000} 26549.46 ns; σ=169.74 ns @ 3 trials, allocated 374 instances for a total of 6160B
+55% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=1000} 258246.52 ns; σ=1838.14 ns @ 3 trials, allocated 1 instances for a total of 16B
+56% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=1000} 25816.29 ns; σ=238.66 ns @ 3 trials, allocated 374 instances for a total of 6160B
+57% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=1000} 340760.25 ns; σ=714.81 ns @ 3 trials, allocated 1 instances for a total of 16B
+59% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=1000} 26070.26 ns; σ=186.94 ns @ 3 trials, allocated 374 instances for a total of 6160B
+60% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=1000} 255782.03 ns; σ=388.87 ns @ 3 trials, allocated 1 instances for a total of 16B
+61% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=1000} 26950.40 ns; σ=491.82 ns @ 10 trials, allocated 1374 instances for a total of 30160B
+63% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=1000} 268871.49 ns; σ=2890.36 ns @ 10 trials, allocated 1 instances for a total of 16B
+64% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=1000} 50888.14 ns; σ=106.59 ns @ 3 trials, allocated 3011 instances for a total of 96528B
+65% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=1000} 268566.99 ns; σ=2398.41 ns @ 4 trials, allocated 1 instances for a total of 16B
+66% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=1000} 63228.83 ns; σ=495.26 ns @ 3 trials, allocated 3011 instances for a total of 96528B
+68% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=1000} 265538.89 ns; σ=323.95 ns @ 3 trials, allocated 1 instances for a total of 16B
+69% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=1000} 51922.10 ns; σ=491.28 ns @ 3 trials, allocated 3011 instances for a total of 96528B
+70% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=1000} 267048.78 ns; σ=1934.21 ns @ 3 trials, allocated 1 instances for a total of 16B
+71% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=1000} 54193.80 ns; σ=526.83 ns @ 3 trials, allocated 3011 instances for a total of 96528B
+73% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=1000} 270239.69 ns; σ=1291.59 ns @ 3 trials, allocated 1 instances for a total of 16B
+74% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=1000} 51265.07 ns; σ=547.18 ns @ 10 trials, allocated 3011 instances for a total of 96528B
+75% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=SAWTOOTH, length=10000} 23672536.59 ns; σ=131459.47 ns @ 3 trials, allocated 1 instances for a total of 16B
+76% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=SAWTOOTH, length=10000} 297356.00 ns; σ=1073.95 ns @ 3 trials, allocated 9374 instances for a total of 150160B
+78% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=SAWTOOTH, length=10000} 42248173.91 ns; σ=364119.70 ns @ 3 trials, allocated 1 instances for a total of 16B
+79% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=SAWTOOTH, length=10000} 273661.54 ns; σ=1544.97 ns @ 3 trials, allocated 9374 instances for a total of 150160B
+80% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=SAWTOOTH, length=10000} 24378375.00 ns; σ=184303.85 ns @ 3 trials, allocated 1 instances for a total of 16B
+81% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=SAWTOOTH, length=10000} 269039.83 ns; σ=123.09 ns @ 3 trials, allocated 9374 instances for a total of 150160B
+83% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=SAWTOOTH, length=10000} 33378571.43 ns; σ=154321.88 ns @ 3 trials, allocated 1 instances for a total of 16B
+84% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=SAWTOOTH, length=10000} 266848.28 ns; σ=1354.38 ns @ 3 trials, allocated 9374 instances for a total of 150160B
+85% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=SAWTOOTH, length=10000} 24348450.00 ns; σ=158682.88 ns @ 3 trials, allocated 1 instances for a total of 16B
+86% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=SAWTOOTH, length=10000} 281623.08 ns; σ=257.89 ns @ 3 trials, allocated 19374 instances for a total of 390160B
+88% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=1, distribution=RANDOM, length=10000} 24604800.00 ns; σ=84624.92 ns @ 3 trials, allocated 1 instances for a total of 16B
+89% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=1, distribution=RANDOM, length=10000} 826805.04 ns; σ=8011.71 ns @ 7 trials, allocated 30014 instances for a total of 931264B
+90% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=6, distribution=RANDOM, length=10000} 24467945.29 ns; σ=230301.47 ns @ 4 trials, allocated 1 instances for a total of 16B
+91% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=6, distribution=RANDOM, length=10000} 822419.69 ns; σ=8032.73 ns @ 9 trials, allocated 30014 instances for a total of 931264B
+93% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=25, distribution=RANDOM, length=10000} 24666650.00 ns; σ=65345.42 ns @ 3 trials, allocated 1 instances for a total of 16B
+94% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=25, distribution=RANDOM, length=10000} 819003.80 ns; σ=7662.68 ns @ 3 trials, allocated 30014 instances for a total of 931264B
+95% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=7, distribution=RANDOM, length=10000} 24432650.00 ns; σ=210910.19 ns @ 3 trials, allocated 1 instances for a total of 16B
+96% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=7, distribution=RANDOM, length=10000} 835849.98 ns; σ=9613.89 ns @ 10 trials, allocated 30014 instances for a total of 931264B
+98% Scenario{vm=java, trial=0, benchmark=PairCounts_V1, K=111111111, distribution=RANDOM, length=10000} 24464100.00 ns; σ=41413.99 ns @ 3 trials, allocated 1 instances for a total of 16B
+99% Scenario{vm=java, trial=0, benchmark=PairCounts_V2, K=111111111, distribution=RANDOM, length=10000} 835717.46 ns; σ=24729.21 ns @ 10 trials, allocated 30013 instances for a total of 931264B
+
+ benchmark length distribution         K instances        B       ns linear runtime
+PairCounts_V1     10     SAWTOOTH         1     1.000     16.0      119 =
+PairCounts_V1     10     SAWTOOTH         6     1.000     16.0      116 =
+PairCounts_V1     10     SAWTOOTH        25     1.000     16.0      125 =
+PairCounts_V1     10     SAWTOOTH         7     1.000     16.0      116 =
+PairCounts_V1     10     SAWTOOTH 111111111     1.000     16.0      125 =
+PairCounts_V1     10       RANDOM         1     1.000     16.0      122 =
+PairCounts_V1     10       RANDOM         6     1.000     16.0      121 =
+PairCounts_V1     10       RANDOM        25     1.000     16.0      122 =
+PairCounts_V1     10       RANDOM         7     1.000     16.0      121 =
+PairCounts_V1     10       RANDOM 111111111     1.000     16.0      122 =
+PairCounts_V1    100     SAWTOOTH         1     1.000     16.0     3531 =
+PairCounts_V1    100     SAWTOOTH         6     1.000     16.0     3677 =
+PairCounts_V1    100     SAWTOOTH        25     1.000     16.0     3253 =
+PairCounts_V1    100     SAWTOOTH         7     1.000     16.0     3869 =
+PairCounts_V1    100     SAWTOOTH 111111111     1.000     16.0     3240 =
+PairCounts_V1    100       RANDOM         1     1.000     16.0     3703 =
+PairCounts_V1    100       RANDOM         6     1.000     16.0     3710 =
+PairCounts_V1    100       RANDOM        25     1.000     16.0     3665 =
+PairCounts_V1    100       RANDOM         7     1.000     16.0     3702 =
+PairCounts_V1    100       RANDOM 111111111     1.000     16.0     3729 =
+PairCounts_V1   1000     SAWTOOTH         1     1.000     16.0   254954 =
+PairCounts_V1   1000     SAWTOOTH         6     1.000     16.0   272124 =
+PairCounts_V1   1000     SAWTOOTH        25     1.000     16.0   258247 =
+PairCounts_V1   1000     SAWTOOTH         7     1.000     16.0   340760 =
+PairCounts_V1   1000     SAWTOOTH 111111111     1.000     16.0   255782 =
+PairCounts_V1   1000       RANDOM         1     1.000     16.0   268871 =
+PairCounts_V1   1000       RANDOM         6     1.000     16.0   268567 =
+PairCounts_V1   1000       RANDOM        25     1.000     16.0   265539 =
+PairCounts_V1   1000       RANDOM         7     1.000     16.0   267049 =
+PairCounts_V1   1000       RANDOM 111111111     1.000     16.0   270240 =
+PairCounts_V1  10000     SAWTOOTH         1     1.000     16.0 23672537 ================
+PairCounts_V1  10000     SAWTOOTH         6     1.000     16.0 42248174 ==============================
+PairCounts_V1  10000     SAWTOOTH        25     1.000     16.0 24378375 =================
+PairCounts_V1  10000     SAWTOOTH         7     1.000     16.0 33378571 =======================
+PairCounts_V1  10000     SAWTOOTH 111111111     1.000     16.0 24348450 =================
+PairCounts_V1  10000       RANDOM         1     1.000     16.0 24604800 =================
+PairCounts_V1  10000       RANDOM         6     1.000     16.0 24467945 =================
+PairCounts_V1  10000       RANDOM        25     1.000     16.0 24666650 =================
+PairCounts_V1  10000       RANDOM         7     1.000     16.0 24432650 =================
+PairCounts_V1  10000       RANDOM 111111111     1.000     16.0 24464100 =================
+PairCounts_V2     10     SAWTOOTH         1     9.000    320.0      469 =
+PairCounts_V2     10     SAWTOOTH         6     9.000    320.0      426 =
+PairCounts_V2     10     SAWTOOTH        25     9.000    320.0      407 =
+PairCounts_V2     10     SAWTOOTH         7     9.000    320.0      425 =
+PairCounts_V2     10     SAWTOOTH 111111111    19.000    560.0      439 =
+PairCounts_V2     10       RANDOM         1    34.000    960.0      482 =
+PairCounts_V2     10       RANDOM         6    34.000    960.0      456 =
+PairCounts_V2     10       RANDOM        25    34.000    960.0      464 =
+PairCounts_V2     10       RANDOM         7    34.000    960.0      454 =
+PairCounts_V2     10       RANDOM 111111111    34.000    960.0      482 =
+PairCounts_V2    100     SAWTOOTH         1     9.000    320.0     3096 =
+PairCounts_V2    100     SAWTOOTH         6     9.000    320.0     2872 =
+PairCounts_V2    100     SAWTOOTH        25     9.000    320.0     2831 =
+PairCounts_V2    100     SAWTOOTH         7     9.000    320.0     2748 =
+PairCounts_V2    100     SAWTOOTH 111111111   109.000   2720.0     2942 =
+PairCounts_V2    100       RANDOM         1   308.000  10144.0     4599 =
+PairCounts_V2    100       RANDOM         6   308.000  10144.0     4520 =
+PairCounts_V2    100       RANDOM        25   308.000  10144.0     4528 =
+PairCounts_V2    100       RANDOM         7   308.000  10144.0     4499 =
+PairCounts_V2    100       RANDOM 111111111   308.000  10144.0     4580 =
+PairCounts_V2   1000     SAWTOOTH         1   374.000   6160.0    29495 =
+PairCounts_V2   1000     SAWTOOTH         6   374.000   6160.0    26549 =
+PairCounts_V2   1000     SAWTOOTH        25   374.000   6160.0    25816 =
+PairCounts_V2   1000     SAWTOOTH         7   374.000   6160.0    26070 =
+PairCounts_V2   1000     SAWTOOTH 111111111  1374.000  30160.0    26950 =
+PairCounts_V2   1000       RANDOM         1  3011.000  96528.0    50888 =
+PairCounts_V2   1000       RANDOM         6  3011.000  96528.0    63229 =
+PairCounts_V2   1000       RANDOM        25  3011.000  96528.0    51922 =
+PairCounts_V2   1000       RANDOM         7  3011.000  96528.0    54194 =
+PairCounts_V2   1000       RANDOM 111111111  3011.000  96528.0    51265 =
+PairCounts_V2  10000     SAWTOOTH         1  9374.000 150160.0   297356 =
+PairCounts_V2  10000     SAWTOOTH         6  9374.000 150160.0   273662 =
+PairCounts_V2  10000     SAWTOOTH        25  9374.000 150160.0   269040 =
+PairCounts_V2  10000     SAWTOOTH         7  9374.000 150160.0   266848 =
+PairCounts_V2  10000     SAWTOOTH 111111111 19374.000 390160.0   281623 =
+PairCounts_V2  10000       RANDOM         1 30014.000 931264.0   826805 =
+PairCounts_V2  10000       RANDOM         6 30014.000 931264.0   822420 =
+PairCounts_V2  10000       RANDOM        25 30014.000 931264.0   819004 =
+PairCounts_V2  10000       RANDOM         7 30014.000 931264.0   835850 =
+PairCounts_V2  10000       RANDOM 111111111 30013.000 931264.0   835717 =
+
+vm: java
+trial: 0
+
+Process finished with exit code 0
+</code></pre></div><p>C&rsquo;est effectivement une information utile, la première version de l&rsquo;algo, ne fait en fait qu&rsquo;une seule allocation de 16B (donc en fait un seul objet), c&rsquo;est à dire peanuts, on est dans du O(1) en complexité spatiale. La deuxième qui est notamment basée sur une HashMap alloue nettement plus d&rsquo;objets, mais est définitivement plus rapide, on a on ici une complexité spatiale de O(n).</p>
+<p>Comme quoi il y a potentiellement des compromis à faire dans le choix d&rsquo;un algo, la rapidité ou la faible consommation mémoire peuvent venir avec un coût dans une autre dimension.</p>
+<h1 id="pour-conclure">Pour conclure</h1>
+<ul>
+<li>Premier point, il faut absolument être au point pour des tests d&rsquo;embauche plus sur le sujet, même si je trouve limité ces tests dans leur capacité à identifier ou filtrer les bons développeurs (l&rsquo;algorithmie n&rsquo;est pas certainement pas le seul critère d&rsquo;un individu doué), c&rsquo;est toujours bien de pouvoir les reéussir !</li>
+<li>Caliper offre un outillage plutôt facile d&rsquo;utilisation pour faire des microbenchmark, dans la limite de validité d&rsquo;un microbenchmark, il y a plein de mise en garde sur le sujet, sur le site de Caliper [<a href="http://www.azulsystems.com/events/javaone_2009/session/2009_J1_Benchmark.pdf">4</a>].</li>
+<li>Quand on écrit du code c&rsquo;est une bonne idée de penser à la complexité temporelle et spatiale, dont la notation pour les deux est le grand O. Caliper pourrait d&rsquo;ailleurs se voir ajouter le moyen de mesurer la consommation mémoire (en lien avec la complexité spatiale). Évidement ce que je dis ne veut pas dire optimiser prématurément, mais juste de réfléchir à quel type de performance on peut s&rsquo;attendre pour telle ou telle partie du code, et éventuellement de porter plus tard un effort spécifique.</li>
+</ul>
+<p>A noter que Caliper offre d&rsquo;autres possibilités de mesurer la performance à travers une méthode annotée par <code>@ArbitraryMeasurement</code>.</p>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2012/07/30/script-pour-installer-le-jdk-5-sur-macosx-lion/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Script d&#39;installation du JDK 5 sur MacOSX Lion et Mountain Lion (Mis à jour)</span>
+    </a>
+    
+    
+    <a href="/2012/10/10/note-pour-tard-quand-jvisualvm-ne-marche-pas-sur-sur-osx/" class="navigation-next">
+      <span class="navigation-tittle">Note pour plus tard: Problème avec jVisualVM sur OSX</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = '362 http:\/\/blog.arkey.fr\/?p=362';
+        this.page.title = 'Caliper me : Ou pourquoi les microbenchmarks aident !';
+        this.page.url = 'https://blog.arkey.fr/2012/08/29/caliper-ou-pourquoi-les-microbenchmarks-aident/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
+
+    
+    
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

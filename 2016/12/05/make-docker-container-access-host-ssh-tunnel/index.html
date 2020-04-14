@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Connecter un container docker sur un tunnel ssh OSX • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Connecter un container docker sur un tunnel ssh OSX"/>
+<meta name="twitter:description" content="J&rsquo;utilise Cassandra depuis un moment déjà et avec une version 2.1.13 en production je garde donc la même version sur mon poste. Hors cqlsh ne fonctionne plus correctement lorsque python est à la version 2."/>
+
+<meta property="og:title" content="Connecter un container docker sur un tunnel ssh OSX" />
+<meta property="og:description" content="J&rsquo;utilise Cassandra depuis un moment déjà et avec une version 2.1.13 en production je garde donc la même version sur mon poste. Hors cqlsh ne fonctionne plus correctement lorsque python est à la version 2." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2016/12/05/make-docker-container-access-host-ssh-tunnel/" />
+<meta property="article:published_time" content="2016-12-05T00:00:00+00:00" />
+<meta property="article:modified_time" content="2016-12-05T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>Connecter un container docker sur un tunnel ssh OSX</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2016-12-05
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/ssh">ssh</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/docker">docker</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/docker-for-mac">docker for mac</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/tunnel">tunnel</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/host">host</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/cassandra">cassandra</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/cqlsh">cqlsh</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/mac">mac</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/osx">osx</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 3 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <p>J&rsquo;utilise Cassandra depuis un moment déjà et avec une version 2.1.13 en production je garde donc la même version
+sur mon poste. Hors <code>cqlsh</code> ne fonctionne plus correctement lorsque python est à la version 2.11 ou plus, voir le ticket <a href="https://issues.apache.org/jira/browse/CASSANDRA-11850">CASSANDRA-11850</a>. Fixé en version 2.1.16 ou 3.0.10, il faut que
+j&rsquo;utilise cette version, ou que j&rsquo;utilise le moyen alternatif documenté dans ce ticket, qui consiste en installant
+le driver et <code>cqlsh</code> avec <code>pip</code>. Mais cette approche a d&rsquo;autres problèmes.</p>
+<p><i class="fas  fa-lightbulb " aria-hidden="true"></i> Idée utiliser les images docker officielles de cassandra.</p>
+<blockquote>
+<p>Disclaimer : J&rsquo;utilise OSX 10.11 et Docker for Mac 1.12</p>
+</blockquote>
+<h3 id="première-approche">Première approche</h3>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#998;font-style:italic"># Création du pont SSH port 29042</span>
+ssh -Nf platform-cassandra-1
+<span style="color:#998;font-style:italic"># CQLSH dans le container</span>
+docker run -it --net<span style="color:#000;font-weight:bold">=</span>host --rm cassandra:3.0.10 cqlsh -u db_user localhost <span style="color:#099">29042</span>
+</code></pre></div><p>Mais ça ne marche pas. En effet le mode <code>host</code> n&rsquo;est pas géré avec Docker for Mac car la pile réseau est différente sur
+OSX. C&rsquo;est même documenté sur la page <a href="https://docs.docker.com/docker-for-mac/networking/">networking</a> de Docker for Mac.
+Dans cette situation, l&rsquo;application du conteneur essaye de se connecter sur le container même (<code>localhost</code>) et non sur
+le host ; morale l&rsquo;option <code>--net=host</code> ne sert à rien sur OSX.</p>
+<h3 id="deuxième-approche">Deuxième approche</h3>
+<p>En revanche en bon lecteur de documentation, je remarque le petit paragraphe
+<a href="https://docs.docker.com/docker-for-mac/networking/#use-cases-and-workarounds"><em>use cases and workarounds</em></a>, dans
+lequel est indiqué une procédure intéréssante pour ce cas.</p>
+<p>L&rsquo;idée c&rsquo;est d&rsquo;ajouter une IP sur l&rsquo;interface réseau de loopback. Par défaut sur mac <code>lo0</code> écoute sur les IPs locales
+qu&rsquo;on connait bien, <code>127.0.0.1</code> :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">&gt; ifconfig lo0
+lo0: <span style="color:#008080">flags</span><span style="color:#000;font-weight:bold">=</span>8049&lt;UP,LOOPBACK,RUNNING,MULTICAST&gt; mtu <span style="color:#099">16384</span>
+	<span style="color:#008080">options</span><span style="color:#000;font-weight:bold">=</span>3&lt;RXCSUM,TXCSUM&gt;
+	inet6 ::1 prefixlen <span style="color:#099">128</span>
+	inet 127.0.0.1 netmask 0xff000000
+	inet6 fe80::1%lo0 prefixlen <span style="color:#099">64</span> scopeid 0x1
+	nd6 <span style="color:#008080">options</span><span style="color:#000;font-weight:bold">=</span>1&lt;PERFORMNUD&gt;
+</code></pre></div><p>Pour ajouter la nouvelle IP il faut utiliser la sous-commande <code>alias</code></p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">&gt; sudo ifconfig lo0 <span style="color:#0086b3">alias</span> 192.168.49.49
+&gt; ifconfig lo0
+lo0: <span style="color:#008080">flags</span><span style="color:#000;font-weight:bold">=</span>8049&lt;UP,LOOPBACK,RUNNING,MULTICAST&gt; mtu <span style="color:#099">16384</span>
+	<span style="color:#008080">options</span><span style="color:#000;font-weight:bold">=</span>3&lt;RXCSUM,TXCSUM&gt;
+	inet6 ::1 prefixlen <span style="color:#099">128</span>
+	inet 127.0.0.1 netmask 0xff000000
+	inet6 fe80::1%lo0 prefixlen <span style="color:#099">64</span> scopeid 0x1
+	inet 192.168.49.49 netmask 0xffffff00
+	nd6 <span style="color:#008080">options</span><span style="color:#000;font-weight:bold">=</span>1&lt;PERFORMNUD&gt;
+</code></pre></div><p>Ensuite une autre chose importante qui est écrit dans la documentation : le service du host doit écouter sur <code>0.0.0.0</code>.
+Hors ma config SSH ne contient que le minimum et par défaut SSH utilise localhost comme bind_address.</p>
+<pre><code>Host platform-cassandra-1
+   LocalForward 29042 10.100.100.100:9042
+</code></pre><p>Rien de plus facile, il faut juste déclarer le wildcard devant le port local :</p>
+<pre><code>Host platform-cassandra-1
+   LocalForward 0.0.0.0:29042 10.100.100.100:9042
+</code></pre><p>Ensuite il possible de se connecter avec le container docker sur le pont ssh établis par le host.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">&gt; docker run -it --rm cassandra:3.0.10 cqlsh -u db_user 192.168.49.49 <span style="color:#099">29042</span>
+Password:
+Connected to Platform  Cluster at 192.168.49.49:29042.
+<span style="color:#000;font-weight:bold">[</span>cqlsh 5.0.1 | Cassandra 3.0.10.1443 | CQL spec 3.4.0 | Native protocol v4<span style="color:#000;font-weight:bold">]</span>
+Use HELP <span style="color:#000;font-weight:bold">for</span> help.
+cassandra@cqlsh&gt; use some_keyspace;
+cassandra@cqlsh:some_keyspace&gt; <span style="color:#0086b3">exit</span>
+</code></pre></div><h3 id="mise-en-garde">Mise en garde</h3>
+<ul>
+<li>
+<p>En établissant le pont sur <code>0.0.0.0</code>, l&rsquo;accès au tunnel SSH est effectivement ouvert à tout le monde.</p>
+<p>Solution : déclarer un deuxième tunnel dans la config SSH:</p>
+<pre><code>Host platform-cassandra-1
+   LocalForward               29042 10.100.100.100:9042
+   LocalForward 192.168.49.49:29042 10.100.100.100:9042
+</code></pre><p>De cette façon le pont est accessible sur les deux couples <code>locoalhost:29042</code> et <code>192.168.49.49:29042</code>, mais pas au
+reste du monde.</p>
+</li>
+<li>
+<p>L&rsquo;IP <em>alias</em> de l&rsquo;interface loopback, ne doit pas être en conflit avec une autre IP. <code>192.168.49.49</code> pourrait être une
+addresse routée suivant le réseau auquel la machine est connectée.</p>
+<p>À noter qu&rsquo;après usage il peut-être intéressant de retirer l&rsquo;alias :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">sudo ifconfig lo0 -alias 192.168.49.49
+</code></pre></div><p>De manière plus pérenne il pourrait être judicieux de prendre une IP spéciale (non routée) telle que
+<a href="http://www.iana.org/assignments/ipv4-address-space/ipv4-address-space.xhtml#note12"><code>203.0.113.0</code></a>
+qui est réservée pour les tests ou la documentation. <strong>Attention à n&rsquo;utiliser que sur son poste, en local</strong>.</p>
+</li>
+</ul>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2016/10/25/first-contact-with-zookeeper-peer-failure/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Premier contact avec la perte d&#39;instances Zookeeper</span>
+    </a>
+    
+    
+    <a href="/2017/04/29/kafka-a-walking-skeleton/" class="navigation-next">
+      <span class="navigation-tittle">Kafka, a walking skeleton</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2016/12/05/make-docker-container-access-host-ssh-tunnel/';
+        this.page.title = 'Connecter un container docker sur un tunnel ssh OSX';
+        this.page.url = 'https://blog.arkey.fr/2016/12/05/make-docker-container-access-host-ssh-tunnel/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
+
+    
+    
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

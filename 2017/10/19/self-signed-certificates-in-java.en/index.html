@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>HTTPS in Java with a self-signed certificate • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="HTTPS in Java with a self-signed certificate"/>
+<meta name="twitter:description" content="Your application should connect to an HTTPS server, usually that&rsquo;s a no brainer, however as good software craft-man, you may think how do I test this code to make nothing has been forgotten."/>
+
+<meta property="og:title" content="HTTPS in Java with a self-signed certificate" />
+<meta property="og:description" content="Your application should connect to an HTTPS server, usually that&rsquo;s a no brainer, however as good software craft-man, you may think how do I test this code to make nothing has been forgotten." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2017/10/19/self-signed-certificates-in-java.en/" />
+<meta property="article:published_time" content="2017-10-19T00:00:00+00:00" />
+<meta property="article:modified_time" content="2017-10-19T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>HTTPS in Java with a self-signed certificate</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2017-10-19
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/ssl">ssl</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/tls">tls</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/https">https</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/java">java</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/okhttp">okhttp</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/openssl">openssl</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/trustmanager">trustmanager</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/certificate-authority">certificate authority</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/self-signed-certificate">self-signed certificate</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 31 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <p>Your application should connect to an HTTPS server, usually that&rsquo;s a no brainer,
+however as good software craft-man, you may think how do I test this code to make
+nothing has been forgotten.</p>
+<p>The following code is using <strong>wiremock</strong>, the test assert that the client can
+connect to the HTTPS port of the wiremock server.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">WireMockSSLTest</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#3c5d5d;font-weight:bold">@Rule</span>
+    <span style="color:#000;font-weight:bold">public</span> WireMockRule wireMock <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> WireMockRule<span style="color:#000;font-weight:bold">(</span>wireMockConfig<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">dynamicPort</span><span style="color:#000;font-weight:bold">()</span>
+                                                                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">dynamicHttpsPort</span><span style="color:#000;font-weight:bold">());</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Test</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">ssl_poke</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> IOException <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">new</span> OkHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">()</span>
+                                  <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                                                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:&#34;</span> 
+                                                                     <span style="color:#000;font-weight:bold">+</span> wireMock<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">httpsPort</span><span style="color:#000;font-weight:bold">())</span>
+                                                                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+                                  <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>When executed the test will raise an exception with the following stacktrace :</p>
+<pre><code>javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at ...
+Caused by: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at ...
+	... 10 more
+Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at ...
+	... 16 more
+</code></pre><p>Wow that might look overwhelming at the first sight, there&rsquo;s scary acronyms
+(like <code>PKIX</code>), <code>sun</code> packages. So what does say this stack trace :</p>
+<ul>
+<li><code>SSLHandshakeException</code> : An error happened while establishing the SSL layer</li>
+<li><code>ValidatorException: PKIX path building failed</code> : the client can&rsquo;t build
+the certificate chain by following the <strong>PKIX</strong> standard</li>
+</ul>
+<p>In plain english, this server (wiremock) exposes a certificate, but the client
+can&rsquo;t trust this certificate because it cannot rebuild a <em>path</em> to a known
+<strong>authority</strong> that signed the wiremock certificate.
+Why does this exception happen in this case, the very same code connecting
+to <code>https://google.com</code> will succeed ; the issue in this case is that wiremock
+is using a <strong>self-signed certificate</strong>, this certificate is not trusted
+because it hasn&rsquo;t been signed by any of the CAs or public certificates
+available in the JVM standard installation.</p>
+<p>In this article, we will look at various ways to generate a <strong>self-signed certificate</strong>
+and explore how to control the certificate used in test environment.</p>
+<h2 id="first-a-brief-reminder-on-ssl-i-mean-tls-">First a brief reminder on <del>SSL</del>, I mean TLS ?</h2>
+<p>Nowadays when people speak about <em>SSL</em> they conflate two protocols :
+<em>TLS</em> and his predecessor <em>SSL</em>.</p>
+<ul>
+<li>SSL (<strong>S</strong>ecure <strong>S</strong>ockets <strong>L</strong>ayer) protocol was engineered and developed
+by <strong>Netscape</strong> (Thought for those who remember this pioneer internet browser
+then Internet Explorer competitor).
+The last version SSLv3 is considered as deprecated since 2015.</li>
+<li>TLS (<strong>T</strong>ransport <strong>L</strong>ayer <strong>S</strong>ecurity) protocol is the direct successor
+of the SSLv3 protocol, however they are not compatible.</li>
+</ul>
+<p><a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">[source]</a></p>
+<p>The role of TLS is to ensure that communication between two peers is secured.
+In order to do so, TLS <a href="https://tools.ietf.org/html/rfc5246#section-7">rely among other things on <strong>PKIX</strong></a>
+(<a href="https://tools.ietf.org/html/rfc5280"><strong>P</strong>ublic <strong>K</strong>ey <strong>I</strong>nfrastructure <strong>X</strong>.509</a>),
+equipped with these certificate mechanism a client can verify the server identity
+is actually the one it pretends to be with the help of a trusted third party.</p>
+<p>For example :</p>
+<blockquote>
+<p>Upon connecting to <a href="https://github.com">https://github.com</a>, the client will first verify the GitHub
+certificate, then inspect who signed this certificate, then verify the
+signer&rsquo;s certificate and so on, until a trusted third party certificate is reached.
+Usually this root certificate comes from a certificate authority.</p>
+</blockquote>
+<p>The certificates are called <strong>X.509</strong> they carry informations such as
+the server name, the signer name, the signature, etc. This certificate mechanism
+is one approach to implement a PKI (<strong>P</strong>ublic <strong>K</strong>ey <strong>I</strong>nfrastructure),
+hence the acronym <strong>PKIX</strong>.</p>
+<p>A certificate can be stored in a file, either encoded in its binary form
+known as <code>DER</code> (<strong>D</strong>istinguished <strong>E</strong>ncoding <strong>R</strong>ules), or in a US-ASCII
+text form which the Base 64 encoding of the binary form known as <code>PEM</code>
+(<strong>P</strong>rivacy-enhanced <strong>E</strong>lectronic <strong>M</strong>ail).</p>
+<blockquote>
+<p>Note that a file with the <code>CRT</code> extension is a certificate but allow
+the content to be either binary or plain text (i.e. either <code>DER</code> or <code>PEM</code>).
+This filename extension is an alternative naming form used by Microsoft.</p>
+</blockquote>
+<h2 id="fixing-the-test-code">Fixing the test code</h2>
+<h3 id="trusting-every-peer">Trusting every peer</h3>
+<p>So to accept the self-signed certificate, it is possible to configure the
+SSL socket to accept all certificates.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Rule</span>
+<span style="color:#000;font-weight:bold">public</span> WireMockRule wireMock <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> WireMockRule<span style="color:#000;font-weight:bold">(</span>wireMockConfig<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">dynamicPort</span><span style="color:#000;font-weight:bold">()</span>
+                                                                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">dynamicHttpsPort</span><span style="color:#000;font-weight:bold">());</span>
+
+<span style="color:#3c5d5d;font-weight:bold">@Test</span>
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">ssl_poke</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> IOException <span style="color:#000;font-weight:bold">{</span>
+    X509TrustManager trustManager <span style="color:#000;font-weight:bold">=</span> TrustAllX509TrustManager<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">INSTANCE</span><span style="color:#000;font-weight:bold">;</span>
+    OkHttpClient client <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> OkHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sslSocketFactory</span><span style="color:#000;font-weight:bold">(</span>
+                    sslContext<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span>
+                                <span style="color:#000;font-weight:bold">new</span> TrustManager<span style="color:#000;font-weight:bold">[]{</span>trustManager<span style="color:#000;font-weight:bold">}).</span><span style="color:#008080">getSocketFactory</span><span style="color:#000;font-weight:bold">(),</span>
+                    trustManager<span style="color:#000;font-weight:bold">)</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">(</span>Response r <span style="color:#000;font-weight:bold">=</span> client<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:&#34;</span>
+                                                               <span style="color:#000;font-weight:bold">+</span> wireMock<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">httpsPort</span><span style="color:#000;font-weight:bold">())</span>
+                                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+                            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">())</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#998;font-style:italic">// noop / success
+</span><span style="color:#998;font-style:italic"></span>    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>OkHttp client can be configured with a SSL socket factory that is itself configured
+with a custom trust manager. This is the job of the trust manager to validate
+or not a certificate. This one is coed to accept all certificate.</p>
+<p>Since the security API is a bit tedious to read and use the code has been
+abstracted away in methods that are easier to read and comment.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> SSLContext <span style="color:#900;font-weight:bold">sslContext</span><span style="color:#000;font-weight:bold">(</span>KeyManager<span style="color:#000;font-weight:bold">[]</span> keyManagers<span style="color:#000;font-weight:bold">,</span> TrustManager<span style="color:#000;font-weight:bold">[]</span> trustManagers<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">{</span>
+        SSLContext sslContext <span style="color:#000;font-weight:bold">=</span> SSLContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getInstance</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;TLS&#34;</span><span style="color:#000;font-weight:bold">);</span>
+        sslContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">init</span><span style="color:#000;font-weight:bold">(</span>keyManagers<span style="color:#000;font-weight:bold">,</span>
+                        trustManagers<span style="color:#000;font-weight:bold">,</span>
+                        <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">return</span> sslContext<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>NoSuchAlgorithmException <span style="color:#000;font-weight:bold">|</span> KeyManagementException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Couldn&#39;t init TLS context&#34;</span><span style="color:#000;font-weight:bold">,</span> e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>The cryptography code architecture is very very generic and some design
+choices raise questions on its usage.</p>
+<p>For example why the method <code>SSLContext#init</code> require
+arrays ? While the javadoc of this method <a href="https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/SSLContext.html#init-javax.net.ssl.KeyManager:A-javax.net.ssl.TrustManager:A-java.security.SecureRandom-"><code>SSLContext#init</code></a> indicate that only the first element of the array will be used.
+This also explains why the code above initialize the context with a single
+trust manager.</p>
+<p><em>Emphasizes in the javadoc are mine.</em></p>
+<blockquote>
+<pre><code>javax.net.ssl.SSLContext
+public final void init(KeyManager[] km,
+                      TrustManager[] tm,
+                      SecureRandom random)
+               throws KeyManagementException
+
+Initializes this context. Either of the first two parameters may be null in which 
+case the installed security providers will be searched for the highest priority 
+implementation of the appropriate factory. Likewise, the secure random parameter 
+may be null in which case the default implementation will be used.
+
+**Only the first instance** of a particular key and/or trust manager implementation 
+type in the array is used. (For example, only the first javax.net.ssl.X509KeyManager 
+in the array will be used.)
+
+Parameters:
+    km - the sources of authentication keys or null
+    tm - the sources of peer authentication trust decisions or null
+    random - the source of randomness for this generator or null
+Throws:
+   KeyManagementException - if this operation fails
+</code></pre></blockquote>
+<p>Another thing is that the <code>TrustManager</code> interface is empty, that&rsquo;s right there is
+no methods, it&rsquo;s a marker interface. Given that it is about TLS and the only
+active specification is based on PKIX (X.509), the code will have to implement
+<code>X509TrustManager</code> interface (itself a subtype of <code>TrsutManager</code>). This interface
+declares the required method to implement certificate validation.</p>
+<p>In this section this trust manager will accept all certificates, in fact it will
+just do nothing.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">TrustAllX509TrustManager</span> <span style="color:#000;font-weight:bold">implements</span> X509TrustManager <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> X509TrustManager INSTANCE <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> TrustAllX509TrustManager<span style="color:#000;font-weight:bold">();</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">checkClientTrusted</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]</span> chain<span style="color:#000;font-weight:bold">,</span> String authType<span style="color:#000;font-weight:bold">)</span> 
+    <span style="color:#000;font-weight:bold">throws</span> CertificateException <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">checkServerTrusted</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]</span> chain<span style="color:#000;font-weight:bold">,</span> String authType<span style="color:#000;font-weight:bold">)</span> 
+    <span style="color:#000;font-weight:bold">throws</span> CertificateException <span style="color:#000;font-weight:bold">{</span> <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> X509Certificate<span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">getAcceptedIssuers</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">new</span> X509Certificate<span style="color:#000;font-weight:bold">[</span>0<span style="color:#000;font-weight:bold">];</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>So this code is supposedly working, however on first try there a new exception
+showing up upon connecting to wiremock.</p>
+<pre><code>javax.net.ssl.SSLPeerUnverifiedException: Hostname localhost not verified:
+    certificate: sha256//W3v5TDAEE3dl4peiEwpwDKa1OZAna1ITgokQDz0rkQ=
+    DN: CN=Tom Akehurst, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+    subjectAltNames: []
+
+	at okhttp3.internal.connection.RealConnection.connectTls(RealConnection.java:308)
+	...
+</code></pre><p>What is this <code>SSLPeerUnverifiedException</code> ? After inspection, the above code
+tackle the trust layer of the TLS, but according to the HTTPS
+<a href="https://tools.ietf.org/html/rfc2818#section-3.1">RFC 2818</a>, the client
+is required to check the identity of the hostname against the certificate,
+this help prevent <em>man-in-the-middle</em> attacks. That means that the TLS layer
+is established, but this failure happens at the upper level.</p>
+<p>Indeed in the current setup, wiremock self-signed certificate doesn&rsquo;t provide enough
+data to perform this verification. The <code>subjectAltNames</code> field should contain
+server alternative names like <code>localhost</code> or the (local) IP address(es).</p>
+<p>So let&rsquo;s tell OkHttp to accept all hostnames :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> HostnameVerifier <span style="color:#900;font-weight:bold">allowAllHostNames</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">(</span>hostname<span style="color:#000;font-weight:bold">,</span> sslSession<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">-&gt;</span> <span style="color:#000;font-weight:bold">true</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">new</span> OkHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sslSocketFactory</span><span style="color:#000;font-weight:bold">(</span>
+                    sslContext<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span> 
+                               <span style="color:#000;font-weight:bold">new</span> TrustManager<span style="color:#000;font-weight:bold">[]</span> <span style="color:#000;font-weight:bold">{</span>TrustAllX509TrustManager<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">INSTANCE</span><span style="color:#000;font-weight:bold">}).</span><span style="color:#008080">getSocketFactory</span><span style="color:#000;font-weight:bold">(),</span>
+                    TrustAllX509TrustManager<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">INSTANCE</span><span style="color:#000;font-weight:bold">)</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hostnameVerifier</span><span style="color:#000;font-weight:bold">(</span>allowAllHostNames<span style="color:#000;font-weight:bold">())</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:&#34;</span> <span style="color:#000;font-weight:bold">+</span> wireMock<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">httpsPort</span><span style="color:#000;font-weight:bold">())</span>
+                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>Finally this code works, we have an HTTPS connection to a wiremock server.</p>
+<p>However this way of setting up the code is not right and especially for
+production code, because this code just deactivated security for every HTTPS
+connection passing by this http client.</p>
+<p>With this approach one should think of a configuration mechanism that will
+enforce sane settings in production code and relax settings for test code.</p>
+<p>On a side note this example has been written with backend application in mind,
+however this topic is concerning mobile application or IoT as well.
+The <a href="https://developer.android.com/training/articles/security-ssl.html#CommonHostnameProbs">Android documentation</a>
+explains very well why hostname verification is important to consider.</p>
+<h4 id="vanilla-java">Vanilla Java</h4>
+<p>For those interested the same issues happen with the JDK way to connect to
+HTTPS via <code>URL</code>, this can be configured via the <code>HttpsUrlConnection</code> class,
+here&rsquo;s how to configure it, <strong>before establishing the connection</strong> :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#998;font-style:italic">// Allow all certificates
+</span><span style="color:#998;font-style:italic"></span>HttpsURLConnection<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setDefaultSSLSocketFactory</span><span style="color:#000;font-weight:bold">(</span>trustAllSslContext<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">getSocketFactory</span><span style="color:#000;font-weight:bold">());</span>
+<span style="color:#000;font-weight:bold">new</span> URL<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:&#34;</span> <span style="color:#000;font-weight:bold">+</span> wireMock<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">httpsPort</span><span style="color:#000;font-weight:bold">()).</span><span style="color:#008080">openConnection</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">connect</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>And just set a <a href="https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/HostnameVerifier.html"><code>HostnameVerifier</code></a>
+that does nothing.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#998;font-style:italic">// Allow all hostnames
+</span><span style="color:#998;font-style:italic"></span>HostnameVerifier allHostsValid <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">(</span>hostname<span style="color:#000;font-weight:bold">,</span> session<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">-&gt;</span> <span style="color:#000;font-weight:bold">true</span><span style="color:#000;font-weight:bold">;</span>
+HttpsURLConnection<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setDefaultHostnameVerifier</span><span style="color:#000;font-weight:bold">(</span>allHostsValid<span style="color:#000;font-weight:bold">);</span>
+HttpsURLConnection<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setDefaultSSLSocketFactory</span><span style="color:#000;font-weight:bold">(</span>trustAllSslContext<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">getSocketFactory</span><span style="color:#000;font-weight:bold">());</span>
+<span style="color:#000;font-weight:bold">new</span> URL<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:&#34;</span> <span style="color:#000;font-weight:bold">+</span> wireMock<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">httpsPort</span><span style="color:#000;font-weight:bold">()).</span><span style="color:#008080">openConnection</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">connect</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>Notice that <code>setDefaultHostnameVerifier</code> and <code>setDefaultSSLSocketFactory</code> are
+static methods, that means these changes affect all connections using the JDK.</p>
+<h3 id="extending-trust-to-self-signed-certificate">Extending trust to self-signed certificate</h3>
+<p>So rather than turning off the whole security of HTTPS connections, a
+big improvement would be to ignore verification of self-signed certificate only.
+The first question is how to identify a self-signed certificate ?</p>
+<p>To answer that question, let&rsquo;s inspect certificates with a reference tool.
+OpenSSL has an SSL/TLS client available with the <code>s_client</code> sub-command,
+we can then connect to the wiremock HTTPS server.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh"><span style="color:#0086b3">echo</span> -n | openssl s_client -connect localhost:8443 2&gt;&amp;<span style="color:#099">1</span>
+</code></pre></div><p>Upon connection, the terminal shows a bunch of interesting data&hellip;</p>
+<pre><code>CONNECTED(00000003)
+depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
+verify error:num=18:self signed certificate
+verify return:1
+depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
+verify return:1
+---
+Certificate chain
+ 0 s:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+   i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIDgzCCAmugAwIBAgIEHYkuTzANBgkqhkiG9w0BAQsFADBxMRAwDgYDVQQGEwdV
+bmtub3duMRAwDgYDVQQIEwdVbmtub3duMRAwDgYDVQQHEwdVbmtub3duMRAwDgYD
+VQQKEwdVbmtub3duMRAwDgYDVQQLEwdVbmtub3duMRUwEwYDVQQDEwxUb20gQWtl
+aHVyc3QwIBcNMTUwMjI0MTM1ODUwWhgPMjExNTAxMzExMzU4NTBaMHExEDAOBgNV
+BAYTB1Vua25vd24xEDAOBgNVBAgTB1Vua25vd24xEDAOBgNVBAcTB1Vua25vd24x
+EDAOBgNVBAoTB1Vua25vd24xEDAOBgNVBAsTB1Vua25vd24xFTATBgNVBAMTDFRv
+bSBBa2VodXJzdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAIAIvMUo
+vy4ufnWKxMU0tBdXqtX6RzKYgQvj/82qPAmRiNki8PpPGrF70Lb3WzsUDYB9CsXw
+m5VWc9l1XBdGh6zZVFkkSzBtRjyHy8Z8azsIv/YzQF5bRxE2Cvruh7o01Sq1qz5B
+kxt0u/NbUUErxKZeA0li1W/op7RC94h0dzob7auruHUvb56NXAJZcu8r2G9jxh9w
+WBPC6lSozuCzwfdS4v2ZOQBYpmMz9oJm3ElQUbOrhnVQtgxQicU2oDETwz37IIEw
+FV12la+qNIMSOTe6uJj1jEZP22NL2IYq06BT/ZnK6HYIOXAtwURSsf0MN0b8NKBB
+NOLQN2juRj+vn6UCAwEAAaMhMB8wHQYDVR0OBBYEFDZ6soXRxD/N2n5b++CVrWbr
+XLKWMA0GCSqGSIb3DQEBCwUAA4IBAQBiPfCUg7EHz8poRgZL60PzMdyaKLwafGtF
+dshmY1y9vzpPJIoFcIH7crSsmUcRk+XSj5WhSr4RT3y15JsfZy935057f0knEXEf
+or+Gi8BlDaC33qX+6twiAaub1inEDc028ZFtEwbzJQYgJo1GvLG2o2BMZB1C5F+k
+Nm9jawu4rTNtXktXloNhoxrSWtyEUoDAvGgBVnAJwQXcfayWq3AsCr9kpHI3bBwL
+J9NAGC4M8j7z9Aw71JGmwBDk1ooAO6L82W7DWBYPzpLXXeXmHRCxpujKWaveAV2T
+cgsQaCmzy29i+F03pLl7Vio4Ei+z9XQgZiN4Awiwz9D+lshnKuII
+-----END CERTIFICATE-----
+subject=/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+issuer=/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+---
+No client certificate CA names sent
+Peer signing digest: SHA512
+Server Temp Key: ECDH, P-256, 256 bits
+---
+SSL handshake has read 1387 bytes and written 434 bytes
+---
+New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES128-GCM-SHA256
+Server public key is 2048 bit
+Secure Renegotiation IS supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : ECDHE-RSA-AES128-GCM-SHA256
+    Session-ID: 59D642ED8CCB7F4219617B3739CB93E1C294F873854C2A284D28A77D674AC050
+    Session-ID-ctx: 
+    Master-Key: A43DF026E3FA620BC7CC5207D5BCB87828B7E3D673CFEEF12CAB425619B63610F443FB96FEC33CC50FBBAC73C152572B
+    Key-Arg   : None
+    PSK identity: None
+    PSK identity hint: None
+    SRP username: None
+    Start Time: 1507214061
+    Timeout   : 300 (sec)
+    Verify return code: 18 (self signed certificate)
+---
+DONE
+</code></pre><p>&hellip;typically the first lines :</p>
+<pre><code>depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
+verify error:num=18:self signed certificate
+</code></pre><p>The client reports a verification error number <code>18</code>, and display the
+associated reason that it is a self-signed certificate. More specifically
+the <a href="https://wiki.openssl.org/index.php/Manual:Verify(1)">openssl wiki</a>
+defines the error 18 as :</p>
+<blockquote>
+<p><strong>18 X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT</strong>: self signed certificate</p>
+</blockquote>
+<p>So openssl understand that a certificate chain with a depth of <code>0</code> is in
+fact a self-signed-certificate.</p>
+<p>Continuing on the output, there&rsquo;s the certificate chain section itself,
+it declares each certificate that are presented by the server.</p>
+<p>For the certificate with a <code>0</code> depth, there&rsquo;s two lines :</p>
+<ul>
+<li>the first prefixed by <strong><code>s</code></strong> that print the <em>subject</em> of the certificate</li>
+<li>the second prefixed by <strong><code>i</code></strong> that print the <em>issuer</em> of the certificate</li>
+</ul>
+<pre><code>Certificate chain
+ 0 s:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+   i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
+</code></pre><p>There is additional information, but the above information leads to think
+it is possible to write a trust manager that will skip verification for
+self-signed certificates only. The code below checks the number of
+certificate, if there&rsquo;s only one element in the array, it means the
+depth is zero.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">TrustSelfSignedX509TrustManager</span> <span style="color:#000;font-weight:bold">implements</span> X509TrustManager <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">private</span> X509TrustManager delegate<span style="color:#000;font-weight:bold">;</span>
+
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#900;font-weight:bold">TrustSelfSignedX509TrustManager</span><span style="color:#000;font-weight:bold">(</span>X509TrustManager delegate<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">delegate</span> <span style="color:#000;font-weight:bold">=</span> delegate<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">checkClientTrusted</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]</span> chain<span style="color:#000;font-weight:bold">,</span> String authType<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">throws</span> CertificateException <span style="color:#000;font-weight:bold">{</span>
+        delegate<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">checkClientTrusted</span><span style="color:#000;font-weight:bold">(</span>chain<span style="color:#000;font-weight:bold">,</span> authType<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">checkServerTrusted</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]</span> chain<span style="color:#000;font-weight:bold">,</span> String authType<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">throws</span> CertificateException <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>isSelfSigned<span style="color:#000;font-weight:bold">(</span>chain<span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#000;font-weight:bold">return</span><span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">}</span>
+        delegate<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">checkServerTrusted</span><span style="color:#000;font-weight:bold">(</span>chain<span style="color:#000;font-weight:bold">,</span> authType<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#458;font-weight:bold">boolean</span> <span style="color:#900;font-weight:bold">isSelfSigned</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]</span> chain<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">return</span> chain<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span> <span style="color:#000;font-weight:bold">==</span> 1<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> X509Certificate<span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">getAcceptedIssuers</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">return</span> delegate<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getAcceptedIssuers</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> X509TrustManager<span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">wrap</span><span style="color:#000;font-weight:bold">(</span>X509TrustManager delegate<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">new</span> X509TrustManager<span style="color:#000;font-weight:bold">[]{</span><span style="color:#000;font-weight:bold">new</span> TrustSelfSignedX509TrustManager<span style="color:#000;font-weight:bold">(</span>delegate<span style="color:#000;font-weight:bold">)};</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Notice how this code don&rsquo;t actually perform certificate verification but
+delegates this task to an existing <code>TrustManager</code>.</p>
+<p>This decorator can wrap the JVM trust manager, which happens to be able
+to verify <em>normal</em> certificates.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">X509TrustManager trustManager <span style="color:#000;font-weight:bold">=</span> TrustSelfSignedX509TrustManager<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">wrap</span><span style="color:#000;font-weight:bold">(</span>systemTrustManager<span style="color:#000;font-weight:bold">());</span>
+<span style="color:#000;font-weight:bold">new</span> OkHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sslSocketFactory</span><span style="color:#000;font-weight:bold">(</span>
+                    sslContext<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span> 
+                               <span style="color:#000;font-weight:bold">new</span> TrustManager<span style="color:#000;font-weight:bold">[]</span> <span style="color:#000;font-weight:bold">{</span> trustManager <span style="color:#000;font-weight:bold">}).</span><span style="color:#008080">getSocketFactory</span><span style="color:#000;font-weight:bold">(),</span>
+                    trustManager<span style="color:#000;font-weight:bold">)</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hostnameVerifier</span><span style="color:#000;font-weight:bold">(</span>allowAllHostname<span style="color:#000;font-weight:bold">())</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:&#34;</span> <span style="color:#000;font-weight:bold">+</span> wireMock<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">httpsPort</span><span style="color:#000;font-weight:bold">())</span>
+                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>Here&rsquo;s how to gain access to the default manager :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> X509TrustManager <span style="color:#900;font-weight:bold">systemTrustManager</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    TrustManager<span style="color:#000;font-weight:bold">[]</span> trustManagers <span style="color:#000;font-weight:bold">=</span> systemTrustManagerFactory<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">getTrustManagers</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>trustManagers<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span> <span style="color:#000;font-weight:bold">!=</span> 1<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Unexpected default trust managers:&#34;</span>
+                                        <span style="color:#000;font-weight:bold">+</span> Arrays<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toString</span><span style="color:#000;font-weight:bold">(</span>trustManagers<span style="color:#000;font-weight:bold">));</span>
+    <span style="color:#000;font-weight:bold">}</span>
+    TrustManager trustManager <span style="color:#000;font-weight:bold">=</span> trustManagers<span style="color:#000;font-weight:bold">[</span>0<span style="color:#000;font-weight:bold">];</span>
+    <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>trustManager <span style="color:#000;font-weight:bold">instanceof</span> X509TrustManager<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">(</span>X509TrustManager<span style="color:#000;font-weight:bold">)</span> trustManager<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+    <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;&#39;&#34;</span> <span style="color:#000;font-weight:bold">+</span> trustManager <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;&#39; is not a X509TrustManager&#34;</span><span style="color:#000;font-weight:bold">);</span>
+<span style="color:#000;font-weight:bold">}</span>
+
+
+<span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">static</span> TrustManagerFactory <span style="color:#900;font-weight:bold">systemTrustManagerFactory</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">{</span>
+        TrustManagerFactory tmf <span style="color:#000;font-weight:bold">=</span> TrustManagerFactory<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getInstance</span><span style="color:#000;font-weight:bold">(</span>TrustManagerFactory<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getDefaultAlgorithm</span><span style="color:#000;font-weight:bold">());</span>
+        tmf<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">init</span><span style="color:#000;font-weight:bold">((</span>KeyStore<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">return</span> tmf<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>NoSuchAlgorithmException <span style="color:#000;font-weight:bold">|</span> KeyStoreException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Can&#39;t load default trust manager&#34;</span><span style="color:#000;font-weight:bold">,</span> e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p><code>TrustManagerFactory.getInstance(String)</code> is asking for the name of trust
+implementation <em>algorithm</em>. And at this time <code>TrustManagerFactory.getDefaultAlgorithm()</code>
+should only return <code>PKIX</code> because that&rsquo;s the only trust implementation
+of TLS at this time.</p>
+<p>However one should note that JVM implementers load their own algorithm
+implementation of PKIX, this implementation is available under the
+implementation name like Sun did with <code>SunX509</code>, of course this implementation
+is not available when using IBM J9 or when using Android, they have their own.
+All should implement <code>X509TrustManager</code>. Avoid using those names those
+implementation may change for various reason, could renamed to <code>OracleX509</code>
+one day, or be replace by some other thing.
+So when looking at code on the internet that rely on implementation specific
+one should take this opportunity to use the most generic name unless something
+specific is needed, in this case we want the default <code>PKIX</code> algorithm.</p>
+<p>Notice again how this JDK security API is very generic, the trust interface
+just does not make any assumption about the trust implementation. It could be
+<em>public key infrastructure</em> based (<em>i.e X.509 or something else</em>) or
+something else entirely.</p>
+<p>Also <code>TrustManagerFactory.getTrustManagers()</code> returns an array for supposedly for
+each type of trust management.
+Here&rsquo;s the javadoc:</p>
+<blockquote>
+<pre><code>public final TrustManager[] getTrustManagers()
+
+Returns one trust manager for each type of trust material.
+
+Returns:
+    the trust managers
+Throws:
+    IllegalStateException - if the factory is not initialized.
+</code></pre></blockquote>
+<p>Give the javadoc of <code>SSLContext#init</code> and that in practice today the only
+available kind of way to connect over TLS is PKIX / X.509. So this
+factory only creates a single trust manager instance, of type
+<code>X509Trustmanager</code>.</p>
+<p>So the above described approach at least doesn&rsquo;t degrade the security for
+the HTTPS calls to website properly relying on root certificate authorities.
+Yet the security for self-signed signed certificates is still not handled,
+just dismissed. In my opinion this is acceptable for test code, but barely,
+security is a major concern, if we cannot get it right in tests what about
+production code that must speak to self signed certificate.</p>
+<p>Just because it is self-signed, doesn&rsquo;t mean there&rsquo;s no way to verify this
+certificate.</p>
+<h2 id="how-to-properly-validate-a-self-signed-certificate-">How to properly validate a self-signed certificate ?</h2>
+<p>What to do if the production code has to establish to a server whose
+certificate is self-signed ?</p>
+<p>We saw that the JVM doesn&rsquo;t grant trust to certificates whose no known
+certification authority (<em>CA</em>) signed the peer certificate. A simple
+workaround would be install the unknown certificate in question.</p>
+<p>But before installing anything, let&rsquo;s get a hold of it.</p>
+<h3 id="get-the-self-signed-certificate">Get the self-signed certificate</h3>
+<p>Upon the TLS connection handshake, the server sends his certificate chain,
+as we saw earlier when using the <code>s_client</code> of <code>openssl</code>.</p>
+<p>It his possible to get the certificates in a <code>PEM</code> format using another
+command of <code>openssl</code>.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh"><span style="color:#0086b3">echo</span> -n | <span style="color:#d14">\
+</span><span style="color:#d14"></span>  openssl s_client -prexit -connect host:port 2&gt;&amp;<span style="color:#099">1</span> | <span style="color:#d14">\
+</span><span style="color:#d14"></span>  openssl x509 -outform pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>  &gt; certificate-host.pem
+</code></pre></div><p>The above command indicate to <code>openssl</code> to establish a connection to
+<code>host:port</code> then to pass the results to the <code>x509</code> command in order to
+decode the certificate and to encode it in a <code>PEM</code> format.</p>
+<p>It is also possible to print on the console a human readable representation
+(not PEM):</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh"><span style="color:#0086b3">echo</span> -n | <span style="color:#d14">\
+</span><span style="color:#d14"></span>  openssl s_client -connect host:port 2&gt;&amp;<span style="color:#099">1</span> | <span style="color:#d14">\
+</span><span style="color:#d14"></span>  openssl x509 -text
+</code></pre></div><p>To read the certificate file in the <code>PEM</code> format there either the standard
+tool <code>openssl</code> or with <code>keytool</code> coming with the base install of the JDK :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -printcert -file certificate-host.pem
+openssl x509 -inform pem -in certificate-host.pem -text
+</code></pre></div><h3 id="using-the-self-signed-certificate-on-the-jvm">Using the self-signed certificate on the JVM</h3>
+<h4 id="_importing_-the-certificate-in-the-jvms-own-_cacerts_"><em>Importing</em> the certificate in the JVM&rsquo;s own <em>cacerts</em></h4>
+<p>The default JVM install comes with <em>cacerts</em> file that stores the <em>certificates</em>
+of <em>certificate authorities</em>. A self-signed certificate wasn&rsquo;t signed (issued)
+by any of these authority, but since this certificate is signing itself, it is
+possible to inject it in the <em>cacerts</em> key store.
+It is possible to achieve this with <code>keytool</code> ; prepended with <code>sudo</code>
+if the actual file system permission requires it.
+At JVM installation time this key store is configured with password <code>changeit</code>,
+but a good practice in production is to change this password to prevent any
+tampering with the <em>cacerts</em> file.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -import <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -alias wiremock <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -file wiremock.pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keystore <span style="color:#008080">$JAVA_HOME</span>/jre/lib/security/cacerts
+</code></pre></div><p>The wiremock certificate has been extracted to file <code>wiremock.pem</code> in the
+<strong>PEM</strong> format. The following command will import this certificate with
+the alias <code>wiremock</code> in the <code>cacerts</code> key store.</p>
+<blockquote>
+<p>Eventually check the import went well by querying the content of the
+<code>cacerts</code> key store :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -list -keystore <span style="color:#008080">$JAVA_HOME</span>/jre/lib/security/cacerts
+</code></pre></div><p>After the injection of the certificate, a <code>wiremock</code> entry should appear
+next to Verisign, Digital Certs, Geo Trust, etc.</p>
+</blockquote>
+<p>Once done, when trying a simpler version of the HTTPS calling code without
+the whole SSL setup, there&rsquo;s no error, the standard security configuration
+can match the wiremock certificate because it now knows about it.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">new</span> OkHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hostnameVerifier</span><span style="color:#000;font-weight:bold">(</span>allowAllHostNames<span style="color:#000;font-weight:bold">())</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:8443&#34;</span><span style="color:#000;font-weight:bold">)</span>
+                                          <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>Note however there&rsquo;s still a need of a dedicated hostname verifier that
+allows every host, because the TLS protocol handshake is different than
+host or IP verification that is part of HTTPS
+(<a href="https://tools.ietf.org/html/rfc2818#section-3.1">RFC 2818</a>).</p>
+<p>Regardless injecting certificates in the JDK installation requires a
+deployment, that is a pain for developers, that is a pain for CI, and
+that is a pain for OPS. We can do better.</p>
+<h4 id="using-an-alternate-key-store">Using an alternate key store</h4>
+<p><em>Sometime this specific <strong>key store</strong> is referred to as a <strong>trust store</strong>.</em></p>
+<p>In this part let&rsquo;s craft a key store from the ground using the same tool
+as above <code>keytool</code>.</p>
+<p>THe first contact with the key store was when we were meddling with the
+<em>cacerts</em> file. To create our own the usual extension is <code>jks</code>, that acronym
+stands for Java <strong>key</strong> - <strong>store</strong> is a file, that&rsquo;s where the <code>PEM</code>
+certificate will be imported.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -import <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -alias wiremock <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -file wiremock.pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keystore ./wiremock-truststore.jks
+</code></pre></div><p>This commands takes a certificate file stored in the <code>PEM</code> format and stores
+it in a newly created Java Key Store file named <code>wiremock-truststore.jks</code>.</p>
+<blockquote>
+<p>The above commands requires a user interaction, this can be avoided
+by passing a few options, especially <code>-noprompt</code> and <code>-storepass &lt;password&gt;</code>.</p>
+</blockquote>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -import <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -noprompt <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -storepass changeit <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -alias wiremock <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -file wiremock.pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keystore ./wiremock-truststore.jks
+</code></pre></div><p>Then the <code>java</code> commands allow to change the runtime trust store, which
+is the by default the <em>cacerts</em> file, with the following options :</p>
+<ul>
+<li><code>-Djavax.net.ssl.trustStore=./wiremock-truststore.jks</code></li>
+<li><code>-Djavax.net.ssl.trustStorePassword=changeit</code></li>
+</ul>
+<p>The full command :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">java -Djavax.net.ssl.trustStore<span style="color:#000;font-weight:bold">=</span>./wiremock-truststore.jks <span style="color:#d14">\
+</span><span style="color:#d14"></span>     -Djavax.net.ssl.trustStorePassword<span style="color:#000;font-weight:bold">=</span>changeit <span style="color:#d14">\
+</span><span style="color:#d14"></span>     OkSSLConnect localhost <span style="color:#099">8443</span>
+</code></pre></div><p>In the above command <code>OkSSLConnect</code> is the program that will establish the
+TLS connection to the wiremock HTTPS server with the given host and port.
+The <code>main</code> function consists only of the simplest code above (no special
+TLS configuration, just the <em>hostname verifier</em>).
+If the program succeeds then the alternate trust store has been used.</p>
+<p>However using this alternate trust store won&rsquo;t work if the same program
+must connect to some <em>well known</em> website (i.e. like <code>github.com</code>) whose
+certificates are issued by well known certificate authorities. In this
+case the same <code>SSLHandshakeException</code> will be raised.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">java -Djavax.net.ssl.trustStore<span style="color:#000;font-weight:bold">=</span>./wiremock-truststore.jks <span style="color:#d14">\
+</span><span style="color:#d14"></span>     -Djavax.net.ssl.trustStorePassword<span style="color:#000;font-weight:bold">=</span>changeit <span style="color:#d14">\
+</span><span style="color:#d14"></span>     OkSSLConnect google.com <span style="color:#099">443</span>
+</code></pre></div><p>Without setting the alternate trust store, this command
+<code>java OkSSLConnect google.com 443</code> succeeds.</p>
+<p>So this approach is also lacking in some areas, the simple fact these options
+change the JVM&rsquo;s trust store is wrong, unless there&rsquo;s specific use cases.
+Also this can become a deployment issue in local development environment
+or on servers. Moreover it restrict the servers the JVM can connect to
+servers that have the very specific certificates.
+Not an acceptable solution in my opinion.</p>
+<h4 id="importing-programmatically-the-self-signed-certificate">Importing programmatically the self-signed certificate</h4>
+<h5 id="from-jks-key-store">From JKS key store</h5>
+<p>Lets begin with the JKS file created in the section above with <code>keytool</code>.
+The code below is split in three different method with each their
+own concerns :</p>
+<ul>
+<li>one to load <code>TrustManager</code> factory, using the default algorithm
+<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#TrustManagerFactory"><code>PKIX</code></a></li>
+<li>one to load the trust store itself, using the default type
+<code>KeyStore.getDefauktType()</code> returns <code>jks</code>
+<!-- raw HTML omitted -->
+<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore">[1]</a>
+<a href="https://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html#getDefaultType--">[2]</a>
+<!-- raw HTML omitted -->.</li>
+<li>one to build the trust manager instance from the trust store</li>
+</ul>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> X509TrustManager <span style="color:#900;font-weight:bold">trustManagerFor</span><span style="color:#000;font-weight:bold">(</span>KeyStore keyStore<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    TrustManagerFactory tmf <span style="color:#000;font-weight:bold">=</span> trustManagerFactoryFor<span style="color:#000;font-weight:bold">(</span>keyStore<span style="color:#000;font-weight:bold">);</span>
+
+    TrustManager<span style="color:#000;font-weight:bold">[]</span> trustManagers <span style="color:#000;font-weight:bold">=</span> tmf<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getTrustManagers</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>trustManagers<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span> <span style="color:#000;font-weight:bold">!=</span> 1<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Unexpected number of trust managers:&#34;</span>
+                                                <span style="color:#000;font-weight:bold">+</span> Arrays<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toString</span><span style="color:#000;font-weight:bold">(</span>trustManagers<span style="color:#000;font-weight:bold">));</span>
+    <span style="color:#000;font-weight:bold">}</span>
+    TrustManager trustManager <span style="color:#000;font-weight:bold">=</span> trustManagers<span style="color:#000;font-weight:bold">[</span>0<span style="color:#000;font-weight:bold">];</span>
+    <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>trustManager <span style="color:#000;font-weight:bold">instanceof</span> X509TrustManager<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">(</span>X509TrustManager<span style="color:#000;font-weight:bold">)</span> trustManager<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+    <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;&#39;&#34;</span> <span style="color:#000;font-weight:bold">+</span> trustManager <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;&#39; is not a X509TrustManager&#34;</span><span style="color:#000;font-weight:bold">);</span>
+<span style="color:#000;font-weight:bold">}</span>
+
+
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> TrustManagerFactory <span style="color:#900;font-weight:bold">trustManagerFactoryFor</span><span style="color:#000;font-weight:bold">(</span>KeyStore keyStore<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">{</span>
+        TrustManagerFactory tmf <span style="color:#000;font-weight:bold">=</span> TrustManagerFactory<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getInstance</span><span style="color:#000;font-weight:bold">(</span>TrustManagerFactory<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getDefaultAlgorithm</span><span style="color:#000;font-weight:bold">());</span>
+        tmf<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">init</span><span style="color:#000;font-weight:bold">(</span>keyStore<span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">return</span> tmf<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>KeyStoreException <span style="color:#000;font-weight:bold">|</span> NoSuchAlgorithmException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Can&#39;t load trust manager for keystore : &#34;</span> <span style="color:#000;font-weight:bold">+</span> keyStore<span style="color:#000;font-weight:bold">,</span> e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+
+
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> KeyStore <span style="color:#900;font-weight:bold">readJavaKeyStore</span><span style="color:#000;font-weight:bold">(</span>Path javaKeyStorePath<span style="color:#000;font-weight:bold">,</span> String password<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">(</span>InputStream inputStream <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> BufferedInputStream<span style="color:#000;font-weight:bold">(</span>Files<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newInputStream</span><span style="color:#000;font-weight:bold">(</span>javaKeyStorePath<span style="color:#000;font-weight:bold">)))</span> <span style="color:#000;font-weight:bold">{</span>
+        KeyStore ks <span style="color:#000;font-weight:bold">=</span> KeyStore<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getInstance</span><span style="color:#000;font-weight:bold">(</span>KeyStore<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getDefaultType</span><span style="color:#000;font-weight:bold">());</span>
+        ks<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">load</span><span style="color:#000;font-weight:bold">(</span>inputStream<span style="color:#000;font-weight:bold">,</span> password<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toCharArray</span><span style="color:#000;font-weight:bold">());</span>
+        <span style="color:#000;font-weight:bold">return</span> ks<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>IOException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> UncheckedIOException<span style="color:#000;font-weight:bold">(</span>e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>CertificateException <span style="color:#000;font-weight:bold">|</span> NoSuchAlgorithmException <span style="color:#000;font-weight:bold">|</span> KeyStoreException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span>e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Note in the code above the password parameter given to read the trust store.
+Usually it is advised to array for password because a program have a better
+control on their lifecycle (<code>String</code> are immutable and on the heap, while
+array are mutable thus allowing to erase the password, if not the array
+object).</p>
+<p>Then the OkHttp client builder can be configured with the custom SSL
+socket factory :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">X509TrustManager trustManager <span style="color:#000;font-weight:bold">=</span> trustManagerFor<span style="color:#000;font-weight:bold">(</span>readJavaKeyStore<span style="color:#000;font-weight:bold">(</span>Paths<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;./wiremock-truststore.jks&#34;</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#d14">&#34;changeit&#34;</span><span style="color:#000;font-weight:bold">));</span>
+<span style="color:#000;font-weight:bold">new</span> OkHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">()</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sslSocketFactory</span><span style="color:#000;font-weight:bold">(</span>sslContext<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">new</span> TrustManager<span style="color:#000;font-weight:bold">[]{</span>trustManager<span style="color:#000;font-weight:bold">}).</span><span style="color:#008080">getSocketFactory</span><span style="color:#000;font-weight:bold">(),</span>
+                          trustManager<span style="color:#000;font-weight:bold">)</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hostnameVerifier</span><span style="color:#000;font-weight:bold">(</span>allowAllHostNames<span style="color:#000;font-weight:bold">())</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">()</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:8443&#34;</span><span style="color:#000;font-weight:bold">)</span>
+                                        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>This code is quite nice because it can server for the majority of HTTP usage
+in the application. The code allows a approach that is a bit more configurable
+and under control.</p>
+<h5 id="from-a-pem-certificate">From a <code>PEM</code> certificate</h5>
+<p>Since the trust manager factory can only be built with a key store, this
+approach will build a key store in memory. This key store
+will be injected with the <code>X.509</code> certificate that was extracted previously
+with the command <code>openssl x509 -outform pem</code>.</p>
+<p>Since the only type of <em>key store</em> available in the JVM is <code>jks</code>, and the
+scope of this article is limited to SSL/TLS mechanism of the JVM only,
+the following code will then build a JKS in memory. This key store
+will inject the <code>X.509</code> certificate that was extracted previously with
+the command <code>openssl x509 -outform pem</code>.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> KeyStore <span style="color:#900;font-weight:bold">makeJavaKeyStore</span><span style="color:#000;font-weight:bold">(</span>Path certificatePath<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">(</span>BufferedInputStream bis <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> BufferedInputStream<span style="color:#000;font-weight:bold">(</span>Files<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newInputStream</span><span style="color:#000;font-weight:bold">(</span>certificatePath<span style="color:#000;font-weight:bold">)))</span> <span style="color:#000;font-weight:bold">{</span>
+        CertificateFactory cf <span style="color:#000;font-weight:bold">=</span> CertificateFactory<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getInstance</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;X.509&#34;</span><span style="color:#000;font-weight:bold">);</span>
+
+        KeyStore ks <span style="color:#000;font-weight:bold">=</span> KeyStore<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getInstance</span><span style="color:#000;font-weight:bold">(</span>KeyStore<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getDefaultType</span><span style="color:#000;font-weight:bold">());</span>
+        ks<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">load</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#458;font-weight:bold">int</span> certificate_counter <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span>X509Certificate certificate <span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">(</span>Collection<span style="color:#000;font-weight:bold">&lt;</span>X509Certificate<span style="color:#000;font-weight:bold">&gt;)</span> cf<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">generateCertificates</span><span style="color:#000;font-weight:bold">(</span>bis<span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span>
+            ks<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setCertificateEntry</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;cert_&#34;</span> <span style="color:#000;font-weight:bold">+</span> certificate_counter<span style="color:#000;font-weight:bold">++,</span> certificate<span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#000;font-weight:bold">return</span> ks<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>IOException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> UncheckedIOException<span style="color:#000;font-weight:bold">(</span>e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>CertificateException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Can&#39;t load certificate : &#34;</span> <span style="color:#000;font-weight:bold">+</span> certificatePath<span style="color:#000;font-weight:bold">,</span> e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>KeyStoreException <span style="color:#000;font-weight:bold">|</span> NoSuchAlgorithmException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> IllegalStateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Can&#39;t create the internal keystore for certificate : &#34;</span> <span style="color:#000;font-weight:bold">+</span> certificatePath<span style="color:#000;font-weight:bold">,</span> e<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>As a reminder notice this code use the key store default type, i.e. <code>jks</code>, yet
+the JVM also supports other types like <code>PKCS12</code>
+(<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore">see more</a>)</p>
+<p>Also notice how the call <code>(Collection&lt;X509Certificate&gt;) cf.generateCertificates(bis)</code>
+is <strong>generic</strong> and that depending on the instance type the generated
+certificate object could have different type, here the type is <code>&quot;X.509&quot;</code>
+so according to the javadoc objects can be cast to <code>X509Certificate</code> type.</p>
+<p>One other thing to note is that <code>(Collection&lt;X509Certificate&gt;) cf.generateCertificates(bis)</code>
+returns actually a collection of certificates. That means the file
+represented by this input stream may contain multiple certificates. Indeed the
+<a href="https://docs.oracle.com/javase/8/docs/api/java/security/cert/CertificateFactory.html#generateCertificate-java.io.InputStream-"><code>CertificateFactory.generateCertificate(InputStream)</code></a>
+javadoc specifies that for <strong>X.509</strong> type the input stream content must be</p>
+<ul>
+<li>
+<p><code>PEM</code> formatted, which is means a payload encoded to ASCII base64 within
+the following boundaries or markers
+<code>-----BEGIN CERTIFICATE-----</code> and <code>-----END CERTIFICATE-----</code></p>
+</li>
+<li>
+<p><code>DER</code> formatted which is the binary representation of the certificate
+(It is possible to get one using this command
+<code>openssl x509 -in wiremock.pem -outform der &gt; wiremock.der</code>).</p>
+</li>
+</ul>
+<blockquote>
+<p>In the case of a certificate factory for X.509 certificates, the certificate
+provided in inStream must be DER-encoded and may be supplied in binary or
+printable (Base64) encoding. If the certificate is provided in Base64 encoding,
+it must be bounded at the beginning by <code>-----BEGIN CERTIFICATE-----</code>, and must be
+bounded at the end by <code>-----END CERTIFICATE-----</code>.</p>
+</blockquote>
+<p><em>The certificate entry name is not important in the context of this blog.</em></p>
+<p>Finally this code can be integrated by instructing the code to create a
+trust manager using this key store :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">X509TrustManager trustManager <span style="color:#000;font-weight:bold">=</span> trustManagerFor<span style="color:#000;font-weight:bold">(</span>makeJavaKeyStore<span style="color:#000;font-weight:bold">(</span>Paths<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;./wiremock.pem&#34;</span><span style="color:#000;font-weight:bold">)));</span>
+<span style="color:#000;font-weight:bold">new</span> OkHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">()</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sslSocketFactory</span><span style="color:#000;font-weight:bold">(</span>sslContext<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">new</span> TrustManager<span style="color:#000;font-weight:bold">[]{</span>trustManager<span style="color:#000;font-weight:bold">}).</span><span style="color:#008080">getSocketFactory</span><span style="color:#000;font-weight:bold">(),</span>
+                          trustManager<span style="color:#000;font-weight:bold">)</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hostnameVerifier</span><span style="color:#000;font-weight:bold">(</span>allowAllHostNames<span style="color:#000;font-weight:bold">())</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">()</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://localhost:8443&#34;</span><span style="color:#000;font-weight:bold">)</span>
+                                        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>That&rsquo;s even nicer because there&rsquo;s once less step, no <code>keytool</code> action required.</p>
+<p>Yet there again once this client is configured it still cannot connect to HTTPS
+servers using other certificates, like <code>github.com</code>.</p>
+<h3 id="programmatically-use-both-the-system-trust-chain-and-the-self-signed-certificate">Programmatically use both the system trust chain, and the self signed certificate</h3>
+<p>If the HTTPS client must connect to various third parties having either a
+certificate signed from a <em>known</em> certificate authority or a self signed
+certificate, then it is needed to tweak the custom trust manager.</p>
+<p>This approach simply craft a composite trust manager delegating certificate
+verification to the configured delegate trust managers :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">CompositeX509TrustManager</span> <span style="color:#000;font-weight:bold">implements</span> X509TrustManager <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> List<span style="color:#000;font-weight:bold">&lt;</span>X509TrustManager<span style="color:#000;font-weight:bold">&gt;</span> trustManagers<span style="color:#000;font-weight:bold">;</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#900;font-weight:bold">CompositeX509TrustManager</span><span style="color:#000;font-weight:bold">(</span>X509TrustManager<span style="color:#000;font-weight:bold">...</span> trustManagers<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">trustManagers</span> <span style="color:#000;font-weight:bold">=</span> Arrays<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">asList</span><span style="color:#000;font-weight:bold">(</span>trustManagers<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">checkClientTrusted</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]</span> chain<span style="color:#000;font-weight:bold">,</span> String authType<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">throws</span> CertificateException <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">new</span> MultiException<span style="color:#000;font-weight:bold">&lt;&gt;(</span><span style="color:#000;font-weight:bold">new</span> CertificateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;This certification chain couldn&#39;t be trusted&#34;</span><span style="color:#000;font-weight:bold">))</span>
+                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">collectFrom</span><span style="color:#000;font-weight:bold">(</span>trustManagers<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">stream</span><span style="color:#000;font-weight:bold">(),</span>
+                             trustManager <span style="color:#000;font-weight:bold">-&gt;</span> trustManager<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">checkClientTrusted</span><span style="color:#000;font-weight:bold">(</span>chain<span style="color:#000;font-weight:bold">,</span> authType<span style="color:#000;font-weight:bold">))</span>
+                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">scream</span><span style="color:#000;font-weight:bold">(</span>UNLESS_ANY_SUCCESS<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">checkServerTrusted</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]</span> chain<span style="color:#000;font-weight:bold">,</span> String authType<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">throws</span> CertificateException <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">new</span> MultiException<span style="color:#000;font-weight:bold">&lt;&gt;(</span><span style="color:#000;font-weight:bold">new</span> CertificateException<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;This certification chain couldn&#39;t be trusted&#34;</span><span style="color:#000;font-weight:bold">))</span>
+                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">collectFrom</span><span style="color:#000;font-weight:bold">(</span>trustManagers<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">stream</span><span style="color:#000;font-weight:bold">(),</span>
+                             trustManager <span style="color:#000;font-weight:bold">-&gt;</span> trustManager<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">checkServerTrusted</span><span style="color:#000;font-weight:bold">(</span>chain<span style="color:#000;font-weight:bold">,</span> authType<span style="color:#000;font-weight:bold">))</span>
+                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">scream</span><span style="color:#000;font-weight:bold">(</span>UNLESS_ANY_SUCCESS<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
+    <span style="color:#000;font-weight:bold">public</span> X509Certificate<span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">getAcceptedIssuers</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">return</span> trustManagers<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">stream</span><span style="color:#000;font-weight:bold">()</span>
+                            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">map</span><span style="color:#000;font-weight:bold">(</span>X509TrustManager<span style="color:#000;font-weight:bold">::</span>getAcceptedIssuers<span style="color:#000;font-weight:bold">)</span>
+                            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">flatMap</span><span style="color:#000;font-weight:bold">(</span>Arrays<span style="color:#000;font-weight:bold">::</span>stream<span style="color:#000;font-weight:bold">)</span>
+                            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toArray</span><span style="color:#000;font-weight:bold">(</span>X509Certificate<span style="color:#000;font-weight:bold">[]::</span><span style="color:#000;font-weight:bold">new</span><span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p><code>MultiException</code> is small <em>helper</em> that allows to collect several exceptions
+that are raised by a collection of calls, while still raising a single
+parent exception, it relies on <code>Throwable.addSuppressed</code> that was added
+in Java 1.7 for <em>try-with-resources</em> statements.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">MultiException</span><span style="color:#000;font-weight:bold">&lt;</span>E <span style="color:#000;font-weight:bold">extends</span> Exception<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">final</span> E parent<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#458;font-weight:bold">boolean</span> successMarker <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">false</span><span style="color:#000;font-weight:bold">;</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#900;font-weight:bold">MultiException</span><span style="color:#000;font-weight:bold">(</span>E parent<span style="color:#000;font-weight:bold">,</span> Exception<span style="color:#000;font-weight:bold">...</span> exceptions<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">parent</span> <span style="color:#000;font-weight:bold">=</span> parent<span style="color:#000;font-weight:bold">;</span>
+        Arrays<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">stream</span><span style="color:#000;font-weight:bold">(</span>exceptions<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">forEach</span><span style="color:#000;font-weight:bold">(</span>parent<span style="color:#000;font-weight:bold">::</span>addSuppressed<span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> MultiException<span style="color:#000;font-weight:bold">&lt;</span>E<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">collectFrom</span><span style="color:#000;font-weight:bold">(</span>Stream<span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> stream<span style="color:#000;font-weight:bold">,</span> ThrowingConsumer<span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> invocation<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        stream<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">forEach</span><span style="color:#000;font-weight:bold">(</span>t <span style="color:#000;font-weight:bold">-&gt;</span> collect<span style="color:#000;font-weight:bold">(</span>t<span style="color:#000;font-weight:bold">,</span> invocation<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">ifPresent</span><span style="color:#000;font-weight:bold">(</span>parent<span style="color:#000;font-weight:bold">::</span>addSuppressed<span style="color:#000;font-weight:bold">));</span>
+        <span style="color:#000;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">this</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">private</span> <span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> Optional<span style="color:#000;font-weight:bold">&lt;</span>Exception<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">collect</span><span style="color:#000;font-weight:bold">(</span>T type<span style="color:#000;font-weight:bold">,</span> ThrowingConsumer<span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> throwing<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">{</span>
+            throwing<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">accept</span><span style="color:#000;font-weight:bold">(</span>type<span style="color:#000;font-weight:bold">);</span>
+
+            successMarker <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">true</span><span style="color:#000;font-weight:bold">;</span>
+            <span style="color:#000;font-weight:bold">return</span> Optional<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">empty</span><span style="color:#000;font-weight:bold">();</span>
+        <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>Exception e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#000;font-weight:bold">return</span> Optional<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">of</span><span style="color:#000;font-weight:bold">(</span>e<span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">}</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">scream</span><span style="color:#000;font-weight:bold">(</span>Mode mode<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">throws</span> E <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>Mode<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">UNLESS_ANY_SUCCESS</span> <span style="color:#000;font-weight:bold">==</span> mode <span style="color:#000;font-weight:bold">&amp;&amp;</span> successMarker<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#000;font-weight:bold">return</span><span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">}</span>
+        <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>parent<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getSuppressed</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">length</span> <span style="color:#000;font-weight:bold">&gt;</span> 0<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#000;font-weight:bold">throw</span> parent<span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">}</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#3c5d5d;font-weight:bold">@FunctionalInterface</span>
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">interface</span> <span style="color:#458;font-weight:bold">ThrowingConsumer</span><span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">accept</span><span style="color:#000;font-weight:bold">(</span>T type<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">throws</span> Exception<span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">enum</span> Mode <span style="color:#000;font-weight:bold">{</span>
+        UNLESS_ANY_SUCCESS<span style="color:#000;font-weight:bold">,</span>
+        ANY_FAILURE
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>The composite manager can be used this way :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">X509TrustManager compositeTrustManager <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> CompositeX509TrustManager<span style="color:#000;font-weight:bold">(</span>
+        trustManagerFor<span style="color:#000;font-weight:bold">(</span>makeJavaKeyStore<span style="color:#000;font-weight:bold">(</span>Paths<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;./wiremock.pem&#34;</span><span style="color:#000;font-weight:bold">))),</span>
+        systemTrustManager<span style="color:#000;font-weight:bold">());</span>
+OkHttpClient okHttpClient <span style="color:#000;font-weight:bold">=</span> httpClient<span style="color:#000;font-weight:bold">(</span>sslContext<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span>
+                                                  <span style="color:#000;font-weight:bold">new</span> TrustManager<span style="color:#000;font-weight:bold">[]{</span>compositeTrustManager<span style="color:#000;font-weight:bold">}),</span>
+                                        compositeTrustManager<span style="color:#000;font-weight:bold">)</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newBuilder</span><span style="color:#000;font-weight:bold">()</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">hostnameVerifier</span><span style="color:#000;font-weight:bold">(</span>allowAllHostname<span style="color:#000;font-weight:bold">())</span>
+        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">();</span>
+</code></pre></div><p>This client can now access both kind of HTTPS servers.</p>
+<h2 id="server-side">Server side</h2>
+<p>This blog post explored a bit the client side, but form the beginning the code
+dealt with wiremock&rsquo;s certificate. There&rsquo;s something to do on this side
+to allow a complete control in the tests. The first thing would be to generate
+one.</p>
+<h3 id="generate-a-self-signed-certificate-with-keytool">Generate a self-signed certificate with <code>keytool</code></h3>
+<p>The JDK&rsquo;s <code>keytool</code> offers various commands and one, especially useful in the
+current case, that allows to generate a certificate.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -genkey <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keyalg RSA <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -alias bric3 <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keystore bric3.jks <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -storepass the_password <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -validity <span style="color:#099">360</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keysize <span style="color:#099">2048</span>
+</code></pre></div><p>With the above command <code>keytool</code> will generate a Java keystore file with
+the brand new certificate. It will interact with the user, asking for
+the following certificate&rsquo;s attributes :</p>
+<ul>
+<li><code>CN</code> (<strong>C</strong>ommon <strong>N</strong>ame)</li>
+<li><code>OU</code> (<strong>O</strong>rganizational <strong>U</strong>nit)</li>
+<li><code>O</code> (<strong>O</strong>rganization)</li>
+<li><code>L</code> (<strong>L</strong>ocality)</li>
+<li><code>ST</code> (<strong>ST</strong>ate)</li>
+<li><code>C</code> (<strong>C</strong>ountry)</li>
+</ul>
+<p>then it will ask for the certificate password, not to be mixed with the
+keystore password (which is given in the above command with
+<code>-storepass the_password</code>). This can work in batch mode (non-interactive)
+if the command has the following options :</p>
+<ul>
+<li><code>-keypass password</code></li>
+<li><code>-dname 'CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR'</code></li>
+</ul>
+<blockquote>
+<p><code>dname</code> means <strong>D</strong>istinguished <strong>N</strong>ames</p>
+</blockquote>
+<p>However this new generated certificate and the one of wiremock have the
+same problems leading to the same obstacle that had to be dealt with in
+the first half of this blog :</p>
+<ul>
+<li>it is self-signed</li>
+<li>it will require a custom host name verifier (<a href="https://tools.ietf.org/html/rfc2818#section-3.1">RFC 2818</a>)</li>
+</ul>
+<p>Let&rsquo;s first fix this last point first, what this certificate need is a
+<a href="https://tools.ietf.org/html/rfc5280#section-4.2.1.6"><code>SAN</code> (<strong>S</strong>ubject <strong>A</strong>lternative <strong>N</strong>ames)</a>
+section that can contain DNS names or IP addresses. <code>keytool</code> can be tell
+to add this information with the <code>-ext</code> option along with the <strong>SAN</strong>
+<em>extension</em> that needs to be formatted with almost any number of <code>dns</code> or
+<code>ip</code> elements.</p>
+<pre><code>-ext SAN=dns:domain.com,dns:localhost,ip:127.0.0.1
+</code></pre><p>For example if the certificate needs to be valid for the following hostnames</p>
+<ul>
+<li><code>blog.arkey.fr</code></li>
+<li><code>blog</code></li>
+<li><code>127.0.0.1</code></li>
+<li><code>::1</code></li>
+</ul>
+<p><code>keytool</code> needs to be told to generate the certificate with the following options :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -genkey <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keyalg RSA <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -alias bric3 <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keystore bric3.jks <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -storepass the_password <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -validity <span style="color:#099">360</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keysize <span style="color:#099">2048</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -keypass the_password <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -dname <span style="color:#d14">&#39;CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR&#39;</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -ext <span style="color:#d14">&#39;SAN=dns:blog.arkey.fr,dns:blog,dns:localhost,ip:127.0.0.1,ip:::1&#39;</span>
+</code></pre></div><hr>
+<p><strong>Note #1:</strong></p>
+<ol>
+<li><code>keytool</code> generate a certificate and stores it immediately in the <strong>J</strong>ava
+<strong>K</strong>ey <strong>S</strong>tore</li>
+<li>wiremock in this version only allow to configure a single password that
+will be used for both the certificate and the <strong>J</strong>ava <strong>K</strong>ey <strong>S</strong>tore ;
+that means for our tests the command should specify the same password for
+both JKS and the certificate
+e.g. : <code>-storepass the_password</code> and <code>-keypass the_password</code>.</li>
+</ol>
+<p><strong>Note #2:</strong></p>
+<p><code>keytool</code> do validate the DNS entry, but it doesn&rsquo;t understand all possible
+allowed characters of a domain name for this reason it would be preferable
+to use <code>openssl</code> or similar tools to generate the certificates.
+An interesting part of the PKIX / X509 specification in version 3 is the
+<em>Subject Alt Names</em> ; this extension allows to list the <em>names</em> of the
+servers for for which this certificate has been issued, this completes
+the limited <em>Common Name</em>.
+One of the advantages of this extension is the ability to enter
+<a href="https://tools.ietf.org/html/rfc5280#section-4.2.1.6">wildcard</a> names,
+although the RFC does cover how a client should interpret and
+act on those wildcards :</p>
+<blockquote>
+<p>Finally, the semantics of subject alternative names that include
+wildcard characters (e.g., as a placeholder for a set of names) are
+not addressed by this specification.  Applications with specific
+requirements MAY use such names, but they must define the semantics.</p>
+</blockquote>
+<p>E.g. <strong><code>google.com</code></strong> certificate is configured with domain names with
+wildcard:</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh"><span style="color:#0086b3">echo</span> -n | openssl s_client -showcerts -connect google.com:443 2&gt;&amp;<span style="color:#099">1</span> | openssl x509 -text
+</code></pre></div><pre><code>X509v3 Subject Alternative Name: 
+    DNS:*.google.com, DNS:*.android.com, DNS:*.appengine.google.com, DNS:*.cloud.google.com, DNS:*.db833953.google.cn, DNS:*.g.co, DNS:*.gcp.gvt2.com, DNS:*.google-analytics.com, DNS:*.google.ca, DNS:*.google.cl, DNS:*.google.co.in, DNS:*.google.co.jp, DNS:*.google.co.uk, DNS:*.google.com.ar, DNS:*.google.com.au, DNS:*.google.com.br, DNS:*.google.com.co, DNS:*.google.com.mx, DNS:*.google.com.tr, DNS:*.google.com.vn, DNS:*.google.de, DNS:*.google.es, DNS:*.google.fr, DNS:*.google.hu, DNS:*.google.it, DNS:*.google.nl, DNS:*.google.pl, DNS:*.google.pt, DNS:*.googleadapis.com, DNS:*.googleapis.cn, DNS:*.googlecommerce.com, DNS:*.googlevideo.com, DNS:*.gstatic.cn, DNS:*.gstatic.com, DNS:*.gvt1.com, DNS:*.gvt2.com, DNS:*.metric.gstatic.com, DNS:*.urchin.com, DNS:*.url.google.com, DNS:*.youtube-nocookie.com, DNS:*.youtube.com, DNS:*.youtubeeducation.com, DNS:*.yt.be, DNS:*.ytimg.com, DNS:android.clients.google.com, DNS:android.com, DNS:developer.android.google.cn, DNS:developers.android.google.cn, DNS:g.co, DNS:goo.gl, DNS:google-analytics.com, DNS:google.com, DNS:googlecommerce.com, DNS:source.android.google.cn, DNS:urchin.com, DNS:www.goo.gl, DNS:youtu.be, DNS:youtube.com, DNS:youtubeeducation.com, DNS:yt.be
+</code></pre><hr>
+<h3 id="generate-a-self-signed-certificate-with-openssl">Generate a self-signed certificate with <code>openssl</code></h3>
+<p><code>keytool</code> is nice, but it requires the JVM, and let&rsquo;s use the standard
+tool, the <em>Swiss army knife</em> <code>openssl</code> (or the new forks <strong>BoringSSL</strong> or
+<strong>LibreSSL</strong>).</p>
+<p>The <code>keytool</code> command that was used was generating a self-signed certificate
+in one shot, it is also possible with <code>openssl</code> but let&rsquo;s understand the
+different steps that are needed under the hood to generate a self-signed
+certificate.</p>
+<ol>
+<li>
+<p>Generate a private key</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">openssl genrsa <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -out bric3-private.key <span style="color:#d14">\
+</span><span style="color:#d14"></span>    <span style="color:#099">2048</span>
+</code></pre></div><p>The above command creates a private key of 2048 bits using the RSA
+algorithm. This key is <strong>not</strong> protected by a password, so keep it
+safe (to do that use the <code>-des3</code> option).</p>
+</li>
+<li>
+<p>Request a new certificate for the domain(s).</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">openssl req <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -new <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -outform pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -out bric3-self.csr <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -keyform pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -key bric3-private.key <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -sha256 <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -config &lt;<span style="color:#000;font-weight:bold">(</span>cat <span style="color:#d14">&lt;&lt;-EOF
+</span><span style="color:#d14">
+</span><span style="color:#d14">[req]
+</span><span style="color:#d14">prompt = no
+</span><span style="color:#d14">req_extensions = bric3_req_ext
+</span><span style="color:#d14">distinguished_name = dn
+</span><span style="color:#d14">   
+</span><span style="color:#d14">[dn]
+</span><span style="color:#d14">CN=Brice Dutheil
+</span><span style="color:#d14">O=Arkey
+</span><span style="color:#d14">OU=Arkey
+</span><span style="color:#d14">L=Paris
+</span><span style="color:#d14">ST=France
+</span><span style="color:#d14">C=FR
+</span><span style="color:#d14">
+</span><span style="color:#d14">[bric3_req_ext]
+</span><span style="color:#d14">subjectAltName = @alt_names
+</span><span style="color:#d14">
+</span><span style="color:#d14">[alt_names]
+</span><span style="color:#d14">DNS.1 = localhost
+</span><span style="color:#d14">DNS.2 = arkey.fr
+</span><span style="color:#d14">DNS.3 = *.arkey.fr
+</span><span style="color:#d14">DNS.4 = arkey.pro
+</span><span style="color:#d14">DNS.5 = *.arkey.pro
+</span><span style="color:#d14">DNS.6 = blog
+</span><span style="color:#d14">IP.1 = 127.0.0.1
+</span><span style="color:#d14">IP.2 = ::1
+</span><span style="color:#d14">
+</span><span style="color:#d14">EOF</span>
+<span style="color:#000;font-weight:bold">)</span>
+</code></pre></div><p>The above <code>req</code> command works in batch mode (i.e. non-interractive).
+It will generate a <code>CSR</code> file (<strong>C</strong>ertificate <strong>S</strong>ign <strong>R</strong>equest)
+stored in the PEM format. This command needs the private key of the
+server&rsquo;s owner. In order to pass additional parameters to generate
+the CSR are passed via a shell stream and <em><a href="http://tldp.org/LDP/abs/html/here-docs.html">here document</a></em>
+<code>&lt;(cat &lt;&lt;-MARKER ... MARKER)</code>.</p>
+<p>In the <em>document</em> there&rsquo;s a <code>[req]</code> section with</p>
+<ul>
+<li>an option that instruct the program to run in non-interactive
+mode : <code>prompt = no</code>,</li>
+<li>a <em>link</em> to the <strong>D</strong>istinguished <strong>N</strong>ame section named <code>dn</code> :
+<code>distinguished_name = dn</code>,</li>
+<li>a <em>link</em> to the <strong>S</strong>ubject <strong>A</strong>lt <strong>N</strong>ame extension section :
+<code>req_extensions = bric3_req_ext</code>, without this field it would be
+necessary to pass the the following option to the command
+<code>-reqexts bric3_req_ext</code></li>
+</ul>
+<p>The <code>[dn]</code> section defines fields that compose what is a <em>DN</em>, e.g.
+the <strong>C</strong>ommon <strong>N</strong>ame, the <strong>O</strong>rganization, etc.</p>
+<p>The <em>extension section</em> (<code>bric3_req_ext</code>) defines where is located
+the <em>alternative name section</em> : <code>subjectAltName = @alt_names</code>, in
+this case only the <code>@</code> prefix is necessary.</p>
+<p>The <em>alternative name section</em> (<code>alt_names</code>) will define the wanted
+entries of <code>DNS</code> type, <code>IP</code> type, etc.</p>
+<p>For more on this <code>req</code> command and how it can be configured, just deep
+dive in the <a href="https://www.openssl.org/docs/manmaster/man1/req.html">man (master branch)</a>
+page.</p>
+</li>
+<li>
+<p>Sign the <em>certificate sign request</em> to generate the actual certificate</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">openssl x509 <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -req <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -days <span style="color:#099">3650</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -inform pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -in bric3-self.csr <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -signkey bric3-private.key <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -outform pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -out bric3-self.pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -extensions bric3_ext <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -extfile &lt;<span style="color:#000;font-weight:bold">(</span>cat <span style="color:#d14">&lt;&lt;-EOF
+</span><span style="color:#d14">[bric3_ext]
+</span><span style="color:#d14">subjectAltName = @alt_names
+</span><span style="color:#d14">
+</span><span style="color:#d14">[alt_names]
+</span><span style="color:#d14">DNS.1 = localhost
+</span><span style="color:#d14">DNS.2 = arkey.fr
+</span><span style="color:#d14">DNS.3 = *.arkey.fr
+</span><span style="color:#d14">DNS.4 = arkey.pro
+</span><span style="color:#d14">DNS.5 = *.arkey.pro
+</span><span style="color:#d14">DNS.6 = blog
+</span><span style="color:#d14">IP.1 = 127.0.0.1
+</span><span style="color:#d14">IP.2 = ::1
+</span><span style="color:#d14">EOF</span>
+<span style="color:#000;font-weight:bold">)</span>
+</code></pre></div><p>The command <code>x509</code> gnerate a new X.509 certificate from a CSR (<code>-req</code>).
+As an intput it obvisouly need the request file <code>-in bric3-self.csr</code>,
+and since it is a self-signed certificate <strong>the command uses the same
+private key</strong> that was used to generate the request <code>-signkey bric3-private.key</code>,
+otherwise it would be the private key of the certificate authority.
+The new certificate will be valid for ten years (<code>-days 3650</code>).</p>
+<p>Unfortunately this <code>openssl</code> command don&rsquo;t use the extensions of the
+request, consequently it his needed to provide them as well via
+configuration file or via a stream (and <em><a href="http://tldp.org/LDP/abs/html/here-docs.html">here docs</a></em>)
+<code>-extfile &lt;(cat &lt;&lt;-EOF ... EOF)</code>, however in this case the extension
+section name has to be passed via an option <code>-extensions bric3_ext</code>.</p>
+<p>If everything is correct a new <code>bric3-self.pem</code> certificate will be issued.</p>
+<p>For more on this <code>x509</code> command and how it can be configured, just deep
+dive in the <a href="https://www.openssl.org/docs/manmaster/man1/x509.html">man (master branch)</a>
+page.</p>
+</li>
+</ol>
+<p>The configuration shown above is quite simple for this blog, in practice
+it will be more complicated with a <em>certificate authority</em> and a more
+elaborate certificate chain.</p>
+<p>As said earlier the 3 above steps that can be reduced to the the following
+command to generate a self-signed certificate.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">openssl req <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -new <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -nodes <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -sha256 <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -newkey rsa:2048 <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -keyform pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -keyout bric3-openssl.key <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -x509 <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -days <span style="color:#099">3650</span> <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -outform pem <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -out bric3-openssl.crt <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -config &lt;<span style="color:#000;font-weight:bold">(</span>cat <span style="color:#d14">&lt;&lt;-EOF
+</span><span style="color:#d14">[req]
+</span><span style="color:#d14">prompt = no
+</span><span style="color:#d14">distinguished_name = dn
+</span><span style="color:#d14">x509_extensions = bric3_ext
+</span><span style="color:#d14">
+</span><span style="color:#d14">[dn]
+</span><span style="color:#d14">CN=Brice Dutheil
+</span><span style="color:#d14">O=Arkey
+</span><span style="color:#d14">OU=Arkey
+</span><span style="color:#d14">L=Paris
+</span><span style="color:#d14">ST=France
+</span><span style="color:#d14">C=FR
+</span><span style="color:#d14">
+</span><span style="color:#d14">[bric3_ext]
+</span><span style="color:#d14">subjectAltName = @alt_names
+</span><span style="color:#d14">
+</span><span style="color:#d14">[alt_names]
+</span><span style="color:#d14">DNS.1 = localhost
+</span><span style="color:#d14">DNS.2 = arkey.fr
+</span><span style="color:#d14">DNS.3 = *.arkey.fr
+</span><span style="color:#d14">DNS.4 = arkey.pro
+</span><span style="color:#d14">DNS.5 = *.arkey.pro
+</span><span style="color:#d14">DNS.6 = blog
+</span><span style="color:#d14">IP.1 = 127.0.0.1
+</span><span style="color:#d14">IP.2 = ::1
+</span><span style="color:#d14">EOF</span>
+<span style="color:#000;font-weight:bold">)</span>
+</code></pre></div><p>The command is <code>req</code> but tweaked with these options :</p>
+<ul>
+<li><code>-newkey rsa:2048</code> option that will generate the RSA 2048 private key.
+The key will be stored with the PEM format in the <code>bric3-openssl.key</code> file.</li>
+<li><code>-x509</code> that tell the command the output won&rsquo;t be a certificate sign
+request but a X.509 signed certificate. The certificate will be valid
+for ten years <code>-days 3650</code> and will be stored with the PEM format in
+the <code>bric3-openssl.crt</code> file. Since <code>-x509</code> option is used the extension
+section location field changes from <code>req_extensions</code> to <code>x509_extensions = bric3_ext</code>.</li>
+</ul>
+<hr>
+<p>Note the <code>subjectAltName = @alt_names</code> line again, the <code>@</code> allows to reference
+a <em>vertical</em> list declared within the <code>alt_names</code> section. For example</p>
+<pre><code>[bric3_ext]
+subjectAltName = DNS.1 : localhost, DNS.3 : arkey.fr, DNS.3 : *.arkey.fr, DNS.4 : arkey.pro, DNS.5 : *.arkey.pro, DNS.6 : blog, IP.1 : 127.0.0.1, IP.2 : ::1
+</code></pre><p>is equivalent to</p>
+<pre><code>[bric3_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+DNS.2 = arkey.fr
+DNS.3 = *.arkey.fr
+DNS.4 = arkey.pro
+DNS.5 = *.arkey.pro
+DNS.6 = blog
+IP.1 = 127.0.0.1
+IP.2 = ::1
+</code></pre><p>There&rsquo;s however a few syntax changes</p>
+<ul>
+<li>
+<p>the use of a colon <code>:</code> next to the the alternative name (<code>IP</code>, <code>DNS</code>, etc.)
+for the horizontal list, an equal sign <code>=</code> for the vertical one.</p>
+</li>
+<li>
+<p>the post-fix <em>index</em> notation is optional for the horizontal list, but
+mandatory in the vertical list.</p>
+</li>
+</ul>
+<hr>
+<p>Finally they need to be packaged in order to use the certificate and the key
+with the JVM. Standard libraries of the JDK can load a <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore"><strong>J</strong>ava <strong>K</strong>ey
+<strong>S</strong>tore or <code>P12</code> (<strong>PKCS12</strong>) file</a>.</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">openssl pkcs12 <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -export <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -in bric3-openssl.crt <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -inkey bric3-openssl.key <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -passout pass:cadeau <span style="color:#d14">\
+</span><span style="color:#d14"></span>    -out bric3.p12
+</code></pre></div><p>As a side note here&rsquo;s how to create a Java Keystore from a PKCS12 store :</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">keytool -importkeystore <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -srckeystore bric3.p12 <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -srcstoretype PKCS12 <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -srcstorepass cadeau <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -deststorepass the_password <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -destkeypass the_password <span style="color:#d14">\
+</span><span style="color:#d14"></span>        -destkeystore bric3-openssl.jks
+</code></pre></div><h3 id="loading-the-generated-certificate">Loading the generated certificate</h3>
+<p>In order to use the certificate wiremock need to be configured with the
+location of the key store (and of course in the client code).</p>
+<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Rule</span>
+<span style="color:#000;font-weight:bold">public</span> WireMockRule wireMockRule <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> WireMockRule<span style="color:#000;font-weight:bold">(</span>wireMockConfig<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">dynamicPort</span><span style="color:#000;font-weight:bold">()</span>
+                                                                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">keystorePath</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;./bric3.jks&#34;</span><span style="color:#000;font-weight:bold">)</span>
+                                                                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">keystorePassword</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;the_password&#34;</span><span style="color:#000;font-weight:bold">)</span>
+                                                                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">dynamicHttpsPort</span><span style="color:#000;font-weight:bold">());</span>
+
+<span style="color:#3c5d5d;font-weight:bold">@Test</span>
+<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">my_precious_self_signed_certificate</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> IOException <span style="color:#000;font-weight:bold">{</span>
+    X509TrustManager compositeTrustManager <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> CompositeX509TrustManager<span style="color:#000;font-weight:bold">(</span>
+            trustManagerFor<span style="color:#000;font-weight:bold">(</span>readJavaKeyStore<span style="color:#000;font-weight:bold">(</span>Paths<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;./bric3.jks&#34;</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#d14">&#34;the_password&#34;</span><span style="color:#000;font-weight:bold">)),</span>
+            systemTrustManager<span style="color:#000;font-weight:bold">());</span>
+    OkHttpClient okHttpClient <span style="color:#000;font-weight:bold">=</span> httpClient<span style="color:#000;font-weight:bold">(</span>sslContext<span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span>
+                                                      <span style="color:#000;font-weight:bold">new</span> TrustManager<span style="color:#000;font-weight:bold">[]{</span>compositeTrustManager<span style="color:#000;font-weight:bold">}),</span>
+                                           compositeTrustManager<span style="color:#000;font-weight:bold">)</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newBuilder</span><span style="color:#000;font-weight:bold">()</span>
+            <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">(</span>Response response <span style="color:#000;font-weight:bold">=</span> okHttpClient<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">newCall</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Request<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">get</span><span style="color:#000;font-weight:bold">()</span>
+                                                                       <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">url</span><span style="color:#000;font-weight:bold">(</span>format<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;https://%s:%d&#34;</span><span style="color:#000;font-weight:bold">,</span>
+                                                                                   <span style="color:#d14">&#34;localhost&#34;</span><span style="color:#000;font-weight:bold">,</span>
+                                                                                   wireMockRule<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">httpsPort</span><span style="color:#000;font-weight:bold">()))</span>
+                                                                       <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">())</span>
+                                         <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">execute</span><span style="color:#000;font-weight:bold">())</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#998;font-style:italic">// successfully established connection
+</span><span style="color:#998;font-style:italic"></span>    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></div><p>Notice the use of the JKS key store instead of the P12 file, while I just
+wrote that
+<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#impl">all JVM implementations are supposed to support PKCS12 type key store</a>,
+what happened ? Unfortunately wiremock uses Jetty under the hood and
+<a href="(https://wiki.eclipse.org/Jetty/Howto/Configure_SSL#Loading_Keys_and_Certificates_via_PKCS12)">Jetty doesn&rsquo;t allow to be configured with a PKCS12 file</a>.
+Meaning that our P12 file have to be converted in a <strong>J</strong>ava <strong>K</strong>ey <strong>S</strong>tore.</p>
+<h2 id="wrap-up">Wrap up</h2>
+<p>This was the last piece of code of this blog entry. In this article I hope
+you discovered how to manage simple self-signed certificates with Java,
+and how to generate self-signed certificates with Java tools and a almost
+standard tool <code>openssl</code>. I also you better understand how Java architectured
+their security infrastructure classes.</p>
+<p>There&rsquo;s way more thing that needs to dive in with TLS, for example</p>
+<ul>
+<li>how to build his own certificate authority</li>
+<li>how to handle a real certificate chain</li>
+<li>how to handle mutual authentication (clients is also sending his own certificate)</li>
+<li>how to use third party providers like <a href="https://www.bouncycastle.org/java.html">BouncyCastle</a></li>
+</ul>
+<h3 id="versions">Versions</h3>
+<p>This article has been elaborated with the following versions</p>
+<ul>
+<li>Java 1.8.0u144</li>
+<li>okhttp 3.9.0</li>
+<li>wiremock 2.8.0</li>
+<li>High Sierra / OSX 10.13 / Darwin 17.0.0 / 17A405</li>
+<li>openssl =&gt; LibreSSL 2.2.7 (High Sierra comes with LibreSSL)</li>
+</ul>
+<h3 id="some-references">Some references</h3>
+<ul>
+<li><a href="https://www.openssl.org">https://www.openssl.org</a></li>
+<li><a href="https://www.libressl.org">https://www.libressl.org</a></li>
+<li><a href="http://wiki.cacert.org/FAQ/subjectAltName">http://wiki.cacert.org/FAQ/subjectAltName</a></li>
+<li><a href="https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04">https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04</a></li>
+<li><a href="https://tools.ietf.org/html/rfc5280">https://tools.ietf.org/html/rfc5280</a></li>
+<li><a href="https://tools.ietf.org/html/rfc2818">https://tools.ietf.org/html/rfc2818</a></li>
+<li><a href="https://tools.ietf.org/html/rfc5246">https://tools.ietf.org/html/rfc5246</a></li>
+<li><a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/index.html">https://docs.oracle.com/javase/8/docs/technotes/guides/security/index.html</a></li>
+</ul>
+
+
+
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2017/10/02/pagination_hateoas_link.en/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">JAX-RS 2.0 pagination with Link header</span>
+    </a>
+    
+    
+    <a href="/2017/10/19/self-signed-certificates-in-java/" class="navigation-next">
+      <span class="navigation-tittle">HTTPS en Java avec un certificat auto-signé</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2017/10/19/self-signed-certificates-in-java.en/';
+        this.page.title = 'HTTPS in Java with a self-signed certificate';
+        this.page.url = 'https://blog.arkey.fr/2017/10/19/self-signed-certificates-in-java.en/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
+
+    
+    
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>
