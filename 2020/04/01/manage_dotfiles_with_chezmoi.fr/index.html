@@ -1,279 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-    
-    
-
-
-    <head>
-    <link href="https://gmpg.org/xfn/11" rel="profile">
-    <meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta http-equiv="Cache-Control" content="public" />
-<!-- Enable responsiveness on mobile devices -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
-
-    
-    
-    
-
-<title>Gestion des dotfiles et des secrets avec chezmoi • The Coffee Workshop</title>
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Gestion des dotfiles et des secrets avec chezmoi"/>
-<meta name="twitter:description" content="Régulièrement il nous arrive d&rsquo;avoir à re-configurer une nouvelle machine, avec notamment la re-configuration des fichiers du $HOME. Il y a plusieurs approches et outils, faire une simple archive, utiliser git pour le répertoire $HOME, utiliser des outils comme GNU stow, etc."/>
-
-<meta property="og:title" content="Gestion des dotfiles et des secrets avec chezmoi" />
-<meta property="og:description" content="Régulièrement il nous arrive d&rsquo;avoir à re-configurer une nouvelle machine, avec notamment la re-configuration des fichiers du $HOME. Il y a plusieurs approches et outils, faire une simple archive, utiliser git pour le répertoire $HOME, utiliser des outils comme GNU stow, etc." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.arkey.fr/2020/04/01/manage_dotfiles_with_chezmoi.fr/" />
-<meta property="article:published_time" content="2020-04-01T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-04-01T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
-
-
-    
-
-
-
-
-
-
-<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
-
-
-<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
-
-
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-    <!-- Icons -->
-    
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-    
-    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
-
-    
-    <link rel="shortcut icon" href="/android-192-favicon.png">
-    
-    
-
-
-    
-</head>
-
-
-    <body class=" ">
-    
-<div class="sidebar">
-  <div class="container ">
-    <div class="sidebar-about">
-      <span class="site__title">
-        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
-      </span>
-      
-      
-        <div class="author-image">
-          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
-        </div>
-      
-      <p class="site__description">
-         Java mostly, and general tech 
-      </p>
-    </div>
-    <div class="collapsible-menu">
-      <input type="checkbox" id="menuToggle">
-      <label for="menuToggle">The Coffee Workshop</label>
-      <div class="menu-content">
-        <div>
-	<ul class="sidebar-nav">
-		 
-		 
-			 
-				<li>
-					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		
-	</ul>
-</div>
-
-        <section class="social">
-	
-	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
-	
-	
-	
-	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
-	
-	
-	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
-	
-	
-	
-	
-	
-	
-	
-	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
-	
-	
-	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
-	
-	
-	
-	
-	
-	
-	
-	
-</section>
-
-      </div>
-    </div>
-    
-<div class="copyright">
-  &copy; 2010 - 2020 Brice Dutheil
-  
-    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
-  
-</div>
-
-
-
-  </div>
-</div>
-
-        <div class="content container">
-            
-    
-<article>
-  <header>
-    <h1>Gestion des dotfiles et des secrets avec chezmoi</h1>
-    
-    
-<div class="post__meta">
-    
-    
-      <i class="fas fa-calendar-alt"></i> 2020-04-01
-    
-    
-    
-    
-    
-      
-      
-          <br/>
-           <i class="fas fa-tags"></i>
-          
-          <a class="badge badge-tag" href="/tags/dotfiles">dotfiles</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/chezmoi">chezmoi</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/onepassword">onepassword</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/1password">1password</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/secret">secret</a>
-          
-      
-    
-    
-    <br/>
-    <i class="fas fa-clock"></i> 7 min read
-</div>
-
-
-  </header>
-  
-  
-  <div class="post">
-    <p>Régulièrement il nous arrive d&rsquo;avoir à re-configurer une nouvelle machine, avec
+<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Gestion des dotfiles et des secrets avec chezmoi • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Gestion des dotfiles et des secrets avec chezmoi"><meta name=twitter:description content="Régulièrement il nous arrive d&rsquo;avoir à re-configurer une nouvelle machine, avec notamment la re-configuration des fichiers du $HOME. Il y a plusieurs approches et outils, faire une simple archive, utiliser git pour le répertoire $HOME, utiliser des outils comme GNU stow, etc."><meta property="og:title" content="Gestion des dotfiles et des secrets avec chezmoi"><meta property="og:description" content="Régulièrement il nous arrive d&rsquo;avoir à re-configurer une nouvelle machine, avec notamment la re-configuration des fichiers du $HOME. Il y a plusieurs approches et outils, faire une simple archive, utiliser git pour le répertoire $HOME, utiliser des outils comme GNU stow, etc."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2020/04/01/manage_dotfiles_with_chezmoi.fr/"><meta property="article:published_time" content="2020-04-01T00:00:00+00:00"><meta property="article:modified_time" content="2020-04-01T00:00:00+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.9181f25ed2263aeb878ec6f8a84f10c4ebb16150000fca8767308880bdde5ca0.css integrity="sha256-kYHyXtImOuuHjsb4qE8QxOuxYVAAD8qHZzCIgL3eXKA="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
+<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
+<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
+<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
+<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
+<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
+<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Gestion des dotfiles et des secrets avec chezmoi</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2020-04-01<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/dotfiles>dotfiles</a>
+<a class="badge badge-tag" href=/tags/chezmoi>chezmoi</a>
+<a class="badge badge-tag" href=/tags/onepassword>onepassword</a>
+<a class="badge badge-tag" href=/tags/1password>1password</a>
+<a class="badge badge-tag" href=/tags/secret>secret</a><br><i class="fas fa-clock"></i>7 min read</div></header><div class=post><p>Régulièrement il nous arrive d&rsquo;avoir à re-configurer une nouvelle machine, avec
 notamment la re-configuration des fichiers du <code>$HOME</code>. Il y a plusieurs approches
 et outils, faire une simple archive, utiliser git pour le répertoire $HOME,
-utiliser des outils comme GNU stow, etc.</p>
-<p>Ces approches ont des avantages et des inconvénients, mais je souhaitais
-une fonctionnalité en particulier que <a href="https://github.com/twpayne/chezmoi"><code>chezmoi</code></a>
+utiliser des outils comme GNU stow, etc.</p><p>Ces approches ont des avantages et des inconvénients, mais je souhaitais
+une fonctionnalité en particulier que <a href=https://github.com/twpayne/chezmoi><code>chezmoi</code></a>
 vantait : <strong>l&rsquo;intégration avec un gestionnaire de mot de passe</strong>.
 <code>chezmoi</code> dispose également d&rsquo;autres fonctionnalités pour aider au bootstrap d&rsquo;une
 nouvelle machine comme le templating, et la possibilité de lancer des scripts de
-configuration.</p>
-<p>Dans cet article je me contenterai toutefois du management de dotfiles et des secrets.</p>
-<hr>
-<p>Une fois <code>chezmoi</code> <a href="https://www.chezmoi.io/docs/install/">installé</a>, il faut l&rsquo;initialiser</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi init
+configuration.</p><p>Dans cet article je me contenterai toutefois du management de dotfiles et des secrets.</p><hr><p>Une fois <code>chezmoi</code> <a href=https://www.chezmoi.io/docs/install/>installé</a>, il faut l&rsquo;initialiser</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi init
 </code></pre></div><p>Cette commande créé un répertoire <code>~/.local/share/chezmoi</code> dans lequel les seront ajouté
 les dotfiles géré par <code>chezmoi</code>, ce dossier est un repo git, (mais il est possible
 d&rsquo;utiliser mercurial). Ce dossier et les fichiers dedans seront mentionné en temps que
 fichiers <em>source</em>, tandis que les fichiers dans le dossier home seront mentionnés en
-tant que fichiers <em>cible</em> (<em>target</em>).</p>
-<h2 id="les-bases">Les bases</h2>
-<p>Maintenant ajoutons les fichiers qui nous tiennent à coeur, e.g.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi add .zshrc
+tant que fichiers <em>cible</em> (<em>target</em>).</p><h2 id=les-bases>Les bases</h2><p>Maintenant ajoutons les fichiers qui nous tiennent à coeur, e.g.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi add .zshrc
 ❯ chezmoi add .config/alacritty/alacritty.yml
 ❯ chezmoi add .SpaceVim.d/init.toml
 </code></pre></div><p>Puis une fois tous les fichiers ajoutés, il faut aller dans le dossier de <code>chezmoi</code>
-pour les ajouter au repo git.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi <span style="color:#0086b3">cd</span>
+pour les ajouter au repo git.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi <span style=color:#0086b3>cd</span>
 ❯ git st
 On branch master
 
 No commits yet
 
 Untracked files:
-  <span style="color:#000;font-weight:bold">(</span>use <span style="color:#d14">&#34;git add &lt;file&gt;...&#34;</span> to include in what will be committed<span style="color:#000;font-weight:bold">)</span>
+  <span style=color:#000;font-weight:700>(</span>use <span style=color:#d14>&#34;git add &lt;file&gt;...&#34;</span> to include in what will be committed<span style=color:#000;font-weight:700>)</span>
 	dot_SpaceVim.d/autoload/myspacevim.vim
 	dot_SpaceVim.d/init.toml
 	dot_config/alacritty/alacritty.yml
@@ -289,15 +50,12 @@ Untracked files:
 	dot_zshrc
 
 ❯ git add *
-❯ git commit --message<span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#34;Initial dotfiles config&#34;</span>
-</code></pre></div><p>Bien entendu ce repo peut/doit être synchronisé avec un repo distant.</p>
-<h2 id="gérer-les-changements">Gérer les changements</h2>
-<p>Supposons que le fichier <code>$HOME/.zshrc</code> évolue, tel que l&rsquo;ajout d&rsquo;un plugin
-<a href="https://github.com/ohmyzsh/ohmyzsh">oh-my-zsh</a>, pour voir les différences entre
+❯ git commit --message<span style=color:#000;font-weight:700>=</span><span style=color:#d14>&#34;Initial dotfiles config&#34;</span>
+</code></pre></div><p>Bien entendu ce repo peut/doit être synchronisé avec un repo distant.</p><h2 id=gérer-les-changements>Gérer les changements</h2><p>Supposons que le fichier <code>$HOME/.zshrc</code> évolue, tel que l&rsquo;ajout d&rsquo;un plugin
+<a href=https://github.com/ohmyzsh/ohmyzsh>oh-my-zsh</a>, pour voir les différences entre
 le fichier local (la <em>cible</em>) et le fichier <em>source</em> géré par <code>chezmoi</code>, il faut
-exécuter la commande <code>chezmoi diff</code>:</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi diff
-install -m <span style="color:#099">644</span> /dev/null /Users/bric3/.zshrc
+exécuter la commande <code>chezmoi diff</code>:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi diff
+install -m <span style=color:#099>644</span> /dev/null /Users/bric3/.zshrc
 --- a/Users/bric3/.zshrc
 +++ b/Users/bric3/.zshrc
 @@ -85,7 +85,7 @@
@@ -309,23 +67,14 @@ install -m <span style="color:#099">644</span> /dev/null /Users/bric3/.zshrc
 
    gradle mvn
    kubectl helm docker
-</code></pre></div><ul>
-<li>Les lignes commençant par un moins <code>-</code> viennent des fichiers <em>cible</em> (<em>target</em>), c&rsquo;est-à-dire
-les fichiers du répertoire <code>$HOME</code>.</li>
-<li>Les lignes commençant par un plus <code>+</code> viennent des fichiers <em>source</em>, c&rsquo;est-à-dire
-les fichiers du répertoire interne de <code>chezmoi</code>.</li>
-</ul>
-<p>Sachant interpreter la sortie de cette commande, dans l&rsquo;exemple au-dessus, le fichier source
+</code></pre></div><ul><li>Les lignes commençant par un moins <code>-</code> viennent des fichiers <em>cible</em> (<em>target</em>), c&rsquo;est-à-dire
+les fichiers du répertoire <code>$HOME</code>.</li><li>Les lignes commençant par un plus <code>+</code> viennent des fichiers <em>source</em>, c&rsquo;est-à-dire
+les fichiers du répertoire interne de <code>chezmoi</code>.</li></ul><p>Sachant interpreter la sortie de cette commande, dans l&rsquo;exemple au-dessus, le fichier source
 pnt uniquement le plugin <code>man</code> alors que le fichier actuel déclare les plugins <code>man osx</code> sur
-cette ligne.</p>
-<p>Maintenant regardons la sortie de deux autres commandes :</p>
-<ul>
-<li>
-<p>la commande <code>chezmoi apply</code> applique les <em>sources</em> sur les <em>cibles</em> locales, par exemple le
+cette ligne.</p><p>Maintenant regardons la sortie de deux autres commandes :</p><ul><li><p>la commande <code>chezmoi apply</code> applique les <em>sources</em> sur les <em>cibles</em> locales, par exemple le
 fichier<code>.zshrc</code> va converger vers ce qui existe dans le fichier <em>source</em>, donc une fois
-<code>chezmoi apply</code> exécuté, ce fichier ne déclarera que le plugin <code>man</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi apply --verbose --dry-run ~/.zshrc
-install -m <span style="color:#099">644</span> /dev/null /Users/bric3/.zshrc
+<code>chezmoi apply</code> exécuté, ce fichier ne déclarera que le plugin <code>man</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi apply --verbose --dry-run ~/.zshrc
+install -m <span style=color:#099>644</span> /dev/null /Users/bric3/.zshrc
 --- a/Users/bric3/.zshrc
 +++ b/Users/bric3/.zshrc
 @@ -85,7 +85,7 @@
@@ -337,15 +86,12 @@ install -m <span style="color:#099">644</span> /dev/null /Users/bric3/.zshrc
   
    gradle mvn
    kubectl helm docker
-</code></pre></div></li>
-<li>
-<p>la commande <code>chezmoi add</code> fera le contraire, elle applique les fichiers <em>cible</em> sur les fichiers
+</code></pre></div></li><li><p>la commande <code>chezmoi add</code> fera le contraire, elle applique les fichiers <em>cible</em> sur les fichiers
 <em>sources</em>, dans cet exemple ce sont les fichiers sources qui vont converger vers le contenu fichier
 <code>.zshrc</code> du répertoire <code>$HOME</code>, donc une fois <code>chezmoi add</code> exécuté, les fichiers <em>source</em>
-déclareront les plugins <code>man osx</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi add --verbose --dry-run ~/.zshrc
+déclareront les plugins <code>man osx</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi add --verbose --dry-run ~/.zshrc
 rm -rf /Users/bric3/.local/share/chezmoi/dot_zshrc
-install -m <span style="color:#099">644</span> /dev/null /Users/bric3/.local/share/chezmoi/dot_zshrc
+install -m <span style=color:#099>644</span> /dev/null /Users/bric3/.local/share/chezmoi/dot_zshrc
 --- a/Users/bric3/.local/share/chezmoi/dot_zshrc
 +++ b/Users/bric3/.local/share/chezmoi/dot_zshrc
 @@ -85,7 +85,7 @@
@@ -357,187 +103,87 @@ install -m <span style="color:#099">644</span> /dev/null /Users/bric3/.local/sha
   
    gradle mvn
    kubectl helm docker
-</code></pre></div><p>Notons que cette fois-ci les signes plus <code>+</code> et moins <code>-</code> sont également en sens contraire.</p>
-</li>
-</ul>
-<h2 id="gestion-des-secrets-avec-1password">Gestion des secrets avec 1Password</h2>
-<p>Maintenant que nous avons les bases de <code>chezmoi</code> nous pouvons regarder comment gérer
+</code></pre></div><p>Notons que cette fois-ci les signes plus <code>+</code> et moins <code>-</code> sont également en sens contraire.</p></li></ul><h2 id=gestion-des-secrets-avec-1password>Gestion des secrets avec 1Password</h2><p>Maintenant que nous avons les bases de <code>chezmoi</code> nous pouvons regarder comment gérer
 les secrets. Avoir un repository distant privé pour ses dotfiles, c&rsquo;est bien, mais
 je souhaite tout de même garder ces fichiers protégés, en particulier si ces fichiers
-doivent être stockés sur un repository distant, même s&rsquo;il s&rsquo;agit d&rsquo;un repository privé.</p>
-<p>C&rsquo;est le moment d&rsquo;utiliser le mécanisme de templating de <code>chezmoi</code> et l&rsquo;autil en ligne de
+doivent être stockés sur un repository distant, même s&rsquo;il s&rsquo;agit d&rsquo;un repository privé.</p><p>C&rsquo;est le moment d&rsquo;utiliser le mécanisme de templating de <code>chezmoi</code> et l&rsquo;autil en ligne de
 commande de mon gestionnaire de mot de passe, ici 1Password. Pour en savoir plus sur les
-intégrations possibles il faut aller sur la <a href="https://www.chezmoi.io/docs/how-to/#keep-data-private">guide how-to</a>,
-il y a notamment BitWarden, Keypassx et d&rsquo;autres bien sûr.</p>
-<p>Donc je voudrais en particulier mettre en sécurité certains fichiers des dossiers
-<code>.ssh</code> et <code>.gnupg</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi add .ssh/id_rsa_home.pub                                             
+intégrations possibles il faut aller sur la <a href=https://www.chezmoi.io/docs/how-to/#keep-data-private>guide how-to</a>,
+il y a notamment BitWarden, Keypassx et d&rsquo;autres bien sûr.</p><p>Donc je voudrais en particulier mettre en sécurité certains fichiers des dossiers
+<code>.ssh</code> et <code>.gnupg</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi add .ssh/id_rsa_home.pub                                             
 </code></pre></div><p>Pour SSH, <code>id_rsa_home.pub</code> est la clef publique, il suffit d&rsquo;utiliser les commandes
-de base, en revanche ça devient intéressant pour <code>id_rsa</code> qui est donc la clef privée.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi add --template .ssh/id_rsa_home
+de base, en revanche ça devient intéressant pour <code>id_rsa</code> qui est donc la clef privée.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi add --template .ssh/id_rsa_home
 ❯ chezmoi add --template .ssh/config
 ❯ chezmoi add --template .gnupg/trustdb.gpg
 ❯ chezmoi add --template .gnupg/pubring.kbx 
 </code></pre></div><p>Je demande à <code>chezmoi</code> de <em>stocker</em> <code>id_rsa_home</code> et les autres fichiers sous forme
-de template.</p>
-<blockquote>
-<p>En ce qui concerne mes clefs GPG, <code>chezmoi</code> supporte GPG mais uniquement pour
+de template.</p><blockquote><p>En ce qui concerne mes clefs GPG, <code>chezmoi</code> supporte GPG mais uniquement pour
 chiffrer des secrets pas pour stocker les secrets GPG. Bien qu&rsquo;il y ait un
 mécanisme pour extraire les clefs secrètes en fichiers non binaires avec
 certaines commandes <code>gpg</code>, et via les
-<a href="https://www.chezmoi.io/docs/how-to/#use-scripts-to-perform-actions">scripts <em>run</em></a>,
+<a href=https://www.chezmoi.io/docs/how-to/#use-scripts-to-perform-actions>scripts <em>run</em></a>,
 cependant cette approche casse le modèle déclaratif de <code>chezmoi</code>.
 Pour ces raisons j&rsquo;ai choisi de sauver les fichiers binaires, ici uniquement
-<code>trustdb.gpg</code> et <code>pubring.kbx</code>.</p>
-</blockquote>
-<p>Lorsqu&rsquo;il est stocké ce template a exactement le même contenu que l&rsquo;orginal :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi edit .ssh/id_rsa_home
-<span style="color:#998;font-style:italic"># template is the same as the actual $HOME/.ssh/id_rsa_home</span>
+<code>trustdb.gpg</code> et <code>pubring.kbx</code>.</p></blockquote><p>Lorsqu&rsquo;il est stocké ce template a exactement le même contenu que l&rsquo;orginal :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi edit .ssh/id_rsa_home
+<span style=color:#998;font-style:italic># template is the same as the actual $HOME/.ssh/id_rsa_home</span>
 </code></pre></div><p>Il faut donc indiquer à <code>chezmoi</code> comment le récupérer de 1Password. Mais
 encore avant il faut entreposer ce fichier sur 1Password, il faut un
-abonnement ce qui donne droit à un coffre-fort chez 1Password.</p>
-<p>En premier il faut donc se connecter</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ <span style="color:#0086b3">eval</span> <span style="color:#000;font-weight:bold">$(</span>op signin my<span style="color:#000;font-weight:bold">)</span>
-</code></pre></div><p>Puis il faut créer un document avec la commande <code>op</code></p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ op create document .ssh/id_rsa --tags chezmoi --title .ssh/id_rsa
-<span style="color:#000;font-weight:bold">{</span><span style="color:#d14">&#34;uuid&#34;</span>:<span style="color:#d14">&#34;ti2adie9Aixaidae4dahpoh5io&#34;</span>,<span style="color:#d14">&#34;createdAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:53:49.596484+02:00&#34;</span>,<span style="color:#d14">&#34;updatedAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:53:49.596484+02:00&#34;</span>,<span style="color:#d14">&#34;vaultUuid&#34;</span>:<span style="color:#d14">&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style="color:#000;font-weight:bold">}</span>
+abonnement ce qui donne droit à un coffre-fort chez 1Password.</p><p>En premier il faut donc se connecter</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ <span style=color:#0086b3>eval</span> <span style=color:#000;font-weight:700>$(</span>op signin my<span style=color:#000;font-weight:700>)</span>
+</code></pre></div><p>Puis il faut créer un document avec la commande <code>op</code></p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ op create document .ssh/id_rsa --tags chezmoi --title .ssh/id_rsa
+<span style=color:#000;font-weight:700>{</span><span style=color:#d14>&#34;uuid&#34;</span>:<span style=color:#d14>&#34;ti2adie9Aixaidae4dahpoh5io&#34;</span>,<span style=color:#d14>&#34;createdAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:53:49.596484+02:00&#34;</span>,<span style=color:#d14>&#34;updatedAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:53:49.596484+02:00&#34;</span>,<span style=color:#d14>&#34;vaultUuid&#34;</span>:<span style=color:#d14>&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style=color:#000;font-weight:700>}</span>
 ❯ op create document .ssh/config --tags chezmoi --title .ssh/config
-<span style="color:#000;font-weight:bold">{</span><span style="color:#d14">&#34;uuid&#34;</span>:<span style="color:#d14">&#34;pairahnietaluv5Moonahm2ea5&#34;</span>,<span style="color:#d14">&#34;createdAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:54:36.402265+02:00&#34;</span>,<span style="color:#d14">&#34;updatedAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:54:36.402265+02:00&#34;</span>,<span style="color:#d14">&#34;vaultUuid&#34;</span>:<span style="color:#d14">&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style="color:#000;font-weight:bold">}</span>
+<span style=color:#000;font-weight:700>{</span><span style=color:#d14>&#34;uuid&#34;</span>:<span style=color:#d14>&#34;pairahnietaluv5Moonahm2ea5&#34;</span>,<span style=color:#d14>&#34;createdAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:54:36.402265+02:00&#34;</span>,<span style=color:#d14>&#34;updatedAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:54:36.402265+02:00&#34;</span>,<span style=color:#d14>&#34;vaultUuid&#34;</span>:<span style=color:#d14>&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style=color:#000;font-weight:700>}</span>
 ❯ op create document .gnupg/trustdb.gpg --tags chezmoi --title .gnupg/trustdb.gpg
-<span style="color:#000;font-weight:bold">{</span><span style="color:#d14">&#34;uuid&#34;</span>:<span style="color:#d14">&#34;zi8ieleiphieTithiep2xieg3u&#34;</span>,<span style="color:#d14">&#34;createdAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:57:13.338949+02:00&#34;</span>,<span style="color:#d14">&#34;updatedAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:57:13.338949+02:00&#34;</span>,<span style="color:#d14">&#34;vaultUuid&#34;</span>:<span style="color:#d14">&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style="color:#000;font-weight:bold">}</span>
+<span style=color:#000;font-weight:700>{</span><span style=color:#d14>&#34;uuid&#34;</span>:<span style=color:#d14>&#34;zi8ieleiphieTithiep2xieg3u&#34;</span>,<span style=color:#d14>&#34;createdAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:57:13.338949+02:00&#34;</span>,<span style=color:#d14>&#34;updatedAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:57:13.338949+02:00&#34;</span>,<span style=color:#d14>&#34;vaultUuid&#34;</span>:<span style=color:#d14>&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style=color:#000;font-weight:700>}</span>
 ❯ op create document .gnupg/trustdb.gpg --tags chezmoi --title .gnupg/pubring.kbx
-<span style="color:#000;font-weight:bold">{</span><span style="color:#d14">&#34;uuid&#34;</span>:<span style="color:#d14">&#34;losachuYeeho5Eiph2uzoquohl&#34;</span>,<span style="color:#d14">&#34;createdAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:58:12.818754+02:00&#34;</span>,<span style="color:#d14">&#34;updatedAt&#34;</span>:<span style="color:#d14">&#34;2020-04-01T17:58:12.818755+02:00&#34;</span>,<span style="color:#d14">&#34;vaultUuid&#34;</span>:<span style="color:#d14">&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style="color:#000;font-weight:bold">}</span>
-</code></pre></div><blockquote>
-<p><em>Bien évidement tous ces UUIDs ont été édité.</em></p>
-</blockquote>
-<p>L'étape finale c&rsquo;est de modifier les fichiers template. Étant donné qu&rsquo;il y a
+<span style=color:#000;font-weight:700>{</span><span style=color:#d14>&#34;uuid&#34;</span>:<span style=color:#d14>&#34;losachuYeeho5Eiph2uzoquohl&#34;</span>,<span style=color:#d14>&#34;createdAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:58:12.818754+02:00&#34;</span>,<span style=color:#d14>&#34;updatedAt&#34;</span>:<span style=color:#d14>&#34;2020-04-01T17:58:12.818755+02:00&#34;</span>,<span style=color:#d14>&#34;vaultUuid&#34;</span>:<span style=color:#d14>&#34;eith2iequievuthae9Eedaiboh&#34;</span><span style=color:#000;font-weight:700>}</span>
+</code></pre></div><blockquote><p><em>Bien évidement tous ces UUIDs ont été édité.</em></p></blockquote><p>L'étape finale c&rsquo;est de modifier les fichiers template. Étant donné qu&rsquo;il y a
 aussi des fichiers binaire <code>vim</code> n&rsquo;est pas particulièrement approprié pour les
-modifier, du coup je m&rsquo;y prends autrement :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi <span style="color:#0086b3">cd</span>
-❯ <span style="color:#0086b3">echo</span> -n <span style="color:#d14">&#39;{{- onepasswordDocument &#34;ti2adie9Aixaidae4dahpoh5io&#34; -}}&#39;</span> &gt; private_dot_gnupg/private_id_rsa.tmpl
-❯ <span style="color:#0086b3">echo</span> -n <span style="color:#d14">&#39;{{- onepasswordDocument &#34;pairahnietaluv5Moonahm2ea5&#34; -}}&#39;</span> &gt; private_dot_gnupg/config.tmpl
-❯ <span style="color:#0086b3">echo</span> -n <span style="color:#d14">&#39;{{- onepasswordDocument &#34;zi8ieleiphieTithiep2xieg3u&#34; -}}&#39;</span> &gt; private_dot_gnupg/private_trustdb.gpg.tmpl
-❯ <span style="color:#0086b3">echo</span> -n <span style="color:#d14">&#39;{{- onepasswordDocument &#34;losachuYeeho5Eiph2uzoquohl&#34; -}}&#39;</span> &gt; private_dot_gnupg/private_pubring.kbx.tmpl
-❯ <span style="color:#0086b3">exit</span>
+modifier, du coup je m&rsquo;y prends autrement :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi <span style=color:#0086b3>cd</span>
+❯ <span style=color:#0086b3>echo</span> -n <span style=color:#d14>&#39;{{- onepasswordDocument &#34;ti2adie9Aixaidae4dahpoh5io&#34; -}}&#39;</span> &gt; private_dot_gnupg/private_id_rsa.tmpl
+❯ <span style=color:#0086b3>echo</span> -n <span style=color:#d14>&#39;{{- onepasswordDocument &#34;pairahnietaluv5Moonahm2ea5&#34; -}}&#39;</span> &gt; private_dot_gnupg/config.tmpl
+❯ <span style=color:#0086b3>echo</span> -n <span style=color:#d14>&#39;{{- onepasswordDocument &#34;zi8ieleiphieTithiep2xieg3u&#34; -}}&#39;</span> &gt; private_dot_gnupg/private_trustdb.gpg.tmpl
+❯ <span style=color:#0086b3>echo</span> -n <span style=color:#d14>&#39;{{- onepasswordDocument &#34;losachuYeeho5Eiph2uzoquohl&#34; -}}&#39;</span> &gt; private_dot_gnupg/private_pubring.kbx.tmpl
+❯ <span style=color:#0086b3>exit</span>
 </code></pre></div><p>Donc même le contenu des fichiers binaires <code>.gnupg/trustdb.gpg</code> et <code>.gnupg/pubring.kbx</code>
-sont remplacés par cette simple chaine de caractère <code>{{- onepasswordDocument &quot;uuid&quot; -}}</code>.</p>
-<p>Pour le moment 1Password ne supporte pas la mise à jour de documents, il faut supprimer
+sont remplacés par cette simple chaine de caractère <code>{{- onepasswordDocument "uuid" -}}</code>.</p><p>Pour le moment 1Password ne supporte pas la mise à jour de documents, il faut supprimer
 l&rsquo;ancien avec son UUID puis ré-utiliser la sous commande <code>create</code> avec la nouvelle
-version du fichier, et mettre à jour le template avec le nouvel UUID.</p>
-<h2 id="vérification-des-templates">Vérification des templates</h2>
-<p>Vu qu&rsquo;il s&rsquo;agit de template créé manuellement, une erreur est toujours possible.
+version du fichier, et mettre à jour le template avec le nouvel UUID.</p><h2 id=vérification-des-templates>Vérification des templates</h2><p>Vu qu&rsquo;il s&rsquo;agit de template créé manuellement, une erreur est toujours possible.
 Autant vérifier le résultat de ces templates. Pour cela il faut appliquer
-les <em>source</em> sur un autre dossier <em>cible</em>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi apply --verbose --destination /Users/bric3/tmphome --dry-run
-</code></pre></div><blockquote>
-<p>Une chose à noter, la commande ici est <em>globale</em>, et toutes les commandes globales
+les <em>source</em> sur un autre dossier <em>cible</em>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi apply --verbose --destination /Users/bric3/tmphome --dry-run
+</code></pre></div><blockquote><p>Une chose à noter, la commande ici est <em>globale</em>, et toutes les commandes globales
 qui ont besoin de 1Password vont demander à ce que la session 1Password en ligne
 de commande soit active, elle peut donc avoir en prérequis l&rsquo;exécution de
-<code>eval $(op signin my)</code>.</p>
-</blockquote>
-<p>Une fois près il suffit de retirer <code>--dry-run</code>, et de voir le dossier <code>tmphome</code>
+<code>eval $(op signin my)</code>.</p></blockquote><p>Une fois près il suffit de retirer <code>--dry-run</code>, et de voir le dossier <code>tmphome</code>
 remplis (une fois la commande terminée car <code>chezmoi</code> applique les changements
-atomiquement).</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ l /Users/bric3/tmphome
+atomiquement).</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ l /Users/bric3/tmphome
 Permissions Size User  Date Modified Name
-drwxr-xr-x     - bric3  <span style="color:#099">2</span> Apr  2:54  .config
-.rw-r--r--  3.1k bric3  <span style="color:#099">2</span> Apr  2:54  .gitconfig
-.rw-r--r--  2.4k bric3  <span style="color:#099">2</span> Apr  2:54  .gitignore-global
-drwx------     - bric3  <span style="color:#099">2</span> Apr  2:55  .gnupg
-drwxr-xr-x     - bric3  <span style="color:#099">2</span> Apr  2:55  .gradle
-drwxr-xr-x     - bric3  <span style="color:#099">2</span> Apr  2:55  .kube
-.rw-r--r--  7.5k bric3  <span style="color:#099">2</span> Apr  2:55  .mrconfig
-.rw-r--r--   51k bric3  <span style="color:#099">2</span> Apr  2:55  .p10k.zsh
-drwxr-xr-x     - bric3  <span style="color:#099">2</span> Apr  2:54  .SpaceVim.d
-drwx------     - bric3  <span style="color:#099">2</span> Apr  2:56  .ssh
-.rw-r--r--  7.4k bric3  <span style="color:#099">2</span> Apr  2:56  .zshrc
+drwxr-xr-x     - bric3  <span style=color:#099>2</span> Apr  2:54  .config
+.rw-r--r--  3.1k bric3  <span style=color:#099>2</span> Apr  2:54  .gitconfig
+.rw-r--r--  2.4k bric3  <span style=color:#099>2</span> Apr  2:54  .gitignore-global
+drwx------     - bric3  <span style=color:#099>2</span> Apr  2:55  .gnupg
+drwxr-xr-x     - bric3  <span style=color:#099>2</span> Apr  2:55  .gradle
+drwxr-xr-x     - bric3  <span style=color:#099>2</span> Apr  2:55  .kube
+.rw-r--r--  7.5k bric3  <span style=color:#099>2</span> Apr  2:55  .mrconfig
+.rw-r--r--   51k bric3  <span style=color:#099>2</span> Apr  2:55  .p10k.zsh
+drwxr-xr-x     - bric3  <span style=color:#099>2</span> Apr  2:54  .SpaceVim.d
+drwx------     - bric3  <span style=color:#099>2</span> Apr  2:56  .ssh
+.rw-r--r--  7.4k bric3  <span style=color:#099>2</span> Apr  2:56  .zshrc
 </code></pre></div><p>Il est aussi possible de n&rsquo;appliquer qu&rsquo;une portion en spécifiant le chemin voulu
-il faut en revanche le préciser avec un chemin absolu <code>/Users/bric3/tmphome/.gnupg/</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ chezmoi apply --verbose --destination /Users/bric3/tmphome /Users/bric3/tmphome/.gnupg/
+il faut en revanche le préciser avec un chemin absolu <code>/Users/bric3/tmphome/.gnupg/</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ chezmoi apply --verbose --destination /Users/bric3/tmphome /Users/bric3/tmphome/.gnupg/
 </code></pre></div><p>Ce que nous voulions vérifier que le processing des templates donne exactement les même
-fichier que les originaux.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ b3sum /Users/bric3/tmphome/.gnupg/pubring.kbx /Users/bric3/.gnupg/pubring.kbx
+fichier que les originaux.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ b3sum /Users/bric3/tmphome/.gnupg/pubring.kbx /Users/bric3/.gnupg/pubring.kbx
 1b51813215edef2e97846bfee51cd02dd8d6c2cb6a119b3681ac087597fb0197  /Users/bric3/tmphome/.gnupg/pubring.kbx
 1b51813215edef2e97846bfee51cd02dd8d6c2cb6a119b3681ac087597fb0197  /Users/bric3/.gnupg/pubring.kbx
 ❯ b3sum /Users/bric3/tmphome/.gnupg/trustdb.gpg /Users/bric3/.gnupg/trustdb.gpg
 d2c67bb808b223cc6f1b7c95b627b4b5551daa1312e12dd0ad3c5bfa1ac35dc9  /Users/bric3/tmphome/.gnupg/trustdb.gpg
 d2c67bb808b223cc6f1b7c95b627b4b5551daa1312e12dd0ad3c5bfa1ac35dc9  /Users/bric3/.gnupg/trustdb.gpg
-</code></pre></div><p>Looks good !</p>
-<h2 id="pour-finir">Pour finir</h2>
-<p><code>chezmoi</code> offre certaines fonctionnalités un peu plus engagées en particulier
+</code></pre></div><p>Looks good !</p><h2 id=pour-finir>Pour finir</h2><p><code>chezmoi</code> offre certaines fonctionnalités un peu plus engagées en particulier
 pour les templates des scripts de bootstrap/configuration. Étant donné que
-je n&rsquo;utilise pas encore ça je le mets de côté.</p>
-<p>Maintenant la seule chose que j&rsquo;aurais à faire pour me re-configurer un home
-sera</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ <span style="color:#0086b3">eval</span> <span style="color:#000;font-weight:bold">$(</span>op signin my<span style="color:#000;font-weight:bold">)</span>
+je n&rsquo;utilise pas encore ça je le mets de côté.</p><p>Maintenant la seule chose que j&rsquo;aurais à faire pour me re-configurer un home
+sera</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ <span style=color:#0086b3>eval</span> <span style=color:#000;font-weight:700>$(</span>op signin my<span style=color:#000;font-weight:700>)</span>
 ❯ chezmoi init --apply --verbose https://githost.tld/path/to/dotfiles.git
-</code></pre></div><p>Également pour synchroniser les dotfiles depuis le repository <em>upstream</em> :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">❯ <span style="color:#0086b3">eval</span> <span style="color:#000;font-weight:bold">$(</span>op signin my<span style="color:#000;font-weight:bold">)</span>
-❯ chezmoi <span style="color:#0086b3">source</span> pull -- --rebase <span style="color:#000;font-weight:bold">&amp;&amp;</span> chezmoi diff
-</code></pre></div>
-  </div>
-  
-
-<div class="navigation navigation-single">
-    
-    <a href="/2020/04/01/manage_dotfiles_with_chezmoi/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Managing dotfiles and secret with chezmoi</span>
-    </a>
-    
-    
-</div>
-
-
-  
-
-  <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
-        
-        
-        
-        this.page.identifier = 'https://blog.arkey.fr/2020/04/01/manage_dotfiles_with_chezmoi.fr/';
-        this.page.title = 'Gestion des dotfiles et des secrets avec chezmoi';
-        this.page.url = 'https://blog.arkey.fr/2020/04/01/manage_dotfiles_with_chezmoi.fr/';
-    };
-    (function() {
-        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-            return;
-        }
-        var d = document, s = d.createElement('script'); s.async = true;
-        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
-        s.setAttribute('data-timestamp', +new Date());
-        (d.head || d.body).appendChild(s);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-</article>
-
-
-        </div>
-        
-    
-
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-
-    
-    
-    <script type="text/javascript">
-        
-        hljs.initHighlightingOnLoad();
-    </script>
-    
-
-
-
-
-    
-
-
-
-    </body>
-</html>
+</code></pre></div><p>Également pour synchroniser les dotfiles depuis le repository <em>upstream</em> :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>❯ <span style=color:#0086b3>eval</span> <span style=color:#000;font-weight:700>$(</span>op signin my<span style=color:#000;font-weight:700>)</span>
+❯ chezmoi <span style=color:#0086b3>source</span> pull -- --rebase <span style=color:#000;font-weight:700>&amp;&amp;</span> chezmoi diff
+</code></pre></div></div><div class="navigation navigation-single"><a href=/2020/04/01/manage_dotfiles_with_chezmoi/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Managing dotfiles and secret with chezmoi</span></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2020/04/01/manage_dotfiles_with_chezmoi.fr/';this.page.title='Gestion des dotfiles et des secrets avec chezmoi';this.page.url='https://blog.arkey.fr/2020/04/01/manage_dotfiles_with_chezmoi.fr/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
+var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>

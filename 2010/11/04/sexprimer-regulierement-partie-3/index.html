@@ -1,837 +1,244 @@
-<!DOCTYPE html>
-<html lang="en">
-    
-    
-
-
-    <head>
-    <link href="https://gmpg.org/xfn/11" rel="profile">
-    <meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta http-equiv="Cache-Control" content="public" />
-<!-- Enable responsiveness on mobile devices -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
-
-    
-    
-    
-
-<title>Expressions régulières (Partie 3) • The Coffee Workshop</title>
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Expressions régulières (Partie 3)"/>
-<meta name="twitter:description" content="Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez peu utilisés et pourtant très utiles.
- Le premier, dans la continuité des groupes ce sont les constructions de look behind et look ahead."/>
-
-<meta property="og:title" content="Expressions régulières (Partie 3)" />
-<meta property="og:description" content="Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez peu utilisés et pourtant très utiles.
- Le premier, dans la continuité des groupes ce sont les constructions de look behind et look ahead." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.arkey.fr/2010/11/04/sexprimer-regulierement-partie-3/" />
-<meta property="article:published_time" content="2010-11-04T19:55:50+00:00" />
-<meta property="article:modified_time" content="2010-11-04T19:55:50+00:00" /><meta property="og:site_name" content="Arkey" />
-
-
-    
-
-
-
-
-
-
-<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
-
-
-<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
-
-
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-    <!-- Icons -->
-    
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-    
-    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
-
-    
-    <link rel="shortcut icon" href="/android-192-favicon.png">
-    
-    
-
-
-    
-</head>
-
-
-    <body class=" ">
-    
-<div class="sidebar">
-  <div class="container ">
-    <div class="sidebar-about">
-      <span class="site__title">
-        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
-      </span>
-      
-      
-        <div class="author-image">
-          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
-        </div>
-      
-      <p class="site__description">
-         Java mostly, and general tech 
-      </p>
-    </div>
-    <div class="collapsible-menu">
-      <input type="checkbox" id="menuToggle">
-      <label for="menuToggle">The Coffee Workshop</label>
-      <div class="menu-content">
-        <div>
-	<ul class="sidebar-nav">
-		 
-		 
-			 
-				<li>
-					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		
-	</ul>
-</div>
-
-        <section class="social">
-	
-	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
-	
-	
-	
-	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
-	
-	
-	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
-	
-	
-	
-	
-	
-	
-	
-	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
-	
-	
-	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
-	
-	
-	
-	
-	
-	
-	
-	
-</section>
-
-      </div>
-    </div>
-    
-<div class="copyright">
-  &copy; 2010 - 2020 Brice Dutheil
-  
-    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
-  
-</div>
-
-
-
-  </div>
-</div>
-
-        <div class="content container">
-            
-    
-<article>
-  <header>
-    <h1>Expressions régulières (Partie 3)</h1>
-    
-    
-<div class="post__meta">
-    
-    
-      <i class="fas fa-calendar-alt"></i> 2010-11-04
-    
-    
-    
-    
-    
-      
-      
-          <br/>
-           <i class="fas fa-tags"></i>
-          
-          <a class="badge badge-tag" href="/tags/code">code</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/expression-reguliere">expression régulière</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/pattern">pattern</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/regex">regex</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/regexp">regexp</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/regular-expression">regular expression</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/unicode">unicode</a>
-          
-      
-    
-    
-    <br/>
-    <i class="fas fa-clock"></i> 13 min read
-</div>
-
-
-  </header>
-  
-  
-  <div class="post">
-    <p>Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez
-peu utilisés et pourtant très utiles.</p>
-<ul>
-<li>Le premier, dans la continuité des groupes ce sont les constructions de <strong>look behind</strong> et <strong>look ahead</strong>.</li>
-<li>Le deuxième point abordera le support de Unicode dans nos expressions régulières.</li>
-</ul>
-<h1 id="constructions-de-_regard_-autour-look-around">Constructions de <em>regard</em> autour (look around)</h1>
-<p>C&rsquo;est bien de ça dont il s&rsquo;agit; ce feature, introduit grâce aux groupes non-capturant, permet de vérifier si une
+<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Expressions régulières (Partie 3) • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Expressions régulières (Partie 3)"><meta name=twitter:description content="Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez peu utilisés et pourtant très utiles.
+ Le premier, dans la continuité des groupes ce sont les constructions de look behind et look ahead."><meta property="og:title" content="Expressions régulières (Partie 3)"><meta property="og:description" content="Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez peu utilisés et pourtant très utiles.
+ Le premier, dans la continuité des groupes ce sont les constructions de look behind et look ahead."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2010/11/04/sexprimer-regulierement-partie-3/"><meta property="article:published_time" content="2010-11-04T19:55:50+00:00"><meta property="article:modified_time" content="2010-11-04T19:55:50+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.9181f25ed2263aeb878ec6f8a84f10c4ebb16150000fca8767308880bdde5ca0.css integrity="sha256-kYHyXtImOuuHjsb4qE8QxOuxYVAAD8qHZzCIgL3eXKA="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
+<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
+<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
+<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
+<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
+<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
+<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Expressions régulières (Partie 3)</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2010-11-04<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/code>code</a>
+<a class="badge badge-tag" href=/tags/expression-reguliere>expression régulière</a>
+<a class="badge badge-tag" href=/tags/pattern>pattern</a>
+<a class="badge badge-tag" href=/tags/regex>regex</a>
+<a class="badge badge-tag" href=/tags/regexp>regexp</a>
+<a class="badge badge-tag" href=/tags/regular-expression>regular expression</a>
+<a class="badge badge-tag" href=/tags/unicode>unicode</a><br><i class="fas fa-clock"></i>13 min read</div></header><div class=post><p>Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez
+peu utilisés et pourtant très utiles.</p><ul><li>Le premier, dans la continuité des groupes ce sont les constructions de <strong>look behind</strong> et <strong>look ahead</strong>.</li><li>Le deuxième point abordera le support de Unicode dans nos expressions régulières.</li></ul><h1 id=constructions-de-_regard_-autour-look-around>Constructions de <em>regard</em> autour (look around)</h1><p>C&rsquo;est bien de ça dont il s&rsquo;agit; ce feature, introduit grâce aux groupes non-capturant, permet de vérifier si une
 autre expression matche avant ou après une expression capturante <strong>sans consommer</strong> de caractères.
-Il y a 4 constructions de ce type :</p>
-<ul>
-<li>Les expressions pour regarder devant (look ahead)
-<ol>
-<li><code>(?=X)</code> X, via zero-width <strong>positive lookahead</strong>* : L&rsquo;expression cherche à matcher X **après** la position
-courante et sans consommer.</li>
-<li><code>(?!X)</code> X, via zero-width <strong>negative lookahead</strong>* : L&rsquo;expression cherche à **ne pas** matcher X **après**
-la position courante et sans consommer.</li>
-</ol>
-</li>
-<li>Les expressions pour regarder derrière (look behind)
-<ol>
-<li><code>(?&lt;=X)</code> X, via zero-width <strong>positive lookbehind</strong>* : L&rsquo;expression cherche à matcher X **avant**
-la position courante et sans consommer, ou X est une expression régulière de **longueur connue**.</li>
-<li><code>(?&lt;!X)</code> X, via zero-width <strong>negative lookbehind</strong>* : L&rsquo;expression cherche à **ne pas** matcher X **avant**
-la position courante et sans consommer, ou X est une expression régulière de **longueur connue**.</li>
-</ol>
-</li>
-</ul>
-<p>Ces assertions ressemblent aux bornes <code>\b</code> elles ont un fonctionnement similaire mais plus complexes. Passons aux
-tests pour voir leur fonctionnement.</p>
-<h2 id="les-groupes-de-look-ahead">Les groupes de look ahead</h2>
-<p>Par exemple avec le look ahead positif :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">LookAheadLookBehind</span> <span style="color:#000;font-weight:bold">{</span>
+Il y a 4 constructions de ce type :</p><ul><li>Les expressions pour regarder devant (look ahead)<ol><li><code>(?=X)</code> X, via zero-width <strong>positive lookahead</strong>* : L&rsquo;expression cherche à matcher X **après** la position
+courante et sans consommer.</li><li><code>(?!X)</code> X, via zero-width <strong>negative lookahead</strong>* : L&rsquo;expression cherche à **ne pas** matcher X **après**
+la position courante et sans consommer.</li></ol></li><li>Les expressions pour regarder derrière (look behind)<ol><li><code>(?&lt;=X)</code> X, via zero-width <strong>positive lookbehind</strong>* : L&rsquo;expression cherche à matcher X **avant**
+la position courante et sans consommer, ou X est une expression régulière de **longueur connue**.</li><li><code>(?&lt;!X)</code> X, via zero-width <strong>negative lookbehind</strong>* : L&rsquo;expression cherche à **ne pas** matcher X **avant**
+la position courante et sans consommer, ou X est une expression régulière de **longueur connue**.</li></ol></li></ul><p>Ces assertions ressemblent aux bornes <code>\b</code> elles ont un fonctionnement similaire mais plus complexes. Passons aux
+tests pour voir leur fonctionnement.</p><h2 id=les-groupes-de-look-ahead>Les groupes de look ahead</h2><p>Par exemple avec le look ahead positif :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>LookAheadLookBehind</span> <span style=color:#000;font-weight:700>{</span>
 
-    <span style="color:#000;font-weight:bold">private</span> String text <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;static private String aStaticVarLabel;&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-            <span style="color:#d14">&#34;static private Long anotherStaticVarLabel;&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-            <span style="color:#d14">&#34;private String anInstanceVar;&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-            <span style="color:#d14">&#34;protected String anInteger;&#34;</span><span style="color:#000;font-weight:bold">;</span>
+    <span style=color:#000;font-weight:700>private</span> String text <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;static private String aStaticVarLabel;&#34;</span> <span style=color:#000;font-weight:700>+</span>
+            <span style=color:#d14>&#34;static private Long anotherStaticVarLabel;&#34;</span> <span style=color:#000;font-weight:700>+</span>
+            <span style=color:#d14>&#34;private String anInstanceVar;&#34;</span> <span style=color:#000;font-weight:700>+</span>
+            <span style=color:#d14>&#34;protected String anInteger;&#34;</span><span style=color:#000;font-weight:700>;</span>
 
-    <span style="color:#3c5d5d;font-weight:bold">@Test</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">classicRegex</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-        assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;aStaticVarLabel&#34;</span><span style="color:#000;font-weight:bold">,</span> regexMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;\w+Label&#34;</span><span style="color:#000;font-weight:bold">));</span>
-    <span style="color:#000;font-weight:bold">}</span>
+    <span style=color:#3c5d5d;font-weight:700>@Test</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>classicRegex</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+        assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;aStaticVarLabel&#34;</span><span style=color:#000;font-weight:700>,</span> regexMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;\w+Label&#34;</span><span style=color:#000;font-weight:700>));</span>
+    <span style=color:#000;font-weight:700>}</span>
 
-    <span style="color:#3c5d5d;font-weight:bold">@Test</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">positiveLookAhead</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-        assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;aStaticVar&#34;</span><span style="color:#000;font-weight:bold">,</span> regexMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;\w+(?=Label)&#34;</span><span style="color:#000;font-weight:bold">));</span>
-    <span style="color:#000;font-weight:bold">}</span>
+    <span style=color:#3c5d5d;font-weight:700>@Test</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>positiveLookAhead</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+        assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;aStaticVar&#34;</span><span style=color:#000;font-weight:700>,</span> regexMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;\w+(?=Label)&#34;</span><span style=color:#000;font-weight:700>));</span>
+    <span style=color:#000;font-weight:700>}</span>
 
-    <span style="color:#000;font-weight:bold">private</span> String <span style="color:#900;font-weight:bold">regexMatch</span><span style="color:#000;font-weight:bold">(</span>String text<span style="color:#000;font-weight:bold">,</span> String regex<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-        Matcher matcher <span style="color:#000;font-weight:bold">=</span> Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span>regex<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">);</span>
+    <span style=color:#000;font-weight:700>private</span> String <span style=color:#900;font-weight:700>regexMatch</span><span style=color:#000;font-weight:700>(</span>String text<span style=color:#000;font-weight:700>,</span> String regex<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+        Matcher matcher <span style=color:#000;font-weight:700>=</span> Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span>regex<span style=color:#000;font-weight:700>).</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>);</span>
 
-        <span style="color:#000;font-weight:bold">return</span> matcher<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">find</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">?</span> matcher<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">group</span><span style="color:#000;font-weight:bold">(</span>0<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">:</span> <span style="color:#d14">&#34;&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">}</span>
-<span style="color:#000;font-weight:bold">}</span>
+        <span style=color:#000;font-weight:700>return</span> matcher<span style=color:#000;font-weight:700>.</span><span style=color:teal>find</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>?</span> matcher<span style=color:#000;font-weight:700>.</span><span style=color:teal>group</span><span style=color:#000;font-weight:700>(</span>0<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>:</span> <span style=color:#d14>&#34;&#34;</span><span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>}</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Ligne 10, on veut chopper les lignes qui se terminent par <code>Label</code> avec une expression usuelle. Si on ne voulais pas
 la partie <code>Label</code>, alors il aurait fallu créer un autre groupe autour de <code>\w+</code>, cependant le curseur aura consommé
 les caractères. L&rsquo;alternative est d&rsquo;utiliser un look ahead positif, c&rsquo;est ce qu&rsquo;on a à la ligne 15, ici le curseur
-s&rsquo;arrête après le <code>r</code> juste avant <code>Label</code>.</p>
-<p>Notez que dans l&rsquo;exemple ce qui est retourné est le <strong>groupe 0</strong> (ligne 21), c&rsquo;est à dire l’ensemble de ce qui est
+s&rsquo;arrête après le <code>r</code> juste avant <code>Label</code>.</p><p>Notez que dans l&rsquo;exemple ce qui est retourné est le <strong>groupe 0</strong> (ligne 21), c&rsquo;est à dire l’ensemble de ce qui est
 capturé par toute la regex. Ceci illustre à nouveau que les groupes de look ahead/begind ne capturent pas
 (méthode positiveLookAhead, ligne 15). C&rsquo;est assez pratique pour faire des sélections ou des remplacements,
-dans Eclipse ou IntelliJ par exemple.</p>
-<p>Si typiquement on cherche des termes qui ne se terminent pas par <code>Label</code>. On écrira simplement :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">negativeLookAhead</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;static&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                 regexMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;\w+(?!Label)&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// retourne &#39;static&#39; car ce mot ne se termine pas par &#39;Label&#39;
-</span><span style="color:#998;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+dans Eclipse ou IntelliJ par exemple.</p><p>Si typiquement on cherche des termes qui ne se terminent pas par <code>Label</code>. On écrira simplement :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>negativeLookAhead</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;static&#34;</span><span style=color:#000;font-weight:700>,</span>
+                 regexMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;\w+(?!Label)&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// retourne &#39;static&#39; car ce mot ne se termine pas par &#39;Label&#39;
+</span><span style=color:#998;font-style:italic></span><span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>L&rsquo;expression chope en premier <code>static</code>, tout simplement parce que cette partie du texte matche le fait
 qu&rsquo;il n&rsquo;y a pas <code>Label</code> qui suit, si on veut chopper le nom d&rsquo;une variable alors on peut ajouter des constructions
-de <strong>look behind</strong>. C&rsquo;est ce qu&rsquo;on regarde juste après.</p>
-<p>Faisons d&rsquo;autres tests :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">more_negativeLookAhead</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\w+(?!Label)&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                      <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;aStaticVar&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                      <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// match car Label n’apparaît pas dans la chaîne
-</span><span style="color:#998;font-style:italic"></span>
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\w+(?!Label)&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                      <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;aStaticVarLabel&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                      <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// comme &#39;\w+&#39; est est quantificateur greedy,
-</span><span style="color:#998;font-style:italic"></span>                                   <span style="color:#998;font-style:italic">// il va matcher &#39;aStaticVarLabel&#39;, ce qui rend le
-</span><span style="color:#998;font-style:italic"></span>                                   <span style="color:#998;font-style:italic">// lookahead négatif &#39;(?!Label)&#39; vrai aussi
-</span><span style="color:#998;font-style:italic"></span>    assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(?!\w+Label)&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                       <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;aStaticVarLabel&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                       <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// Ne matche pas car la construction de lookahead
-</span><span style="color:#998;font-style:italic"></span>                                    <span style="color:#998;font-style:italic">// contient le quantificateur &#39;\w+&#39;
-</span><span style="color:#998;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+de <strong>look behind</strong>. C&rsquo;est ce qu&rsquo;on regarde juste après.</p><p>Faisons d&rsquo;autres tests :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>more_negativeLookAhead</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\w+(?!Label)&#34;</span><span style=color:#000;font-weight:700>)</span>
+                      <span style=color:#000;font-weight:700>.</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;aStaticVar&#34;</span><span style=color:#000;font-weight:700>)</span>
+                      <span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>());</span> <span style=color:#998;font-style:italic>// match car Label n’apparaît pas dans la chaîne
+</span><span style=color:#998;font-style:italic></span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\w+(?!Label)&#34;</span><span style=color:#000;font-weight:700>)</span>
+                      <span style=color:#000;font-weight:700>.</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;aStaticVarLabel&#34;</span><span style=color:#000;font-weight:700>)</span>
+                      <span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>());</span> <span style=color:#998;font-style:italic>// comme &#39;\w+&#39; est est quantificateur greedy,
+</span><span style=color:#998;font-style:italic></span>                                   <span style=color:#998;font-style:italic>// il va matcher &#39;aStaticVarLabel&#39;, ce qui rend le
+</span><span style=color:#998;font-style:italic></span>                                   <span style=color:#998;font-style:italic>// lookahead négatif &#39;(?!Label)&#39; vrai aussi
+</span><span style=color:#998;font-style:italic></span>    assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(?!\w+Label)&#34;</span><span style=color:#000;font-weight:700>)</span>
+                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;aStaticVarLabel&#34;</span><span style=color:#000;font-weight:700>)</span>
+                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>());</span> <span style=color:#998;font-style:italic>// Ne matche pas car la construction de lookahead
+</span><span style=color:#998;font-style:italic></span>                                    <span style=color:#998;font-style:italic>// contient le quantificateur &#39;\w+&#39;
+</span><span style=color:#998;font-style:italic></span><span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>À la ligne 5 attention, comme il y a devant un quantificateur gourmand <code>\w+</code> et en dehors de la construction
 lookahead, celui-ci va avaler la chaîne complète <code>aStaticVarLabel</code> et comme tous les caractères auront été
 consommés le lookahead négatif <code>(?!Label)</code> sera également valide. La ligne 6 corrige ça en incluant la
-construction <code>w+</code> à l&rsquo;intérieur du lookahead.</p>
-<h2 id="les-groupes-de-look-behind">Les groupes de look behind</h2>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">positiveLookBehind</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;anotherStaticVarLabel&#34;</span><span style="color:#000;font-weight:bold">,</span> regexMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;(?&lt;=private Long )\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-<span style="color:#000;font-weight:bold">}</span>
+construction <code>w+</code> à l&rsquo;intérieur du lookahead.</p><h2 id=les-groupes-de-look-behind>Les groupes de look behind</h2><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>positiveLookBehind</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;anotherStaticVarLabel&#34;</span><span style=color:#000;font-weight:700>,</span> regexMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;(?&lt;=private Long )\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Donc là j&rsquo;ai préfixé la regex par ce que je voulais voir juste avant. De la même manière si on ne veut pas
-d&rsquo;un terme, on utilisera un <strong>look behind</strong> négatif <code>(?&lt;!)</code>, par exmple si on ne veut pas de <code>String</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">negativeLookBehind</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;anotherStaticVarLabel&#34;</span><span style="color:#000;font-weight:bold">,</span> regexMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;(?&lt;=private \w{4,8} )(?&lt;!String )\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-<span style="color:#000;font-weight:bold">}</span>
+d&rsquo;un terme, on utilisera un <strong>look behind</strong> négatif <code>(?&lt;!)</code>, par exmple si on ne veut pas de <code>String</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>negativeLookBehind</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;anotherStaticVarLabel&#34;</span><span style=color:#000;font-weight:700>,</span> regexMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;(?&lt;=private \w{4,8} )(?&lt;!String )\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Observez ici qu&rsquo;il y a deux constructions adjacentes look behind, l&rsquo;une positive l&rsquo;autre négative, ce qui
-illustre encore mieux que ces constructions ne consomment pas la séquence de caractères.</p>
-<p>Observez également que l&rsquo;expression ici est de longueur connue : le <code>\w{4,8}</code> ne prend que de 4 à 8 caractères.
+illustre encore mieux que ces constructions ne consomment pas la séquence de caractères.</p><p>Observez également que l&rsquo;expression ici est de longueur connue : le <code>\w{4,8}</code> ne prend que de 4 à 8 caractères.
 Il n&rsquo;est pas possible d'écrire un look behind avec un quantificateur où la longueur n&rsquo;est pas connue, la
 <strong>construction suivante est fausse</strong> et provoquera une erreur de syntaxe : <code>(?&lt;!private \w+ )</code>.
 C&rsquo;est une limite technique qui impose aux groupes de look behind d&rsquo;avoir une longueur fixe ou calculable;
 les quantificateurs bornés <code>{n,m}</code>, l&rsquo;option <code>?</code> ou l&rsquo;alternative <code>|</code> tombent dans cette catégorie.
-Ainsi on pourrait écrire :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">revised_negativeLookBehind</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;anotherStaticVarLabel&#34;</span><span style="color:#000;font-weight:bold">,</span> regexMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;(?&lt;=(?:static )?private (?:long|Long) )\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-<span style="color:#000;font-weight:bold">}</span>
-</code></pre></div><p>Et donc par opposition les quantificateurs <code>*</code> et <code>+</code> ne sont pas autorisés dans les lookbehind.</p>
-<h2 id="attention-aux-quantificateurs-sur-une-même-classe-de-caractère">Attention aux quantificateurs sur une même classe de caractère</h2>
-<p>Bon, il existe certains cas un peu délicats ou les caractères adjacents d&rsquo;une séquence font partie de
+Ainsi on pourrait écrire :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>revised_negativeLookBehind</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;anotherStaticVarLabel&#34;</span><span style=color:#000;font-weight:700>,</span> regexMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;(?&lt;=(?:static )?private (?:long|Long) )\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
+<span style=color:#000;font-weight:700>}</span>
+</code></pre></div><p>Et donc par opposition les quantificateurs <code>*</code> et <code>+</code> ne sont pas autorisés dans les lookbehind.</p><h2 id=attention-aux-quantificateurs-sur-une-même-classe-de-caractère>Attention aux quantificateurs sur une même classe de caractère</h2><p>Bon, il existe certains cas un peu délicats ou les caractères adjacents d&rsquo;une séquence font partie de
 la même classe. Dans le bout de texte utilisé dans le premier exemple, les noms variables correspondent typiquement
-à ça: 
-<span class="color-part-1">anotherStaticVar</span>
-<span class="color-part-2">Label</span>.</p>
-<p>Le nom de la variable appartient à la classe de caractère <code>[a-zA-Z0-9_]</code> ou encore à <code>\w</code>.</p>
-<p>Lorsqu&rsquo;on faisait un <strong>positive look ahead</strong>, le quantificateur <code>\w+</code> va chercher à matcher l’ensemble des caractères
+à ça:
+<span class=color-part-1>anotherStaticVar</span>
+<span class=color-part-2>Label</span>.</p><p>Le nom de la variable appartient à la classe de caractère <code>[a-zA-Z0-9_]</code> ou encore à <code>\w</code>.</p><p>Lorsqu&rsquo;on faisait un <strong>positive look ahead</strong>, le quantificateur <code>\w+</code> va chercher à matcher l’ensemble des caractères
 de cette classe, ce qui veut dire que <code>\w+</code> va <strong>matcher et consommer</strong> les caractères <code>anotherStaticVarLabel</code>.
 Du coup lorsque la construction <code>(?=Label)</code> cherche à matcher <code>Label</code>, elle n&rsquo;y arrive pas. Ce n&rsquo;est pas grave,
-avec le backtracking l&rsquo;expression <code>\w+</code> reviens en arrière jusqu'à ce que <code>(?=Label)</code> matche.</p>
-<p>L&rsquo;histoire est différente avec un <strong>negative look ahead</strong>; une fois que la partie <code>\w+</code> a matché
+avec le backtracking l&rsquo;expression <code>\w+</code> reviens en arrière jusqu'à ce que <code>(?=Label)</code> matche.</p><p>L&rsquo;histoire est différente avec un <strong>negative look ahead</strong>; une fois que la partie <code>\w+</code> a matché
 <code>anotherStaticVarLabel</code>, le curseur est positionné après le <code>l</code>. Maintenant le moteur teste <code>(?!Label)</code>, qui cherche
 donc à ne pas matcher <code>Label</code>, normal c&rsquo;est une négation. Et là ça marche, cette partie de l&rsquo;expression ne peut plus
-trouver <code>Label</code>, donc la construction est validée.</p>
-<p>Bref ce n&rsquo;est pas ce qu&rsquo;on veut, nous voulons par exemple identifier les variables qui ne sont pas
-suffixées par <code>Label</code> !</p>
-<p>Pour ne éviter ce problème, il faut placer le groupe look ahead négatif avant <code>\w+</code>. Cela ne posera pas de
-problème étant donné que les look ahead ne consomment pas la séquence de caractères. Ainsi en écrivant :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">controlYourQuantifiers</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;anInstanceVar&#34;</span><span style="color:#000;font-weight:bold">,</span> regexMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;(?&lt;=String )(?!\w+Label)\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-<span style="color:#000;font-weight:bold">}</span>
+trouver <code>Label</code>, donc la construction est validée.</p><p>Bref ce n&rsquo;est pas ce qu&rsquo;on veut, nous voulons par exemple identifier les variables qui ne sont pas
+suffixées par <code>Label</code> !</p><p>Pour ne éviter ce problème, il faut placer le groupe look ahead négatif avant <code>\w+</code>. Cela ne posera pas de
+problème étant donné que les look ahead ne consomment pas la séquence de caractères. Ainsi en écrivant :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>controlYourQuantifiers</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>throws</span> Exception <span style=color:#000;font-weight:700>{</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;anInstanceVar&#34;</span><span style=color:#000;font-weight:700>,</span> regexMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;(?&lt;=String )(?!\w+Label)\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>La première partie est un look behind pour avoir ce qui est après <code>String </code>, le deuxième groupe est le look ahead
 dont je parlais, ce groupe cherche à ne matcher <code>\w+Label</code>, si les derniers caractères <code>Label</code> de la regex ne sont
-pas trouvés alors c&rsquo;est bon. Finalement l&rsquo;expression se termine par <code>\w+</code>. L&rsquo;astuce donc se fait en deux étapes:</p>
-<ol>
-<li>Déplacer le look ahead avant l&rsquo;expression qui consomme les caractères et qu&rsquo;on veut capturer, ici <code>\w+</code></li>
-<li>Faire précéder dans le look ahead négatif l&rsquo;expression qu&rsquo;on veut capturer, ici le groupe est devenu <code>(?!\w+Label)</code>, 
-grâce au backtracking dans ce groupe une valeur <code>aStaticVarLabel</code> ne sera pas matchée (negative look ahead).</li>
-</ol>
-<p>Voilà pour les possibilités de look ahead et de look behind dans les expressions rationnelles.</p>
-<h1 id="unicode">Unicode</h1>
-<p>En quoi Unicode est intéressant dans nos regex en Java?</p>
-<ol>
-<li>Unicode est supporté nativement par Java, le format interne des String est Unicode.</li>
-<li>Unicode nous apporte des classes, des catégories ou des propriétés de caractères bien plus étendues que les classes
-ASCII couramment utilisées.</li>
-</ol>
-<h2 id="example-avec-un-seul-caractère-unicode">Example avec un seul caractère Unicode</h2>
-<p>Par exemple, j&rsquo;ai une application US qui vérifie que le texte entré est uniquement composé de lettres. Facile avec
-la regex suivante:</p>
-<pre><code>[a-zA-Z]
+pas trouvés alors c&rsquo;est bon. Finalement l&rsquo;expression se termine par <code>\w+</code>. L&rsquo;astuce donc se fait en deux étapes:</p><ol><li>Déplacer le look ahead avant l&rsquo;expression qui consomme les caractères et qu&rsquo;on veut capturer, ici <code>\w+</code></li><li>Faire précéder dans le look ahead négatif l&rsquo;expression qu&rsquo;on veut capturer, ici le groupe est devenu <code>(?!\w+Label)</code>, 
+grâce au backtracking dans ce groupe une valeur <code>aStaticVarLabel</code> ne sera pas matchée (negative look ahead).</li></ol><p>Voilà pour les possibilités de look ahead et de look behind dans les expressions rationnelles.</p><h1 id=unicode>Unicode</h1><p>En quoi Unicode est intéressant dans nos regex en Java?</p><ol><li>Unicode est supporté nativement par Java, le format interne des String est Unicode.</li><li>Unicode nous apporte des classes, des catégories ou des propriétés de caractères bien plus étendues que les classes
+ASCII couramment utilisées.</li></ol><h2 id=example-avec-un-seul-caractère-unicode>Example avec un seul caractère Unicode</h2><p>Par exemple, j&rsquo;ai une application US qui vérifie que le texte entré est uniquement composé de lettres. Facile avec
+la regex suivante:</p><pre><code>[a-zA-Z]
 </code></pre><p>Maintenant je me dit que je souhaiterais avoir des clients français! Aille! L&rsquo;approche facile mais peu élégante
-est d'écrire une regex dans ce genre :</p>
-<pre><code>[a-zA-Zéèêïôàù]
+est d'écrire une regex dans ce genre :</p><pre><code>[a-zA-Zéèêïôàù]
 </code></pre><p>Et encore j&rsquo;oublie les accents sur les majuscules et encore d&rsquo;autre caractères spéciaux, alors qu&rsquo;ils ont pourtant 
-<a href="http://www.academie-francaise.fr/langue/questions.html#accentuation">pleine valeur orthographique sur les majuscules également</a>.
+<a href=http://www.academie-francaise.fr/langue/questions.html#accentuation>pleine valeur orthographique sur les majuscules également</a>.
 S&rsquo;il fallait en plus gérer le grec, l’allemand, l’espagnol, nous aurions du mal avec une telle expression régulière.
 Et le raccourci <code>w</code> n&rsquo;aide pas vraiment non plus! C&rsquo;est là que viennent les classes de caractère Unicode, pour
-identifier un caractère qui est une lettre, on écrira très simplement :</p>
-<pre><code>\p{L}
-</code></pre><p>Ainsi en Java on aura par exemple</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(\\p{L}| )+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;une manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{Lower} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                            <span style="color:#d14">&#34;une manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// p{Lower} est une classe POSIX / ASCII
-</span><span style="color:#998;font-style:italic"></span>assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{Ll} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;une manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// Classe des petites lettres en Unicode p{Ll}
-</span><span style="color:#998;font-style:italic"></span>
-assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{L} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;eine kleine Straße in München&#34;</span><span style="color:#000;font-weight:bold">));</span>
+identifier un caractère qui est une lettre, on écrira très simplement :</p><pre><code>\p{L}
+</code></pre><p>Ainsi en Java on aura par exemple</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(\\p{L}| )+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;une manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{Lower} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                            <span style=color:#d14>&#34;une manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// p{Lower} est une classe POSIX / ASCII
+</span><span style=color:#998;font-style:italic></span>assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{Ll} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;une manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// Classe des petites lettres en Unicode p{Ll}
+</span><span style=color:#998;font-style:italic></span>
+assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{L} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;eine kleine Straße in München&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{L} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;Это настоящая красота&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{L} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;Это настоящая красота&#34;</span><span style=color:#000;font-weight:700>));</span>
 </code></pre></div><p>IntelliJ est très bien, il fourni l&rsquo;auto-complétion dans les regex c&rsquo;est assez pratique à l&rsquo;intérieur du code,
 mais pas d&rsquo;explication sur la signification de ces blocs de caractères Unicode. Eclipse n&rsquo;en parlons pas, et
-NetBeans je ne sais pas. En tous cas on trouve une réponse <a href="http://www.unicode.org/Public/5.1.0/ucd/UCD.html">là</a>
-à propos des blocs Unicode:</p>
-
-
-
-<div class="table-wrapper">
-    <table>
-<thead>
-<tr>
-<th>Abréviation reconnue par <code>Pattern</code></th>
-<th>Signification</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>L</td>
-<td>Letter</td>
-</tr>
-<tr>
-<td>Lu</td>
-<td>Uppercase Letter</td>
-</tr>
-<tr>
-<td>Ll</td>
-<td>Lowercase Letter</td>
-</tr>
-<tr>
-<td>Lt</td>
-<td>Titlecase Letter</td>
-</tr>
-<tr>
-<td>Lm</td>
-<td>Modifier Letter</td>
-</tr>
-<tr>
-<td>Lo</td>
-<td>Other Letter</td>
-</tr>
-<tr>
-<td>M</td>
-<td>Mark</td>
-</tr>
-<tr>
-<td>Mn</td>
-<td>Non-Spacing Mark</td>
-</tr>
-<tr>
-<td>Mc</td>
-<td>Spacing Combining Mark</td>
-</tr>
-<tr>
-<td>Me</td>
-<td>Enclosing Mark</td>
-</tr>
-<tr>
-<td>N</td>
-<td>Number</td>
-</tr>
-<tr>
-<td>Nd</td>
-<td>Decimal Digit Number</td>
-</tr>
-<tr>
-<td>Nl</td>
-<td>Letter Number</td>
-</tr>
-<tr>
-<td>No</td>
-<td>Other Number</td>
-</tr>
-<tr>
-<td>S</td>
-<td>Symbol</td>
-</tr>
-<tr>
-<td>Sm</td>
-<td>Math Symbol</td>
-</tr>
-<tr>
-<td>Sc</td>
-<td>Currency Symbol</td>
-</tr>
-<tr>
-<td>Sk</td>
-<td>Modifier Symbol</td>
-</tr>
-<tr>
-<td>So</td>
-<td>Other Symbol</td>
-</tr>
-<tr>
-<td>P</td>
-<td>Punctuation</td>
-</tr>
-<tr>
-<td>Pc</td>
-<td>Connector Punctuation</td>
-</tr>
-<tr>
-<td>Pd</td>
-<td>Dash Punctuation</td>
-</tr>
-<tr>
-<td>Ps</td>
-<td>Open Punctuation</td>
-</tr>
-<tr>
-<td>Pe</td>
-<td>Close Punctuation</td>
-</tr>
-<tr>
-<td>Pi</td>
-<td>Initial Punctuation</td>
-</tr>
-<tr>
-<td>Pf</td>
-<td>Final Punctuation</td>
-</tr>
-<tr>
-<td>Po</td>
-<td>Other Punctuation</td>
-</tr>
-<tr>
-<td>Z</td>
-<td>Separator</td>
-</tr>
-<tr>
-<td>Zs</td>
-<td>Space Separator</td>
-</tr>
-<tr>
-<td>Zl</td>
-<td>Line Separator</td>
-</tr>
-<tr>
-<td>Zp</td>
-<td>Paragraph Separator</td>
-</tr>
-<tr>
-<td>C</td>
-<td>Other</td>
-</tr>
-<tr>
-<td>Cc</td>
-<td>Control</td>
-</tr>
-<tr>
-<td>Cf</td>
-<td>Format</td>
-</tr>
-<tr>
-<td>Cs</td>
-<td>Surrogate</td>
-</tr>
-<tr>
-<td>Co</td>
-<td>Private Use</td>
-</tr>
-<tr>
-<td>Cn</td>
-<td>Not Assigned</td>
-</tr>
-<tr>
-<td>-</td>
-<td>Any*</td>
-</tr>
-<tr>
-<td>-</td>
-<td>Assigned*</td>
-</tr>
-<tr>
-<td>-</td>
-<td>ASCII*</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-
-<h2 id="matcher-les-caractères-dun-alphabet-seulement">Matcher les caractères d&rsquo;un alphabet seulement</h2>
-<p>Si je veux vérifier que mon texte appartient à de l&rsquo;hébreu ou du chinois c&rsquo;est faisable. Dans Unicode il faut
+NetBeans je ne sais pas. En tous cas on trouve une réponse <a href=http://www.unicode.org/Public/5.1.0/ucd/UCD.html>là</a>
+à propos des blocs Unicode:</p><div class=table-wrapper><table><thead><tr><th>Abréviation reconnue par <code>Pattern</code></th><th>Signification</th></tr></thead><tbody><tr><td>L</td><td>Letter</td></tr><tr><td>Lu</td><td>Uppercase Letter</td></tr><tr><td>Ll</td><td>Lowercase Letter</td></tr><tr><td>Lt</td><td>Titlecase Letter</td></tr><tr><td>Lm</td><td>Modifier Letter</td></tr><tr><td>Lo</td><td>Other Letter</td></tr><tr><td>M</td><td>Mark</td></tr><tr><td>Mn</td><td>Non-Spacing Mark</td></tr><tr><td>Mc</td><td>Spacing Combining Mark</td></tr><tr><td>Me</td><td>Enclosing Mark</td></tr><tr><td>N</td><td>Number</td></tr><tr><td>Nd</td><td>Decimal Digit Number</td></tr><tr><td>Nl</td><td>Letter Number</td></tr><tr><td>No</td><td>Other Number</td></tr><tr><td>S</td><td>Symbol</td></tr><tr><td>Sm</td><td>Math Symbol</td></tr><tr><td>Sc</td><td>Currency Symbol</td></tr><tr><td>Sk</td><td>Modifier Symbol</td></tr><tr><td>So</td><td>Other Symbol</td></tr><tr><td>P</td><td>Punctuation</td></tr><tr><td>Pc</td><td>Connector Punctuation</td></tr><tr><td>Pd</td><td>Dash Punctuation</td></tr><tr><td>Ps</td><td>Open Punctuation</td></tr><tr><td>Pe</td><td>Close Punctuation</td></tr><tr><td>Pi</td><td>Initial Punctuation</td></tr><tr><td>Pf</td><td>Final Punctuation</td></tr><tr><td>Po</td><td>Other Punctuation</td></tr><tr><td>Z</td><td>Separator</td></tr><tr><td>Zs</td><td>Space Separator</td></tr><tr><td>Zl</td><td>Line Separator</td></tr><tr><td>Zp</td><td>Paragraph Separator</td></tr><tr><td>C</td><td>Other</td></tr><tr><td>Cc</td><td>Control</td></tr><tr><td>Cf</td><td>Format</td></tr><tr><td>Cs</td><td>Surrogate</td></tr><tr><td>Co</td><td>Private Use</td></tr><tr><td>Cn</td><td>Not Assigned</td></tr><tr><td>-</td><td>Any*</td></tr><tr><td>-</td><td>Assigned*</td></tr><tr><td>-</td><td>ASCII*</td></tr></tbody></table></div><h2 id=matcher-les-caractères-dun-alphabet-seulement>Matcher les caractères d&rsquo;un alphabet seulement</h2><p>Si je veux vérifier que mon texte appartient à de l&rsquo;hébreu ou du chinois c&rsquo;est faisable. Dans Unicode il faut
 remarquer qu&rsquo;il y a plusieurs notion pour les &ldquo;alphabets&rdquo;; il y a les <strong>Blocs</strong> et les <strong>Scripts</strong>, cependant
 le moteur de Java qui se base essentiellement sur le moteur de perl, ne gère pas les scripts, donc on se contentera
-des blocs.</p>
-<p>Ci-dessous je teste l&rsquo;appartenance à un bloc :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(\\p{InBASIC_LATIN}| )+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                            <span style="color:#d14">&#34;une manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(\\p{InLATIN_EXTENDED_A}|\\p{InLATIN_1_SUPPLEMENT}|\\p{InBASIC_LATIN}| )+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;une manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span>
+des blocs.</p><p>Ci-dessous je teste l&rsquo;appartenance à un bloc :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(\\p{InBASIC_LATIN}| )+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                            <span style=color:#d14>&#34;une manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(\\p{InLATIN_EXTENDED_A}|\\p{InLATIN_1_SUPPLEMENT}|\\p{InBASIC_LATIN}| )+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;une manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{InLATIN_1_SUPPLEMENT}\\p{InBASIC_LATIN} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;eine kleine Straße in München&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{InLATIN_1_SUPPLEMENT}\\p{InBASIC_LATIN} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;eine kleine Straße in München&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{InCYRILLIC} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;Это настоящая красота&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{InHEBREW} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                            <span style="color:#d14">&#34;Это настоящая красота&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{InCYRILLIC} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;Это настоящая красота&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{InHEBREW} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                            <span style=color:#d14>&#34;Это настоящая красота&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{InCJK_UNIFIED_IDEOGRAPHS} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#000;font-weight:bold">new</span> String<span style="color:#000;font-weight:bold">(</span>Character<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toChars</span><span style="color:#000;font-weight:bold">(</span>0x6C23<span style="color:#000;font-weight:bold">))));</span> <span style="color:#998;font-style:italic">// chi écriture traditionnel
-</span><span style="color:#998;font-style:italic"></span>assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[\\p{InHIRAGANA} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#000;font-weight:bold">new</span> String<span style="color:#000;font-weight:bold">(</span>Character<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toChars</span><span style="color:#000;font-weight:bold">(</span>0x304D<span style="color:#000;font-weight:bold">))));</span> <span style="color:#998;font-style:italic">// ki écriture Hiragana
-</span></code></pre></div><p>Plusieures choses sont à remarquer :</p>
-<ul>
-<li>Le nom de l&rsquo;alphabet est précédé par <code>In</code></li>
-<li>Pour avoir une phrase en français on a très vite plusieurs blocs <code>LATIN EXTENDED A</code> pour le graphème <em><code>œ</code></em>, <code>LATIN 1 SUPPLEMENT</code> pour le <em><code>ê</code></em> e accent circonflexe.</li>
-<li>D&rsquo;autres alphabet sont plus pratique à utiliser comme l&rsquo;hébreu, le cyrillique, le grecque, etc.</li>
-<li>L&rsquo;utilisation des alphabet Chinois, Japonais, Coréen peut aussi soulever des question surtout quand on ne le parle pas ;)</li>
-</ul>
-<blockquote>
-<p><strong>À noter également</strong> : Sur les deux dernières lignes noter que j&rsquo;ai utilisé le code hexadécimal <strong>UTF-16</strong>
+assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{InCJK_UNIFIED_IDEOGRAPHS} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#000;font-weight:700>new</span> String<span style=color:#000;font-weight:700>(</span>Character<span style=color:#000;font-weight:700>.</span><span style=color:teal>toChars</span><span style=color:#000;font-weight:700>(</span>0x6C23<span style=color:#000;font-weight:700>))));</span> <span style=color:#998;font-style:italic>// chi écriture traditionnel
+</span><span style=color:#998;font-style:italic></span>assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[\\p{InHIRAGANA} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#000;font-weight:700>new</span> String<span style=color:#000;font-weight:700>(</span>Character<span style=color:#000;font-weight:700>.</span><span style=color:teal>toChars</span><span style=color:#000;font-weight:700>(</span>0x304D<span style=color:#000;font-weight:700>))));</span> <span style=color:#998;font-style:italic>// ki écriture Hiragana
+</span></code></pre></div><p>Plusieures choses sont à remarquer :</p><ul><li>Le nom de l&rsquo;alphabet est précédé par <code>In</code></li><li>Pour avoir une phrase en français on a très vite plusieurs blocs <code>LATIN EXTENDED A</code> pour le graphème <em><code>œ</code></em>, <code>LATIN 1 SUPPLEMENT</code> pour le <em><code>ê</code></em> e accent circonflexe.</li><li>D&rsquo;autres alphabet sont plus pratique à utiliser comme l&rsquo;hébreu, le cyrillique, le grecque, etc.</li><li>L&rsquo;utilisation des alphabet Chinois, Japonais, Coréen peut aussi soulever des question surtout quand on ne le parle pas ;)</li></ul><blockquote><p><strong>À noter également</strong> : Sur les deux dernières lignes noter que j&rsquo;ai utilisé le code hexadécimal <strong>UTF-16</strong>
 (j&rsquo;y reviendrais après) pour obtenir les caractères <strong>氣</strong> et
 <strong>き</strong> (Chi en chinois traditionnel, Ki avec l&rsquo;alphabet Hiragana).
 Pourquoi? Parce que Unicode c&rsquo;est bien joli mais dans le monde réel il y a des limitations, pour moi il s&rsquo;agit
 de la police de caractère de mon éditeur qui ne possède pas ces blocs de caractères défini. Peut-être aurez vous
 des limitations sur la police de votre navigateur.
 À noter également que l&rsquo;encodage de vos fichier peut faire mal quand on joue avec les caractères en dehors du
-latin basique.</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><img src="/assets/0x6C23-chi.png" alt="0x6C23"></td>
-<td><a href="http://www.fileformat.info/info/unicode/char/6c23/index.htm">Chi (0x6C23)</a></td>
-</tr>
-<tr>
-<td><img src="/assets/0x304D-ki-hiragana.png" alt="0x304D"></td>
-<td><a href="http://www.fileformat.info/info/unicode/char/304d/index.htm">Ki (0x304D)</a></td>
-</tr>
-</tbody>
-</table>
-</blockquote>
-<h2 id="on-peut-encore-samuser">On peut encore s&rsquo;amuser</h2>
-<p>Pour revenir dans les choses qui nous intéresse, imaginons que nous voulions compter tous les caractères accentués
+latin basique.</p><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img src=/assets/0x6C23-chi.png alt=0x6C23></td><td><a href=http://www.fileformat.info/info/unicode/char/6c23/index.htm>Chi (0x6C23)</a></td></tr><tr><td><img src=/assets/0x304D-ki-hiragana.png alt=0x304D></td><td><a href=http://www.fileformat.info/info/unicode/char/304d/index.htm>Ki (0x304D)</a></td></tr></tbody></table></blockquote><h2 id=on-peut-encore-samuser>On peut encore s&rsquo;amuser</h2><p>Pour revenir dans les choses qui nous intéresse, imaginons que nous voulions compter tous les caractères accentués
 dans un texte. Le bloc Unicode <code>\p{L}</code> n&rsquo;est pas approprié, mais comme je l&rsquo;ai dit avec Unicode on peut accéder
-aux propriété d&rsquo;un caractère.</p>
-<p>Déjà pour commencer il faut savoir qu&rsquo;en Unicode, un graphème comme <em><code>é</code></em> peut correspondre à un seul caractère <em><code>é</code></em>
-ou à deux caractères <em><code>e</code></em> suivi du modificateur accent grave. Cela dépend de la source, mais <strong>ces cas sont probables</strong>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">graphemes</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    System<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">out</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">println</span><span style="color:#000;font-weight:bold">(</span>
-            <span style="color:#d14">&#34;Lettre é accentuée Latin1 : é&#34;</span> <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;\n&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-            <span style="color:#d14">&#34;Lettre ê accentuée Latin1 : ê&#34;</span> <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;\n&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-            <span style="color:#d14">&#34;Lettre e accentuée avec modificateur unicode : e\u0301&#34;</span> <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;\n&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-            <span style="color:#d14">&#34;Lettre e accentuée avec modificateur unicode : \u0065\u0302&#34;</span><span style="color:#000;font-weight:bold">);</span>
+aux propriété d&rsquo;un caractère.</p><p>Déjà pour commencer il faut savoir qu&rsquo;en Unicode, un graphème comme <em><code>é</code></em> peut correspondre à un seul caractère <em><code>é</code></em>
+ou à deux caractères <em><code>e</code></em> suivi du modificateur accent grave. Cela dépend de la source, mais <strong>ces cas sont probables</strong>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>graphemes</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span>
+            <span style=color:#d14>&#34;Lettre é accentuée Latin1 : é&#34;</span> <span style=color:#000;font-weight:700>+</span> <span style=color:#d14>&#34;\n&#34;</span> <span style=color:#000;font-weight:700>+</span>
+            <span style=color:#d14>&#34;Lettre ê accentuée Latin1 : ê&#34;</span> <span style=color:#000;font-weight:700>+</span> <span style=color:#d14>&#34;\n&#34;</span> <span style=color:#000;font-weight:700>+</span>
+            <span style=color:#d14>&#34;Lettre e accentuée avec modificateur unicode : e\u0301&#34;</span> <span style=color:#000;font-weight:700>+</span> <span style=color:#d14>&#34;\n&#34;</span> <span style=color:#000;font-weight:700>+</span>
+            <span style=color:#d14>&#34;Lettre e accentuée avec modificateur unicode : \u0065\u0302&#34;</span><span style=color:#000;font-weight:700>);</span>
 
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\p{InLATIN_1_SUPPLEMENT}+&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;éèê\u00E9&#34;</span><span style="color:#000;font-weight:bold">));</span>
-    assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\p{InLATIN_1_SUPPLEMENT}+&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;e\u0301&#34;</span><span style="color:#000;font-weight:bold">));</span>
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(\p{L}\p{M})+&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;e\u0301&#34;</span><span style="color:#000;font-weight:bold">));</span>
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(\p{InLATIN_1_SUPPLEMENT}|\p{L}\p{Mn})+&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;éêe\u0301\u0065\u0302&#34;</span><span style="color:#000;font-weight:bold">));</span>
-<span style="color:#000;font-weight:bold">}</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\p{InLATIN_1_SUPPLEMENT}+&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;éèê\u00E9&#34;</span><span style=color:#000;font-weight:700>));</span>
+    assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\p{InLATIN_1_SUPPLEMENT}+&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;e\u0301&#34;</span><span style=color:#000;font-weight:700>));</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(\p{L}\p{M})+&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;e\u0301&#34;</span><span style=color:#000;font-weight:700>));</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(\p{InLATIN_1_SUPPLEMENT}|\p{L}\p{Mn})+&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;éêe\u0301\u0065\u0302&#34;</span><span style=color:#000;font-weight:700>));</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Ainsi dans les lignes précédentes pour rechercher un graphème représenté par un seul codepoint, il faudra aller
 le chercher dans le bloc idoine, ici <code>LATIN 1 COMPLEMENT</code>, 0x00E9 est le codepoint du caractère <em><code>é</code></em>. La forme
-décomposée de <em><code>é</code></em> est <em><code>e</code></em> (0x0065) suivi du modificateur accent grave (0x0301).</p>
-<p>Pour matcher cette forme décomposée du graphème, il faut simplement écrire <code>\p{L}\p{M}</code>. Il est toujours possible
+décomposée de <em><code>é</code></em> est <em><code>e</code></em> (0x0065) suivi du modificateur accent grave (0x0301).</p><p>Pour matcher cette forme décomposée du graphème, il faut simplement écrire <code>\p{L}\p{M}</code>. Il est toujours possible
 d&rsquo;affiner l&rsquo;expression en choisissant des propriétés plus précises (cf. Tableau plus haut, voire la référence Unicode).
-Du coup pour matcher n&rsquo;importe quelle forme d&rsquo;un graphème on pourra écrire l&rsquo;expression de la ligne 6.</p>
-<p>Enfin rapidement on peut exprimer les compléments à la manière standard avec <code>[^\p{Lu}]</code> ou plus simple avec un
-grand <code>P</code> <code>\P{Lu}</code>. Les intersections entres les classes / propriétés Unicode se font sans problèmes également :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[^\p{Lu}]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;une manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// exclusion
-</span><span style="color:#998;font-style:italic"></span>assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[^\p{Lu}]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                            <span style="color:#d14">&#34;Une Manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\P{Lu}+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                            <span style="color:#d14">&#34;Une Manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// complément (grand P)
-</span><span style="color:#998;font-style:italic"></span>
-assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[[^\p{Lu}]&amp;&amp;\p{IsL} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                            <span style="color:#d14">&#34;une manœuvre sur un chêne 123164&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// exclusion et intersection
-</span><span style="color:#998;font-style:italic"></span>assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[[^\p{Lu}]&amp;&amp;\p{IsL} ]+&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                           <span style="color:#d14">&#34;une manœuvre sur un chêne&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// exclusion et intersection
-</span></code></pre></div><h2 id="petit-retour-sur-les-base-de-java">Petit retour sur les base de Java</h2>
-<p>Java gère nativement Unicode, les <strong>String sont encodées en UTF-16</strong>. Ce qui explique par conséquent que lorsque je
-veux exprimer un caractère sous forme hexadécimale, il faut <strong>l'écrire dans sa forme UTF-16</strong>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">utf16</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\u00E9&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;é&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// char UTF-16 compris par le compilateur
-</span><span style="color:#998;font-style:italic"></span>    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\u00E9&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;é&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// char UTF-16 échappé compris par la classe Pattern
-</span><span style="color:#998;font-style:italic"></span>    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\u00E9&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">new</span> String<span style="color:#000;font-weight:bold">(</span>Character<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toChars</span><span style="color:#000;font-weight:bold">(</span>0x00E9<span style="color:#000;font-weight:bold">))));</span>
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\u00E9&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">new</span> String<span style="color:#000;font-weight:bold">(</span>Character<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toChars</span><span style="color:#000;font-weight:bold">(</span>0x00E9<span style="color:#000;font-weight:bold">))));</span>
-<span style="color:#000;font-weight:bold">}</span>
+Du coup pour matcher n&rsquo;importe quelle forme d&rsquo;un graphème on pourra écrire l&rsquo;expression de la ligne 6.</p><p>Enfin rapidement on peut exprimer les compléments à la manière standard avec <code>[^\p{Lu}]</code> ou plus simple avec un
+grand <code>P</code> <code>\P{Lu}</code>. Les intersections entres les classes / propriétés Unicode se font sans problèmes également :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[^\p{Lu}]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;une manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// exclusion
+</span><span style=color:#998;font-style:italic></span>assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[^\p{Lu}]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                            <span style=color:#d14>&#34;Une Manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\P{Lu}+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                            <span style=color:#d14>&#34;Une Manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// complément (grand P)
+</span><span style=color:#998;font-style:italic></span>
+assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[[^\p{Lu}]&amp;&amp;\p{IsL} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                            <span style=color:#d14>&#34;une manœuvre sur un chêne 123164&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// exclusion et intersection
+</span><span style=color:#998;font-style:italic></span>assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[[^\p{Lu}]&amp;&amp;\p{IsL} ]+&#34;</span><span style=color:#000;font-weight:700>,</span>
+                           <span style=color:#d14>&#34;une manœuvre sur un chêne&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// exclusion et intersection
+</span></code></pre></div><h2 id=petit-retour-sur-les-base-de-java>Petit retour sur les base de Java</h2><p>Java gère nativement Unicode, les <strong>String sont encodées en UTF-16</strong>. Ce qui explique par conséquent que lorsque je
+veux exprimer un caractère sous forme hexadécimale, il faut <strong>l'écrire dans sa forme UTF-16</strong>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>utf16</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>throws</span> Exception <span style=color:#000;font-weight:700>{</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\u00E9&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;é&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// char UTF-16 compris par le compilateur
+</span><span style=color:#998;font-style:italic></span>    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\u00E9&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;é&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// char UTF-16 échappé compris par la classe Pattern
+</span><span style=color:#998;font-style:italic></span>    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\u00E9&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#000;font-weight:700>new</span> String<span style=color:#000;font-weight:700>(</span>Character<span style=color:#000;font-weight:700>.</span><span style=color:teal>toChars</span><span style=color:#000;font-weight:700>(</span>0x00E9<span style=color:#000;font-weight:700>))));</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\u00E9&#34;</span><span style=color:#000;font-weight:700>,</span> <span style=color:#000;font-weight:700>new</span> String<span style=color:#000;font-weight:700>(</span>Character<span style=color:#000;font-weight:700>.</span><span style=color:teal>toChars</span><span style=color:#000;font-weight:700>(</span>0x00E9<span style=color:#000;font-weight:700>))));</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Ces assertions marches toutes mais il faut noter que <code>\u00E9</code> est compris par le compilateur et remplacera <code>\u00E9</code>
 par <em><code>é</code></em>, alors que dans la forme ou le backslash est échappé <code>\u00E9</code> le compilateur ne fera rien. Ce sera au
-moteur <code>Pattern</code> de traiter la chaîne.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">charLengthForCodePoint</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span>1<span style="color:#000;font-weight:bold">,</span> Character<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toChars</span><span style="color:#000;font-weight:bold">(</span>0x00E9<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#998;font-style:italic">// é
-</span><span style="color:#998;font-style:italic"></span>    assertEquals<span style="color:#000;font-weight:bold">(</span>1<span style="color:#000;font-weight:bold">,</span> Character<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toChars</span><span style="color:#000;font-weight:bold">(</span>0x304D<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#998;font-style:italic">// ki
-</span><span style="color:#998;font-style:italic"></span>    assertEquals<span style="color:#000;font-weight:bold">(</span>2<span style="color:#000;font-weight:bold">,</span> Character<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toChars</span><span style="color:#000;font-weight:bold">(</span>0x0001D50A<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#998;font-style:italic">// MATHEMATICAL FRAKTUR CAPITAL G
-</span><span style="color:#998;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+moteur <code>Pattern</code> de traiter la chaîne.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>charLengthForCodePoint</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>throws</span> Exception <span style=color:#000;font-weight:700>{</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span>1<span style=color:#000;font-weight:700>,</span> Character<span style=color:#000;font-weight:700>.</span><span style=color:teal>toChars</span><span style=color:#000;font-weight:700>(</span>0x00E9<span style=color:#000;font-weight:700>).</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>);</span> <span style=color:#998;font-style:italic>// é
+</span><span style=color:#998;font-style:italic></span>    assertEquals<span style=color:#000;font-weight:700>(</span>1<span style=color:#000;font-weight:700>,</span> Character<span style=color:#000;font-weight:700>.</span><span style=color:teal>toChars</span><span style=color:#000;font-weight:700>(</span>0x304D<span style=color:#000;font-weight:700>).</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>);</span> <span style=color:#998;font-style:italic>// ki
+</span><span style=color:#998;font-style:italic></span>    assertEquals<span style=color:#000;font-weight:700>(</span>2<span style=color:#000;font-weight:700>,</span> Character<span style=color:#000;font-weight:700>.</span><span style=color:teal>toChars</span><span style=color:#000;font-weight:700>(</span>0x0001D50A<span style=color:#000;font-weight:700>).</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>);</span> <span style=color:#998;font-style:italic>// MATHEMATICAL FRAKTUR CAPITAL G
+</span><span style=color:#998;font-style:italic></span><span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>La plupart des caractères tiendront dans le type primitif <code>char</code> qui fait donc <strong>16 bits</strong> (voilà pourquoi Java gère
 nativement l&rsquo;UTF-16), cependant il peut arriver que certains caractères demandent davantage. <code>Character.toChars(int)</code>
 prend donc un <strong>codepoint</strong> représenté par en <strong>entier</strong>, qui fait en Java <strong>32 bits</strong> pour exprimer Unicode en
 UTF-32 donc. Dans le code ci-dessus la 3ème assertion montre d&rsquo;ailleurs que Java doit splitter le caractère
-en question sur deux <code>char</code>.</p>
-<p>De la même manière l&rsquo;encodage change naturellement la taille d&rsquo;un tableau de <code>byte</code> (<strong>8 bits</strong>).</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">encodingDifferenceForAsciiChars</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
-    String string <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;une chaine ascii&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span>string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">(),</span> string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getBytes</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;ASCII&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">);</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span>string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">(),</span> string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getBytes</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;UTF-8&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">);</span>
-<span style="color:#000;font-weight:bold">}</span>
+en question sur deux <code>char</code>.</p><p>De la même manière l&rsquo;encodage change naturellement la taille d&rsquo;un tableau de <code>byte</code> (<strong>8 bits</strong>).</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>encodingDifferenceForAsciiChars</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>throws</span> Exception <span style=color:#000;font-weight:700>{</span>
+    String string <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;une chaine ascii&#34;</span><span style=color:#000;font-weight:700>;</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span>string<span style=color:#000;font-weight:700>.</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>(),</span> string<span style=color:#000;font-weight:700>.</span><span style=color:teal>getBytes</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;ASCII&#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>);</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span>string<span style=color:#000;font-weight:700>.</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>(),</span> string<span style=color:#000;font-weight:700>.</span><span style=color:teal>getBytes</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;UTF-8&#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>);</span>
+<span style=color:#000;font-weight:700>}</span>
 
-<span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">encodingDifferenceForAccentedChars</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">throws</span> Exception <span style="color:#000;font-weight:bold">{</span>
-    String string <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;un chêne, un frêne, une orchidée&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    assertTrue<span style="color:#000;font-weight:bold">(</span>string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">==</span> string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getBytes</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;ASCII&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">);</span>
-    assertEquals<span style="color:#000;font-weight:bold">(</span>string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">+</span> 3<span style="color:#000;font-weight:bold">,</span> string<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getBytes</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;UTF-8&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">length</span><span style="color:#000;font-weight:bold">);</span>
-<span style="color:#000;font-weight:bold">}</span>
-</code></pre></div><h1 id="bilan">Bilan</h1>
-<p>Voilà cet article clos la série que je voulais écrire sur les expressions régulière. Il y a probablement d&rsquo;autres 
+<span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>encodingDifferenceForAccentedChars</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>throws</span> Exception <span style=color:#000;font-weight:700>{</span>
+    String string <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;un chêne, un frêne, une orchidée&#34;</span><span style=color:#000;font-weight:700>;</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>string<span style=color:#000;font-weight:700>.</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>==</span> string<span style=color:#000;font-weight:700>.</span><span style=color:teal>getBytes</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;ASCII&#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>);</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span>string<span style=color:#000;font-weight:700>.</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>+</span> 3<span style=color:#000;font-weight:700>,</span> string<span style=color:#000;font-weight:700>.</span><span style=color:teal>getBytes</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;UTF-8&#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>length</span><span style=color:#000;font-weight:700>);</span>
+<span style=color:#000;font-weight:700>}</span>
+</code></pre></div><h1 id=bilan>Bilan</h1><p>Voilà cet article clos la série que je voulais écrire sur les expressions régulière. Il y a probablement d&rsquo;autres 
 arcanes à connaître. Mais sur cette série le but était de couvrir ce que le moteur Java nous permet de faire.
 Je pense que comprendre le fonctionnement du moteur en particulier sur le backtracking, la manière du moteur de
 tester une expression, la manière dont le moteur parcoure / consomme les caractères en entrée, sont des facteurs
 clé pour réussir une bonne expression. Cette compréhension est d&rsquo;autant plus importante quand celles-ci sont liée à
-des éléments de performance.</p>
-<p>Les constructions apportées avec Unicode, même limitées, ouvrent certaines possibilités intéressantes, mais clairement
-il y a du travail à faire : Unicode n&rsquo;est manifestement pas simple.</p>
-<h1 id="références">Références</h1>
-<ul>
-<li>Le tutorial perl : <a href="http://perldoc.perl.org/perlretut.html">http://perldoc.perl.org/perlretut.html</a></li>
-<li>La classe Pattern : <a href="http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html">http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html</a></li>
-<li>Unicode Regular Expressions: <a href="http://unicode.org/reports/tr18/">http://unicode.org/reports/tr18/</a></li>
-<li>Unicode Character Datablase : <a href="http://www.unicode.org/Public/5.1.0/ucd/UCD.html">http://www.unicode.org/Public/5.1.0/ucd/UCD.html</a></li>
-<li>FileFormat, pour en savoir plus sur un certain caractère :  <a href="http://www.fileformat.info/info/unicode/char/search.htm">http://www.fileformat.info/info/unicode/char/search.htm</a></li>
-<li>Types primitifs en Java <a href="http://download.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html">http://download.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html</a></li>
-</ul>
-
-  </div>
-  
-
-<div class="navigation navigation-single">
-    
-    <a href="/2010/10/15/sexprimer-regulierement-partie-2/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Expressions régulières (Partie 2)</span>
-    </a>
-    
-    
-    <a href="/2011/10/14/tester-votre-code-jmx-dans-des-conditions-pseudo-reelle/" class="navigation-next">
-      <span class="navigation-tittle">Tester votre code JMX dans des conditions pseudo réelle.</span>
-      <i aria-hidden="true" class="fa fa-chevron-right"></i>
-    </a>
-    
-</div>
-
-
-  
-
-  <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
-        
-        
-        
-        this.page.identifier = '228 http:\/\/dutheil.brice.online.fr\/blog\/?p=228';
-        this.page.title = 'Expressions régulières (Partie 3)';
-        this.page.url = 'https://blog.arkey.fr/2010/11/04/sexprimer-regulierement-partie-3/';
-    };
-    (function() {
-        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-            return;
-        }
-        var d = document, s = d.createElement('script'); s.async = true;
-        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
-        s.setAttribute('data-timestamp', +new Date());
-        (d.head || d.body).appendChild(s);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-</article>
-
-
-        </div>
-        
-    
-
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-
-    
-    
-    <script type="text/javascript">
-        
-        hljs.initHighlightingOnLoad();
-    </script>
-    
-
-
-
-
-    
-
-
-
-    </body>
-</html>
+des éléments de performance.</p><p>Les constructions apportées avec Unicode, même limitées, ouvrent certaines possibilités intéressantes, mais clairement
+il y a du travail à faire : Unicode n&rsquo;est manifestement pas simple.</p><h1 id=références>Références</h1><ul><li>Le tutorial perl : <a href=http://perldoc.perl.org/perlretut.html>http://perldoc.perl.org/perlretut.html</a></li><li>La classe Pattern : <a href=http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html>http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html</a></li><li>Unicode Regular Expressions: <a href=http://unicode.org/reports/tr18/>http://unicode.org/reports/tr18/</a></li><li>Unicode Character Datablase : <a href=http://www.unicode.org/Public/5.1.0/ucd/UCD.html>http://www.unicode.org/Public/5.1.0/ucd/UCD.html</a></li><li>FileFormat, pour en savoir plus sur un certain caractère :  <a href=http://www.fileformat.info/info/unicode/char/search.htm>http://www.fileformat.info/info/unicode/char/search.htm</a></li><li>Types primitifs en Java <a href=http://download.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html>http://download.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html</a></li></ul></div><div class="navigation navigation-single"><a href=/2010/10/15/sexprimer-regulierement-partie-2/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Expressions régulières (Partie 2)</span></a>
+<a href=/2011/10/14/tester-votre-code-jmx-dans-des-conditions-pseudo-reelle/ class=navigation-next><span class=navigation-tittle>Tester votre code JMX dans des conditions pseudo réelle.</span>
+<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='228 http:\/\/dutheil.brice.online.fr\/blog\/?p=228';this.page.title='Expressions régulières (Partie 3)';this.page.url='https://blog.arkey.fr/2010/11/04/sexprimer-regulierement-partie-3/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
+var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>

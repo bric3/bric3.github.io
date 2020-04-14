@@ -1,572 +1,211 @@
-<!DOCTYPE html>
-<html lang="en">
-    
-    
-
-
-    <head>
-    <link href="https://gmpg.org/xfn/11" rel="profile">
-    <meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta http-equiv="Cache-Control" content="public" />
-<!-- Enable responsiveness on mobile devices -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
-
-    
-    
-    
-
-<title>Pagination en JAX-RS 2.0 avec le header Link • The Coffee Workshop</title>
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Pagination en JAX-RS 2.0 avec le header Link"/>
-<meta name="twitter:description" content="Votre API REST est en place, mais voilà une des resources doit être paginée. Quelqu&rsquo;en soit la raison, API de recherche, API de listing, etc.
-Il y a plusieurs choix possible sur la manière de faire :"/>
-
-<meta property="og:title" content="Pagination en JAX-RS 2.0 avec le header Link" />
-<meta property="og:description" content="Votre API REST est en place, mais voilà une des resources doit être paginée. Quelqu&rsquo;en soit la raison, API de recherche, API de listing, etc.
-Il y a plusieurs choix possible sur la manière de faire :" />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.arkey.fr/2017/10/02/pagination_hateoas_link/" />
-<meta property="article:published_time" content="2017-10-02T00:00:00+00:00" />
-<meta property="article:modified_time" content="2017-10-02T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
-
-
-    
-
-
-
-
-
-
-<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
-
-
-<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
-
-
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-    <!-- Icons -->
-    
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-    
-    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
-
-    
-    <link rel="shortcut icon" href="/android-192-favicon.png">
-    
-    
-
-
-    
-</head>
-
-
-    <body class=" ">
-    
-<div class="sidebar">
-  <div class="container ">
-    <div class="sidebar-about">
-      <span class="site__title">
-        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
-      </span>
-      
-      
-        <div class="author-image">
-          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
-        </div>
-      
-      <p class="site__description">
-         Java mostly, and general tech 
-      </p>
-    </div>
-    <div class="collapsible-menu">
-      <input type="checkbox" id="menuToggle">
-      <label for="menuToggle">The Coffee Workshop</label>
-      <div class="menu-content">
-        <div>
-	<ul class="sidebar-nav">
-		 
-		 
-			 
-				<li>
-					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		
-	</ul>
-</div>
-
-        <section class="social">
-	
-	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
-	
-	
-	
-	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
-	
-	
-	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
-	
-	
-	
-	
-	
-	
-	
-	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
-	
-	
-	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
-	
-	
-	
-	
-	
-	
-	
-	
-</section>
-
-      </div>
-    </div>
-    
-<div class="copyright">
-  &copy; 2010 - 2020 Brice Dutheil
-  
-    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
-  
-</div>
-
-
-
-  </div>
-</div>
-
-        <div class="content container">
-            
-    
-<article>
-  <header>
-    <h1>Pagination en JAX-RS 2.0 avec le header Link</h1>
-    
-    
-<div class="post__meta">
-    
-    
-      <i class="fas fa-calendar-alt"></i> 2017-10-02
-    
-    
-    
-    
-    
-      
-      
-          <br/>
-           <i class="fas fa-tags"></i>
-          
-          <a class="badge badge-tag" href="/tags/java">java</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/jaxrs">jaxrs</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/pagination">pagination</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/http">http</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/github">github</a>
-          
-      
-    
-    
-    <br/>
-    <i class="fas fa-clock"></i> 6 min read
-</div>
-
-
-  </header>
-  
-  
-  <div class="post">
-    <p>Votre API REST est en place, mais voilà une des resources doit être paginée.
-Quelqu&rsquo;en soit la raison, API de recherche, API de listing, etc.</p>
-<p>Il y a plusieurs choix possible sur la manière de faire :</p>
-<ul>
-<li>Ne rien faire c&rsquo;est le client qui contrôle tout pour lister les pages</li>
-<li>Dans le body HTTP, envelopper la liste de résultat contenant également les
+<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Pagination en JAX-RS 2.0 avec le header Link • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Pagination en JAX-RS 2.0 avec le header Link"><meta name=twitter:description content="Votre API REST est en place, mais voilà une des resources doit être paginée. Quelqu&rsquo;en soit la raison, API de recherche, API de listing, etc.
+Il y a plusieurs choix possible sur la manière de faire :"><meta property="og:title" content="Pagination en JAX-RS 2.0 avec le header Link"><meta property="og:description" content="Votre API REST est en place, mais voilà une des resources doit être paginée. Quelqu&rsquo;en soit la raison, API de recherche, API de listing, etc.
+Il y a plusieurs choix possible sur la manière de faire :"><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2017/10/02/pagination_hateoas_link/"><meta property="article:published_time" content="2017-10-02T00:00:00+00:00"><meta property="article:modified_time" content="2017-10-02T00:00:00+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.9181f25ed2263aeb878ec6f8a84f10c4ebb16150000fca8767308880bdde5ca0.css integrity="sha256-kYHyXtImOuuHjsb4qE8QxOuxYVAAD8qHZzCIgL3eXKA="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
+<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
+<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
+<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
+<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
+<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
+<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Pagination en JAX-RS 2.0 avec le header Link</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2017-10-02<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/java>java</a>
+<a class="badge badge-tag" href=/tags/jaxrs>jaxrs</a>
+<a class="badge badge-tag" href=/tags/pagination>pagination</a>
+<a class="badge badge-tag" href=/tags/http>http</a>
+<a class="badge badge-tag" href=/tags/github>github</a><br><i class="fas fa-clock"></i>6 min read</div></header><div class=post><p>Votre API REST est en place, mais voilà une des resources doit être paginée.
+Quelqu&rsquo;en soit la raison, API de recherche, API de listing, etc.</p><p>Il y a plusieurs choix possible sur la manière de faire :</p><ul><li>Ne rien faire c&rsquo;est le client qui contrôle tout pour lister les pages</li><li>Dans le body HTTP, envelopper la liste de résultat contenant également les
 informations de pagination. C&rsquo;est une approche souvent choisi car elle demande
-moins de connaissance du HTTP.</li>
-<li>Utiliser la réponse HTTP comme enveloppe et système de meta-données. C&rsquo;est
+moins de connaissance du HTTP.</li><li>Utiliser la réponse HTTP comme enveloppe et système de meta-données. C&rsquo;est
 l&rsquo;option choisie par les designers de
-l&rsquo;<a href="https://developer.github.com/v3/guides/traversing-with-pagination/">API HTTP de GitHub</a></li>
-</ul>
-<p>Les gens de Github utilisent spécifiquement l&rsquo;entête <code>Link</code> pour exprimer les
+l&rsquo;<a href=https://developer.github.com/v3/guides/traversing-with-pagination/>API HTTP de GitHub</a></li></ul><p>Les gens de Github utilisent spécifiquement l&rsquo;entête <code>Link</code> pour exprimer les
 <em>relations</em> des pages dans une ressource paginée. Pour ceux qui n&rsquo;ont pas envie
 d&rsquo;utiliser le body de la réponse pour introduire ces <em>méta-données</em> de
 navigations, cet article explique comment mettre en place avec le standard
-JAX-RS 2 un mécanisme comme celui de GitHub.</p>
-<h2 id="quest-ce-que-le-header-link">Qu&rsquo;est-ce que le header link?</h2>
-<p>D&rsquo;après la <a href="https://tools.ietf.org/html/rfc5988">RFC 5988</a> :</p>
-<blockquote>
-<p>In this specification, a link is a typed connection between two
+JAX-RS 2 un mécanisme comme celui de GitHub.</p><h2 id=quest-ce-que-le-header-link>Qu&rsquo;est-ce que le header link?</h2><p>D&rsquo;après la <a href=https://tools.ietf.org/html/rfc5988>RFC 5988</a> :</p><blockquote><p>In this specification, a link is a typed connection between two
 resources that are identified by Internationalised Resource
-Identifiers (IRIs) [RFC3987], and is comprised of:</p>
-<ul>
-<li>A context IRI,</li>
-<li>a link relation type (Section 4),</li>
-<li>a target IRI, and</li>
-<li>optionally, target attributes.</li>
-</ul>
-<p><strong>A link can be viewed as a statement of the form &ldquo;{context IRI} has a
+Identifiers (IRIs) [RFC3987], and is comprised of:</p><ul><li>A context IRI,</li><li>a link relation type (Section 4),</li><li>a target IRI, and</li><li>optionally, target attributes.</li></ul><p><strong>A link can be viewed as a statement of the form &ldquo;{context IRI} has a
 {relation type} resource at {target IRI}, which has {target
-attributes}&quot;.</strong></p>
-</blockquote>
-<p>La RFC donne cet exemple :</p>
-<pre><code>Link: &lt;http://example.com/TheBook/chapter2&gt;; rel=&quot;previous&quot;; title=&quot;previous chapter&quot;
+attributes}".</strong></p></blockquote><p>La RFC donne cet exemple :</p><pre><code>Link: &lt;http://example.com/TheBook/chapter2&gt;; rel=&quot;previous&quot;; title=&quot;previous chapter&quot;
 </code></pre><p>L&rsquo;entête <code>Link</code> est donc un moyen de donner au client les URIs des relations
 de la ressource actuelle.
 Le header HTTP <code>Link</code> peut accueillir plusieurs <em>link</em>, donc plusieurs
 relations. Ce qui permet de donner les liens pour naviguer d&rsquo;une page à une
 autre comme l&rsquo;a mis en place github. <strong>La réponse HTTP est l&rsquo;enveloppe de
-la payload</strong>.</p>
-<h2 id="jax-rs-le-prototypage">JAX-RS, le prototypage</h2>
-<p>Concrètement comment implémenter cette forme de pagination en JAX-RS ?</p>
-<p>On peut utiliser le builder de <code>Response</code> pour ajouter le header <code>Link</code>. Depuis
+la payload</strong>.</p><h2 id=jax-rs-le-prototypage>JAX-RS, le prototypage</h2><p>Concrètement comment implémenter cette forme de pagination en JAX-RS ?</p><p>On peut utiliser le builder de <code>Response</code> pour ajouter le header <code>Link</code>. Depuis
 la spécification JAX-RS 2 il y a un support spécifique pour les header <code>Link</code>,
-via le builder <code>.links(Link...)</code> et via la classe <code>Link</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">Response<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">ok</span><span style="color:#000;font-weight:bold">()</span>
-        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">links</span><span style="color:#000;font-weight:bold">(</span>Link<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">valueOf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;&lt;https://host:port/path?q=foo&amp;page=72&gt;; rel=\&#34;previous results\&#34;&#34;</span><span style="color:#000;font-weight:bold">),</span>
-               Link<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">valueOf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;&lt;https://host:port/path?q=foo&amp;page=74&gt;; rel=\&#34;next results\&#34;&#34;</span><span style="color:#000;font-weight:bold">))</span>
-        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">entity</span><span style="color:#000;font-weight:bold">(</span><span style="color:#998;font-style:italic">/* page 73 */</span> results<span style="color:#000;font-weight:bold">)</span>
-        <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">());</span>
+via le builder <code>.links(Link...)</code> et via la classe <code>Link</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>Response<span style=color:#000;font-weight:700>.</span><span style=color:teal>ok</span><span style=color:#000;font-weight:700>()</span>
+        <span style=color:#000;font-weight:700>.</span><span style=color:teal>links</span><span style=color:#000;font-weight:700>(</span>Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>valueOf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;&lt;https://host:port/path?q=foo&amp;page=72&gt;; rel=\&#34;previous results\&#34;&#34;</span><span style=color:#000;font-weight:700>),</span>
+               Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>valueOf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;&lt;https://host:port/path?q=foo&amp;page=74&gt;; rel=\&#34;next results\&#34;&#34;</span><span style=color:#000;font-weight:700>))</span>
+        <span style=color:#000;font-weight:700>.</span><span style=color:teal>entity</span><span style=color:#000;font-weight:700>(</span><span style=color:#998;font-style:italic>/* page 73 */</span> results<span style=color:#000;font-weight:700>)</span>
+        <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
 </code></pre></div><p>Ce qu&rsquo;il nous faut donc c&rsquo;est l&rsquo;URI complète pour générer les URI des relations.
-Avec JAX-RS, il faut récupérer <code>UriInfo</code>. Pour rappel :</p>
-<p>Étant donné l&rsquo;URI appelée <code>http://localhost:59520/path/to/search?foo=bar&amp;qix=zzz</code>, alors</p>
-<ul>
-<li><code>uriInfo.getAbsolutePath()</code> donnera <code>http://localhost:59520/path/to/search</code></li>
-<li><code>uriInfo.getBaseUri()</code> donnera <code>http://localhost:59520/</code></li>
-<li><code>uriInfo.getPath()</code> donnera <code>path/to/search</code></li>
-<li><code>uriInfo.getQueryParameters()</code> donnera une <code>MultivaluedMap</code> avec
-<pre><code>&quot;foo&quot; : [&quot;bar&quot;]
+Avec JAX-RS, il faut récupérer <code>UriInfo</code>. Pour rappel :</p><p>Étant donné l&rsquo;URI appelée <code>http://localhost:59520/path/to/search?foo=bar&qix=zzz</code>, alors</p><ul><li><code>uriInfo.getAbsolutePath()</code> donnera <code>http://localhost:59520/path/to/search</code></li><li><code>uriInfo.getBaseUri()</code> donnera <code>http://localhost:59520/</code></li><li><code>uriInfo.getPath()</code> donnera <code>path/to/search</code></li><li><code>uriInfo.getQueryParameters()</code> donnera une <code>MultivaluedMap</code> avec<pre><code>&quot;foo&quot; : [&quot;bar&quot;]
 &quot;qix&quot; : [&quot;zzz&quot;]
-</code></pre></li>
-<li><code>uriInfo.getRequestUri()</code> donnera <code>http://localhost:59520/path/to/search?foo=bar&amp;qix=zzz</code></li>
-</ul>
-<p>Dans le contexte d&rsquo;une ressource JAX-RS, on peut par exemple écrire le code
-suivant.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> String X_TOTAL_COUNT <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;X-Total-Count&#34;</span><span style="color:#000;font-weight:bold">;</span>
+</code></pre></li><li><code>uriInfo.getRequestUri()</code> donnera <code>http://localhost:59520/path/to/search?foo=bar&qix=zzz</code></li></ul><p>Dans le contexte d&rsquo;une ressource JAX-RS, on peut par exemple écrire le code
+suivant.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> String X_TOTAL_COUNT <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;X-Total-Count&#34;</span><span style=color:#000;font-weight:700>;</span>
 
-<span style="color:#3c5d5d;font-weight:bold">@Context</span>
-UriInfo uriInfo<span style="color:#000;font-weight:bold">;</span>
+<span style=color:#3c5d5d;font-weight:700>@Context</span>
+UriInfo uriInfo<span style=color:#000;font-weight:700>;</span>
 
-<span style="color:#3c5d5d;font-weight:bold">@GET</span> <span style="color:#3c5d5d;font-weight:bold">@Path</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;search&#34;</span><span style="color:#000;font-weight:bold">)</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">search</span><span style="color:#000;font-weight:bold">(</span><span style="color:#3c5d5d;font-weight:bold">@BeanParam</span> QueryParams queryParams<span style="color:#000;font-weight:bold">,</span>
-                   <span style="color:#3c5d5d;font-weight:bold">@Suspended</span> AsyncResponse asyncResponse<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+<span style=color:#3c5d5d;font-weight:700>@GET</span> <span style=color:#3c5d5d;font-weight:700>@Path</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;search&#34;</span><span style=color:#000;font-weight:700>)</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>search</span><span style=color:#000;font-weight:700>(</span><span style=color:#3c5d5d;font-weight:700>@BeanParam</span> QueryParams queryParams<span style=color:#000;font-weight:700>,</span>
+                   <span style=color:#3c5d5d;font-weight:700>@Suspended</span> AsyncResponse asyncResponse<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
 
-    SamePaginated results <span style="color:#000;font-weight:bold">=</span> <span style="color:#998;font-style:italic">// get paginated results
-</span><span style="color:#998;font-style:italic"></span>    LinkPagination linkPagination <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> LinkPagination<span style="color:#000;font-weight:bold">(</span>results<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">currentPageIndex</span><span style="color:#000;font-weight:bold">(),</span>
-                                                       results<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">pageCount</span><span style="color:#000;font-weight:bold">())</span>
+    SamePaginated results <span style=color:#000;font-weight:700>=</span> <span style=color:#998;font-style:italic>// get paginated results
+</span><span style=color:#998;font-style:italic></span>    LinkPagination linkPagination <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> LinkPagination<span style=color:#000;font-weight:700>(</span>results<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPageIndex</span><span style=color:#000;font-weight:700>(),</span>
+                                                       results<span style=color:#000;font-weight:700>.</span><span style=color:teal>pageCount</span><span style=color:#000;font-weight:700>())</span>
 
-    asyncResponse<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">resume</span><span style="color:#000;font-weight:bold">(</span>Response<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">ok</span><span style="color:#000;font-weight:bold">()</span>
-                                 <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">links</span><span style="color:#000;font-weight:bold">(</span>linkPagination<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toLinks</span><span style="color:#000;font-weight:bold">(</span>uriInfo<span style="color:#000;font-weight:bold">)</span>
-                                                      <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">toArray</span><span style="color:#000;font-weight:bold">(</span>Link<span style="color:#000;font-weight:bold">[]::</span><span style="color:#000;font-weight:bold">new</span><span style="color:#000;font-weight:bold">))</span>
-                                 <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">header</span><span style="color:#000;font-weight:bold">(</span>X_TOTAL_COUNT<span style="color:#000;font-weight:bold">,</span> results<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">totalCount</span><span style="color:#000;font-weight:bold">())</span>
-                                 <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">entity</span><span style="color:#000;font-weight:bold">(</span>results<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">currentPage</span><span style="color:#000;font-weight:bold">())</span>
-                                 <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">());</span>
-<span style="color:#000;font-weight:bold">}</span>
+    asyncResponse<span style=color:#000;font-weight:700>.</span><span style=color:teal>resume</span><span style=color:#000;font-weight:700>(</span>Response<span style=color:#000;font-weight:700>.</span><span style=color:teal>ok</span><span style=color:#000;font-weight:700>()</span>
+                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>links</span><span style=color:#000;font-weight:700>(</span>linkPagination<span style=color:#000;font-weight:700>.</span><span style=color:teal>toLinks</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>)</span>
+                                                      <span style=color:#000;font-weight:700>.</span><span style=color:teal>toArray</span><span style=color:#000;font-weight:700>(</span>Link<span style=color:#000;font-weight:700>[]::</span><span style=color:#000;font-weight:700>new</span><span style=color:#000;font-weight:700>))</span>
+                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>header</span><span style=color:#000;font-weight:700>(</span>X_TOTAL_COUNT<span style=color:#000;font-weight:700>,</span> results<span style=color:#000;font-weight:700>.</span><span style=color:teal>totalCount</span><span style=color:#000;font-weight:700>())</span>
+                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>entity</span><span style=color:#000;font-weight:700>(</span>results<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPage</span><span style=color:#000;font-weight:700>())</span>
+                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Ce code laisse la responsabilité à la classe <code>LinkPagination</code> de générer les
-headers <code>Link</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">import</span> <span style="color:#555">com.google.common.base.Preconditions</span><span style="color:#000;font-weight:bold">;</span>
+headers <code>Link</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>import</span> <span style=color:#555>com.google.common.base.Preconditions</span><span style=color:#000;font-weight:700>;</span>
 
-<span style="color:#000;font-weight:bold">import</span> <span style="color:#555">javax.ws.rs.core.Link</span><span style="color:#000;font-weight:bold">;</span>
-<span style="color:#000;font-weight:bold">import</span> <span style="color:#555">javax.ws.rs.core.UriInfo</span><span style="color:#000;font-weight:bold">;</span>
-<span style="color:#000;font-weight:bold">import</span> <span style="color:#555">java.util.stream.Stream</span><span style="color:#000;font-weight:bold">;</span>
+<span style=color:#000;font-weight:700>import</span> <span style=color:#555>javax.ws.rs.core.Link</span><span style=color:#000;font-weight:700>;</span>
+<span style=color:#000;font-weight:700>import</span> <span style=color:#555>javax.ws.rs.core.UriInfo</span><span style=color:#000;font-weight:700>;</span>
+<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.util.stream.Stream</span><span style=color:#000;font-weight:700>;</span>
 
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">LinkPagination</span> <span style="color:#000;font-weight:bold">{</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> String PREV_REL <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;prev&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> String NEXT_REL <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;next&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> String FIRST_REL <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;first&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> String LAST_REL <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;last&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> String PAGE_QUERY_PARAM <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;page&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> <span style="color:#458;font-weight:bold">int</span> FIRST_PAGE <span style="color:#000;font-weight:bold">=</span> 1
+<span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>LinkPagination</span> <span style=color:#000;font-weight:700>{</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String PREV_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;prev&#34;</span><span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String NEXT_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;next&#34;</span><span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String FIRST_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;first&#34;</span><span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String LAST_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;last&#34;</span><span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String PAGE_QUERY_PARAM <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;page&#34;</span><span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> <span style=color:#458;font-weight:700>int</span> FIRST_PAGE <span style=color:#000;font-weight:700>=</span> 1
 
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">final</span> <span style="color:#458;font-weight:bold">int</span> pageCount<span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">final</span> <span style="color:#458;font-weight:bold">int</span> currentPageIndex<span style="color:#000;font-weight:bold">;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>final</span> <span style=color:#458;font-weight:700>int</span> pageCount<span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>final</span> <span style=color:#458;font-weight:700>int</span> currentPageIndex<span style=color:#000;font-weight:700>;</span>
 
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#900;font-weight:bold">LinkPagination</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> currentPageIndex<span style="color:#000;font-weight:bold">,</span> <span style="color:#458;font-weight:bold">int</span> pageCount<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#998;font-style:italic">/* ... */</span> <span style="color:#000;font-weight:bold">}</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#900;font-weight:700>LinkPagination</span><span style=color:#000;font-weight:700>(</span><span style=color:#458;font-weight:700>int</span> currentPageIndex<span style=color:#000;font-weight:700>,</span> <span style=color:#458;font-weight:700>int</span> pageCount<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#998;font-style:italic>/* ... */</span> <span style=color:#000;font-weight:700>}</span>
 
-    <span style="color:#000;font-weight:bold">public</span> Stream<span style="color:#000;font-weight:bold">&lt;</span>Link<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#900;font-weight:bold">toLinks</span><span style="color:#000;font-weight:bold">(</span>UriInfo uriInfo<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-        <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>currentPageIndex <span style="color:#000;font-weight:bold">==</span> 1 <span style="color:#000;font-weight:bold">&amp;&amp;</span> pageCount <span style="color:#000;font-weight:bold">==</span> 1<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-            <span style="color:#000;font-weight:bold">return</span> Stream<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">empty</span><span style="color:#000;font-weight:bold">();</span>
-        <span style="color:#000;font-weight:bold">}</span>
+    <span style=color:#000;font-weight:700>public</span> Stream<span style=color:#000;font-weight:700>&lt;</span>Link<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>toLinks</span><span style=color:#000;font-weight:700>(</span>UriInfo uriInfo<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(</span>currentPageIndex <span style=color:#000;font-weight:700>==</span> 1 <span style=color:#000;font-weight:700>&amp;&amp;</span> pageCount <span style=color:#000;font-weight:700>==</span> 1<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+            <span style=color:#000;font-weight:700>return</span> Stream<span style=color:#000;font-weight:700>.</span><span style=color:teal>empty</span><span style=color:#000;font-weight:700>();</span>
+        <span style=color:#000;font-weight:700>}</span>
 
-        Stream<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">Builder</span><span style="color:#000;font-weight:bold">&lt;</span>Link<span style="color:#000;font-weight:bold">&gt;</span> linkStreamBuilder <span style="color:#000;font-weight:bold">=</span> Stream<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">builder</span><span style="color:#000;font-weight:bold">();</span>
+        Stream<span style=color:#000;font-weight:700>.</span><span style=color:teal>Builder</span><span style=color:#000;font-weight:700>&lt;</span>Link<span style=color:#000;font-weight:700>&gt;</span> linkStreamBuilder <span style=color:#000;font-weight:700>=</span> Stream<span style=color:#000;font-weight:700>.</span><span style=color:teal>builder</span><span style=color:#000;font-weight:700>();</span>
 
-        <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>currentPageIndex <span style="color:#000;font-weight:bold">&gt;</span> 1<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-            linkStreamBuilder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">accept</span><span style="color:#000;font-weight:bold">(</span>
-                Link<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">fromUriBuilder</span><span style="color:#000;font-weight:bold">(</span>uriInfo<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getRequestUriBuilder</span><span style="color:#000;font-weight:bold">()</span>
-                                           <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">replaceQueryParam</span><span style="color:#000;font-weight:bold">(</span>PAGE_QUERY_PARAM<span style="color:#000;font-weight:bold">,</span>
-                                                              currentPageIndex <span style="color:#000;font-weight:bold">-</span> 1<span style="color:#000;font-weight:bold">))</span>
-                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">rel</span><span style="color:#000;font-weight:bold">(</span>PREV_REL<span style="color:#000;font-weight:bold">)</span>
-                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">());</span>
-        <span style="color:#000;font-weight:bold">}</span>
+        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(</span>currentPageIndex <span style=color:#000;font-weight:700>&gt;</span> 1<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+            linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
+                Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
+                                           <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
+                                                              currentPageIndex <span style=color:#000;font-weight:700>-</span> 1<span style=color:#000;font-weight:700>))</span>
+                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>PREV_REL<span style=color:#000;font-weight:700>)</span>
+                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
+        <span style=color:#000;font-weight:700>}</span>
 
-        <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span>currentPageIndex <span style="color:#000;font-weight:bold">&lt;</span> pageCount<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-            linkStreamBuilder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">accept</span><span style="color:#000;font-weight:bold">(</span>
-                Link<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">fromUriBuilder</span><span style="color:#000;font-weight:bold">(</span>uriInfo<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getRequestUriBuilder</span><span style="color:#000;font-weight:bold">()</span>
-                                           <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">replaceQueryParam</span><span style="color:#000;font-weight:bold">(</span>PAGE_QUERY_PARAM<span style="color:#000;font-weight:bold">,</span>
-                                                              currentPageIndex <span style="color:#000;font-weight:bold">+</span> 1<span style="color:#000;font-weight:bold">))</span>
-                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">rel</span><span style="color:#000;font-weight:bold">(</span>NEXT_REL<span style="color:#000;font-weight:bold">)</span>
-                    <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">());</span>
-        <span style="color:#000;font-weight:bold">}</span>
+        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(</span>currentPageIndex <span style=color:#000;font-weight:700>&lt;</span> pageCount<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+            linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
+                Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
+                                           <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
+                                                              currentPageIndex <span style=color:#000;font-weight:700>+</span> 1<span style=color:#000;font-weight:700>))</span>
+                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>NEXT_REL<span style=color:#000;font-weight:700>)</span>
+                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
+        <span style=color:#000;font-weight:700>}</span>
 
-        linkStreamBuilder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">accept</span><span style="color:#000;font-weight:bold">(</span>
-            Link<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">fromUriBuilder</span><span style="color:#000;font-weight:bold">(</span>uriInfo<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getRequestUriBuilder</span><span style="color:#000;font-weight:bold">()</span>
-                                       <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">replaceQueryParam</span><span style="color:#000;font-weight:bold">(</span>PAGE_QUERY_PARAM<span style="color:#000;font-weight:bold">,</span>
-                                                          FIRST_PAGE<span style="color:#000;font-weight:bold">))</span>
-                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">rel</span><span style="color:#000;font-weight:bold">(</span>FIRST_REL<span style="color:#000;font-weight:bold">)</span>
-                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">());</span>
+        linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
+            Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
+                                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
+                                                          FIRST_PAGE<span style=color:#000;font-weight:700>))</span>
+                <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>FIRST_REL<span style=color:#000;font-weight:700>)</span>
+                <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
 
-        linkStreamBuilder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">accept</span><span style="color:#000;font-weight:bold">(</span>
-            Link<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">fromUriBuilder</span><span style="color:#000;font-weight:bold">(</span>uriInfo<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getRequestUriBuilder</span><span style="color:#000;font-weight:bold">()</span>
-                                       <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">replaceQueryParam</span><span style="color:#000;font-weight:bold">(</span>PAGE_QUERY_PARAM<span style="color:#000;font-weight:bold">,</span>
-                                                          pageCount<span style="color:#000;font-weight:bold">))</span>
-                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">rel</span><span style="color:#000;font-weight:bold">(</span>LAST_REL<span style="color:#000;font-weight:bold">)</span>
-                <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">());</span>
+        linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
+            Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
+                                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
+                                                          pageCount<span style=color:#000;font-weight:700>))</span>
+                <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>LAST_REL<span style=color:#000;font-weight:700>)</span>
+                <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
 
-        <span style="color:#000;font-weight:bold">return</span> linkStreamBuilder<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">build</span><span style="color:#000;font-weight:bold">();</span>
-    <span style="color:#000;font-weight:bold">}</span>
-<span style="color:#000;font-weight:bold">}</span>
+        <span style=color:#000;font-weight:700>return</span> linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>();</span>
+    <span style=color:#000;font-weight:700>}</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>La méthode <code>toLinks()</code> va déterminer quelles relations existent. Cette
 implémentation suit des choix , comme le fait de ne pas renvoyer la relation
-<em>self</em>, et bien sûr d&rsquo;autres peuvent être choisit.</p>
-<p><code>uriInfo</code> est utilisé pour construire la nouvelle URI avec une méthode pratique
+<em>self</em>, et bien sûr d&rsquo;autres peuvent être choisit.</p><p><code>uriInfo</code> est utilisé pour construire la nouvelle URI avec une méthode pratique
 sur le builder, <code>replaceQueryParam(paramName,value)</code>. Cette approche
 demande de s&rsquo;assurer que le paramètre de la requête ait bien le même nom ; il
 est indispensable d&rsquo;uniformiser dans l&rsquo;application un minimum les mécanismes
 de pagination, par exemple la classe <code>QueryParams</code> utilise une constante
-pour le paramètre de la page :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Data</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">QueryParams</span> <span style="color:#000;font-weight:bold">{</span>
-    <span style="color:#3c5d5d;font-weight:bold">@QueryParam</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;q&#34;</span><span style="color:#000;font-weight:bold">)</span> String question<span style="color:#000;font-weight:bold">;</span>
+pour le paramètre de la page :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Data</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>QueryParams</span> <span style=color:#000;font-weight:700>{</span>
+    <span style=color:#3c5d5d;font-weight:700>@QueryParam</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;q&#34;</span><span style=color:#000;font-weight:700>)</span> String question<span style=color:#000;font-weight:700>;</span>
 
-    <span style="color:#3c5d5d;font-weight:bold">@Min</span><span style="color:#000;font-weight:bold">(</span>value <span style="color:#000;font-weight:bold">=</span> 1<span style="color:#000;font-weight:bold">,</span> message <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;page start at 1&#34;</span><span style="color:#000;font-weight:bold">)</span>
-    <span style="color:#3c5d5d;font-weight:bold">@QueryParam</span><span style="color:#000;font-weight:bold">(</span>PAGE_QUERY_PARAM<span style="color:#000;font-weight:bold">)</span> <span style="color:#3c5d5d;font-weight:bold">@DefaultValue</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;1&#34;</span><span style="color:#000;font-weight:bold">)</span> Integer page<span style="color:#000;font-weight:bold">;</span>
-<span style="color:#000;font-weight:bold">}</span>
+    <span style=color:#3c5d5d;font-weight:700>@Min</span><span style=color:#000;font-weight:700>(</span>value <span style=color:#000;font-weight:700>=</span> 1<span style=color:#000;font-weight:700>,</span> message <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;page start at 1&#34;</span><span style=color:#000;font-weight:700>)</span>
+    <span style=color:#3c5d5d;font-weight:700>@QueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>)</span> <span style=color:#3c5d5d;font-weight:700>@DefaultValue</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;1&#34;</span><span style=color:#000;font-weight:700>)</span> Integer page<span style=color:#000;font-weight:700>;</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Enfin il faut remarquer que s&rsquo;il y a beaucoup de resources paginées, alors
 il y a un problème de design. En effet, le code a plus de chance d'être cassé,
 ou d&rsquo;avoir des différences s&rsquo;il est dupliqué à plusieurs endroits.
-Il y a moyen de faire mieux.</p>
-<h2 id="jax-rs-une-solution-plus-générique">JAX-RS, une solution plus générique</h2>
-<p>JAX-RS apporte depuis la version 2.0 la notion de <em>filtre</em> qui s&rsquo;appliquent sur
+Il y a moyen de faire mieux.</p><h2 id=jax-rs-une-solution-plus-générique>JAX-RS, une solution plus générique</h2><p>JAX-RS apporte depuis la version 2.0 la notion de <em>filtre</em> qui s&rsquo;appliquent sur
 le <em>pipeline</em> de la requête. Il y a deux types de filtre, l&rsquo;un sur la requête,
 le deuxième sur la réponse. Nous sommes ici intéressés par &ldquo;filtrer&rdquo; la réponse
 Le code qui suit implémente à cet effet l&rsquo;interface <code>ContainerResponseFilter</code>
 pour identifier identifier une <em>entité</em> <strong>paginée</strong> et de modifier la réponse en
-conséquence.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Provider</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">LinkPaginationContainerResponseFilter</span> <span style="color:#000;font-weight:bold">implements</span> ContainerResponseFilter <span style="color:#000;font-weight:bold">{</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> String X_TOTAL_COUNT <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;X-Total-Count&#34;</span><span style="color:#000;font-weight:bold">;</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#000;font-weight:bold">final</span> String X_PAGE_COUNT <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;X-Page-Count&#34;</span><span style="color:#000;font-weight:bold">;</span>
+conséquence.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Provider</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>LinkPaginationContainerResponseFilter</span> <span style=color:#000;font-weight:700>implements</span> ContainerResponseFilter <span style=color:#000;font-weight:700>{</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String X_TOTAL_COUNT <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;X-Total-Count&#34;</span><span style=color:#000;font-weight:700>;</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String X_PAGE_COUNT <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;X-Page-Count&#34;</span><span style=color:#000;font-weight:700>;</span>
 
-    <span style="color:#3c5d5d;font-weight:bold">@Override</span>
-    <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">filter</span><span style="color:#000;font-weight:bold">(</span>ContainerRequestContext requestContext<span style="color:#000;font-weight:bold">,</span>
-                       ContainerResponseContext responseContext<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style=color:#3c5d5d;font-weight:700>@Override</span>
+    <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>filter</span><span style=color:#000;font-weight:700>(</span>ContainerRequestContext requestContext<span style=color:#000;font-weight:700>,</span>
+                       ContainerResponseContext responseContext<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
 
-        <span style="color:#000;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(!(</span>responseContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getEntity</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">instanceof</span> Paginated<span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span>
-            <span style="color:#000;font-weight:bold">return</span><span style="color:#000;font-weight:bold">;</span>
-        <span style="color:#000;font-weight:bold">}</span>
+        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(!(</span>responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getEntity</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>instanceof</span> Paginated<span style=color:#000;font-weight:700>))</span> <span style=color:#000;font-weight:700>{</span>
+            <span style=color:#000;font-weight:700>return</span><span style=color:#000;font-weight:700>;</span>
+        <span style=color:#000;font-weight:700>}</span>
 
-        UriInfo uriInfo <span style="color:#000;font-weight:bold">=</span> requestContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getUriInfo</span><span style="color:#000;font-weight:bold">();</span>
-        Paginated entity <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">(</span>Paginated<span style="color:#000;font-weight:bold">)</span> responseContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getEntity</span><span style="color:#000;font-weight:bold">();</span>
+        UriInfo uriInfo <span style=color:#000;font-weight:700>=</span> requestContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getUriInfo</span><span style=color:#000;font-weight:700>();</span>
+        Paginated entity <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>(</span>Paginated<span style=color:#000;font-weight:700>)</span> responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getEntity</span><span style=color:#000;font-weight:700>();</span>
 
-        responseContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">setEntity</span><span style="color:#000;font-weight:bold">(</span>entity<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">currentPage</span><span style="color:#000;font-weight:bold">);</span>
-        responseContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getHeaders</span><span style="color:#000;font-weight:bold">()</span>
-                       <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">addAll</span><span style="color:#000;font-weight:bold">(</span>LINK<span style="color:#000;font-weight:bold">,</span>
-                               <span style="color:#000;font-weight:bold">new</span> LinkPagination<span style="color:#000;font-weight:bold">(</span>
-                                   entity<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">currentPageIndex</span><span style="color:#000;font-weight:bold">(),</span>
-                                   entity<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">pageCount</span><span style="color:#000;font-weight:bold">()</span>
-                               <span style="color:#000;font-weight:bold">).</span><span style="color:#008080">toLinks</span><span style="color:#000;font-weight:bold">(</span>uriInfo<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">toArray</span><span style="color:#000;font-weight:bold">(</span>Link<span style="color:#000;font-weight:bold">[]::</span><span style="color:#000;font-weight:bold">new</span><span style="color:#000;font-weight:bold">)</span>
-                       <span style="color:#000;font-weight:bold">);</span>
-        responseContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getHeaders</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>X_TOTAL_COUNT<span style="color:#000;font-weight:bold">,</span> entity<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">totalCount</span><span style="color:#000;font-weight:bold">());</span>
-        responseContext<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getHeaders</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">add</span><span style="color:#000;font-weight:bold">(</span>X_PAGE_COUNT<span style="color:#000;font-weight:bold">,</span> entity<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">pageCount</span><span style="color:#000;font-weight:bold">());</span>
-    <span style="color:#000;font-weight:bold">}</span>
-<span style="color:#000;font-weight:bold">}</span>
+        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>setEntity</span><span style=color:#000;font-weight:700>(</span>entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPage</span><span style=color:#000;font-weight:700>);</span>
+        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getHeaders</span><span style=color:#000;font-weight:700>()</span>
+                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>addAll</span><span style=color:#000;font-weight:700>(</span>LINK<span style=color:#000;font-weight:700>,</span>
+                               <span style=color:#000;font-weight:700>new</span> LinkPagination<span style=color:#000;font-weight:700>(</span>
+                                   entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPageIndex</span><span style=color:#000;font-weight:700>(),</span>
+                                   entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>pageCount</span><span style=color:#000;font-weight:700>()</span>
+                               <span style=color:#000;font-weight:700>).</span><span style=color:teal>toLinks</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>).</span><span style=color:teal>toArray</span><span style=color:#000;font-weight:700>(</span>Link<span style=color:#000;font-weight:700>[]::</span><span style=color:#000;font-weight:700>new</span><span style=color:#000;font-weight:700>)</span>
+                       <span style=color:#000;font-weight:700>);</span>
+        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getHeaders</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>add</span><span style=color:#000;font-weight:700>(</span>X_TOTAL_COUNT<span style=color:#000;font-weight:700>,</span> entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>totalCount</span><span style=color:#000;font-weight:700>());</span>
+        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getHeaders</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>add</span><span style=color:#000;font-weight:700>(</span>X_PAGE_COUNT<span style=color:#000;font-weight:700>,</span> entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>pageCount</span><span style=color:#000;font-weight:700>());</span>
+    <span style=color:#000;font-weight:700>}</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>De la même manière on a besoin de <code>UriInfo</code> pour reconstruire les liens des
 relations. En revanche l&rsquo;API du <code>ContainerResponseContext</code> est un peu moins
 confortable que le builder de <code>Response</code>, notamment pour ajouter les entêtes à
-la requête HTTP, il n&rsquo;y a pas par exemple de symétrie avec le <code>.links()</code>.</p>
-<p>On indique que <code>SomePaginated</code> dispose du contrat <code>Paginated</code> :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">interface</span> <span style="color:#458;font-weight:bold">Paginated</span><span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">{</span>
-    T <span style="color:#900;font-weight:bold">currentPage</span><span style="color:#000;font-weight:bold">();</span>
-    <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">currentPageIndex</span><span style="color:#000;font-weight:bold">();</span>
-    <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">pageCount</span><span style="color:#000;font-weight:bold">();</span>
-    <span style="color:#458;font-weight:bold">int</span> <span style="color:#900;font-weight:bold">totalCount</span><span style="color:#000;font-weight:bold">();</span>
-<span style="color:#000;font-weight:bold">}</span>
-</code></pre></div><div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">SomePaginated</span> <span style="color:#000;font-weight:bold">implements</span> Paginated<span style="color:#000;font-weight:bold">&lt;</span>Page<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#998;font-style:italic">/* ... */</span> <span style="color:#000;font-weight:bold">}</span>
-</code></pre></div><p>Puis il suffira d'écrire :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@GET</span> <span style="color:#3c5d5d;font-weight:bold">@Path</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;search&#34;</span><span style="color:#000;font-weight:bold">)</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">search</span><span style="color:#000;font-weight:bold">(</span><span style="color:#3c5d5d;font-weight:bold">@BeanParam</span> QueryParams queryParams<span style="color:#000;font-weight:bold">,</span>
-                   <span style="color:#3c5d5d;font-weight:bold">@Suspended</span> AsyncResponse asyncResponse<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+la requête HTTP, il n&rsquo;y a pas par exemple de symétrie avec le <code>.links()</code>.</p><p>On indique que <code>SomePaginated</code> dispose du contrat <code>Paginated</code> :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>interface</span> <span style=color:#458;font-weight:700>Paginated</span><span style=color:#000;font-weight:700>&lt;</span>T<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#000;font-weight:700>{</span>
+    T <span style=color:#900;font-weight:700>currentPage</span><span style=color:#000;font-weight:700>();</span>
+    <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>currentPageIndex</span><span style=color:#000;font-weight:700>();</span>
+    <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>pageCount</span><span style=color:#000;font-weight:700>();</span>
+    <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>totalCount</span><span style=color:#000;font-weight:700>();</span>
+<span style=color:#000;font-weight:700>}</span>
+</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>SomePaginated</span> <span style=color:#000;font-weight:700>implements</span> Paginated<span style=color:#000;font-weight:700>&lt;</span>Page<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#998;font-style:italic>/* ... */</span> <span style=color:#000;font-weight:700>}</span>
+</code></pre></div><p>Puis il suffira d'écrire :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@GET</span> <span style=color:#3c5d5d;font-weight:700>@Path</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;search&#34;</span><span style=color:#000;font-weight:700>)</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>search</span><span style=color:#000;font-weight:700>(</span><span style=color:#3c5d5d;font-weight:700>@BeanParam</span> QueryParams queryParams<span style=color:#000;font-weight:700>,</span>
+                   <span style=color:#3c5d5d;font-weight:700>@Suspended</span> AsyncResponse asyncResponse<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
 
-    SomePaginated results <span style="color:#000;font-weight:bold">=</span> <span style="color:#998;font-style:italic">// get paginated results
-</span><span style="color:#998;font-style:italic"></span>    asyncResponse<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">resume</span><span style="color:#000;font-weight:bold">(</span>results<span style="color:#000;font-weight:bold">);</span>
-<span style="color:#000;font-weight:bold">}</span>
+    SomePaginated results <span style=color:#000;font-weight:700>=</span> <span style=color:#998;font-style:italic>// get paginated results
+</span><span style=color:#998;font-style:italic></span>    asyncResponse<span style=color:#000;font-weight:700>.</span><span style=color:teal>resume</span><span style=color:#000;font-weight:700>(</span>results<span style=color:#000;font-weight:700>);</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Ce qui permet d'être simple à mettre en place pour des resources ultérieures.
 Le code technique est géré à un seul endroit et évite donc les détériorations
-possibles si le code était dupliqué sur plusieurs resources.</p>
-<h1 id="éléments-à-prendre-en-compte">Éléments à prendre en compte</h1>
-<ul>
-<li>
-<p>Faut-il utiliser une IRI absolue ou relative?</p>
-<p>Par exemple l&rsquo;api pourrait être utilisée par un serveur intermédiaire exposé
-sur un autre domaine, rendant l&rsquo;exploitation de ces liens délicate.</p>
-</li>
-<li>
-<p>Faut-il pour la payload utiliser un type collection ou un type objet?</p>
-<p>Un tableau a l&rsquo;avantage de représenter une collection d'éléments directement.
+possibles si le code était dupliqué sur plusieurs resources.</p><h1 id=éléments-à-prendre-en-compte>Éléments à prendre en compte</h1><ul><li><p>Faut-il utiliser une IRI absolue ou relative?</p><p>Par exemple l&rsquo;api pourrait être utilisée par un serveur intermédiaire exposé
+sur un autre domaine, rendant l&rsquo;exploitation de ces liens délicate.</p></li><li><p>Faut-il pour la payload utiliser un type collection ou un type objet?</p><p>Un tableau a l&rsquo;avantage de représenter une collection d'éléments directement.
 Cependant pour des raisons métier il pourrait être voulu que le serveur
 retourne également des méta-données métiers sur cette collection :
 un flag d&rsquo;A/B testing, pour une recherche quelles options étaient actives,
 etc. Ces informations peuvent être exposée dans les entêtes, mais est-ce
-le bon endroit?</p>
-</li>
-<li>
-<p>Ce qui amène alors à une autre réflexion si ces meta-donnés sant dans la
-payload, est-ce les informations de paginations devrait y être aussi ?</p>
-<p>Mon avis est que non car la pagination est une notion liée au protocole
+le bon endroit?</p></li><li><p>Ce qui amène alors à une autre réflexion si ces meta-donnés sant dans la
+payload, est-ce les informations de paginations devrait y être aussi ?</p><p>Mon avis est que non car la pagination est une notion liée au protocole
 d&rsquo;accès à la données, alors que les meta-données du métiers ne le sont
 pas. Également le fait que ces données soient dans les entêtes n&rsquo;oblige
-pas à parser la payload pour les utiliser.</p>
-</li>
-</ul>
-<hr>
-<p>Sur le même sujet mais relatif au traitement même de la requête de pagination,
+pas à parser la payload pour les utiliser.</p></li></ul><hr><p>Sur le même sujet mais relatif au traitement même de la requête de pagination,
 mais relatif uniquement à Jersey
-l&rsquo;<a href="https://psamsotha.github.io/jersey/2017/01/07/jersey-pagination-with-spring-data.html">article suivant</a></p>
-
-  </div>
-  
-
-<div class="navigation navigation-single">
-    
-    <a href="/2017/04/29/kafka-a-walking-skeleton/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Kafka, a walking skeleton</span>
-    </a>
-    
-    
-    <a href="/2017/10/02/pagination_hateoas_link.en/" class="navigation-next">
-      <span class="navigation-tittle">JAX-RS 2.0 pagination with Link header</span>
-      <i aria-hidden="true" class="fa fa-chevron-right"></i>
-    </a>
-    
-</div>
-
-
-  
-
-  <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
-        
-        
-        
-        this.page.identifier = 'https://blog.arkey.fr/2017/10/02/pagination_hateoas_link/';
-        this.page.title = 'Pagination en JAX-RS 2.0 avec le header Link';
-        this.page.url = 'https://blog.arkey.fr/2017/10/02/pagination_hateoas_link/';
-    };
-    (function() {
-        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-            return;
-        }
-        var d = document, s = d.createElement('script'); s.async = true;
-        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
-        s.setAttribute('data-timestamp', +new Date());
-        (d.head || d.body).appendChild(s);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-</article>
-
-
-        </div>
-        
-    
-
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-
-    
-    
-    <script type="text/javascript">
-        
-        hljs.initHighlightingOnLoad();
-    </script>
-    
-
-
-
-
-    
-
-
-
-    </body>
-</html>
+l&rsquo;<a href=https://psamsotha.github.io/jersey/2017/01/07/jersey-pagination-with-spring-data.html>article suivant</a></p></div><div class="navigation navigation-single"><a href=/2017/04/29/kafka-a-walking-skeleton/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Kafka, a walking skeleton</span></a>
+<a href=/2017/10/02/pagination_hateoas_link.en/ class=navigation-next><span class=navigation-tittle>JAX-RS 2.0 pagination with Link header</span>
+<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2017/10/02/pagination_hateoas_link/';this.page.title='Pagination en JAX-RS 2.0 avec le header Link';this.page.url='https://blog.arkey.fr/2017/10/02/pagination_hateoas_link/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
+var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>

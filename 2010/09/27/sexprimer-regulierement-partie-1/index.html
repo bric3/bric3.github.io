@@ -1,639 +1,153 @@
-<!DOCTYPE html>
-<html lang="en">
-    
-    
-
-
-    <head>
-    <link href="https://gmpg.org/xfn/11" rel="profile">
-    <meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta http-equiv="Cache-Control" content="public" />
-<!-- Enable responsiveness on mobile devices -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
-
-    
-    
-    
-
-<title>Expressions régulières (Partie 1) • The Coffee Workshop</title>
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Expressions régulières (Partie 1)"/>
-<meta name="twitter:description" content="Préambule : Pourquoi cet article ? Depuis bien longtemps je connais et pratique les expressions régulières, à la fois au moment de coder, mais également dans mes éditeurs de texte, parfois aussi dans le shell, lors d&rsquo;un grep par exemple."/>
-
-<meta property="og:title" content="Expressions régulières (Partie 1)" />
-<meta property="og:description" content="Préambule : Pourquoi cet article ? Depuis bien longtemps je connais et pratique les expressions régulières, à la fois au moment de coder, mais également dans mes éditeurs de texte, parfois aussi dans le shell, lors d&rsquo;un grep par exemple." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.arkey.fr/2010/09/27/sexprimer-regulierement-partie-1/" />
-<meta property="article:published_time" content="2010-09-27T15:52:58+00:00" />
-<meta property="article:modified_time" content="2010-09-27T15:52:58+00:00" /><meta property="og:site_name" content="Arkey" />
-
-
-    
-
-
-
-
-
-
-<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
-
-
-<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
-
-
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-    <!-- Icons -->
-    
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-    
-    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
-
-    
-    <link rel="shortcut icon" href="/android-192-favicon.png">
-    
-    
-
-
-    
-</head>
-
-
-    <body class=" ">
-    
-<div class="sidebar">
-  <div class="container ">
-    <div class="sidebar-about">
-      <span class="site__title">
-        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
-      </span>
-      
-      
-        <div class="author-image">
-          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
-        </div>
-      
-      <p class="site__description">
-         Java mostly, and general tech 
-      </p>
-    </div>
-    <div class="collapsible-menu">
-      <input type="checkbox" id="menuToggle">
-      <label for="menuToggle">The Coffee Workshop</label>
-      <div class="menu-content">
-        <div>
-	<ul class="sidebar-nav">
-		 
-		 
-			 
-				<li>
-					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		
-	</ul>
-</div>
-
-        <section class="social">
-	
-	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
-	
-	
-	
-	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
-	
-	
-	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
-	
-	
-	
-	
-	
-	
-	
-	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
-	
-	
-	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
-	
-	
-	
-	
-	
-	
-	
-	
-</section>
-
-      </div>
-    </div>
-    
-<div class="copyright">
-  &copy; 2010 - 2020 Brice Dutheil
-  
-    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
-  
-</div>
-
-
-
-  </div>
-</div>
-
-        <div class="content container">
-            
-    
-<article>
-  <header>
-    <h1>Expressions régulières (Partie 1)</h1>
-    
-    
-<div class="post__meta">
-    
-    
-      <i class="fas fa-calendar-alt"></i> 2010-09-27
-    
-    
-    
-    
-    
-      
-      
-          <br/>
-           <i class="fas fa-tags"></i>
-          
-          <a class="badge badge-tag" href="/tags/code">code</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/expression-reguliere">expression régulière</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/java">java</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/pattern">pattern</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/performance">performance</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/regex">regex</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/regexp">regexp</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/regular-expression">regular expression</a>
-          
-      
-    
-    
-    <br/>
-    <i class="fas fa-clock"></i> 11 min read
-</div>
-
-
-  </header>
-  
-  
-  <div class="post">
-    <h1 id="préambule--pourquoi-cet-article-">Préambule : Pourquoi cet article ?</h1>
-<p>Depuis bien longtemps je connais et pratique les expressions régulières, à la fois au moment de coder, mais également
-dans mes éditeurs de texte, parfois aussi dans le shell, lors d&rsquo;un <a href="http://www.panix.com/~elflord/unix/grep.html">grep</a>
-par exemple. Bref les expressions régulières sont pratiques dans la vie de tous les jours pour un ingénieur logiciel.</p>
-<p>Seulement voilà je me suis aussi rendu compte que certains d&rsquo;entre nous n&rsquo;ont pas une connaissance approfondie
+<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Expressions régulières (Partie 1) • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Expressions régulières (Partie 1)"><meta name=twitter:description content="Préambule : Pourquoi cet article ? Depuis bien longtemps je connais et pratique les expressions régulières, à la fois au moment de coder, mais également dans mes éditeurs de texte, parfois aussi dans le shell, lors d&rsquo;un grep par exemple."><meta property="og:title" content="Expressions régulières (Partie 1)"><meta property="og:description" content="Préambule : Pourquoi cet article ? Depuis bien longtemps je connais et pratique les expressions régulières, à la fois au moment de coder, mais également dans mes éditeurs de texte, parfois aussi dans le shell, lors d&rsquo;un grep par exemple."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2010/09/27/sexprimer-regulierement-partie-1/"><meta property="article:published_time" content="2010-09-27T15:52:58+00:00"><meta property="article:modified_time" content="2010-09-27T15:52:58+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.9181f25ed2263aeb878ec6f8a84f10c4ebb16150000fca8767308880bdde5ca0.css integrity="sha256-kYHyXtImOuuHjsb4qE8QxOuxYVAAD8qHZzCIgL3eXKA="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
+<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
+<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
+<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
+<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
+<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
+<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Expressions régulières (Partie 1)</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2010-09-27<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/code>code</a>
+<a class="badge badge-tag" href=/tags/expression-reguliere>expression régulière</a>
+<a class="badge badge-tag" href=/tags/java>java</a>
+<a class="badge badge-tag" href=/tags/pattern>pattern</a>
+<a class="badge badge-tag" href=/tags/performance>performance</a>
+<a class="badge badge-tag" href=/tags/regex>regex</a>
+<a class="badge badge-tag" href=/tags/regexp>regexp</a>
+<a class="badge badge-tag" href=/tags/regular-expression>regular expression</a><br><i class="fas fa-clock"></i>11 min read</div></header><div class=post><h1 id=préambule--pourquoi-cet-article->Préambule : Pourquoi cet article ?</h1><p>Depuis bien longtemps je connais et pratique les expressions régulières, à la fois au moment de coder, mais également
+dans mes éditeurs de texte, parfois aussi dans le shell, lors d&rsquo;un <a href=http://www.panix.com/~elflord/unix/grep.html>grep</a>
+par exemple. Bref les expressions régulières sont pratiques dans la vie de tous les jours pour un ingénieur logiciel.</p><p>Seulement voilà je me suis aussi rendu compte que certains d&rsquo;entre nous n&rsquo;ont pas une connaissance approfondie
 des expressions régulières et de leurs arcanes. Effectivement il y a parfois certaines expressions qui sont
-absconses.</p>
-<h1 id="rappel-sur-les-expressions-régulières">Rappel sur les expressions régulières</h1>
-<p>Aujourd&rsquo;hui également les moteurs d&rsquo;expressions régulières offrent des fonctionnalité qui dépassent le cadre dans
-lequel celles-ci ont été conçue. Ce qui permet d&rsquo;exprimer des <em>constructions</em> peu connues.</p>
-<p>Le but à la base est de pouvoir exprimer un motif à rechercher dans une chaine de caractère. Plusieurs mécanismes
-existent pour exprimer ces motifs :</p>
-<ul>
-<li>
-<p>En SQL, il y a pour cela le mot clef <code>LIKE</code> et le motif sera composé des métacaractères (wildcard) <code>%</code> ou <code>_</code></p>
-</li>
-<li>
-<p>Sur un shell on verra plutôt <code>*</code>, <code>?</code> pour des fichiers. sur les shells bash, zsh, etc. il y a ce qu&rsquo;on appelle la
-<a href="http://wiki.bash-hackers.org/syntax/pe">substitution (expansion) de variables</a> qui fournit d&rsquo;autres règles pour
-les motifs à extraire (ex: <code>${PARAMETER%%PATTERN}</code>).</p>
-<p>D&rsquo;une manière générale ces shells offrent des fonctionnalités plus avancées que <code>*</code>, <code>?</code> pour manipuler des fichiers
-ou des chaines de caractères connue sous le nom de <strong>globbing</strong></p>
-</li>
-<li>
-<p>Les expressions régulières, le sujet de cette série d&rsquo;article</p>
-</li>
-</ul>
-<h2 id="pourquoi-ces-expressions-sont-elles-_régulières_-">Pourquoi ces expressions sont-elles <em>régulières</em> ?</h2>
-<p>Sans remonter aux origines des expressions régulières －cette partie là est couverte par
-<a href="https://fr.wikipedia.org/wiki/Expression_rationnelle">wikipedia</a>－ et bien que les expressions
-régulières et le moteur associé ont bien évoluées en 60ans la théorie à l&rsquo;origine de celles-ci reste la même.</p>
-<p>Dans la théorie des langagues, il y a ce qu&rsquo;on appelle le <strong>langage formel</strong>. Ce langage formel
+absconses.</p><h1 id=rappel-sur-les-expressions-régulières>Rappel sur les expressions régulières</h1><p>Aujourd&rsquo;hui également les moteurs d&rsquo;expressions régulières offrent des fonctionnalité qui dépassent le cadre dans
+lequel celles-ci ont été conçue. Ce qui permet d&rsquo;exprimer des <em>constructions</em> peu connues.</p><p>Le but à la base est de pouvoir exprimer un motif à rechercher dans une chaine de caractère. Plusieurs mécanismes
+existent pour exprimer ces motifs :</p><ul><li><p>En SQL, il y a pour cela le mot clef <code>LIKE</code> et le motif sera composé des métacaractères (wildcard) <code>%</code> ou <code>_</code></p></li><li><p>Sur un shell on verra plutôt <code>*</code>, <code>?</code> pour des fichiers. sur les shells bash, zsh, etc. il y a ce qu&rsquo;on appelle la
+<a href=http://wiki.bash-hackers.org/syntax/pe>substitution (expansion) de variables</a> qui fournit d&rsquo;autres règles pour
+les motifs à extraire (ex: <code>${PARAMETER%%PATTERN}</code>).</p><p>D&rsquo;une manière générale ces shells offrent des fonctionnalités plus avancées que <code>*</code>, <code>?</code> pour manipuler des fichiers
+ou des chaines de caractères connue sous le nom de <strong>globbing</strong></p></li><li><p>Les expressions régulières, le sujet de cette série d&rsquo;article</p></li></ul><h2 id=pourquoi-ces-expressions-sont-elles-_régulières_->Pourquoi ces expressions sont-elles <em>régulières</em> ?</h2><p>Sans remonter aux origines des expressions régulières －cette partie là est couverte par
+<a href=https://fr.wikipedia.org/wiki/Expression_rationnelle>wikipedia</a>－ et bien que les expressions
+régulières et le moteur associé ont bien évoluées en 60ans la théorie à l&rsquo;origine de celles-ci reste la même.</p><p>Dans la théorie des langagues, il y a ce qu&rsquo;on appelle le <strong>langage formel</strong>. Ce langage formel
 permet de décrire un autre langage et sa syntaxe. Le langage formel représente graossièrement l&rsquo;alphabet d&rsquo;un
 <strong>langage</strong>. Ce <strong>langage formel</strong> fonctionne avec une <strong>grammaire formelle</strong> qui indique comment les symboles peuvent
-s&rsquo;assembler.</p>
-<p>En théorie des langages il a été identifié que les <strong>langages</strong> avaient des propriétés différentes. Ces <strong>langages</strong>
-sont classifiés par la <a href="https://fr.wikipedia.org/wiki/Hi%C3%A9rarchie_de_Chomsky">hiérarchie de Chomsky</a>:</p>
-
-
-
-<div class="table-wrapper">
-    <table>
-<thead>
-<tr>
-<th>Grammaire</th>
-<th>Langage</th>
-<th>Automate</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Type-0</td>
-<td>récursivement énumérable</td>
-<td>Machine de Turing</td>
-</tr>
-<tr>
-<td>Type-1</td>
-<td>contextuel</td>
-<td>Automate linéairement borné</td>
-</tr>
-<tr>
-<td>Type-2</td>
-<td>algébrique</td>
-<td>Automate à pile non déterministe</td>
-</tr>
-<tr>
-<td>Type-3</td>
-<td><strong>rationnel</strong> (<strong>régulier</strong>)</td>
-<td>Automate fini</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-
-<p>Le tableau ci-dessus se lit de la façon suivante :</p>
-<ul>
-<li>Le Type-0 correspond aux langage les plus riches, aucune règles n&rsquo;est imposée.</li>
-<li>Le Type-1 correspond aux langages avec plus de contraintes, notemment le langage est sensible au contexte.</li>
-<li>Le Type-2 correspond aux grammaires qui fonctionnent avec une pile, c&rsquo;est à dire qu&rsquo;ils supportent l&rsquo;imbrication de symbole.</li>
-<li>Enfin le Type-3 correspond aux langages réguliers, ce sont les langages les plus contraints de cette hiérarchie.</li>
-</ul>
-<p>Ce qui nous intéresse ici :</p>
-<blockquote>
-<p>Dans la théorie des langages formels les <strong>expressions régulières</strong> décrivent les <strong>langages réguliers</strong>.
-Elles ont la même pouvoir d&rsquo;expression que les grammaires régulières.</p>
-</blockquote>
-<p>C&rsquo;est cette propriété qui est en fait utile pour identifier un <em>motif</em> dans une chaine de caractère.</p>
-<blockquote>
-<p><strong>À noter</strong> que puisque une expression régulière décrit un langage de Type-3, il n&rsquo;est pas possible de décrire un langage
+s&rsquo;assembler.</p><p>En théorie des langages il a été identifié que les <strong>langages</strong> avaient des propriétés différentes. Ces <strong>langages</strong>
+sont classifiés par la <a href=https://fr.wikipedia.org/wiki/Hi%C3%A9rarchie_de_Chomsky>hiérarchie de Chomsky</a>:</p><div class=table-wrapper><table><thead><tr><th>Grammaire</th><th>Langage</th><th>Automate</th></tr></thead><tbody><tr><td>Type-0</td><td>récursivement énumérable</td><td>Machine de Turing</td></tr><tr><td>Type-1</td><td>contextuel</td><td>Automate linéairement borné</td></tr><tr><td>Type-2</td><td>algébrique</td><td>Automate à pile non déterministe</td></tr><tr><td>Type-3</td><td><strong>rationnel</strong> (<strong>régulier</strong>)</td><td>Automate fini</td></tr></tbody></table></div><p>Le tableau ci-dessus se lit de la façon suivante :</p><ul><li>Le Type-0 correspond aux langage les plus riches, aucune règles n&rsquo;est imposée.</li><li>Le Type-1 correspond aux langages avec plus de contraintes, notemment le langage est sensible au contexte.</li><li>Le Type-2 correspond aux grammaires qui fonctionnent avec une pile, c&rsquo;est à dire qu&rsquo;ils supportent l&rsquo;imbrication de symbole.</li><li>Enfin le Type-3 correspond aux langages réguliers, ce sont les langages les plus contraints de cette hiérarchie.</li></ul><p>Ce qui nous intéresse ici :</p><blockquote><p>Dans la théorie des langages formels les <strong>expressions régulières</strong> décrivent les <strong>langages réguliers</strong>.
+Elles ont la même pouvoir d&rsquo;expression que les grammaires régulières.</p></blockquote><p>C&rsquo;est cette propriété qui est en fait utile pour identifier un <em>motif</em> dans une chaine de caractère.</p><blockquote><p><strong>À noter</strong> que puisque une expression régulière décrit un langage de Type-3, il n&rsquo;est pas possible de décrire un langage
 de type supérieur, car ces types ont moins de contraintes, qui ne peuvent pas être interprétée par une expression
-régulière.</p>
-<p>HTML par exemple ne peut pas être <strong>parsé</strong> par une expression régulière car c&rsquo;est un langage de Type-2, imbrication de
-symbole, ce qui explique par ex cette réponse sur <a href="http://stackoverflow.com/questions/1732348/regex-match-open-tags-except-xhtml-self-contained-tags">stackoverflow</a>.
+régulière.</p><p>HTML par exemple ne peut pas être <strong>parsé</strong> par une expression régulière car c&rsquo;est un langage de Type-2, imbrication de
+symbole, ce qui explique par ex cette réponse sur <a href=http://stackoverflow.com/questions/1732348/regex-match-open-tags-except-xhtml-self-contained-tags>stackoverflow</a>.
 Attention cela ne veut pas dire qu&rsquo;il n&rsquo;est pas possible d&rsquo;extraire du texte avec une regex en utilisant les balises
-HTML.</p>
-</blockquote>
-<h2 id="disclaimer">Disclaimer</h2>
-<p>Aujourd&rsquo;hui il existe donc plusieur moteurs avec des <em>règles</em> différentes <strong>POSIX</strong>, <strong>PCRE</strong>, etc. Les implémentations
+HTML.</p></blockquote><h2 id=disclaimer>Disclaimer</h2><p>Aujourd&rsquo;hui il existe donc plusieur moteurs avec des <em>règles</em> différentes <strong>POSIX</strong>, <strong>PCRE</strong>, etc. Les implémentations
 varient en fonction de la plateforme, PHP, Perl, Javascript, C#, Java. D&rsquo;une manière générale le JDK bénéficie d&rsquo;un moteur
-basé sur celui de Perl (PCRE) qui fait partie de la dernière génération.</p>
-<p>Dans le cadre de Java il s&rsquo;agit de la fameuse classe <code>Pattern</code>. Cet article se concentre sur les fonctionnalité de
-cette classe. Ceci étant dit certaines fonctionnalité auront le même comportement quelque soit l'écosystème.</p>
-<blockquote>
-<p>Vous remarquerez d&rsquo;ailleurs que le moteur est nommé <code>Pattern</code> plutôt que Regex ou quelque chose du genre,
+basé sur celui de Perl (PCRE) qui fait partie de la dernière génération.</p><p>Dans le cadre de Java il s&rsquo;agit de la fameuse classe <code>Pattern</code>. Cet article se concentre sur les fonctionnalité de
+cette classe. Ceci étant dit certaines fonctionnalité auront le même comportement quelque soit l'écosystème.</p><blockquote><p>Vous remarquerez d&rsquo;ailleurs que le moteur est nommé <code>Pattern</code> plutôt que Regex ou quelque chose du genre,
 l&rsquo;explication est simple : cette génération de moteur est un peu plus riche que ce que permet une regex est
-permet de travailler sur <strong>motif</strong>, un <strong>pattern</strong>.</p>
-</blockquote>
-<h1 id="les-différentes-constructions">Les différentes constructions</h1>
-<h2 id="petit-rappel">Petit rappel</h2>
-<p>Je passe rapidement sur les bases, j&rsquo;imagine que tout le monde connaît les <strong>constructions</strong> basiques d&rsquo;une expression
-régulière :</p>
-<ul>
-<li>Les classes de caractères <code>[ ]</code> et les compléments <code>[^ ]</code></li>
-<li>L&rsquo;opérateur de Kleene <code>*</code></li>
-<li>L&rsquo;alternative <code>|</code> (le pipe)</li>
-<li>Les autres quantificateurs : <code>+</code>, <code>?</code>, <code>{}</code>, ces quantificateurs ne sont vraiment que des raccourcis de ce qui est déjà
-exprimable avec les autres constructions, mais ils nous simplifient la vie.</li>
-<li>Les groupes <code>()</code></li>
-</ul>
-<p>Globalement pas de surprises ici, avec ses constructions il assez facile d'écrire l&rsquo;expression la plus simple jusqu'à
-l&rsquo;expression un poil plus élaborée.</p>
-<p>Par exemple pour valider un mail (sans rentrer dans les arcanes de la RFC) on peut avoir ça:</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">simple_email_match</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    String regex <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;[a-z]+(\.[a-z]+)*@[a-z]+\.[a-z]{2,6}&#34;</span><span style="color:#000;font-weight:bold">;</span>
+permet de travailler sur <strong>motif</strong>, un <strong>pattern</strong>.</p></blockquote><h1 id=les-différentes-constructions>Les différentes constructions</h1><h2 id=petit-rappel>Petit rappel</h2><p>Je passe rapidement sur les bases, j&rsquo;imagine que tout le monde connaît les <strong>constructions</strong> basiques d&rsquo;une expression
+régulière :</p><ul><li>Les classes de caractères <code>[ ]</code> et les compléments <code>[^ ]</code></li><li>L&rsquo;opérateur de Kleene <code>*</code></li><li>L&rsquo;alternative <code>|</code> (le pipe)</li><li>Les autres quantificateurs : <code>+</code>, <code>?</code>, <code>{}</code>, ces quantificateurs ne sont vraiment que des raccourcis de ce qui est déjà
+exprimable avec les autres constructions, mais ils nous simplifient la vie.</li><li>Les groupes <code>()</code></li></ul><p>Globalement pas de surprises ici, avec ses constructions il assez facile d'écrire l&rsquo;expression la plus simple jusqu'à
+l&rsquo;expression un poil plus élaborée.</p><p>Par exemple pour valider un mail (sans rentrer dans les arcanes de la RFC) on peut avoir ça:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>simple_email_match</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    String regex <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;[a-z]+(\.[a-z]+)*@[a-z]+\.[a-z]{2,6}&#34;</span><span style=color:#000;font-weight:700>;</span>
 
-    assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span>regex<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;brice.dutheil@yopmail.com&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">());</span>
-<span style="color:#000;font-weight:bold">}</span>
+    assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span>regex<span style=color:#000;font-weight:700>).</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;brice.dutheil@yopmail.com&#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>());</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Ok, c&rsquo;est déjà pas mal, mais si on veut extraire une section d&rsquo;un texte ou valider précisément certaines sections
-d&rsquo;un texte, il faut connaitre les constructions un peu plus pointues.</p>
-<h2 id="les-ancres">Les ancres</h2>
-<p>Les ancres sont rangées dans la javadoc de la classe <a href="http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html"><code>Pattern</code></a>
+d&rsquo;un texte, il faut connaitre les constructions un peu plus pointues.</p><h2 id=les-ancres>Les ancres</h2><p>Les ancres sont rangées dans la javadoc de la classe <a href=http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html><code>Pattern</code></a>
 sous la catégorie <strong>Boundary matchers</strong>. Une ancre identifie juste une position à laquelle elle matche,
-<strong>elle ne consomme pas</strong> de caractères dans la séquence traitée.</p>
-<h3 id="le-début-et-la-fin-dune-ligne">Le début et la fin d&rsquo;une ligne</h3>
-<p>Généralement les personnes qui ont beaucoup travaillé avec le shell connaissent les deux principales ancres, à savoir
+<strong>elle ne consomme pas</strong> de caractères dans la séquence traitée.</p><h3 id=le-début-et-la-fin-dune-ligne>Le début et la fin d&rsquo;une ligne</h3><p>Généralement les personnes qui ont beaucoup travaillé avec le shell connaissent les deux principales ancres, à savoir
 le début d&rsquo;une ligne <code>^</code> et la fin d&rsquo;une ligne <code>$</code>. Mais il y a une astuce en Java, c&rsquo;est que par défaut <code>^</code> et <code>$</code>
-repèrent le début et la fin du <code>CharSequence</code> uniquement, pas de notion de saut de ligne!</p>
-<p>Pour s&rsquo;en convaincre on écrit un petit test simple qu&rsquo;on enrichira d&rsquo;assertions, la méthode <code>regexFirstMatch</code> extrait
-la première section du texte qui matche la regex :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#3c5d5d;font-weight:bold">@Test</span>
-<span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">start_end_of_line__vs__permanent_start_end_of_string</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-    String text <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;The account number is :\n&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-    <span style="color:#d14">&#34;\t123456789\n&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-    <span style="color:#d14">&#34;\tthe client phone number is :\n&#34;</span> <span style="color:#000;font-weight:bold">+</span>
-    <span style="color:#d14">&#34;\t0-987-654-321\n&#34;</span><span style="color:#000;font-weight:bold">;</span>
+repèrent le début et la fin du <code>CharSequence</code> uniquement, pas de notion de saut de ligne!</p><p>Pour s&rsquo;en convaincre on écrit un petit test simple qu&rsquo;on enrichira d&rsquo;assertions, la méthode <code>regexFirstMatch</code> extrait
+la première section du texte qui matche la regex :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Test</span>
+<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>start_end_of_line__vs__permanent_start_end_of_string</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+    String text <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;The account number is :\n&#34;</span> <span style=color:#000;font-weight:700>+</span>
+    <span style=color:#d14>&#34;\t123456789\n&#34;</span> <span style=color:#000;font-weight:700>+</span>
+    <span style=color:#d14>&#34;\tthe client phone number is :\n&#34;</span> <span style=color:#000;font-weight:700>+</span>
+    <span style=color:#d14>&#34;\t0-987-654-321\n&#34;</span><span style=color:#000;font-weight:700>;</span>
 
-    assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;T&#34;</span><span style="color:#000;font-weight:bold">,</span> regexFirstMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;^.&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// Début de la chaine de caractères
-</span><span style="color:#998;font-style:italic"></span>    assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;1&#34;</span><span style="color:#000;font-weight:bold">,</span> regexFirstMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;.$&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// Fin de la chaine de caractères
-</span><span style="color:#998;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+    assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;T&#34;</span><span style=color:#000;font-weight:700>,</span> regexFirstMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;^.&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// Début de la chaine de caractères
+</span><span style=color:#998;font-style:italic></span>    assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;1&#34;</span><span style=color:#000;font-weight:700>,</span> regexFirstMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;.$&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// Fin de la chaine de caractères
+</span><span style=color:#998;font-style:italic></span><span style=color:#000;font-weight:700>}</span>
 
-<span style="color:#000;font-weight:bold">private</span> String <span style="color:#900;font-weight:bold">regexFirstMatch</span><span style="color:#000;font-weight:bold">(</span>String text<span style="color:#000;font-weight:bold">,</span> String regex<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-    Matcher matcher <span style="color:#000;font-weight:bold">=</span> Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span>regex<span style="color:#000;font-weight:bold">).</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">);</span>
-    <span style="color:#000;font-weight:bold">return</span> matcher<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">find</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">?</span> matcher<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">group</span><span style="color:#000;font-weight:bold">(</span>0<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">:</span> <span style="color:#d14">&#34;&#34;</span><span style="color:#000;font-weight:bold">;</span>
-<span style="color:#000;font-weight:bold">}</span>
+<span style=color:#000;font-weight:700>private</span> String <span style=color:#900;font-weight:700>regexFirstMatch</span><span style=color:#000;font-weight:700>(</span>String text<span style=color:#000;font-weight:700>,</span> String regex<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+    Matcher matcher <span style=color:#000;font-weight:700>=</span> Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span>regex<span style=color:#000;font-weight:700>).</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>);</span>
+    <span style=color:#000;font-weight:700>return</span> matcher<span style=color:#000;font-weight:700>.</span><span style=color:teal>find</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>?</span> matcher<span style=color:#000;font-weight:700>.</span><span style=color:teal>group</span><span style=color:#000;font-weight:700>(</span>0<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>:</span> <span style=color:#d14>&#34;&#34;</span><span style=color:#000;font-weight:700>;</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>On ne s’attend pas à ça (matche <code>T</code> et <code>1</code>). Surtout quand la description de ces ancres utilise le mot <strong>ligne</strong>.
 En fait par défaut le moteur considère une chaine de caractères comme une seule séquence et ignore le retour chariot.
 Pour s&rsquo;en sortir il faut activer l&rsquo;option multiligne <code>Pattern.MULTILINE</code> dans le moteur, pour que celui-ci
-identifie les sauts de ligne.</p>
-<p>Ainsi dans le contexte du bout de code du dessus, les lignes suivantes permettent de voire qu&rsquo;il s&rsquo;agit bien du
-caractère <code>:</code> de la première ligne qui est trouvé.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">Matcher matcher <span style="color:#000;font-weight:bold">=</span> Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;.$&#34;</span><span style="color:#000;font-weight:bold">,</span> Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">MULTILINE</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">);</span>
-matcher<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">find</span><span style="color:#000;font-weight:bold">();</span>
-assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;:&#34;</span><span style="color:#000;font-weight:bold">,</span> matcher<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">group</span><span style="color:#000;font-weight:bold">(</span>0<span style="color:#000;font-weight:bold">));</span>
+identifie les sauts de ligne.</p><p>Ainsi dans le contexte du bout de code du dessus, les lignes suivantes permettent de voire qu&rsquo;il s&rsquo;agit bien du
+caractère <code>:</code> de la première ligne qui est trouvé.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>Matcher matcher <span style=color:#000;font-weight:700>=</span> Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;.$&#34;</span><span style=color:#000;font-weight:700>,</span> Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>MULTILINE</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>);</span>
+matcher<span style=color:#000;font-weight:700>.</span><span style=color:teal>find</span><span style=color:#000;font-weight:700>();</span>
+assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;:&#34;</span><span style=color:#000;font-weight:700>,</span> matcher<span style=color:#000;font-weight:700>.</span><span style=color:teal>group</span><span style=color:#000;font-weight:700>(</span>0<span style=color:#000;font-weight:700>));</span>
 </code></pre></div><p>Nice! mais il y a encore mieux, le moteur de regex de Java (comme certains autres) permet de donner les options à
 l&rsquo;intérieur de la regex, la javadoc de <code>Pattern</code> donne cette info dans la catégorie
-<strong>Special constructs (non-capturing)</strong>, celle qui nous intéresse est la construction sur les options pour toute l&rsquo;expression.</p>
-<blockquote>
-<p><code>(?idmsux-idmsux)</code> Nothing, but turns match flags on - off</p>
-</blockquote>
-<p><code>m</code> est l&rsquo;option multi-ligne, ce qui donne donc <code>(?m)</code> à placer au début de l&rsquo;expression régulière :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;:&#34;</span><span style="color:#000;font-weight:bold">,</span> regexFirstMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;(?m).$&#34;</span><span style="color:#000;font-weight:bold">));</span>
-</code></pre></div><p>On choppe alors bien le caractère à la fin de la première ligne.</p>
-<h3 id="le-début-et-la-fin-dune-séquence-de-caractères">Le début et la fin d&rsquo;une séquence de caractères</h3>
-<p>Dans notre expression si on veut se caler dans tous les cas sur le début et la fin d&rsquo;une séquence de caractères,
-il y a des ancres dédiées <code>\A</code> et <code>\Z</code>. Celles-ci ne sont bien entendu pas affectées par l&rsquo;option multiligne.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;T&#34;</span><span style="color:#000;font-weight:bold">,</span> regexFirstMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;\A.&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// Toujours le début de la séquence
-</span><span style="color:#998;font-style:italic"></span>assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;1&#34;</span><span style="color:#000;font-weight:bold">,</span> regexFirstMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;.\Z&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// Toujours la fin de la séquence
-</span><span style="color:#998;font-style:italic"></span>assertEquals<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;1&#34;</span><span style="color:#000;font-weight:bold">,</span> regexFirstMatch<span style="color:#000;font-weight:bold">(</span>text<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;(?m).\Z&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// Toujours la fin de la séquence
+<strong>Special constructs (non-capturing)</strong>, celle qui nous intéresse est la construction sur les options pour toute l&rsquo;expression.</p><blockquote><p><code>(?idmsux-idmsux)</code> Nothing, but turns match flags on - off</p></blockquote><p><code>m</code> est l&rsquo;option multi-ligne, ce qui donne donc <code>(?m)</code> à placer au début de l&rsquo;expression régulière :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;:&#34;</span><span style=color:#000;font-weight:700>,</span> regexFirstMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;(?m).$&#34;</span><span style=color:#000;font-weight:700>));</span>
+</code></pre></div><p>On choppe alors bien le caractère à la fin de la première ligne.</p><h3 id=le-début-et-la-fin-dune-séquence-de-caractères>Le début et la fin d&rsquo;une séquence de caractères</h3><p>Dans notre expression si on veut se caler dans tous les cas sur le début et la fin d&rsquo;une séquence de caractères,
+il y a des ancres dédiées <code>\A</code> et <code>\Z</code>. Celles-ci ne sont bien entendu pas affectées par l&rsquo;option multiligne.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;T&#34;</span><span style=color:#000;font-weight:700>,</span> regexFirstMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;\A.&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// Toujours le début de la séquence
+</span><span style=color:#998;font-style:italic></span>assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;1&#34;</span><span style=color:#000;font-weight:700>,</span> regexFirstMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;.\Z&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// Toujours la fin de la séquence
+</span><span style=color:#998;font-style:italic></span>assertEquals<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;1&#34;</span><span style=color:#000;font-weight:700>,</span> regexFirstMatch<span style=color:#000;font-weight:700>(</span>text<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;(?m).\Z&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// Toujours la fin de la séquence
 </span></code></pre></div><p>Notez quand même qu&rsquo;en ce qui concerne le <code>\Z</code> le dernier caractère de la séquence qui est un séparateur de ligne <code>\n</code>
 n&rsquo;est pas le caractère qui matche! Comme indiqué dans la javadoc, cette ancre repère la position avant le dernier
-<strong>caractère séparateur</strong> (écrit comme <a href="http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html#lt"><em>terminators</em></a>
-dans la javadoc).</p>
-<p>Il existe d&rsquo;autres ancres, mais elles sont moins utiles, je vous laisse explorer par vous même.</p>
-<h2 id="les-options">Les options</h2>
-<p>On a vu qu&rsquo;on pouvait activer des options pour une expression régulière, effectivement c&rsquo;est assez pratique.</p>
-<p>Les options possibles utilisables à la construction ou dans le pattern sont dans la javadoc, mais les plus intéressantes sont :</p>
-
-
-
-<div class="table-wrapper">
-    <table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Flag</th>
-<th>Flag à la construction</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Multi-ligne</td>
-<td><code>m</code></td>
-<td><code>Pattern.MULTILINE</code></td>
-</tr>
-<tr>
-<td>Insensibilité à la casse</td>
-<td><code>i</code></td>
-<td><code>Pattern.CASE_INSENSITIVE</code></td>
-</tr>
-<tr>
-<td>Matching de la casse relatif aux règles Unicode</td>
-<td><code>u</code></td>
-<td><code>Pattern.UNICODE_CASE</code></td>
-</tr>
-<tr>
-<td>Matching des caractère en fonction de leur forme canonique</td>
-<td></td>
-<td><code>Pattern.CANON_EQ</code></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-
-<p>Certaines options comme vu dans le tableau n&rsquo;ont pas d'équivalence dans les options <em>en-ligne</em> de la regex.</p>
-<p>Exemple : parfois on aimerait bien s&rsquo;assurer que la casse est <strong>ou</strong> n&rsquo;est pas vérifiée sur
+<strong>caractère séparateur</strong> (écrit comme <a href=http://download.oracle.com/javase/1.5.0/docs/api/java/util/regex/Pattern.html#lt><em>terminators</em></a>
+dans la javadoc).</p><p>Il existe d&rsquo;autres ancres, mais elles sont moins utiles, je vous laisse explorer par vous même.</p><h2 id=les-options>Les options</h2><p>On a vu qu&rsquo;on pouvait activer des options pour une expression régulière, effectivement c&rsquo;est assez pratique.</p><p>Les options possibles utilisables à la construction ou dans le pattern sont dans la javadoc, mais les plus intéressantes sont :</p><div class=table-wrapper><table><thead><tr><th>Option</th><th>Flag</th><th>Flag à la construction</th></tr></thead><tbody><tr><td>Multi-ligne</td><td><code>m</code></td><td><code>Pattern.MULTILINE</code></td></tr><tr><td>Insensibilité à la casse</td><td><code>i</code></td><td><code>Pattern.CASE_INSENSITIVE</code></td></tr><tr><td>Matching de la casse relatif aux règles Unicode</td><td><code>u</code></td><td><code>Pattern.UNICODE_CASE</code></td></tr><tr><td>Matching des caractère en fonction de leur forme canonique</td><td></td><td><code>Pattern.CANON_EQ</code></td></tr></tbody></table></div><p>Certaines options comme vu dans le tableau n&rsquo;ont pas d'équivalence dans les options <em>en-ligne</em> de la regex.</p><p>Exemple : parfois on aimerait bien s&rsquo;assurer que la casse est <strong>ou</strong> n&rsquo;est pas vérifiée sur
 une portion de la regex. En utilisant la construction qui permet d&rsquo;activer/désactiver une option
 il est aussi possible de le faire dans <strong>une portion de l&rsquo;expression régulière</strong>, notez la différence avec
-<code>(?idmsux-idmsux)</code> :</p>
-<blockquote>
-<p><code>(?idmsux-idmsux:X)</code> X, as a non-capturing group with the given flags on - off</p>
-</blockquote>
-<p>C&rsquo;est à peu près la même chose que pour les options avec une portée sur toute la regex, sauf que cette fois,
+<code>(?idmsux-idmsux)</code> :</p><blockquote><p><code>(?idmsux-idmsux:X)</code> X, as a non-capturing group with the given flags on - off</p></blockquote><p>C&rsquo;est à peu près la même chose que pour les options avec une portée sur toute la regex, sauf que cette fois,
 la portion soumise à l&rsquo;option changée est à l&rsquo;intérieur d&rsquo;un <strong>groupe</strong>. Et là vous remarquerez que la javadoc dit
 bien &ldquo;<em>non-capturing</em>&rdquo; ça veut dire que la regex ne gardera pas <em>en mémoire</em> le contenu de ce groupe, contrairement
 aux groupes qui sont donc <em>capturant</em> et sont identifiables par l&rsquo;encadrement du groupe par des parenthèses simple
-<code>(X)</code>.</p>
-<p>Ainsi par exemple si on ne veut pas tenir compte de la casse dans une portion de la regex on écrirait:</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(?-i)[a-z]+ [a-z]+ [a-z]+&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                   <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;jqsdfkjkd fdfhJGJKGFQSDKjb ckbvg&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                   <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#998;font-style:italic">// Fail
+<code>(X)</code>.</p><p>Ainsi par exemple si on ne veut pas tenir compte de la casse dans une portion de la regex on écrirait:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(?-i)[a-z]+ [a-z]+ [a-z]+&#34;</span><span style=color:#000;font-weight:700>)</span>
+                   <span style=color:#000;font-weight:700>.</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;jqsdfkjkd fdfhJGJKGFQSDKjb ckbvg&#34;</span><span style=color:#000;font-weight:700>)</span>
+                   <span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>());</span> <span style=color:#998;font-style:italic>// Fail
 </span></code></pre></div><p>Cette expression ne marche pas, l&rsquo;ensemble de l&rsquo;expression est sensible à la casse ; l&rsquo;option
 <code>(?-i)</code> en début d&rsquo;expression rends sensible à la casse. Pour autoriser les majuscules et les minuscule sur une seule
-partie du texte il est possibe d&rsquo;activer l&rsquo;option sur le groupe du milieu <code>(?i:[a-z]+)</code> :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;(?-i)[a-z]+ (?i:[a-z]+) [a-z]+&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                  <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;jqsdfkjkd fdfhJGJKGFQSDKjb ckbvg&#34;</span><span style="color:#000;font-weight:bold">)</span>
-                  <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">());</span>
-</code></pre></div><h2 id="les-bornes-de-mots">Les bornes de mots</h2>
-<p>Les bornes de mots sont des ancres de type particulier. Comme n&rsquo;importe quelle ancre, ces bornes ne consomment aucun
-caractère. La borne <code>\b</code> s&rsquo;utilise avant ou après un mot pour marquer le début ou la fin d&rsquo;un mot.</p>
-<p>Par exemple en utilisant la classe de caractère <code>\w</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;word&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\bword&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;word&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;word\\b&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;word&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\bword\\b&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;word&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\b\\w+\\b&#34;</span><span style="color:#000;font-weight:bold">));</span>
+partie du texte il est possibe d&rsquo;activer l&rsquo;option sur le groupe du milieu <code>(?i:[a-z]+)</code> :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;(?-i)[a-z]+ (?i:[a-z]+) [a-z]+&#34;</span><span style=color:#000;font-weight:700>)</span>
+                  <span style=color:#000;font-weight:700>.</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;jqsdfkjkd fdfhJGJKGFQSDKjb ckbvg&#34;</span><span style=color:#000;font-weight:700>)</span>
+                  <span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>());</span>
+</code></pre></div><h2 id=les-bornes-de-mots>Les bornes de mots</h2><p>Les bornes de mots sont des ancres de type particulier. Comme n&rsquo;importe quelle ancre, ces bornes ne consomment aucun
+caractère. La borne <code>\b</code> s&rsquo;utilise avant ou après un mot pour marquer le début ou la fin d&rsquo;un mot.</p><p>Par exemple en utilisant la classe de caractère <code>\w</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;word&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\bword&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;word&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;word\\b&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;word&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\bword\\b&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;word&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\b\\w+\\b&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk_&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\b\\w+\\b&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk_&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\b\\w+\\b&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk;  fdg987&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\w+\\b.*\\b\\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk;  fdg987&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\w+\\b.*\\b\\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk;   ;:!,:&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\w+\b.*\\b\\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk;   ;:!,:&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\w+\b.*\\b\\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\bes\\b&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Tu es encore dans ces histoires &#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">find</span><span style="color:#000;font-weight:bold">());</span>
-assertFalse<span style="color:#000;font-weight:bold">(</span>Pattern<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">compile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\bes\\b&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">matcher</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Tu as encore des histoires &#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#008080">find</span><span style="color:#000;font-weight:bold">());</span>
+assertTrue<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\bes\\b&#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Tu es encore dans ces histoires &#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>find</span><span style=color:#000;font-weight:700>());</span>
+assertFalse<span style=color:#000;font-weight:700>(</span>Pattern<span style=color:#000;font-weight:700>.</span><span style=color:teal>compile</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\bes\\b&#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>matcher</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Tu as encore des histoires &#34;</span><span style=color:#000;font-weight:700>).</span><span style=color:teal>find</span><span style=color:#000;font-weight:700>());</span>
 </code></pre></div><p>Effectivement <code>\b</code> marque la différence entre une classe de caractère de type lettre par rapport aux classes adjacentes.
 On remarque néanmoins que s&rsquo;il n&rsquo;y a donc pas de classes de type caractère avant ou après, la borne fait sauter
 l&rsquo;expression. De la même manière la borne ne fonctionne pas avec une classe de caractère composée de caractères qui sont
-considérés comme ne faisant pas partie des mots (exemple en ajoutant le tiret à la classe suivante : <code>[0-9a-z-]</code>).</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk-&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
+considérés comme ne faisant pas partie des mots (exemple en ajoutant le tiret à la classe suivante : <code>[0-9a-z-]</code>).</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk-&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk-&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\w+-\\b&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk-&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[0-9a-z-]+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk-&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[0-9a-z-]+\\b&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk-&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\w+-\\b&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk-&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[0-9a-z-]+&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk-&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[0-9a-z-]+\\b&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk. &#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\w+.\\b.&#34;</span><span style="color:#000;font-weight:bold">));</span>
-</code></pre></div><p>Évidemment aussi, mettre une borne dans une regex au milieu de caractères ne marchera pas.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;bobEtLéa&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;bob\\b\\w+\\bLéa&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk. &#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\w+.\\b.&#34;</span><span style=color:#000;font-weight:700>));</span>
+</code></pre></div><p>Évidemment aussi, mettre une borne dans une regex au milieu de caractères ne marchera pas.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;bobEtLéa&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;bob\\b\\w+\\bLéa&#34;</span><span style=color:#000;font-weight:700>));</span>
 </code></pre></div><p>Le complément d&rsquo;une borne <code>\b</code> est représenté par la borne <code>\B</code>, celle-ci matche tout ce que <code>\b</code> ne matche pas.
 Dans les faits <code>\B</code> est la borne entre deux classes de caractères distinctes tant que celles-ci ne contiennent pas
-de caractères appartenant à <code>\w</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk-&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\w+-\\B&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// B capture l&#39;inverse b
-</span><span style="color:#998;font-style:italic"></span>assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;12dsk.&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\w+\\.\\B&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;.!?nt&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[.!?]+\\Bnt&#34;</span><span style="color:#000;font-weight:bold">));</span> <span style="color:#998;font-style:italic">// B ne fonctionne pas avec des caractères appartenant à \w
-</span><span style="color:#998;font-style:italic"></span>assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;.!? nt&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[.!?]+\\B\\s+nt&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;.!?,,,;:&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;[.!?]+\\B[,;:]+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-</code></pre></div><h2 id="utiliser-une-borne-de-mot-accentué">Utiliser une borne de mot accentué</h2>
-<p>Si je veux matcher un texte en allemand, du grec ou simplement des lettres accentuées de notre bon français ?
-Là ça pèche un peu si on utilise le <code>\w</code>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">assertFalse<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Éole&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\b\\w+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Éole&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\bÉole&#34;</span><span style="color:#000;font-weight:bold">));</span>
+de caractères appartenant à <code>\w</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk-&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\w+-\\B&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// B capture l&#39;inverse b
+</span><span style=color:#998;font-style:italic></span>assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;12dsk.&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\w+\\.\\B&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;.!?nt&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[.!?]+\\Bnt&#34;</span><span style=color:#000;font-weight:700>));</span> <span style=color:#998;font-style:italic>// B ne fonctionne pas avec des caractères appartenant à \w
+</span><span style=color:#998;font-style:italic></span>assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;.!? nt&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[.!?]+\\B\\s+nt&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;.!?,,,;:&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;[.!?]+\\B[,;:]+&#34;</span><span style=color:#000;font-weight:700>));</span>
+</code></pre></div><h2 id=utiliser-une-borne-de-mot-accentué>Utiliser une borne de mot accentué</h2><p>Si je veux matcher un texte en allemand, du grec ou simplement des lettres accentuées de notre bon français ?
+Là ça pèche un peu si on utilise le <code>\w</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>assertFalse<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Éole&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\b\\w+&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Éole&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\bÉole&#34;</span><span style=color:#000;font-weight:700>));</span>
 
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Éole&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\b[Éa-z]+&#34;</span><span style="color:#000;font-weight:bold">));</span>
-assertTrue<span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Éole&#34;</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;\\b\\p{L}+&#34;</span><span style="color:#000;font-weight:bold">));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Éole&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\b[Éa-z]+&#34;</span><span style=color:#000;font-weight:700>));</span>
+assertTrue<span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Éole&#34;</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>matches</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;\\b\\p{L}+&#34;</span><span style=color:#000;font-weight:700>));</span>
 </code></pre></div><p>En effet la classe <code>\w</code> ne connait que les caractères ASCII et plus précisément; uniquement ceux de cette classe
 <code>[a-zA-Z0-9_]</code> tel que c&rsquo;est mentionné dans la javadoc. Pour palier à cette limitation soit il faut ajouter le
 caractère accentué à une classe de caractère, soit on utilise une <strong>classe de caractère Unicode</strong>, c&rsquo;est ce qui est
-fait dans la dernière assertion de l&rsquo;exemple ci-dessus <code>\p{L}</code>.</p>
-<p>Je reviendrais plus tard sur Unicode avec les expressions régulières.</p>
-<blockquote>
-<p><strong>Attention à l&rsquo;encodage</strong> de vos codes source ! J&rsquo;ai eu des erreurs d&rsquo;encodage du fichier sur Eclipse, IntelliJ et
+fait dans la dernière assertion de l&rsquo;exemple ci-dessus <code>\p{L}</code>.</p><p>Je reviendrais plus tard sur Unicode avec les expressions régulières.</p><blockquote><p><strong>Attention à l&rsquo;encodage</strong> de vos codes source ! J&rsquo;ai eu des erreurs d&rsquo;encodage du fichier sur Eclipse, IntelliJ et
 NetBeans qui provenaient de plateformes différentes (MacOSX et Windows), du coup le caractère <code>É</code> n'était pas bien
 encodé (comprendre que l&rsquo;IDE encodait ce caractère dans autre chose qu&rsquo;une lettre), ce qui faisait évidement échouer
-l&rsquo;expression.</p>
-</blockquote>
-<h1 id="fin-de-la-partie-1">Fin de la partie 1</h1>
-<p>Voilà pour la première partie, la plus simple, sur les expressions régulières en Java. Pour la suite qui arrive très
+l&rsquo;expression.</p></blockquote><h1 id=fin-de-la-partie-1>Fin de la partie 1</h1><p>Voilà pour la première partie, la plus simple, sur les expressions régulières en Java. Pour la suite qui arrive très
 bientôt j&rsquo;exposerai la manière de fonctionner de certaines constructions un peu particulières :  les backreferences,
-les quantificateurs possessifs, les possibilités de lookahead / lookbehind.</p>
-<h2 id="références">Références</h2>
-<ul>
-<li><a href="http://en.wikipedia.org/wiki/Regular_expression">http://en.wikipedia.org/wiki/Regular_expression</a></li>
-<li><a href="http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html">http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html</a></li>
-<li><a href="http://perldoc.perl.org/perlretut.html">http://perldoc.perl.org/perlretut.html</a></li>
-</ul>
-
-  </div>
-  
-
-<div class="navigation navigation-single">
-    
-    <a href="/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Lenteur d&#39;une appli Web sur une JVM IBM</span>
-    </a>
-    
-    
-    <a href="/2010/10/15/sexprimer-regulierement-partie-2/" class="navigation-next">
-      <span class="navigation-tittle">Expressions régulières (Partie 2)</span>
-      <i aria-hidden="true" class="fa fa-chevron-right"></i>
-    </a>
-    
-</div>
-
-
-  
-
-  <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
-        
-        
-        
-        this.page.identifier = '202 http:\/\/dutheil.brice.online.fr\/blog\/?p=202';
-        this.page.title = 'Expressions régulières (Partie 1)';
-        this.page.url = 'https://blog.arkey.fr/2010/09/27/sexprimer-regulierement-partie-1/';
-    };
-    (function() {
-        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-            return;
-        }
-        var d = document, s = d.createElement('script'); s.async = true;
-        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
-        s.setAttribute('data-timestamp', +new Date());
-        (d.head || d.body).appendChild(s);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-</article>
-
-
-        </div>
-        
-    
-
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-
-    
-    
-    <script type="text/javascript">
-        
-        hljs.initHighlightingOnLoad();
-    </script>
-    
-
-
-
-
-    
-
-
-
-    </body>
-</html>
+les quantificateurs possessifs, les possibilités de lookahead / lookbehind.</p><h2 id=références>Références</h2><ul><li><a href=http://en.wikipedia.org/wiki/Regular_expression>http://en.wikipedia.org/wiki/Regular_expression</a></li><li><a href=http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html>http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html</a></li><li><a href=http://perldoc.perl.org/perlretut.html>http://perldoc.perl.org/perlretut.html</a></li></ul></div><div class="navigation navigation-single"><a href=/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Lenteur d'une appli Web sur une JVM IBM</span></a>
+<a href=/2010/10/15/sexprimer-regulierement-partie-2/ class=navigation-next><span class=navigation-tittle>Expressions régulières (Partie 2)</span>
+<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='202 http:\/\/dutheil.brice.online.fr\/blog\/?p=202';this.page.title='Expressions régulières (Partie 1)';this.page.url='https://blog.arkey.fr/2010/09/27/sexprimer-regulierement-partie-1/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
+var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>

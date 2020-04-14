@@ -1,317 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-    
-    
-
-
-    <head>
-    <link href="https://gmpg.org/xfn/11" rel="profile">
-    <meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta http-equiv="Cache-Control" content="public" />
-<!-- Enable responsiveness on mobile devices -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
-
-    
-    
-    
-
-<title>Minikube with hyperkit • The Coffee Workshop</title>
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Minikube with hyperkit"/>
-<meta name="twitter:description" content="While Docker for mac in the edge channel offers a Kubernetes integration, I wanted to have the same tool as my pals on linux, who&rsquo;re most likely using minikube.
-Minikube on OSX requires a virtual machine which is by default VirtualBox, since minikube is using the docker a the container runtime it bootstrap the VM environment with boot2docker."/>
-
-<meta property="og:title" content="Minikube with hyperkit" />
-<meta property="og:description" content="While Docker for mac in the edge channel offers a Kubernetes integration, I wanted to have the same tool as my pals on linux, who&rsquo;re most likely using minikube.
-Minikube on OSX requires a virtual machine which is by default VirtualBox, since minikube is using the docker a the container runtime it bootstrap the VM environment with boot2docker." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.arkey.fr/2018/06/18/minikube-with-hyperkit/" />
-<meta property="article:published_time" content="2018-06-18T00:00:00+00:00" />
-<meta property="article:modified_time" content="2018-06-18T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
-
-
-    
-
-
-
-
-
-
-<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
-
-
-<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
-
-
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-    <!-- Icons -->
-    
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-    
-    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
-
-    
-    <link rel="shortcut icon" href="/android-192-favicon.png">
-    
-    
-
-
-    
-</head>
-
-
-    <body class=" ">
-    
-<div class="sidebar">
-  <div class="container ">
-    <div class="sidebar-about">
-      <span class="site__title">
-        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
-      </span>
-      
-      
-        <div class="author-image">
-          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
-        </div>
-      
-      <p class="site__description">
-         Java mostly, and general tech 
-      </p>
-    </div>
-    <div class="collapsible-menu">
-      <input type="checkbox" id="menuToggle">
-      <label for="menuToggle">The Coffee Workshop</label>
-      <div class="menu-content">
-        <div>
-	<ul class="sidebar-nav">
-		 
-		 
-			 
-				<li>
-					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		
-	</ul>
-</div>
-
-        <section class="social">
-	
-	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
-	
-	
-	
-	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
-	
-	
-	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
-	
-	
-	
-	
-	
-	
-	
-	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
-	
-	
-	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
-	
-	
-	
-	
-	
-	
-	
-	
-</section>
-
-      </div>
-    </div>
-    
-<div class="copyright">
-  &copy; 2010 - 2020 Brice Dutheil
-  
-    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
-  
-</div>
-
-
-
-  </div>
-</div>
-
-        <div class="content container">
-            
-    
-<article>
-  <header>
-    <h1>Minikube with hyperkit</h1>
-    
-    
-<div class="post__meta">
-    
-    
-      <i class="fas fa-calendar-alt"></i> 2018-06-18
-    
-    
-    
-    
-    
-      
-      
-          <br/>
-           <i class="fas fa-tags"></i>
-          
-          <a class="badge badge-tag" href="/tags/kubernetes">kubernetes</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/minikube">minikube</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/docker">docker</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/mac">mac</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/osx">osx</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/hyperkit">hyperkit</a>
-          
-      
-    
-    
-    <br/>
-    <i class="fas fa-clock"></i> 5 min read
-</div>
-
-
-  </header>
-  
-  
-  <div class="post">
-    <p>While Docker for mac in the edge channel offers a Kubernetes integration,
+<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Minikube with hyperkit • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Minikube with hyperkit"><meta name=twitter:description content="While Docker for mac in the edge channel offers a Kubernetes integration, I wanted to have the same tool as my pals on linux, who&rsquo;re most likely using minikube.
+Minikube on OSX requires a virtual machine which is by default VirtualBox, since minikube is using the docker a the container runtime it bootstrap the VM environment with boot2docker."><meta property="og:title" content="Minikube with hyperkit"><meta property="og:description" content="While Docker for mac in the edge channel offers a Kubernetes integration, I wanted to have the same tool as my pals on linux, who&rsquo;re most likely using minikube.
+Minikube on OSX requires a virtual machine which is by default VirtualBox, since minikube is using the docker a the container runtime it bootstrap the VM environment with boot2docker."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2018/06/18/minikube-with-hyperkit/"><meta property="article:published_time" content="2018-06-18T00:00:00+00:00"><meta property="article:modified_time" content="2018-06-18T00:00:00+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.9181f25ed2263aeb878ec6f8a84f10c4ebb16150000fca8767308880bdde5ca0.css integrity="sha256-kYHyXtImOuuHjsb4qE8QxOuxYVAAD8qHZzCIgL3eXKA="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
+<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
+<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
+<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
+<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
+<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
+<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Minikube with hyperkit</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2018-06-18<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/kubernetes>kubernetes</a>
+<a class="badge badge-tag" href=/tags/minikube>minikube</a>
+<a class="badge badge-tag" href=/tags/docker>docker</a>
+<a class="badge badge-tag" href=/tags/mac>mac</a>
+<a class="badge badge-tag" href=/tags/osx>osx</a>
+<a class="badge badge-tag" href=/tags/hyperkit>hyperkit</a><br><i class="fas fa-clock"></i>5 min read</div></header><div class=post><p>While Docker for mac in the edge channel offers a Kubernetes integration,
 I wanted to have the same tool as my pals on linux, who&rsquo;re most likely
-using <a href="https://github.com/kubernetes/minikube">minikube</a>.</p>
-<p>Minikube on OSX requires a virtual machine which is by default
-VirtualBox, since minikube is using the docker a the container runtime it bootstrap the VM environment with <code>boot2docker</code>.</p>
-<p>I wanted an approach that felt a bit more <em>modern</em>. Early docker <strong>on</strong> mac required a virtual machine, then people ported <a href="http://www.bhyve.org/">bhyve</a> (BSD hypervisor)
-to OSX, under the name <a href="https://github.com/mist64/xhyve">xhyve</a> using OSX
-<a href="https://developer.apple.com/library/mac/documentation/DriversKernelHardware/Reference/Hypervisor/index.html">Hypervisor.framework</a>.
+using <a href=https://github.com/kubernetes/minikube>minikube</a>.</p><p>Minikube on OSX requires a virtual machine which is by default
+VirtualBox, since minikube is using the docker a the container runtime it bootstrap the VM environment with <code>boot2docker</code>.</p><p>I wanted an approach that felt a bit more <em>modern</em>. Early docker <strong>on</strong> mac required a virtual machine, then people ported <a href=http://www.bhyve.org/>bhyve</a> (BSD hypervisor)
+to OSX, under the name <a href=https://github.com/mist64/xhyve>xhyve</a> using OSX
+<a href=https://developer.apple.com/library/mac/documentation/DriversKernelHardware/Reference/Hypervisor/index.html>Hypervisor.framework</a>.
 That one allowed to <em>light virtual machines</em> and gave birth the
-<a href="https://github.com/zchee/docker-machine-driver-xhyve">docker-machine-xhyve-driver</a>.</p>
-<p>In case minikube is not installed, let&rsquo;s do it :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">brew cask install minikube
-</code></pre></div><p>So let&rsquo;s start to install Minikube with <em>xhyve</em>.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ brew update
+<a href=https://github.com/zchee/docker-machine-driver-xhyve>docker-machine-xhyve-driver</a>.</p><p>In case minikube is not installed, let&rsquo;s do it :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>brew cask install minikube
+</code></pre></div><p>So let&rsquo;s start to install Minikube with <em>xhyve</em>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ brew update
 ➜ brew install xhyve
 ➜ brew install docker-machine-driver-xhyve
 
-<span style="color:#998;font-style:italic"># apply docker-machine-driver-xhyve caveats</span>
-➜ sudo chown root:wheel <span style="color:#000;font-weight:bold">$(</span>brew --prefix<span style="color:#000;font-weight:bold">)</span>/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
-➜ sudo chmod u+s <span style="color:#000;font-weight:bold">$(</span>brew --prefix<span style="color:#000;font-weight:bold">)</span>/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
-</code></pre></div><p>And then start minikube</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ minikube start --vm-driver<span style="color:#000;font-weight:bold">=</span>xhyve
-Starting <span style="color:#0086b3">local</span> Kubernetes v1.10.0 cluster...
+<span style=color:#998;font-style:italic># apply docker-machine-driver-xhyve caveats</span>
+➜ sudo chown root:wheel <span style=color:#000;font-weight:700>$(</span>brew --prefix<span style=color:#000;font-weight:700>)</span>/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
+➜ sudo chmod u+s <span style=color:#000;font-weight:700>$(</span>brew --prefix<span style=color:#000;font-weight:700>)</span>/opt/docker-machine-driver-xhyve/bin/docker-machine-driver-xhyve
+</code></pre></div><p>And then start minikube</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ minikube start --vm-driver<span style=color:#000;font-weight:700>=</span>xhyve
+Starting <span style=color:#0086b3>local</span> Kubernetes v1.10.0 cluster...
 Starting VM...
-WARNING: The xhyve driver is now deprecated and support <span style="color:#000;font-weight:bold">for</span> it will be removed in a future release.
+WARNING: The xhyve driver is now deprecated and support <span style=color:#000;font-weight:700>for</span> it will be removed in a future release.
 Please consider switching to the hyperkit driver, which is intended to replace the xhyve driver.
-See https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver <span style="color:#000;font-weight:bold">for</span> more information.
-To disable this message, run <span style="color:#000;font-weight:bold">[</span>minikube config <span style="color:#0086b3">set</span> WantShowDriverDeprecationNotification false<span style="color:#000;font-weight:bold">]</span>
+See https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver <span style=color:#000;font-weight:700>for</span> more information.
+To disable this message, run <span style=color:#000;font-weight:700>[</span>minikube config <span style=color:#0086b3>set</span> WantShowDriverDeprecationNotification false<span style=color:#000;font-weight:700>]</span>
 </code></pre></div><p>Indeed later <em>Docker-<strong>for</strong>-mac</em> team decided to also use the OSX
-<a href="https://developer.apple.com/library/mac/documentation/DriversKernelHardware/Reference/Hypervisor/index.html">Hypervisor.framework</a>
+<a href=https://developer.apple.com/library/mac/documentation/DriversKernelHardware/Reference/Hypervisor/index.html>Hypervisor.framework</a>
 that can make sense that minikube does too. Let&rsquo;s switch to hyperkit.
-First remove previous work since there&rsquo;s nothing in it yet.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ rm -rf <span style="color:#008080">$HOME</span>/.minikube
+First remove previous work since there&rsquo;s nothing in it yet.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ rm -rf <span style=color:teal>$HOME</span>/.minikube
 </code></pre></div><p>Being lazy I&rsquo;d like to see if homebrew has a formula for the driver,
-unfortunately not yet, but soon!</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ brew search <span style="color:#008080">hyperkit</span>
-<span style="color:#000;font-weight:bold">==</span>&gt; Searching <span style="color:#0086b3">local</span> taps...
-<span style="color:#000;font-weight:bold">==</span>&gt; Searching taps on GitHub...
-<span style="color:#000;font-weight:bold">==</span>&gt; Searching blacklisted, migrated and deleted formulae...
-No formula found <span style="color:#000;font-weight:bold">for</span> <span style="color:#d14">&#34;hyperkit&#34;</span>.
+unfortunately not yet, but soon!</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ brew search <span style=color:teal>hyperkit</span>
+<span style=color:#000;font-weight:700>==</span>&gt; Searching <span style=color:#0086b3>local</span> taps...
+<span style=color:#000;font-weight:700>==</span>&gt; Searching taps on GitHub...
+<span style=color:#000;font-weight:700>==</span>&gt; Searching blacklisted, migrated and deleted formulae...
+No formula found <span style=color:#000;font-weight:700>for</span> <span style=color:#d14>&#34;hyperkit&#34;</span>.
 Open pull requests:
-hyperkit 0.20180123 <span style="color:#000;font-weight:bold">(</span>new formula<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span>https://github.com/Homebrew/homebrew-core/pull/25593<span style="color:#000;font-weight:bold">)</span>
-docker-machine-driver-hyperkit 0.27.0 <span style="color:#000;font-weight:bold">(</span>new formula<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span>https://github.com/Homebrew/homebrew-core/pull/28076<span style="color:#000;font-weight:bold">)</span>
-</code></pre></div><p>So let&rsquo;s follow the <a href="https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver">instructions</a> given in the above output.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit <span style="color:#d14">\
-</span><span style="color:#d14"></span><span style="color:#000;font-weight:bold">&amp;&amp;</span> chmod +x docker-machine-driver-hyperkit <span style="color:#d14">\
-</span><span style="color:#d14"></span><span style="color:#000;font-weight:bold">&amp;&amp;</span> sudo mv docker-machine-driver-hyperkit /usr/local/bin/ <span style="color:#d14">\
-</span><span style="color:#d14"></span><span style="color:#000;font-weight:bold">&amp;&amp;</span> sudo chown root:wheel /usr/local/bin/docker-machine-driver-hyperkit <span style="color:#d14">\
-</span><span style="color:#d14"></span><span style="color:#000;font-weight:bold">&amp;&amp;</span> sudo chmod u+s /usr/local/bin/docker-machine-driver-hyperkit
+hyperkit 0.20180123 <span style=color:#000;font-weight:700>(</span>new formula<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>(</span>https://github.com/Homebrew/homebrew-core/pull/25593<span style=color:#000;font-weight:700>)</span>
+docker-machine-driver-hyperkit 0.27.0 <span style=color:#000;font-weight:700>(</span>new formula<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>(</span>https://github.com/Homebrew/homebrew-core/pull/28076<span style=color:#000;font-weight:700>)</span>
+</code></pre></div><p>So let&rsquo;s follow the <a href=https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver>instructions</a> given in the above output.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit <span style=color:#d14>\
+</span><span style=color:#d14></span><span style=color:#000;font-weight:700>&amp;&amp;</span> chmod +x docker-machine-driver-hyperkit <span style=color:#d14>\
+</span><span style=color:#d14></span><span style=color:#000;font-weight:700>&amp;&amp;</span> sudo mv docker-machine-driver-hyperkit /usr/local/bin/ <span style=color:#d14>\
+</span><span style=color:#d14></span><span style=color:#000;font-weight:700>&amp;&amp;</span> sudo chown root:wheel /usr/local/bin/docker-machine-driver-hyperkit <span style=color:#d14>\
+</span><span style=color:#d14></span><span style=color:#000;font-weight:700>&amp;&amp;</span> sudo chmod u+s /usr/local/bin/docker-machine-driver-hyperkit
 </code></pre></div><p>Then lets&rsquo;s start with <em>hyperkit</em> driver, as I&rsquo;m curious I&rsquo;d like to
-understand what minikube is doing using I&rsquo;d like to log it in the terminal using <code>--logtostderr</code> flag, <code>--v=3</code> allows to see machine lib logs.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ minikube start --logtostderr --v<span style="color:#000;font-weight:bold">=</span><span style="color:#099">3</span> --vm-driver<span style="color:#000;font-weight:bold">=</span>hyperkit
-Starting <span style="color:#0086b3">local</span> Kubernetes v1.10.0 cluster...
+understand what minikube is doing using I&rsquo;d like to log it in the terminal using <code>--logtostderr</code> flag, <code>--v=3</code> allows to see machine lib logs.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ minikube start --logtostderr --v<span style=color:#000;font-weight:700>=</span><span style=color:#099>3</span> --vm-driver<span style=color:#000;font-weight:700>=</span>hyperkit
+Starting <span style=color:#0086b3>local</span> Kubernetes v1.10.0 cluster...
 Starting VM...
 Downloading Minikube ISO
- 150.53 MB / 150.53 MB <span style="color:#000;font-weight:bold">[============================================]</span> 100.00% 0s
+ 150.53 MB / 150.53 MB <span style=color:#000;font-weight:700>[============================================]</span> 100.00% 0s
 Creating CA: /Users/b.dutheil/.minikube/certs/ca.pem
 Creating client certificate: /Users/b.dutheil/.minikube/certs/cert.pem
 Running pre-create checks...
 Creating machine...
-<span style="color:#000;font-weight:bold">(</span>minikube<span style="color:#000;font-weight:bold">)</span> Downloading /Users/b.dutheil/.minikube/cache/boot2docker.iso from file:///Users/b.dutheil/.minikube/cache/iso/minikube-v0.26.0.iso...
-<span style="color:#000;font-weight:bold">(</span>minikube<span style="color:#000;font-weight:bold">)</span> Using UUID ff84da9e-6f17-11e8-bb91-acbc329d1659
-<span style="color:#000;font-weight:bold">(</span>minikube<span style="color:#000;font-weight:bold">)</span> Generated MAC aa:27:57:cf:3e:a
-<span style="color:#000;font-weight:bold">(</span>minikube<span style="color:#000;font-weight:bold">)</span> Starting with cmdline: <span style="color:#008080">loglevel</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">3</span> <span style="color:#008080">user</span><span style="color:#000;font-weight:bold">=</span>docker <span style="color:#008080">console</span><span style="color:#000;font-weight:bold">=</span>ttyS0 <span style="color:#008080">console</span><span style="color:#000;font-weight:bold">=</span>tty0 noembed nomodeset norestore <span style="color:#008080">waitusb</span><span style="color:#000;font-weight:bold">=</span><span style="color:#099">10</span> systemd.legacy_systemd_cgroup_controller<span style="color:#000;font-weight:bold">=</span>yes base <span style="color:#008080">host</span><span style="color:#000;font-weight:bold">=</span>minikube
-Waiting <span style="color:#000;font-weight:bold">for</span> machine to be running, this may take a few minutes...
+<span style=color:#000;font-weight:700>(</span>minikube<span style=color:#000;font-weight:700>)</span> Downloading /Users/b.dutheil/.minikube/cache/boot2docker.iso from file:///Users/b.dutheil/.minikube/cache/iso/minikube-v0.26.0.iso...
+<span style=color:#000;font-weight:700>(</span>minikube<span style=color:#000;font-weight:700>)</span> Using UUID ff84da9e-6f17-11e8-bb91-acbc329d1659
+<span style=color:#000;font-weight:700>(</span>minikube<span style=color:#000;font-weight:700>)</span> Generated MAC aa:27:57:cf:3e:a
+<span style=color:#000;font-weight:700>(</span>minikube<span style=color:#000;font-weight:700>)</span> Starting with cmdline: <span style=color:teal>loglevel</span><span style=color:#000;font-weight:700>=</span><span style=color:#099>3</span> <span style=color:teal>user</span><span style=color:#000;font-weight:700>=</span>docker <span style=color:teal>console</span><span style=color:#000;font-weight:700>=</span>ttyS0 <span style=color:teal>console</span><span style=color:#000;font-weight:700>=</span>tty0 noembed nomodeset norestore <span style=color:teal>waitusb</span><span style=color:#000;font-weight:700>=</span><span style=color:#099>10</span> systemd.legacy_systemd_cgroup_controller<span style=color:#000;font-weight:700>=</span>yes base <span style=color:teal>host</span><span style=color:#000;font-weight:700>=</span>minikube
+Waiting <span style=color:#000;font-weight:700>for</span> machine to be running, this may take a few minutes...
 Detecting operating system of created instance...
-Waiting <span style="color:#000;font-weight:bold">for</span> SSH to be available...
+Waiting <span style=color:#000;font-weight:700>for</span> SSH to be available...
 Detecting the provisioner...
 Provisioning with buildroot...
 ...
@@ -326,144 +84,63 @@ Downloading kubelet v1.10.0
 Finished Downloading kubelet v1.10.0
 Finished Downloading kubeadm v1.10.0
 ...
-sudo systemctl daemon-reload <span style="color:#000;font-weight:bold">&amp;&amp;</span>
-sudo systemctl <span style="color:#0086b3">enable</span> kubelet <span style="color:#000;font-weight:bold">&amp;&amp;</span>
+sudo systemctl daemon-reload <span style=color:#000;font-weight:700>&amp;&amp;</span>
+sudo systemctl <span style=color:#0086b3>enable</span> kubelet <span style=color:#000;font-weight:700>&amp;&amp;</span>
 sudo systemctl start kubelet
 
 Setting up certs...
 ...
 Connecting to cluster...
 Setting up kubeconfig...
-I0613 16:43:56.893673   <span style="color:#099">37114</span> config.go:101<span style="color:#000;font-weight:bold">]</span> Using kubeconfig:  /Users/b.dutheil/.kube/config
+I0613 16:43:56.893673   <span style=color:#099>37114</span> config.go:101<span style=color:#000;font-weight:700>]</span> Using kubeconfig:  /Users/b.dutheil/.kube/config
 Starting cluster components...
 ...
 Kubectl is now configured to use the cluster.
 Loading cached images from config file.
 </code></pre></div><p>More output than I expected, but it revealed interesting details. However
-For the sake of readability I removed some log lines.</p>
-<p>The first thing to notice is it shows which version of Kubernetes is used :
-<code>Kubernetes v1.10.0 cluster</code>, then another interesting thing it uses a minikube ISO with a different version <code>0.26.0</code> than the installed version (<code>minikube version</code>) is <code>0.27.0</code>.</p>
-<p>Then the log shows every step that are needed to set up the kube cluster,
-configuring SSH, installing kubelet, kubeadm, especially.</p>
-<p>Since I wondered about versions, what is the docker version ?</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ minikube ssh
+For the sake of readability I removed some log lines.</p><p>The first thing to notice is it shows which version of Kubernetes is used :
+<code>Kubernetes v1.10.0 cluster</code>, then another interesting thing it uses a minikube ISO with a different version <code>0.26.0</code> than the installed version (<code>minikube version</code>) is <code>0.27.0</code>.</p><p>Then the log shows every step that are needed to set up the kube cluster,
+configuring SSH, installing kubelet, kubeadm, especially.</p><p>Since I wondered about versions, what is the docker version ?</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ minikube ssh
 $ docker version
 Client:
  Version:	17.12.1-ce
  API version:	1.35
  Go version:	go1.9.4
  Git commit:	7390fc6
- Built:	Tue Feb <span style="color:#099">27</span> 22:13:43 <span style="color:#099">2018</span>
+ Built:	Tue Feb <span style=color:#099>27</span> 22:13:43 <span style=color:#099>2018</span>
  OS/Arch:	linux/amd64
 
 Server:
  Engine:
   Version:	17.12.1-ce
-  API version:	1.35 <span style="color:#000;font-weight:bold">(</span>minimum version 1.12<span style="color:#000;font-weight:bold">)</span>
+  API version:	1.35 <span style=color:#000;font-weight:700>(</span>minimum version 1.12<span style=color:#000;font-weight:700>)</span>
   Go version:	go1.9.4
   Git commit:	7390fc6
-  Built:	Tue Feb <span style="color:#099">27</span> 22:20:43 <span style="color:#099">2018</span>
+  Built:	Tue Feb <span style=color:#099>27</span> 22:20:43 <span style=color:#099>2018</span>
   OS/Arch:	linux/amd64
-  Experimental:	<span style="color:#0086b3">false</span>
+  Experimental:	<span style=color:#0086b3>false</span>
 </code></pre></div><p>So not the latest <em>edgy</em> docker version. Not a problem for most people
 especially since this one supports multi-stage build. And that quite
 likely nobody will build a docker image in minikube. So let&rsquo;s keep that
-concern aside for now</p>
-<p>Now that our kube cluster is ready let&rsquo;s interact with it. Make sure
-kube cli is using our minikube context :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ kubectl config get-contexts
+concern aside for now</p><p>Now that our kube cluster is ready let&rsquo;s interact with it. Make sure
+kube cli is using our minikube context :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ kubectl config get-contexts
 CURRENT   NAME                                                 CLUSTER                                              AUTHINFO                                             NAMESPACE
           gke_infra-sandbox-XXXXXXXX_europe-west1-c_cluster1   gke_infra-sandbox-XXXXXXXX_europe-west1-c_cluster1   gke_infra-sandbox-XXXXXXXX_europe-west1-c_cluster1
 *         minikube                                             minikube                                             minikube
-</code></pre></div><p>Check. It is possible to interact with the minikube cluster using <code>kubectl</code>.</p>
-<p>Using the commands from their github repo :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh"><span style="color:#998;font-style:italic"># deploy a simple image</span>
-➜ kubectl run hello-minikube --image<span style="color:#000;font-weight:bold">=</span>k8s.gcr.io/echoserver:1.4 --port<span style="color:#000;font-weight:bold">=</span><span style="color:#099">8080</span>
-deployment.apps <span style="color:#d14">&#34;hello-minikube&#34;</span> created
+</code></pre></div><p>Check. It is possible to interact with the minikube cluster using <code>kubectl</code>.</p><p>Using the commands from their github repo :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh><span style=color:#998;font-style:italic># deploy a simple image</span>
+➜ kubectl run hello-minikube --image<span style=color:#000;font-weight:700>=</span>k8s.gcr.io/echoserver:1.4 --port<span style=color:#000;font-weight:700>=</span><span style=color:#099>8080</span>
+deployment.apps <span style=color:#d14>&#34;hello-minikube&#34;</span> created
 
-<span style="color:#998;font-style:italic"># expose the service outside the cluster</span>
-➜ kubectl expose deployment hello-minikube --type<span style="color:#000;font-weight:bold">=</span>NodePort
-service <span style="color:#d14">&#34;hello-minikube&#34;</span> exposed
+<span style=color:#998;font-style:italic># expose the service outside the cluster</span>
+➜ kubectl expose deployment hello-minikube --type<span style=color:#000;font-weight:700>=</span>NodePort
+service <span style=color:#d14>&#34;hello-minikube&#34;</span> exposed
 
 ➜ minikube service hello-minikube --url
-</code></pre></div><p>Also minikube comes with a dashboard :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">➜ minikube dashboard
+</code></pre></div><p>Also minikube comes with a dashboard :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>➜ minikube dashboard
 Opening kubernetes dashboard in default browser...
-</code></pre></div><p><img src="/assets/minikube-discovery/minikube-kube-dashboard.png" alt="minikube-kubernetes-dashboard"></p>
-<p>And finally don&rsquo;t forget to stop the cluster</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">minikube stop
+</code></pre></div><p><img src=/assets/minikube-discovery/minikube-kube-dashboard.png alt=minikube-kubernetes-dashboard></p><p>And finally don&rsquo;t forget to stop the cluster</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>minikube stop
 </code></pre></div><p>Upon re-starting the cluster, minikube won&rsquo;t have to recreate the cluster,
-just bootstrap it, so just run <code>minikube start</code></p>
-<p>Finally play with <code>kubectl</code> to deploy, scale, etc.</p>
-
-  </div>
-  
-
-<div class="navigation navigation-single">
-    
-    <a href="/2017/10/19/self-signed-certificates-in-java/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">HTTPS en Java avec un certificat auto-signé</span>
-    </a>
-    
-    
-    <a href="/2019/09/13/watchservice-and-bind-mount/" class="navigation-next">
-      <span class="navigation-tittle">When Java&#39;s WatchService is not the right tool in a container</span>
-      <i aria-hidden="true" class="fa fa-chevron-right"></i>
-    </a>
-    
-</div>
-
-
-  
-
-  <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
-        
-        
-        
-        this.page.identifier = 'https://blog.arkey.fr/2018/06/18/minikube-with-hyperkit/';
-        this.page.title = 'Minikube with hyperkit';
-        this.page.url = 'https://blog.arkey.fr/2018/06/18/minikube-with-hyperkit/';
-    };
-    (function() {
-        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-            return;
-        }
-        var d = document, s = d.createElement('script'); s.async = true;
-        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
-        s.setAttribute('data-timestamp', +new Date());
-        (d.head || d.body).appendChild(s);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-</article>
-
-
-        </div>
-        
-    
-
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-
-    
-    
-    <script type="text/javascript">
-        
-        hljs.initHighlightingOnLoad();
-    </script>
-    
-
-
-
-
-    
-
-
-
-    </body>
-</html>
+just bootstrap it, so just run <code>minikube start</code></p><p>Finally play with <code>kubectl</code> to deploy, scale, etc.</p></div><div class="navigation navigation-single"><a href=/2017/10/19/self-signed-certificates-in-java/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>HTTPS en Java avec un certificat auto-signé</span></a>
+<a href=/2019/09/13/watchservice-and-bind-mount/ class=navigation-next><span class=navigation-tittle>When Java's WatchService is not the right tool in a container</span>
+<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2018/06/18/minikube-with-hyperkit/';this.page.title='Minikube with hyperkit';this.page.url='https://blog.arkey.fr/2018/06/18/minikube-with-hyperkit/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
+var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>

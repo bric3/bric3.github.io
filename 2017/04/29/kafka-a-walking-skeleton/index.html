@@ -1,319 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-    
-    
-
-
-    <head>
-    <link href="https://gmpg.org/xfn/11" rel="profile">
-    <meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta http-equiv="Cache-Control" content="public" />
-<!-- Enable responsiveness on mobile devices -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
-
-    
-    
-    
-
-<title>Kafka, a walking skeleton • The Coffee Workshop</title>
-
-
-<meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Kafka, a walking skeleton"/>
-<meta name="twitter:description" content="Ce blog post est une republication de mon article sur Kafka parut dans le magazine Programmez numéro 196 en mai 2016 (pages 70-73). Il se base sur la version 0.9 de Kafka."/>
-
-<meta property="og:title" content="Kafka, a walking skeleton" />
-<meta property="og:description" content="Ce blog post est une republication de mon article sur Kafka parut dans le magazine Programmez numéro 196 en mai 2016 (pages 70-73). Il se base sur la version 0.9 de Kafka." />
-<meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.arkey.fr/2017/04/29/kafka-a-walking-skeleton/" />
-<meta property="article:published_time" content="2017-04-29T00:00:00+00:00" />
-<meta property="article:modified_time" content="2017-04-29T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
-
-
-    
-
-
-
-
-
-
-<link rel="stylesheet" href="/scss/hyde-hyde.e8dcd6124217521cb99429500b4fa8392b1f372d14ea1a5a2631f10b3b4652ff.css" integrity="sha256-6NzWEkIXUhy5lClQC0&#43;oOSsfNy0U6hpaJjHxCztGUv8=">
-
-
-<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
-
-
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
-    <!-- Icons -->
-    
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-    
-    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
-
-    
-    <link rel="shortcut icon" href="/android-192-favicon.png">
-    
-    
-
-
-    
-</head>
-
-
-    <body class=" ">
-    
-<div class="sidebar">
-  <div class="container ">
-    <div class="sidebar-about">
-      <span class="site__title">
-        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
-      </span>
-      
-      
-        <div class="author-image">
-          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
-        </div>
-      
-      <p class="site__description">
-         Java mostly, and general tech 
-      </p>
-    </div>
-    <div class="collapsible-menu">
-      <input type="checkbox" id="menuToggle">
-      <label for="menuToggle">The Coffee Workshop</label>
-      <div class="menu-content">
-        <div>
-	<ul class="sidebar-nav">
-		 
-		 
-			 
-				<li>
-					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
-						<span></span>
-					</a>
-				</li>
-			 
-		 
-			 
-				<li>
-					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
-						<span></span>
-					</a>
-				</li>
-			 
-		
-	</ul>
-</div>
-
-        <section class="social">
-	
-	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
-	
-	
-	
-	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
-	
-	
-	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
-	
-	
-	
-	
-	
-	
-	
-	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
-	
-	
-	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
-	
-	
-	
-	
-	
-	
-	
-	
-</section>
-
-      </div>
-    </div>
-    
-<div class="copyright">
-  &copy; 2010 - 2020 Brice Dutheil
-  
-    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
-  
-</div>
-
-
-
-  </div>
-</div>
-
-        <div class="content container">
-            
-    
-<article>
-  <header>
-    <h1>Kafka, a walking skeleton</h1>
-    
-    
-<div class="post__meta">
-    
-    
-      <i class="fas fa-calendar-alt"></i> 2017-04-29
-    
-    
-    
-    
-    
-      
-      
-          <br/>
-           <i class="fas fa-tags"></i>
-          
-          <a class="badge badge-tag" href="/tags/kafka">kafka</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/zookeeper">zookeeper</a>
-           
-      
-          <a class="badge badge-tag" href="/tags/java">java</a>
-          
-      
-    
-    
-    <br/>
-    <i class="fas fa-clock"></i> 13 min read
-</div>
-
-
-  </header>
-  
-  
-  <div class="post">
-    <p>Ce blog post est une republication de mon article sur Kafka parut dans le magazine Programmez numéro 196 en mai 2016 (pages 70-73).
-Il se base sur la version 0.9 de Kafka.</p>
-<hr>
-<p>Vous avez entendu parlé de Kafka et vous voulez en savoir plus. En ingénierie logicielle un <em>walking skeleton</em> est un
+<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Kafka, a walking skeleton • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Kafka, a walking skeleton"><meta name=twitter:description content="Ce blog post est une republication de mon article sur Kafka parut dans le magazine Programmez numéro 196 en mai 2016 (pages 70-73). Il se base sur la version 0.9 de Kafka."><meta property="og:title" content="Kafka, a walking skeleton"><meta property="og:description" content="Ce blog post est une republication de mon article sur Kafka parut dans le magazine Programmez numéro 196 en mai 2016 (pages 70-73). Il se base sur la version 0.9 de Kafka."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2017/04/29/kafka-a-walking-skeleton/"><meta property="article:published_time" content="2017-04-29T00:00:00+00:00"><meta property="article:modified_time" content="2017-04-29T00:00:00+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.9181f25ed2263aeb878ec6f8a84f10c4ebb16150000fca8767308880bdde5ca0.css integrity="sha256-kYHyXtImOuuHjsb4qE8QxOuxYVAAD8qHZzCIgL3eXKA="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
+<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
+<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
+<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
+<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
+<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
+<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Kafka, a walking skeleton</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2017-04-29<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/kafka>kafka</a>
+<a class="badge badge-tag" href=/tags/zookeeper>zookeeper</a>
+<a class="badge badge-tag" href=/tags/java>java</a><br><i class="fas fa-clock"></i>13 min read</div></header><div class=post><p>Ce blog post est une republication de mon article sur Kafka parut dans le magazine Programmez numéro 196 en mai 2016 (pages 70-73).
+Il se base sur la version 0.9 de Kafka.</p><hr><p>Vous avez entendu parlé de Kafka et vous voulez en savoir plus. En ingénierie logicielle un <em>walking skeleton</em> est un
 système minimal qui fonctionne de bout en bout. J’espère que cette introduction vous sera utile pour démarrer cette
-première implémentation.</p>
-<h1 id="kafka-encore-un-autre-broker-de-message-">Kafka encore un autre broker de message ?</h1>
-<p>Ce projet vient tout droit de LinkedIn, lorsque des ingénieurs ont identifié des problèmes de performance globaux dans
+première implémentation.</p><h1 id=kafka-encore-un-autre-broker-de-message->Kafka encore un autre broker de message ?</h1><p>Ce projet vient tout droit de LinkedIn, lorsque des ingénieurs ont identifié des problèmes de performance globaux dans
 leur traitement de données. Fin des années 2000, BigTable, Hadoop et MapReduce sont des buzzwords de l’IT. Cependant,
 les approches proposées reposent sur des traitements de type batch et ne permettent donc pas de traiter de gros volumes
-de données en temps réel.</p>
-<p>Afin de correspondre aux besoins de l’environnement de production de LinkedIn les ingénieurs avait besoin d’une solution
-technique répondant aux critères suivants :</p>
-<ul>
-<li>Haute Performance</li>
-<li>Durabilité des messages</li>
-<li>Scalabilité</li>
-<li>Résilience aux pannes</li>
-<li>Simplicité</li>
-</ul>
-<p>Cette solution s’appelle <strong>Kafka</strong>, LinkedIn en a fait un projet Open Source.</p>
-<p>En terme de performance, Kafka devance de très loin tous les autres acteurs avec une charge encaissée de plus de 100k
+de données en temps réel.</p><p>Afin de correspondre aux besoins de l’environnement de production de LinkedIn les ingénieurs avait besoin d’une solution
+technique répondant aux critères suivants :</p><ul><li>Haute Performance</li><li>Durabilité des messages</li><li>Scalabilité</li><li>Résilience aux pannes</li><li>Simplicité</li></ul><p>Cette solution s’appelle <strong>Kafka</strong>, LinkedIn en a fait un projet Open Source.</p><p>En terme de performance, Kafka devance de très loin tous les autres acteurs avec une charge encaissée de plus de 100k
 messages/secondes (certaines configurations de LinkedIn montent jusqu’à 2 Millions/secondes). Kafka “stocke” durablement
 les messages, c’est-à-dire qu’ils ne sont pas effacés à la consommation ; la rétention est réglable. Un critère
 important pour un site comme LinkedIn est de pouvoir monter en charge en fonction du besoin. Pour cette raison, la
 topologie d’un cluster Kafka peut être modifiée au besoin : ceci permet de scaler horizontalement. Pour anticiper les
 pannes ou les interventions sur les machines, Kafka réplique ses données sur plusieurs serveurs ce qui le rend
 relativement résilient aux pannes. Enfin Kafka est simple car sa conception se veut basée sur une primitive simple – le
-log ; également son utilisation reste simple car il ne propose que du queuing et du publish/subscribe.</p>
-<h1 id="comment-ça-marche">Comment ça marche</h1>
-<p>Dans les faits le <strong>log</strong> est utilisé par de nombreux systèmes, par exemple dans les bases de données, cependant ils
+log ; également son utilisation reste simple car il ne propose que du queuing et du publish/subscribe.</p><h1 id=comment-ça-marche>Comment ça marche</h1><p>Dans les faits le <strong>log</strong> est utilisé par de nombreux systèmes, par exemple dans les bases de données, cependant ils
 n’exposent pas ce log à l’utilisateur, tout au plus à l’administrateur système. En revanche avec Kafka, le log est
-exposé à l’utilisateur et il est au cœur de sa conception.</p>
-<p>Une des primitives de base est le <strong>topic</strong>. Les messages sont <strong>publiés</strong> dans un topic par des <strong>producers</strong>
+exposé à l’utilisateur et il est au cœur de sa conception.</p><p>Une des primitives de base est le <strong>topic</strong>. Les messages sont <strong>publiés</strong> dans un topic par des <strong>producers</strong>
 (producteurs) et les <strong>consumers</strong> (consommateurs) souscrivent à ce même topic pour traiter ces messages.
-Schématiquement une infrastructure utilisant Kafka peut être représenté de cette façon :</p>
-<p><img src="/assets/kafka-walking-skeleton/Kafka-global-view.jpeg" alt="Vue globale de Kafka"></p>
-<p>Techniquement un topic est un log partitionné auquel les messages sont ajoutés continuellement et ceci de manière
+Schématiquement une infrastructure utilisant Kafka peut être représenté de cette façon :</p><p><img src=/assets/kafka-walking-skeleton/Kafka-global-view.jpeg alt="Vue globale de Kafka"></p><p>Techniquement un topic est un log partitionné auquel les messages sont ajoutés continuellement et ceci de manière
 ordonnée (dans une même partition). Pourquoi est-ce partitionné ? Avec Kafka il y a une relation forte entre le nombre
 de partitions et le nombre de consommateurs ; augmenter le nombre de partition revient à augmenter le parallélisme des
-consommateurs.</p>
-<p><img src="/assets/kafka-walking-skeleton/Kafka-topic-partitions.jpeg" alt="Topic et partitions"></p>
-<h2 id="les-producers-et-les-consumers">Les producers et les consumers</h2>
-<p>Kafka fournit une abstraction appelé <strong>consumer group</strong> (groupe de consommateurs) qui généralise à la fois les deux
+consommateurs.</p><p><img src=/assets/kafka-walking-skeleton/Kafka-topic-partitions.jpeg alt="Topic et partitions"></p><h2 id=les-producers-et-les-consumers>Les producers et les consumers</h2><p>Kafka fournit une abstraction appelé <strong>consumer group</strong> (groupe de consommateurs) qui généralise à la fois les deux
 patterns queuing et publish/subscribe. Chaque consommateur s’attribue un groupe, et, pour chaque message sera délivré à
-une seule instance dans le groupe.</p>
-<ul>
-<li>Tous les consumers ont le même groupe, c’est du queuing, ou la charge est répartie sur chaque consommateur.</li>
-<li>Les consumers ont un groupe différent, dans ce cas c’est du publish/subscribe.</li>
-</ul>
-<p>À noter sur le parallélisme, au sein d’un même consumer group, pour N partitions il ne peut y avoir que N consumers
-actifs. Il peut y avoir plusieurs consumer groups abonnés à un même topic (et donc sur les même partitions).</p>
-<p><img src="/assets/kafka-walking-skeleton/Kafka-consumer-groups.jpeg" alt="Groupes de consommateurs"></p>
-<h2 id="à-propos-de-la-réplication">À propos de la réplication</h2>
-<p>Chaque partition d’un topic est répliquée suivant la configuration donnée. Parmi tous les réplicas (les serveurs qui ont
-une copie des partitions d’un topic) :</p>
-<ul>
-<li>L’un sera le <strong>leader</strong>, c’est celui-ci qui va traiter les demandes de lectures / écritures</li>
-<li>Les autres sont des <strong>followers</strong> (suiveurs), leur but est de répliquer passivement les partitions.</li>
-</ul>
-<p>Si le leader s’arrête, un des suiveurs prend le relais et devient le nouveau leader pour les partitions affectées.</p>
-<p>À noter que chaque serveur agit en tant que leader pour certaines partitions et en tant que follower pour d’autres
-partitions, ce qui permet de garder un cluster équilibré.</p>
-<p><img src="/assets/kafka-walking-skeleton/Kafka-replication.jpeg" alt="Réplication"></p>
-<p>En rouge sont ce sont les partitions dont un des serveur Kafka est le leader, c’est donc la partition en rouge qui
-recevra les écritures des producers. En bleu sont dessinées les partitions répliquées.</p>
-<p>Pour cette introduction, ces quelques explications devraient suffire. Il y a bien sûr davantage de ressources à la fois
+une seule instance dans le groupe.</p><ul><li>Tous les consumers ont le même groupe, c’est du queuing, ou la charge est répartie sur chaque consommateur.</li><li>Les consumers ont un groupe différent, dans ce cas c’est du publish/subscribe.</li></ul><p>À noter sur le parallélisme, au sein d’un même consumer group, pour N partitions il ne peut y avoir que N consumers
+actifs. Il peut y avoir plusieurs consumer groups abonnés à un même topic (et donc sur les même partitions).</p><p><img src=/assets/kafka-walking-skeleton/Kafka-consumer-groups.jpeg alt="Groupes de consommateurs"></p><h2 id=à-propos-de-la-réplication>À propos de la réplication</h2><p>Chaque partition d’un topic est répliquée suivant la configuration donnée. Parmi tous les réplicas (les serveurs qui ont
+une copie des partitions d’un topic) :</p><ul><li>L’un sera le <strong>leader</strong>, c’est celui-ci qui va traiter les demandes de lectures / écritures</li><li>Les autres sont des <strong>followers</strong> (suiveurs), leur but est de répliquer passivement les partitions.</li></ul><p>Si le leader s’arrête, un des suiveurs prend le relais et devient le nouveau leader pour les partitions affectées.</p><p>À noter que chaque serveur agit en tant que leader pour certaines partitions et en tant que follower pour d’autres
+partitions, ce qui permet de garder un cluster équilibré.</p><p><img src=/assets/kafka-walking-skeleton/Kafka-replication.jpeg alt=Réplication></p><p>En rouge sont ce sont les partitions dont un des serveur Kafka est le leader, c’est donc la partition en rouge qui
+recevra les écritures des producers. En bleu sont dessinées les partitions répliquées.</p><p>Pour cette introduction, ces quelques explications devraient suffire. Il y a bien sûr davantage de ressources à la fois
 sur le site officiel de Kafka (kafka.apache.org) et sur le site de la société commerciale de Kafka
-(<a href="http://confluent.io"><em>http://confluent.io</em></a>).</p>
-<h1 id="mettre-en-place-kafka">Mettre en place Kafka</h1>
-<p>Cet article se base sur la version 0.9.0.x. La sous version Scala n’a pas vraiment d’importance si vous ne faites pas de
-Scala. La version utilisant Scala 2.11 est d’ailleurs recommandée.</p>
-<h2 id="démarrer-avec-1-seule-instance">Démarrer avec 1 seule instance</h2>
-<p>Kafka utilise Zookeeper pour stocker ses métadonnées. Il faut donc le lancer en premier. Dans un terminal à part,
-lancez la commande :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">$ <span style="color:#0086b3">cd</span> kafka_2.11-0.9.0.1
+(<a href=http://confluent.io><em>http://confluent.io</em></a>).</p><h1 id=mettre-en-place-kafka>Mettre en place Kafka</h1><p>Cet article se base sur la version 0.9.0.x. La sous version Scala n’a pas vraiment d’importance si vous ne faites pas de
+Scala. La version utilisant Scala 2.11 est d’ailleurs recommandée.</p><h2 id=démarrer-avec-1-seule-instance>Démarrer avec 1 seule instance</h2><p>Kafka utilise Zookeeper pour stocker ses métadonnées. Il faut donc le lancer en premier. Dans un terminal à part,
+lancez la commande :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>$ <span style=color:#0086b3>cd</span> kafka_2.11-0.9.0.1
 $ ./bin/zookeeper-server-start.sh ./config/zookeeper.properties
 </code></pre></div><p>Pour vérifier son état de marche, on peut envoyer le <strong>mot de 4 lettres</strong> stat sur le port 2181, le port de
-communication client.</p>
-<pre><code>$ { echo stat; sleep 0.1 } | telnet 127.0.0.1 2181
+communication client.</p><pre><code>$ { echo stat; sleep 0.1 } | telnet 127.0.0.1 2181
 Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
@@ -331,301 +60,161 @@ Mode: standalone
 Node count: 4
 Connection closed by foreign host.
 </code></pre><p>Si vous avez ces statistiques alors le serveur Zookeeper tourne correctement. S’il y a un autre message alors le cluster
-Zookeeper n’est pas dans la bonne configuration et n’est donc pas opérationnel.</p>
-<p>Ensuite démarrons une instance Kafka. Il faut donner les valeurs aux propriétés suivante dans le fichier
-<code>config/server.properties</code> :</p>
-<pre><code class="language-properties" data-lang="properties">broker.id=1
+Zookeeper n’est pas dans la bonne configuration et n’est donc pas opérationnel.</p><p>Ensuite démarrons une instance Kafka. Il faut donner les valeurs aux propriétés suivante dans le fichier
+<code>config/server.properties</code> :</p><pre><code class=language-properties data-lang=properties>broker.id=1
 port=9092
 logs.dirs=/tmp/kafka-logs-1
 zookeeper.connect=localhost:2181
-</code></pre><p>Enfin lancer la première instance.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">$ ./bin/kafka-server-start.sh ./config/server.properties
+</code></pre><p>Enfin lancer la première instance.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>$ ./bin/kafka-server-start.sh ./config/server.properties
 </code></pre></div><p>Ensuite nous pouvons créer le premier topic, c’est en ligne de commande
-que ça se passe :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sh" data-lang="sh">$ ./bin/kafka-topics.sh --create <span style="color:#d14">\
-</span><span style="color:#d14"></span>                        --topic bier-bar <span style="color:#d14">\
-</span><span style="color:#d14"></span>                        --partition <span style="color:#099">3</span> <span style="color:#d14">\
-</span><span style="color:#d14"></span>                        --replication-factor <span style="color:#099">1</span> <span style="color:#d14">\
-</span><span style="color:#d14"></span>                        --zookeeper localhost:2181
+que ça se passe :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>$ ./bin/kafka-topics.sh --create <span style=color:#d14>\
+</span><span style=color:#d14></span>                        --topic bier-bar <span style=color:#d14>\
+</span><span style=color:#d14></span>                        --partition <span style=color:#099>3</span> <span style=color:#d14>\
+</span><span style=color:#d14></span>                        --replication-factor <span style=color:#099>1</span> <span style=color:#d14>\
+</span><span style=color:#d14></span>                        --zookeeper localhost:2181
 </code></pre></div><p>Les métadonnées du topic sont donc créées sur le cluster Zookeeper. Notez les paramètres obligatoires que sont le nombre
-de partitions et le facteur de réplication.</p>
-<p>Il est possible de produire et de consommer des messages avec les outils en ligne de commande inclus dans la
+de partitions et le facteur de réplication.</p><p>Il est possible de produire et de consommer des messages avec les outils en ligne de commande inclus dans la
 distribution (<code>kafka-console-producer.sh</code> et <code>kafka-console-consumer.sh</code>). Ceci dit cet article se concentre plutôt sur
-le code Java.</p>
-<h1 id="au-niveau-code">Au niveau code</h1>
-<p>Avec la version 0.9, il faut importer la dépendance <code>org.apache.kafka:kafka-clients:0.9.0.1</code>, elle est nécessaire pour
-utiliser l’API java de Kafka à la fois pour produire et consommer des messages.</p>
-<p>Le code minimal pour créer un producteur de données, en premier lieu il faut trois propriétés :</p>
-<ul>
-<li>La liste des serveurs kafka Les classes de sérialisation pour la clé et la valeur</li>
-</ul>
-<p>Ensuite il suffit de produire des messages sur le topic créé.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">main</span><span style="color:#000;font-weight:bold">(</span>String<span style="color:#000;font-weight:bold">[]</span> args<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">throws</span> InterruptedException <span style="color:#000;font-weight:bold">{</span>
-   Properties props <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> Properties<span style="color:#000;font-weight:bold">();</span>
-   props<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>BOOTSTRAP_SERVERS_CONFIG<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;localhost:9092&#34;</span><span style="color:#000;font-weight:bold">);</span>
-   props<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>KEY_SERIALIZER_CLASS_CONFIG<span style="color:#000;font-weight:bold">,</span> StringSerializer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">class</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getName</span><span style="color:#000;font-weight:bold">());</span>
-   props<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>VALUE_SERIALIZER_CLASS_CONFIG<span style="color:#000;font-weight:bold">,</span> StringSerializer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">class</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getName</span><span style="color:#000;font-weight:bold">());</span>
-   KafkaProducer<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">,</span> String<span style="color:#000;font-weight:bold">&gt;</span> producer <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> KafkaProducer<span style="color:#000;font-weight:bold">&lt;&gt;(</span>props<span style="color:#000;font-weight:bold">);</span>
-   Runtime<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getRuntime</span><span style="color:#000;font-weight:bold">().</span><span style="color:#008080">addShutdownHook</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Thread<span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-       <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">run</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-           System<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">out</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Barman shutting down ...&#34;</span><span style="color:#000;font-weight:bold">);</span>
-           <span style="color:#998;font-style:italic">// always close the producer
-</span><span style="color:#998;font-style:italic"></span>           <span style="color:#998;font-style:italic">// timeout to allow the producer to send the data to the broker
-</span><span style="color:#998;font-style:italic"></span>           producer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">close</span><span style="color:#000;font-weight:bold">(</span>1000<span style="color:#000;font-weight:bold">,</span> MILLISECONDS<span style="color:#000;font-weight:bold">);</span>
-       <span style="color:#000;font-weight:bold">}</span>
-   <span style="color:#000;font-weight:bold">});</span>
-   <span style="color:#000;font-weight:bold">while</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">true</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-       producer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">send</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> ProducerRecord<span style="color:#000;font-weight:bold">&lt;&gt;(</span><span style="color:#d14">&#34;bier-bar&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                                          String<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">format</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Bier bought at &#39;%s&#39;&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                                                        LocalTime<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">now</span><span style="color:#000;font-weight:bold">())));</span>
-       SECONDS<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">sleep</span><span style="color:#000;font-weight:bold">(</span>1<span style="color:#000;font-weight:bold">);</span>
-   <span style="color:#000;font-weight:bold">}</span>
-<span style="color:#000;font-weight:bold">}</span>
-</code></pre></div><p>Cette classe enverra des messages simples, qu’un consommateur traitera dans un autre process de l’infrastructure.</p>
-<p>Le code minimal du consommateur est le suivant, également la configuration minimale est la même aussi les adresses des
+le code Java.</p><h1 id=au-niveau-code>Au niveau code</h1><p>Avec la version 0.9, il faut importer la dépendance <code>org.apache.kafka:kafka-clients:0.9.0.1</code>, elle est nécessaire pour
+utiliser l’API java de Kafka à la fois pour produire et consommer des messages.</p><p>Le code minimal pour créer un producteur de données, en premier lieu il faut trois propriétés :</p><ul><li>La liste des serveurs kafka Les classes de sérialisation pour la clé et la valeur</li></ul><p>Ensuite il suffit de produire des messages sur le topic créé.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>main</span><span style=color:#000;font-weight:700>(</span>String<span style=color:#000;font-weight:700>[]</span> args<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>throws</span> InterruptedException <span style=color:#000;font-weight:700>{</span>
+   Properties props <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> Properties<span style=color:#000;font-weight:700>();</span>
+   props<span style=color:#000;font-weight:700>.</span><span style=color:teal>put</span><span style=color:#000;font-weight:700>(</span>BOOTSTRAP_SERVERS_CONFIG<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;localhost:9092&#34;</span><span style=color:#000;font-weight:700>);</span>
+   props<span style=color:#000;font-weight:700>.</span><span style=color:teal>put</span><span style=color:#000;font-weight:700>(</span>KEY_SERIALIZER_CLASS_CONFIG<span style=color:#000;font-weight:700>,</span> StringSerializer<span style=color:#000;font-weight:700>.</span><span style=color:teal>class</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>getName</span><span style=color:#000;font-weight:700>());</span>
+   props<span style=color:#000;font-weight:700>.</span><span style=color:teal>put</span><span style=color:#000;font-weight:700>(</span>VALUE_SERIALIZER_CLASS_CONFIG<span style=color:#000;font-weight:700>,</span> StringSerializer<span style=color:#000;font-weight:700>.</span><span style=color:teal>class</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>getName</span><span style=color:#000;font-weight:700>());</span>
+   KafkaProducer<span style=color:#000;font-weight:700>&lt;</span>String<span style=color:#000;font-weight:700>,</span> String<span style=color:#000;font-weight:700>&gt;</span> producer <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> KafkaProducer<span style=color:#000;font-weight:700>&lt;&gt;(</span>props<span style=color:#000;font-weight:700>);</span>
+   Runtime<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRuntime</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>addShutdownHook</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>new</span> Thread<span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+       <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>run</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+           System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Barman shutting down ...&#34;</span><span style=color:#000;font-weight:700>);</span>
+           <span style=color:#998;font-style:italic>// always close the producer
+</span><span style=color:#998;font-style:italic></span>           <span style=color:#998;font-style:italic>// timeout to allow the producer to send the data to the broker
+</span><span style=color:#998;font-style:italic></span>           producer<span style=color:#000;font-weight:700>.</span><span style=color:teal>close</span><span style=color:#000;font-weight:700>(</span>1000<span style=color:#000;font-weight:700>,</span> MILLISECONDS<span style=color:#000;font-weight:700>);</span>
+       <span style=color:#000;font-weight:700>}</span>
+   <span style=color:#000;font-weight:700>});</span>
+   <span style=color:#000;font-weight:700>while</span> <span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>true</span><span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+       producer<span style=color:#000;font-weight:700>.</span><span style=color:teal>send</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>new</span> ProducerRecord<span style=color:#000;font-weight:700>&lt;&gt;(</span><span style=color:#d14>&#34;bier-bar&#34;</span><span style=color:#000;font-weight:700>,</span>
+                                          String<span style=color:#000;font-weight:700>.</span><span style=color:teal>format</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Bier bought at &#39;%s&#39;&#34;</span><span style=color:#000;font-weight:700>,</span>
+                                                        LocalTime<span style=color:#000;font-weight:700>.</span><span style=color:teal>now</span><span style=color:#000;font-weight:700>())));</span>
+       SECONDS<span style=color:#000;font-weight:700>.</span><span style=color:teal>sleep</span><span style=color:#000;font-weight:700>(</span>1<span style=color:#000;font-weight:700>);</span>
+   <span style=color:#000;font-weight:700>}</span>
+<span style=color:#000;font-weight:700>}</span>
+</code></pre></div><p>Cette classe enverra des messages simples, qu’un consommateur traitera dans un autre process de l’infrastructure.</p><p>Le code minimal du consommateur est le suivant, également la configuration minimale est la même aussi les adresses des
 broker Kafka, les classes désérialisation, et enfin l’identifiant de groupe. À noter, étant donné que ce code utilise la
-nouvelle API Java apparue en version 0.9, il n’y a pas besoin de gérer la connexion à Zookeeper.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">static</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">main</span><span style="color:#000;font-weight:bold">(</span>String<span style="color:#000;font-weight:bold">[]</span> args<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-   Properties props <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> Properties<span style="color:#000;font-weight:bold">();</span>
-   props<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>BOOTSTRAP_SERVERS_CONFIG<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;localhost:9092&#34;</span><span style="color:#000;font-weight:bold">);</span>
-   props<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>GROUP_ID_CONFIG<span style="color:#000;font-weight:bold">,</span> <span style="color:#d14">&#34;barfly-group&#34;</span><span style="color:#000;font-weight:bold">);</span>
-   props<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>KEY_DESERIALIZER_CLASS_CONFIG<span style="color:#000;font-weight:bold">,</span> StringDeserializer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">class</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getName</span><span style="color:#000;font-weight:bold">());</span>
-   props<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">put</span><span style="color:#000;font-weight:bold">(</span>VALUE_DESERIALIZER_CLASS_CONFIG<span style="color:#000;font-weight:bold">,</span> StringDeserializer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">class</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">getName</span><span style="color:#000;font-weight:bold">());</span>
-   KafkaConsumer<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">,</span> String<span style="color:#000;font-weight:bold">&gt;</span> consumer <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> KafkaConsumer<span style="color:#000;font-weight:bold">&lt;&gt;(</span>props<span style="color:#000;font-weight:bold">);</span>
-   consumer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">subscribe</span><span style="color:#000;font-weight:bold">(</span>Collections<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">singletonList</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;bier-bar&#34;</span><span style="color:#000;font-weight:bold">));</span>
-   <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">{</span>
-       <span style="color:#000;font-weight:bold">for</span><span style="color:#000;font-weight:bold">(</span><span style="color:#458;font-weight:bold">int</span> i <span style="color:#000;font-weight:bold">=</span> 0<span style="color:#000;font-weight:bold">;</span> i <span style="color:#000;font-weight:bold">&lt;</span> 10<span style="color:#000;font-weight:bold">;</span> i<span style="color:#000;font-weight:bold">++)</span> <span style="color:#000;font-weight:bold">{</span>
-           ConsumerRecords<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">,</span> String<span style="color:#000;font-weight:bold">&gt;</span> records <span style="color:#000;font-weight:bold">=</span> consumer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">poll</span><span style="color:#000;font-weight:bold">(</span>1000<span style="color:#000;font-weight:bold">);</span>
-           <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span>ConsumerRecord<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">,</span> String<span style="color:#000;font-weight:bold">&gt;</span> record <span style="color:#000;font-weight:bold">:</span> records<span style="color:#000;font-weight:bold">)</span>
-               System<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">out</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">println</span><span style="color:#000;font-weight:bold">(</span>record<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">offset</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">+</span> <span style="color:#d14">&#34;: &#34;</span> <span style="color:#000;font-weight:bold">+</span> record<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">value</span><span style="color:#000;font-weight:bold">());</span>
-       <span style="color:#000;font-weight:bold">}</span>
-   <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">finally</span> <span style="color:#000;font-weight:bold">{</span>
-       System<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">out</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Barfly shutting down ...&#34;</span><span style="color:#000;font-weight:bold">);</span>
-       consumer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">close</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#998;font-style:italic">// always close the consumer
-</span><span style="color:#998;font-style:italic"></span>   <span style="color:#000;font-weight:bold">}</span>
-<span style="color:#000;font-weight:bold">}</span>
+nouvelle API Java apparue en version 0.9, il n’y a pas besoin de gérer la connexion à Zookeeper.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>main</span><span style=color:#000;font-weight:700>(</span>String<span style=color:#000;font-weight:700>[]</span> args<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+   Properties props <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> Properties<span style=color:#000;font-weight:700>();</span>
+   props<span style=color:#000;font-weight:700>.</span><span style=color:teal>put</span><span style=color:#000;font-weight:700>(</span>BOOTSTRAP_SERVERS_CONFIG<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;localhost:9092&#34;</span><span style=color:#000;font-weight:700>);</span>
+   props<span style=color:#000;font-weight:700>.</span><span style=color:teal>put</span><span style=color:#000;font-weight:700>(</span>GROUP_ID_CONFIG<span style=color:#000;font-weight:700>,</span> <span style=color:#d14>&#34;barfly-group&#34;</span><span style=color:#000;font-weight:700>);</span>
+   props<span style=color:#000;font-weight:700>.</span><span style=color:teal>put</span><span style=color:#000;font-weight:700>(</span>KEY_DESERIALIZER_CLASS_CONFIG<span style=color:#000;font-weight:700>,</span> StringDeserializer<span style=color:#000;font-weight:700>.</span><span style=color:teal>class</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>getName</span><span style=color:#000;font-weight:700>());</span>
+   props<span style=color:#000;font-weight:700>.</span><span style=color:teal>put</span><span style=color:#000;font-weight:700>(</span>VALUE_DESERIALIZER_CLASS_CONFIG<span style=color:#000;font-weight:700>,</span> StringDeserializer<span style=color:#000;font-weight:700>.</span><span style=color:teal>class</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>getName</span><span style=color:#000;font-weight:700>());</span>
+   KafkaConsumer<span style=color:#000;font-weight:700>&lt;</span>String<span style=color:#000;font-weight:700>,</span> String<span style=color:#000;font-weight:700>&gt;</span> consumer <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> KafkaConsumer<span style=color:#000;font-weight:700>&lt;&gt;(</span>props<span style=color:#000;font-weight:700>);</span>
+   consumer<span style=color:#000;font-weight:700>.</span><span style=color:teal>subscribe</span><span style=color:#000;font-weight:700>(</span>Collections<span style=color:#000;font-weight:700>.</span><span style=color:teal>singletonList</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;bier-bar&#34;</span><span style=color:#000;font-weight:700>));</span>
+   <span style=color:#000;font-weight:700>try</span> <span style=color:#000;font-weight:700>{</span>
+       <span style=color:#000;font-weight:700>for</span><span style=color:#000;font-weight:700>(</span><span style=color:#458;font-weight:700>int</span> i <span style=color:#000;font-weight:700>=</span> 0<span style=color:#000;font-weight:700>;</span> i <span style=color:#000;font-weight:700>&lt;</span> 10<span style=color:#000;font-weight:700>;</span> i<span style=color:#000;font-weight:700>++)</span> <span style=color:#000;font-weight:700>{</span>
+           ConsumerRecords<span style=color:#000;font-weight:700>&lt;</span>String<span style=color:#000;font-weight:700>,</span> String<span style=color:#000;font-weight:700>&gt;</span> records <span style=color:#000;font-weight:700>=</span> consumer<span style=color:#000;font-weight:700>.</span><span style=color:teal>poll</span><span style=color:#000;font-weight:700>(</span>1000<span style=color:#000;font-weight:700>);</span>
+           <span style=color:#000;font-weight:700>for</span> <span style=color:#000;font-weight:700>(</span>ConsumerRecord<span style=color:#000;font-weight:700>&lt;</span>String<span style=color:#000;font-weight:700>,</span> String<span style=color:#000;font-weight:700>&gt;</span> record <span style=color:#000;font-weight:700>:</span> records<span style=color:#000;font-weight:700>)</span>
+               System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span>record<span style=color:#000;font-weight:700>.</span><span style=color:teal>offset</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>+</span> <span style=color:#d14>&#34;: &#34;</span> <span style=color:#000;font-weight:700>+</span> record<span style=color:#000;font-weight:700>.</span><span style=color:teal>value</span><span style=color:#000;font-weight:700>());</span>
+       <span style=color:#000;font-weight:700>}</span>
+   <span style=color:#000;font-weight:700>}</span> <span style=color:#000;font-weight:700>finally</span> <span style=color:#000;font-weight:700>{</span>
+       System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Barfly shutting down ...&#34;</span><span style=color:#000;font-weight:700>);</span>
+       consumer<span style=color:#000;font-weight:700>.</span><span style=color:teal>close</span><span style=color:#000;font-weight:700>();</span> <span style=color:#998;font-style:italic>// always close the consumer
+</span><span style=color:#998;font-style:italic></span>   <span style=color:#000;font-weight:700>}</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>Dans cette configuration le consommateur ne fera que 10 opération de polling, après quoi il s’arrêtera. En le lançant
 une seconde fois, seul les nouveaux messages seront dépilés. Ce comportement est modifiable, ainsi plutôt que de
 reprendre à la position du dernier message consommé, il est possible de choisir la position et donc, par exemple, de
-reprendre un topic depuis le début.</p>
-<p>Le code présenté ici est simple, il est facile de le réutiliser pour jouer sur le parallélisme ou les topologies de
+reprendre un topic depuis le début.</p><p>Le code présenté ici est simple, il est facile de le réutiliser pour jouer sur le parallélisme ou les topologies de
 consommateurs avec les <strong>groupes de consommateurs</strong>. Typiquement au sein d’un consumer group, une partition ne sera
-assignée qu’à un seul consumer. Pour un besoin métier différent il faudra qu’un consommateur ait un autre group.id.</p>
-<p>À noter qu’un consommateur n’est pas thread-safe, il prévu pour tourner dans un thread qui lui est dédié. Ainsi on peut
-imaginer soumettre des taches de consommation de message sur un <code>ExecutorService</code> :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">executorService<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">submit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Barfly<span style="color:#000;font-weight:bold">());</span>
-</code></pre></div><p>Cette tâche n’aurait qu’à étendre la classe <code>Runnable</code> :</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">Barfly</span> <span style="color:#000;font-weight:bold">implements</span> Runnable <span style="color:#000;font-weight:bold">{</span>
-   <span style="color:#998;font-style:italic">// ...
-</span><span style="color:#998;font-style:italic"></span>   <span style="color:#3c5d5d;font-weight:bold">@Override</span>
-   <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">run</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-       System<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">out</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Starts consumer %s%n&#34;</span><span style="color:#000;font-weight:bold">,</span> uuid<span style="color:#000;font-weight:bold">);</span>
-       consumer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">subscribe</span><span style="color:#000;font-weight:bold">(</span>Collections<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">singletonList</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;bier-bar&#34;</span><span style="color:#000;font-weight:bold">));</span>
-       <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">{</span>
-           <span style="color:#000;font-weight:bold">while</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">true</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-               ConsumerRecords<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">,</span> String<span style="color:#000;font-weight:bold">&gt;</span> records <span style="color:#000;font-weight:bold">=</span> consumer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">poll</span><span style="color:#000;font-weight:bold">(</span>1000<span style="color:#000;font-weight:bold">);</span>
-               <span style="color:#000;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">(</span>ConsumerRecord<span style="color:#000;font-weight:bold">&lt;</span>String<span style="color:#000;font-weight:bold">,</span> String<span style="color:#000;font-weight:bold">&gt;</span> record <span style="color:#000;font-weight:bold">:</span> records<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-                   System<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">out</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;%d:%s:%s -&gt; %s%n&#34;</span><span style="color:#000;font-weight:bold">,</span>
-                                     record<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">partition</span><span style="color:#000;font-weight:bold">(),</span>
-                                     record<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">offset</span><span style="color:#000;font-weight:bold">(),</span>
-                                     uuid<span style="color:#000;font-weight:bold">,</span>
-                                     record<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">value</span><span style="color:#000;font-weight:bold">());</span>
-               <span style="color:#000;font-weight:bold">}</span>
-           <span style="color:#000;font-weight:bold">}</span>
-       <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span><span style="color:#000;font-weight:bold">(</span>WakeupException ignored<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-       <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">finally</span> <span style="color:#000;font-weight:bold">{</span>
-           System<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">out</span><span style="color:#000;font-weight:bold">.</span><span style="color:#008080">println</span><span style="color:#000;font-weight:bold">(</span>String<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">format</span><span style="color:#000;font-weight:bold">(</span><span style="color:#d14">&#34;Barfly &#39;%s&#39; shutting down ...&#34;</span><span style="color:#000;font-weight:bold">,</span> uuid<span style="color:#000;font-weight:bold">));</span>
-           consumer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">close</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#998;font-style:italic">// always close the consumer
-</span><span style="color:#998;font-style:italic"></span>       <span style="color:#000;font-weight:bold">}</span>
-   <span style="color:#000;font-weight:bold">}</span>
+assignée qu’à un seul consumer. Pour un besoin métier différent il faudra qu’un consommateur ait un autre group.id.</p><p>À noter qu’un consommateur n’est pas thread-safe, il prévu pour tourner dans un thread qui lui est dédié. Ainsi on peut
+imaginer soumettre des taches de consommation de message sur un <code>ExecutorService</code> :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>executorService<span style=color:#000;font-weight:700>.</span><span style=color:teal>submit</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>new</span> Barfly<span style=color:#000;font-weight:700>());</span>
+</code></pre></div><p>Cette tâche n’aurait qu’à étendre la classe <code>Runnable</code> :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>Barfly</span> <span style=color:#000;font-weight:700>implements</span> Runnable <span style=color:#000;font-weight:700>{</span>
+   <span style=color:#998;font-style:italic>// ...
+</span><span style=color:#998;font-style:italic></span>   <span style=color:#3c5d5d;font-weight:700>@Override</span>
+   <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>run</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+       System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>printf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Starts consumer %s%n&#34;</span><span style=color:#000;font-weight:700>,</span> uuid<span style=color:#000;font-weight:700>);</span>
+       consumer<span style=color:#000;font-weight:700>.</span><span style=color:teal>subscribe</span><span style=color:#000;font-weight:700>(</span>Collections<span style=color:#000;font-weight:700>.</span><span style=color:teal>singletonList</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;bier-bar&#34;</span><span style=color:#000;font-weight:700>));</span>
+       <span style=color:#000;font-weight:700>try</span> <span style=color:#000;font-weight:700>{</span>
+           <span style=color:#000;font-weight:700>while</span> <span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>true</span><span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+               ConsumerRecords<span style=color:#000;font-weight:700>&lt;</span>String<span style=color:#000;font-weight:700>,</span> String<span style=color:#000;font-weight:700>&gt;</span> records <span style=color:#000;font-weight:700>=</span> consumer<span style=color:#000;font-weight:700>.</span><span style=color:teal>poll</span><span style=color:#000;font-weight:700>(</span>1000<span style=color:#000;font-weight:700>);</span>
+               <span style=color:#000;font-weight:700>for</span> <span style=color:#000;font-weight:700>(</span>ConsumerRecord<span style=color:#000;font-weight:700>&lt;</span>String<span style=color:#000;font-weight:700>,</span> String<span style=color:#000;font-weight:700>&gt;</span> record <span style=color:#000;font-weight:700>:</span> records<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+                   System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>printf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;%d:%s:%s -&gt; %s%n&#34;</span><span style=color:#000;font-weight:700>,</span>
+                                     record<span style=color:#000;font-weight:700>.</span><span style=color:teal>partition</span><span style=color:#000;font-weight:700>(),</span>
+                                     record<span style=color:#000;font-weight:700>.</span><span style=color:teal>offset</span><span style=color:#000;font-weight:700>(),</span>
+                                     uuid<span style=color:#000;font-weight:700>,</span>
+                                     record<span style=color:#000;font-weight:700>.</span><span style=color:teal>value</span><span style=color:#000;font-weight:700>());</span>
+               <span style=color:#000;font-weight:700>}</span>
+           <span style=color:#000;font-weight:700>}</span>
+       <span style=color:#000;font-weight:700>}</span> <span style=color:#000;font-weight:700>catch</span><span style=color:#000;font-weight:700>(</span>WakeupException ignored<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+       <span style=color:#000;font-weight:700>}</span> <span style=color:#000;font-weight:700>finally</span> <span style=color:#000;font-weight:700>{</span>
+           System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span>String<span style=color:#000;font-weight:700>.</span><span style=color:teal>format</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Barfly &#39;%s&#39; shutting down ...&#34;</span><span style=color:#000;font-weight:700>,</span> uuid<span style=color:#000;font-weight:700>));</span>
+           consumer<span style=color:#000;font-weight:700>.</span><span style=color:teal>close</span><span style=color:#000;font-weight:700>();</span> <span style=color:#998;font-style:italic>// always close the consumer
+</span><span style=color:#998;font-style:italic></span>       <span style=color:#000;font-weight:700>}</span>
+   <span style=color:#000;font-weight:700>}</span>
 
-   <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">void</span> <span style="color:#900;font-weight:bold">shutdown</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
-       consumer<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">wakeup</span><span style="color:#000;font-weight:bold">();</span>
-   <span style="color:#000;font-weight:bold">}</span>
-<span style="color:#000;font-weight:bold">}</span>
+   <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>shutdown</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
+       consumer<span style=color:#000;font-weight:700>.</span><span style=color:teal>wakeup</span><span style=color:#000;font-weight:700>();</span>
+   <span style=color:#000;font-weight:700>}</span>
+<span style=color:#000;font-weight:700>}</span>
 </code></pre></div><p>À noter que pour stopper proprement le thread du consumer, il est possible d’invoquer <code>consumer.wakeup()</code>. Dans cet
 exemple une <code>WakeupException</code> sera levée afin d’interrompre la boucle infinie, ce qui permet d’atteindre le bloc finally
-pour clore le consumer.</p>
-<h2 id="la-sérialisation--désérialisation">La sérialisation / désérialisation</h2>
-<p>Kafka ne gère que des octets, il n’a pas connaissance du contenu réel d’un message. C’est pour cette raison que les
+pour clore le consumer.</p><h2 id=la-sérialisation--désérialisation>La sérialisation / désérialisation</h2><p>Kafka ne gère que des octets, il n’a pas connaissance du contenu réel d’un message. C’est pour cette raison que les
 producteurs et les consommateurs ont besoin d’avoir des classes qui font la traduction entre la représentation Java et
-un tableau d’octets.</p>
-<p>Par exemple <code>StringSerializer</code> doit juste transformer un <code>String</code> en tableau d’octets. Coté désérialisation, c’est le
+un tableau d’octets.</p><p>Par exemple <code>StringSerializer</code> doit juste transformer un <code>String</code> en tableau d’octets. Coté désérialisation, c’est le
 travail inverse qui est fait. Sur des messages simples, une chaîne de caractères, utiliser le <code>StringSerializer</code> peut
 suffire, en revanche, s’il s’agit de faire passer des grappes d’objets plus complexes, alors il faut passer à autre
-chose.</p>
-<p>Pour cette article imaginons que les messages doivent être sérialisé en JSON, il est possible d’écrire ce sérializeur
-JSON, de la façon suivante avec les librairies du projet Jackson.</p>
-<div class="highlight"><pre style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#000;font-weight:bold">public</span> <span style="color:#000;font-weight:bold">class</span> <span style="color:#458;font-weight:bold">JsonSerializer</span><span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">implements</span> Serializer<span style="color:#000;font-weight:bold">&lt;</span>T<span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">{</span>
-   <span style="color:#000;font-weight:bold">private</span> ObjectMapper objectMapper <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">new</span> ObjectMapper<span style="color:#000;font-weight:bold">().</span><span style="color:#008080">setVisibility</span><span style="color:#000;font-weight:bold">(</span>PropertyAccessor<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">FIELD</span><span style="color:#000;font-weight:bold">,</span>
-                                                                        Visibility<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">NON_PRIVATE</span><span style="color:#000;font-weight:bold">)</span>
-                                                         <span style="color:#000;font-weight:bold">.</span><span style="color:#008080">registerModules</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000;font-weight:bold">new</span> Jdk8Module<span style="color:#000;font-weight:bold">(),</span>
-                                                                          <span style="color:#000;font-weight:bold">new</span> JavaTimeModule<span style="color:#000;font-weight:bold">());</span>
-   <span style="color:#998;font-style:italic">// ...
-</span><span style="color:#998;font-style:italic"></span>
-   <span style="color:#3c5d5d;font-weight:bold">@Override</span>
-   <span style="color:#000;font-weight:bold">public</span> <span style="color:#458;font-weight:bold">byte</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#900;font-weight:bold">serialize</span><span style="color:#000;font-weight:bold">(</span>String topic<span style="color:#000;font-weight:bold">,</span> T data<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-       <span style="color:#000;font-weight:bold">try</span> <span style="color:#000;font-weight:bold">{</span>
-           <span style="color:#000;font-weight:bold">return</span> objectMapper<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">writeValueAsBytes</span><span style="color:#000;font-weight:bold">(</span>data<span style="color:#000;font-weight:bold">);</span>
-       <span style="color:#000;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">catch</span> <span style="color:#000;font-weight:bold">(</span>JsonProcessingException e<span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
-           e<span style="color:#000;font-weight:bold">.</span><span style="color:#008080">printStackTrace</span><span style="color:#000;font-weight:bold">();</span>
-           <span style="color:#000;font-weight:bold">throw</span> <span style="color:#000;font-weight:bold">new</span> UncheckedIOException<span style="color:#000;font-weight:bold">(</span>e<span style="color:#000;font-weight:bold">);</span>
-       <span style="color:#000;font-weight:bold">}</span>
-   <span style="color:#000;font-weight:bold">}</span>
-   <span style="color:#998;font-style:italic">// ...
-</span><span style="color:#998;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
-</code></pre></div><p>Ce qui donnerait le message suivant, :</p>
-<pre><code>0:1400 -&gt; {&quot;message&quot;:&quot;Bier served&quot;,&quot;bierName&quot;:&quot;Gallia&quot;,&quot;timestamp&quot;:\[16,0,6,509000000\]}
+chose.</p><p>Pour cette article imaginons que les messages doivent être sérialisé en JSON, il est possible d’écrire ce sérializeur
+JSON, de la façon suivante avec les librairies du projet Jackson.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>JsonSerializer</span><span style=color:#000;font-weight:700>&lt;</span>T<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#000;font-weight:700>implements</span> Serializer<span style=color:#000;font-weight:700>&lt;</span>T<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#000;font-weight:700>{</span>
+   <span style=color:#000;font-weight:700>private</span> ObjectMapper objectMapper <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> ObjectMapper<span style=color:#000;font-weight:700>().</span><span style=color:teal>setVisibility</span><span style=color:#000;font-weight:700>(</span>PropertyAccessor<span style=color:#000;font-weight:700>.</span><span style=color:teal>FIELD</span><span style=color:#000;font-weight:700>,</span>
+                                                                        Visibility<span style=color:#000;font-weight:700>.</span><span style=color:teal>NON_PRIVATE</span><span style=color:#000;font-weight:700>)</span>
+                                                         <span style=color:#000;font-weight:700>.</span><span style=color:teal>registerModules</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>new</span> Jdk8Module<span style=color:#000;font-weight:700>(),</span>
+                                                                          <span style=color:#000;font-weight:700>new</span> JavaTimeModule<span style=color:#000;font-weight:700>());</span>
+   <span style=color:#998;font-style:italic>// ...
+</span><span style=color:#998;font-style:italic></span>
+   <span style=color:#3c5d5d;font-weight:700>@Override</span>
+   <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>byte</span><span style=color:#000;font-weight:700>[]</span> <span style=color:#900;font-weight:700>serialize</span><span style=color:#000;font-weight:700>(</span>String topic<span style=color:#000;font-weight:700>,</span> T data<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+       <span style=color:#000;font-weight:700>try</span> <span style=color:#000;font-weight:700>{</span>
+           <span style=color:#000;font-weight:700>return</span> objectMapper<span style=color:#000;font-weight:700>.</span><span style=color:teal>writeValueAsBytes</span><span style=color:#000;font-weight:700>(</span>data<span style=color:#000;font-weight:700>);</span>
+       <span style=color:#000;font-weight:700>}</span> <span style=color:#000;font-weight:700>catch</span> <span style=color:#000;font-weight:700>(</span>JsonProcessingException e<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+           e<span style=color:#000;font-weight:700>.</span><span style=color:teal>printStackTrace</span><span style=color:#000;font-weight:700>();</span>
+           <span style=color:#000;font-weight:700>throw</span> <span style=color:#000;font-weight:700>new</span> UncheckedIOException<span style=color:#000;font-weight:700>(</span>e<span style=color:#000;font-weight:700>);</span>
+       <span style=color:#000;font-weight:700>}</span>
+   <span style=color:#000;font-weight:700>}</span>
+   <span style=color:#998;font-style:italic>// ...
+</span><span style=color:#998;font-style:italic></span><span style=color:#000;font-weight:700>}</span>
+</code></pre></div><p>Ce qui donnerait le message suivant, :</p><pre><code>0:1400 -&gt; {&quot;message&quot;:&quot;Bier served&quot;,&quot;bierName&quot;:&quot;Gallia&quot;,&quot;timestamp&quot;:\[16,0,6,509000000\]}
 </code></pre><p>Notez que le message est bien sous forme de string. Le premier <code>Barfly</code> consommateur pourra lire ce message comme une
 String. En revanche pour transformer ce message dans un objet Java, il faut faire la même chose avec un désérialiseur,
-le code de ce désérialiseur n’en sera pas plus complexe.</p>
-<p>Attention ceci dit JSON ou autre représentation non binaire n’est pas optimale. Si votre format de message doit être
+le code de ce désérialiseur n’en sera pas plus complexe.</p><p>Attention ceci dit JSON ou autre représentation non binaire n’est pas optimale. Si votre format de message doit être
 amener à évoluer, il sera plus judicieux d’utiliser Avro ou un équivalent. Avro ou d’autres solutions peuvent également
-avoir de l’attrait en terme d’empreinte mémoire et de performance.</p>
-<p>Dans une infrastructure qui fait communiquer des applications entre elles, que ce soit par HTTP, avec Kafka ou une autre
+avoir de l’attrait en terme d’empreinte mémoire et de performance.</p><p>Dans une infrastructure qui fait communiquer des applications entre elles, que ce soit par HTTP, avec Kafka ou une autre
 technologie, il faut tester fortement les outillages de sérialisation, penser aux montées de version des messages, ainsi
-qu’au coût que la sérialisation peut engendrer en terme de performance.</p>
-<h1 id="focus-sur-zookeeper">Focus sur Zookeeper</h1>
-<p>Jusqu’ici Zookeeper est assez peu évoqué. C’est un composant nécessaire de Kafka. En version 0.9 de Kafka il a deux
-rôles très important :</p>
-<ul>
-<li><em>Service Discovery</em> des instances Kafka Stockage des métadonnées des topics</li>
-</ul>
-<p>Afin de permettre un rééquilibrage de la charge des brokers, ceux-ci doivent se connaître, ils utilisent pour cela
-Zookeeper en tant que registre.</p>
-<p>Comme on l’a vu plus haut, l’outillage d’administration créer un topic sur Zookeeper, car il agit là aussi comme
-registre de métadonnées.</p>
-<p>Il est nécessaire qu’il soit démarré en premier et qu’il soit arrêté après Kafka. Pour ces raisons Zookeeper représente
+qu’au coût que la sérialisation peut engendrer en terme de performance.</p><h1 id=focus-sur-zookeeper>Focus sur Zookeeper</h1><p>Jusqu’ici Zookeeper est assez peu évoqué. C’est un composant nécessaire de Kafka. En version 0.9 de Kafka il a deux
+rôles très important :</p><ul><li><em>Service Discovery</em> des instances Kafka Stockage des métadonnées des topics</li></ul><p>Afin de permettre un rééquilibrage de la charge des brokers, ceux-ci doivent se connaître, ils utilisent pour cela
+Zookeeper en tant que registre.</p><p>Comme on l’a vu plus haut, l’outillage d’administration créer un topic sur Zookeeper, car il agit là aussi comme
+registre de métadonnées.</p><p>Il est nécessaire qu’il soit démarré en premier et qu’il soit arrêté après Kafka. Pour ces raisons Zookeeper représente
 un élément sensible de l’infrastructure. Il faut donc lui accorder le plus grand soin. Connaître ce produit est plus
-qu’un simple bonus.</p>
-<p>Mon avis personnel est de prendre la distribution officielle de Zookeeper plutôt que de prendre le Zookeeper livré dans
+qu’un simple bonus.</p><p>Mon avis personnel est de prendre la distribution officielle de Zookeeper plutôt que de prendre le Zookeeper livré dans
 la distribution Kafka, la distribution Zookeeper contient des outils additionnels intéressants pour les opérations pour
-gérer le cluster Zookeeper.</p>
-<p>En production, où la haute disponibilité est un prérequis, on pensera à affecter au minimum trois machines dédiés pour
+gérer le cluster Zookeeper.</p><p>En production, où la haute disponibilité est un prérequis, on pensera à affecter au minimum trois machines dédiés pour
 chacune des instances du cluster Zookeeper. L’emplacement de ces machines sera de préférence dans des armoires
 différentes. Cette utilisation des ressources matérielles autorisera des interventions, par exemple sur les
-alimentations électriques.</p>
-<p>Sur un petit SI, ou une durée d’indisponibilité est autorisée, une seule instance Zookeeper sur une machine dédiée
-suffira.</p>
-<p>Dans tous les cas il faut éviter de faire tourner les brokers Kafka sur les mêmes machines que Zookeeper. Si une machine
+alimentations électriques.</p><p>Sur un petit SI, ou une durée d’indisponibilité est autorisée, une seule instance Zookeeper sur une machine dédiée
+suffira.</p><p>Dans tous les cas il faut éviter de faire tourner les brokers Kafka sur les mêmes machines que Zookeeper. Si une machine
 hébergeant à la fois Zookeeper et Kafka tombe alors cela peut mener à la corruption de données de topologie du cluster
-Kafka et donc d’interrompre le service.</p>
-<p>À noter que Zookeeper n’est pas encore équipé d’auto-discovery ni d’ajout d’instance à la volée. Le travail est en cours
+Kafka et donc d’interrompre le service.</p><p>À noter que Zookeeper n’est pas encore équipé d’auto-discovery ni d’ajout d’instance à la volée. Le travail est en cours
 sur la version 3.5, il faudra donc bien dimensionner son cluster Zookeeper. Aujourd’hui en version 3.4.x il faut lancer
-une procédure de rolling restart, en ajoutant dans la configuration une nouvelle instance à la fois.</p>
-<h1 id="en-production">En production</h1>
-<p>Kafka peut manquer de maturité, mais l’outil est considéré <strong>production-ready</strong>. Il fonctionne très bien en
-environnement de production, des noms comme Linkedin, Twitter, Uber, Netflix, Spotify le prouvent chaque jour.</p>
-<p>La société Confluent vend du support technique, et finance le développement de Kafka ; la société a été fondé par les
-ingénieurs de LinkedIn à l’origine du projet.</p>
-<p>Pour amener Kafka en production l’idéal est de travailler sur une fonctionnalité simple. Ainsi il est possible d’avoir
+une procédure de rolling restart, en ajoutant dans la configuration une nouvelle instance à la fois.</p><h1 id=en-production>En production</h1><p>Kafka peut manquer de maturité, mais l’outil est considéré <strong>production-ready</strong>. Il fonctionne très bien en
+environnement de production, des noms comme Linkedin, Twitter, Uber, Netflix, Spotify le prouvent chaque jour.</p><p>La société Confluent vend du support technique, et finance le développement de Kafka ; la société a été fondé par les
+ingénieurs de LinkedIn à l’origine du projet.</p><p>Pour amener Kafka en production l’idéal est de travailler sur une fonctionnalité simple. Ainsi il est possible d’avoir
 des retours techniques grâce au trafic réel de production, et des retours humains par l’exploitant. Ce code devra bien
-sûr être activable à la demande (feature toggle) afin de ne pas compromettre la production.</p>
-<h1 id="les-points-dattention">Les points d’attention</h1>
-<p>Comme tous les produits il y a des points forts et des éléments à
+sûr être activable à la demande (feature toggle) afin de ne pas compromettre la production.</p><h1 id=les-points-dattention>Les points d’attention</h1><p>Comme tous les produits il y a des points forts et des éléments à
 améliorer, même si Kafka tourne sur certaines des plus grosses
-productions du monde il n’en reste pas moins jeune sur certains aspects :</p>
-<ul>
-<li>En phase de développement, l’outillage de test est assez maigre.</li>
-<li>Comme tous les brokers il faut que l’équipe comprenne les contraintes et la sémantique qui entourent le messaging,
-en particulier <strong>at-least-once</strong> et l’<strong>ordre des messages</strong>.</li>
-<li>La configuration de Kafka est simple, mais si la configuration des machines est plus avancée (plusieurs interfaces
-réseau, noms de domaine interne, etc.) alors la documentation commence à montrer ses lacunes.</li>
-<li>En environnement d’exploitation, l’expérience pourrait être améliorée. Typiquement le <strong>rééquilibrage</strong> d’un cluster
-est une opération qui pourrait être simplifiée.</li>
-<li>Kafka ne vient pas avec une interface graphique d’administration, il existe le projet KafkaManager maintenu par des
-gens de Yahoo, mais celui-ci n’a pas exactement le même cycle de vie que Kafka.</li>
-</ul>
-<h1 id="pour-finir">Pour finir</h1>
-<p>Kafka est encore jeune, mais offre une alternative intéressante et performante aux systèmes actuels. Réaliser un
-comparatif avec d’autres acteurs du marché n’est pas forcément pertinent, il faut avant tout identifier ses besoins.</p>
-<p>Si le besoin d’un broker avec des fonctionnalités plus avancées comme le support des transactions, les garanties de
-d’ordre alors Kafka n’est peut-être pas le bon outil.</p>
-<p>Par contre si les critères primordiaux sont de pouvoir encaisser une forte charge, de pouvoir ajouter des instances
-suivant le besoin, ou de persister durablement les messages, alors Kafka est une option sérieuse à envisager.</p>
-<h6 id="sources">Sources</h6>
-<ul>
-<li><a href="http://alistair.cockburn.us/Walking+skeleton">Walking skeleton</a></li>
-<li><a href="http://kafka.apache.org/">kafka</a></li>
-<li><a href="https://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines">2 million writes second three at LinkedIn on cheap hardware</a></li>
-<li><a href="https://www.quora.com/What-are-the-differences-between-Apache-Kafka-and-RabbitMQ?share=1&amp;redirected_qid=625566">Differences between Apache Kafka and RabbitMQ (question on Quora)</a></li>
-<li><a href="http://www.confluent.io">Confluent</a></li>
-<li><a href="http://www.confluent.io/blog/using-logs-to-build-a-solid-data-infrastructure-or-why-dual-writes-are-a-bad-idea/">Using logs to build a solid data infrastructure (or: why dual writes are a bad idea)</a></li>
-<li><a href="http://www.confluent.io/blog/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/">How to choose the number of topics/partitions in a Kafka cluster?</a></li>
-<li><a href="https://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#The+Four+Letter+Words">The Four Letter Words</a></li>
-<li><a href="http://docs.confluent.io/2.0.1/kafka/post-deployment.html">Post-deployment doc</a></li>
-</ul>
-<p>Code</p>
-<p><a href="https://github.com/bric3/articles-kafka-walking-skeleton">bric3/articles-kafka-walking-skeleton</a></p>
-
-  </div>
-  
-
-<div class="navigation navigation-single">
-    
-    <a href="/2016/12/05/make-docker-container-access-host-ssh-tunnel/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Connecter un container docker sur un tunnel ssh OSX</span>
-    </a>
-    
-    
-    <a href="/2017/10/02/pagination_hateoas_link/" class="navigation-next">
-      <span class="navigation-tittle">Pagination en JAX-RS 2.0 avec le header Link</span>
-      <i aria-hidden="true" class="fa fa-chevron-right"></i>
-    </a>
-    
-</div>
-
-
-  
-
-  <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
-        
-        
-        
-        this.page.identifier = 'https://blog.arkey.fr/2017/04/29/kafka-a-walking-skeleton/';
-        this.page.title = 'Kafka, a walking skeleton';
-        this.page.url = 'https://blog.arkey.fr/2017/04/29/kafka-a-walking-skeleton/';
-    };
-    (function() {
-        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
-            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
-            return;
-        }
-        var d = document, s = d.createElement('script'); s.async = true;
-        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
-        s.setAttribute('data-timestamp', +new Date());
-        (d.head || d.body).appendChild(s);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
-
-</article>
-
-
-        </div>
-        
-    
-
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-
-    
-    
-    <script type="text/javascript">
-        
-        hljs.initHighlightingOnLoad();
-    </script>
-    
-
-
-
-
-    
-
-
-
-    </body>
-</html>
+productions du monde il n’en reste pas moins jeune sur certains aspects :</p><ul><li>En phase de développement, l’outillage de test est assez maigre.</li><li>Comme tous les brokers il faut que l’équipe comprenne les contraintes et la sémantique qui entourent le messaging,
+en particulier <strong>at-least-once</strong> et l’<strong>ordre des messages</strong>.</li><li>La configuration de Kafka est simple, mais si la configuration des machines est plus avancée (plusieurs interfaces
+réseau, noms de domaine interne, etc.) alors la documentation commence à montrer ses lacunes.</li><li>En environnement d’exploitation, l’expérience pourrait être améliorée. Typiquement le <strong>rééquilibrage</strong> d’un cluster
+est une opération qui pourrait être simplifiée.</li><li>Kafka ne vient pas avec une interface graphique d’administration, il existe le projet KafkaManager maintenu par des
+gens de Yahoo, mais celui-ci n’a pas exactement le même cycle de vie que Kafka.</li></ul><h1 id=pour-finir>Pour finir</h1><p>Kafka est encore jeune, mais offre une alternative intéressante et performante aux systèmes actuels. Réaliser un
+comparatif avec d’autres acteurs du marché n’est pas forcément pertinent, il faut avant tout identifier ses besoins.</p><p>Si le besoin d’un broker avec des fonctionnalités plus avancées comme le support des transactions, les garanties de
+d’ordre alors Kafka n’est peut-être pas le bon outil.</p><p>Par contre si les critères primordiaux sont de pouvoir encaisser une forte charge, de pouvoir ajouter des instances
+suivant le besoin, ou de persister durablement les messages, alors Kafka est une option sérieuse à envisager.</p><h6 id=sources>Sources</h6><ul><li><a href=http://alistair.cockburn.us/Walking+skeleton>Walking skeleton</a></li><li><a href=http://kafka.apache.org/>kafka</a></li><li><a href=https://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines>2 million writes second three at LinkedIn on cheap hardware</a></li><li><a href="https://www.quora.com/What-are-the-differences-between-Apache-Kafka-and-RabbitMQ?share=1&redirected_qid=625566">Differences between Apache Kafka and RabbitMQ (question on Quora)</a></li><li><a href=http://www.confluent.io>Confluent</a></li><li><a href=http://www.confluent.io/blog/using-logs-to-build-a-solid-data-infrastructure-or-why-dual-writes-are-a-bad-idea/>Using logs to build a solid data infrastructure (or: why dual writes are a bad idea)</a></li><li><a href=http://www.confluent.io/blog/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/>How to choose the number of topics/partitions in a Kafka cluster?</a></li><li><a href=https://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#The+Four+Letter+Words>The Four Letter Words</a></li><li><a href=http://docs.confluent.io/2.0.1/kafka/post-deployment.html>Post-deployment doc</a></li></ul><p>Code</p><p><a href=https://github.com/bric3/articles-kafka-walking-skeleton>bric3/articles-kafka-walking-skeleton</a></p></div><div class="navigation navigation-single"><a href=/2016/12/05/make-docker-container-access-host-ssh-tunnel/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Connecter un container docker sur un tunnel ssh OSX</span></a>
+<a href=/2017/10/02/pagination_hateoas_link/ class=navigation-next><span class=navigation-tittle>Pagination en JAX-RS 2.0 avec le header Link</span>
+<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2017/04/29/kafka-a-walking-skeleton/';this.page.title='Kafka, a walking skeleton';this.page.url='https://blog.arkey.fr/2017/04/29/kafka-a-walking-skeleton/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
+var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>
