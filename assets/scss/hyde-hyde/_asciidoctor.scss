@@ -235,90 +235,6 @@
     border-spacing: 0;
   }
 
-  .admonitionblock {
-    > table {
-      border-collapse: separate;
-      border: 0;
-      background: none;
-      width: 100%;
-
-      // hyde-hyde fix : remove nth-child(2n+1)
-      tbody tr td,
-      tbody tr th {
-        background: initial;
-      }
-
-      td {
-        // hyde-hyde fix : remove border
-        border: initial;
-
-        &.icon {
-          text-align: center;
-          width: 80px;
-
-          img {
-            max-width: none;
-          }
-
-          .title {
-            font-weight: bold;
-            text-transform: uppercase;
-          }
-        }
-
-        &.content {
-          font-size: 1.0625rem;
-          // hyde-hyde fix : fix default padding and margin to 0
-          margin: 0;
-          padding: 0;
-          padding-left: 1.125rem;
-          padding-right: 1.25rem;
-          border-left: 1px solid #ddddd8;
-          color: rgba(0, 0, 0, 0.6);
-
-          > :last-child > :last-child {
-            margin-bottom: 0;
-          }
-        }
-      }
-    }
-
-    td.icon {
-      [class^="fa icon-"] {
-        font-size: 2rem;
-        font-family: 'Font Awesome 5 Free';
-        cursor: default;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-      }
-
-      .icon-note::before {
-        content: "\f05a"; // equivalent to <i class="fas fa-info-circle"></i>
-        color: #19407c;
-      }
-
-      .icon-tip::before {
-        content: "\f0eb"; // equivalent to <i class="far fa-lightbulb"></i>
-        text-shadow: 1px 1px 2px rgba(155, 155, 0, 0.8);
-        color: #b19c4e;
-      }
-
-      .icon-warning::before {
-        content: "\f071"; // equivalent to <i class="fas fa-exclamation-triangle"></i>
-        color: #bf6900;
-      }
-
-      .icon-caution::before {
-        content: "\f06d"; // equivalent to <i class="fas fa-fire"></i>
-        color: #bf3400;
-      }
-
-      .icon-important::before {
-        content: "\f06a"; // equivalent to <i class="fas fa-exclamation-circle"></i>
-        color: #bf0000;
-      }
-    }
-  }
-
   table.tableblock {
     > .title {
       line-height: 1.45;
@@ -429,6 +345,115 @@
     font-size: 1em;
   }
 
+
+  .admonitionblock {
+    > table {
+      border-collapse: separate;
+      border: 0;
+      background: none;
+      width: 100%;
+
+      // hyde-hyde fix : remove nth-child(2n+1)
+      tbody tr td,
+      tbody tr th {
+        background: initial;
+      }
+
+      td {
+        // hyde-hyde fix : remove border
+        border: initial;
+
+        &.icon {
+          text-align: center;
+          width: 80px;
+
+          img {
+            max-width: none;
+          }
+
+          .title {
+            font-weight: bold;
+            text-transform: uppercase;
+          }
+        }
+
+        &.content {
+          font-size: 1.0625rem;
+          // hyde-hyde fix : fix default padding and margin to 0
+          margin: 0;
+          padding: 0;
+          padding-left: 1.125rem;
+          padding-right: 1.25rem;
+          border-left: 1px solid #ddddd8;
+          color: rgba(0, 0, 0, 0.6);
+
+          > :last-child > :last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+
+    td.icon {
+      [class^="fa icon-"] {
+        font-size: 2rem;
+        font-family: 'Font Awesome 5 Free';
+        cursor: default;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+      }
+
+      .icon-note::before {
+        content: "\f05a"; // equivalent to <i class="fas fa-info-circle"></i>
+        color: #4b70b4;
+      }
+
+      .icon-tip::before {
+        font-family: 'Font Awesome 5 Free' !important;
+        content: "\f0eb"; // equivalent to <i class="far fa-lightbulb"></i>
+        //text-shadow: 1px 1px 2px rgba(155, 155, 0, 0.8);
+        color: #d7c46a;
+      }
+
+      .icon-warning::before {
+        content: "\f071"; // equivalent to <i class="fas fa-exclamation-triangle"></i>
+        color: #bf4c00;
+      }
+
+      .icon-caution::before {
+        content: "\f06d"; // equivalent to <i class="fas fa-fire"></i>
+        color: #bf7900;
+      }
+
+      .icon-important::before {
+        content: "\f06a"; // equivalent to <i class="fas fa-exclamation-circle"></i>
+        color: #bf0000;
+      }
+    }
+
+    // fix hyde-hyde integration
+    &.important {
+      border-left: none;
+      background-color: #ffc8c8;
+      > table td.content {
+        border-left: 2px solid #ff6767;
+      }
+    }
+    &.warning {
+      border-left: none;
+      background-color: #f9dcc8;
+      > table td.content {
+        border-left: 2px solid #f3aa79;
+      }
+    }
+    &.caution {
+      border-left: none;
+      background-color: #f7e5ce;
+      > table td.content {
+        border-left: 2px solid #fab55e;
+      }
+    }
+  }
+
   .conum[data-value] {
     display: inline-block;
     color: #fff !important;
@@ -528,12 +553,39 @@
     }
   }
 
-  .colist > table {
-    border: 0;
-    background: none;
-    tbody > tr {
-      background-color: rgba(13, 13, 13, 0);
-      background-image: none;
+  .colist {
+    > table {
+      border: 0;
+      background: none;
+
+      tbody > tr {
+        background-color: rgba(13, 13, 13, 0);
+        background-image: none;
+        td, th {
+          border: none;
+        }
+        &:nth-child(2n+1) {
+          td, th {
+            background: inherit;
+          }
+        }
+      }
+    }
+
+    td:not([class]) {
+      &:first-child {
+        padding: .4em .75em 0;
+        line-height: 1;
+        vertical-align: top;
+
+        img {
+          max-width: none;
+        }
+      }
+
+      &:last-child {
+        padding: .25em 0;
+      }
     }
   }
 
@@ -672,6 +724,10 @@
     }
   }
 
+  .literalblock + .colist, .listingblock + .colist {
+    margin-top: -.5em;
+  }
+
   .verseblock {
     margin: 0 1em 1.25em;
 
@@ -805,5 +861,12 @@
     color: #a53221;
     // fix hyde-hyde collision
     border-bottom: none;
+  }
+
+  details > summary:first-of-type {
+    cursor: pointer;
+    display: list-item;
+    outline: none;
+    margin-bottom: .75em;
   }
 }
