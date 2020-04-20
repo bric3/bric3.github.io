@@ -91,10 +91,13 @@ But diving in the HTML soon reveal other issues
 
 The whole HTML document is here along with other script and css competing with the one of Hugo.
 
-* [ ] source listings are not _syntax-highlighted_.
+* [x] source listings are not _syntax-highlighted_.
 * [ ] CSS is a bit off for some elements, and _corrupts_ other elements like the sidebar
 * [ ] inline css
-
+* [ ] Some color codes are not ported, see #_text[this section] of the smoke test
+* [ ] Table of content
+* [ ] Extract colors in Sass variables
+* [ ] investigate `-a data-uri`
 
 
 tweak css to integrate with scss of the theme : https://css2sass.herokuapp.com/
@@ -139,9 +142,7 @@ hugo uses : `--no-header-footer --safe --trace -`
 ../bin/asciidoctor
 [source,bash]
 ----
-#!/bin/bash
-                                       
-echo $@
+#!/bin/sh
 
 if [ -f /usr/local/bin/asciidoctor ]; then
   ad="/usr/local/bin/asciidoctor"
@@ -150,22 +151,43 @@ else
 fi
 
 $ad --trace --verbose \
-  --base-dir . \
-  --require asciidoctor-html5s \
-  --backend html5 \
-  --no-header-footer \
-  --attribute=icons=font \
-  --attribute=docinfo=shared \
-  --attribute=nofooter \
-  --attribute=sectanchors \
-  --attribute=experimental=true \
-  --attribute=figure-caption! \
-  --attribute=source-highlighter=highlightjs \
-  --attribute=toc-title! \
-  -
-
+  --base-dir ./content \                        #  <1>
+  --no-header-footer \                          #  <2>
+  --attribute nofooter \
+  --attribute docinfo=shared \
+  --attribute icons=font \                      #  <3>
+  --attribute source-highlighter=highlightjs \  #  <4>
+  --attribute sectlinks \                       #  <5>
+  --attribute sectanchors \
+  --attribute figure-caption! \
+  --attribute toc-title! \
+  -                                             #  <6>
 
 ----
+<1> The dot `.` is where hugo has been started, usually it's the Hugo
+site root, and `content` is where website content is located by default,
+so the content folder is the base directory of asciidoc, this is important
+for `include:` directives where the path will be relative to the `./content`
+folder. This option is useful because asciidoctor is invoked to use
+stdin/stdout via `-`
+<2> The *most important settings*, tell asciidoctor to not
+generate the header and footer as those are part of the Hugo theme,
+in addition, this command also tells to not generate content footer
+and trick asciidoctor to believe header and footer are part of
+https://github.com/asciidoctor/asciidoctor.org/blob/master/docs/_includes/docinfo.adoc#naming-docinfo-files[docinfo]
+by using the value `shared`. This helps in case of some external
+script that are being injected like FontAwesome, Highlight.JS,
+or MathJax for example.
+<3> Use Font Awesome, however Asciidoctor uses Font Awesome 4 which can be
+tricky to integrate in a theme that rely on Font Awesome 5.
+<4> This tells Asciidoctor to render `pre code` elements with
+highlight.js information for them. This require that the theme correctly
+set-up Highlight.JS.
+<5> `sectlinks`, `sectanchors`, `figure-caption`, or `toc-title` are attributes
+to tweak the rendering, usually they are part of the document, but since I prefer to
+have this setting global they are here in the command line.
+<6> Read the source from stdin
+
 
 https://dburet.gitlab.io/blog/2020-01-22-adoc-chart/
 
@@ -180,6 +202,7 @@ and https://github.com/asciidoctor/asciidoctor-reveal.js/issues/304[asciidoctor/
 that indicated this is not something supported at the moment, adding the FA4 _shim_
 doews not help, as FA4 conflicts with other solid icons
 
+
 .does not work
 [source, diff]
 ----
@@ -188,6 +211,11 @@ doews not help, as FA4 conflicts with other solid icons
 ----
 
 So icons remain disabled for now
+
+
+https://github.com/FortAwesome/Font-Awesome/issues/16477
+
+
 
 https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/
 
@@ -203,226 +231,80 @@ icon:tags[] ruby, asciidoctor
 *TODO* investigate https://github.com/asciidoctor/docker-asciidoctor
 
 
+[source,diff]
+----
+  #!/bin/sh
+
+- if [ -f /usr/local/bin/asciidoctor ]; then
+-   ad="/usr/local/bin/asciidoctor"
+- else
+-   ad="/usr/bin/asciidoctor"
+- fi
++ ad="/usr/local/bin/asciidoctorj"       # <1>
+
+  basedir=./content
+  diagram_target=/assets/diagram
+
+  $ad --trace --verbose \
+  --base-dir ${basedir} \
+  --require asciidoctor-diagram \        # <2>
+  --attribute icons=font \
+  --attribute docinfo=shared \
+  --no-header-footer \
+  --attribute nofooter \
+  --attribute sectlinks \
+  --attribute sectanchors \
+  --attribute figure-caption! \
+  --attribute source-highlighter=highlightjs \
+  --attribute toc-title! \
+- - \
++ - 2> /dev/null \                       # <3>
+    | sed -E -e "s,img src=\"([^/]+)\",img src=\"${diagram_target}/\1\","
+
+
+  mv_diagram_target=static${diagram_target}
+  mkdir -p static/assets/diagram
+  if ls ${basedir}/*.svg >/dev/null 2>&1; then
+  mv -f ${basedir}/*.svg ${mv_diagram_target}
+  fi
+
+  if ls *.png >/dev/null 2>&1; then
+  mv -f ${basedir}/*.png ${mv_diagram_target}
+  fi
+----
+<1> Use `asciidoctorj`, that bath is usually the one from Homebrew,
+maybe Linuxbrew and others
+<2> Asciidoctorj 2.x is packed with asciidoctorj-diagram, and it's not necessary
+to install the gem, but it's necessary to add the `--require` option.
+<3> I'm not yet sure why but any message appearing there are treated as errors
+by Hugo, which terminates the process, so this simply tell to ignore them.
 
 
 
-'''
+
 
 You need a smoke test content to check what feature works or not:
 
-
-
-
-Asciidoctor Demo
-================
-
-////
-Big ol' comment
-
-sittin' right 'tween this here title 'n header metadata
-////
-Dan Allen <thedoc@asciidoctor.org>
-
-* emoji :plus:
-* html &#43;
-
-[role='lead']
-This is a demonstration of {library}. And this is the preamble of this document.
-
-[[purpose]]
-.Purpose
-****
-This document exercises many of the features of AsciiDoc to test the {library} implementation.
-****
-
-TIP: If you want the output to look familiar, copy (or link) the AsciiDoc stylesheet, asciidoc.css, to the output directory.
-
-NOTE: Items marked with TODO are either not yet supported or a work in progress.
-
-[[first,First Steps]]
-== First Steps with http://asciidoc.org[AsciiDoc]
-
-.Inline markup
-* single quotes around a phrase place 'emphasis'
-* astericks around a phrase make the text *bold*
-* double astericks around one or more **l**etters in a word make those letters bold
-* double underscore around a __sub__string in a word emphasize that substring
-* use carrots around characters to make them ^super^script
-* use tildes around characters to make them ~sub~script
-ifdef::basebackend-html[]
-* to pass through +++<u>HTML</u>+++ directly, surround the text with triple plus
-endif::basebackend-html[]
-ifdef::basebackend-docbook[]
-* to pass through +++<constant>XML</constant>+++ directly, surround the text with triple plus
-endif::basebackend-docbook[]
-
-// separate two adjacent lists using a line comment (only the leading // is required)
-
-- characters can be escaped using a {backslash}
-* for instance, you can escape a quote inside emphasized text like 'Here\'s Johnny!'
-- you can safely use reserved XML characters like <, > and &, which are escaped when rendering
-- force a space{sp}between inline elements using the \{sp} attribute
-- hold text together with an intrinsic non-breaking{nbsp}space attribute, \{nbsp}
-- handle words with unicode characters like in the name Gregory Romé
-- claim your copyright (C), registered trademark (R) or trademark (TM)
-
-You can write text http://example.com[with inline links], optionally{sp}using an explicit link:http://example.com[link prefix]. In either case, the link can have a http://example.com?foo=bar&lang=en[query string].
-
-If you want to break a line +
-just end it in a {plus} sign +
-and continue typing on the next line.
-
-=== Lists Upon Lists
-
-.Adjacent lists
-* this list
-* should join
-
-* to have
-* four items
-
-[[numbered]]
-.Numbered lists
-. These items
-. will be auto-numbered
-.. and can be nested
-. A numbered list can nest
-* unordered
-* list
-* items
-
-.Statement
-I swear I left it in 'Guy\'s' car. Let\'s go look for it.
-
-[[defs]]
-term::
-definition
-line two
-[[another_term]]another term::
-
-  another definition, which can be literal (indented) or regular paragraph
-
-This should be a standalone paragraph, not grabbed by the definition list.
-
-[[nested]]
-* first level
-written on two lines
-* first level
-+
-....
-with this literal text
-....
-+
-** second level
-*** third level
-- fourth level
-* back to +
-first level
-
-// this is just a comment
-
-Let's make a horizontal rule...
-
 '''
 
-then take a break.
+.Smoke test example
+[%collapsible]
+====
+=> [asciidoc file]
 
+_Not everything is rendered in a collapsible block, like titles_
 
-== We're back!
+include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/smoketest.adoc[]
 
-Want to see a image:/img/hugo.png[Tiger]?
+====
 
-Do you feel safer with the tiger in a box?
+.PlantUML smoke test example
+[%collapsible]
+====
+=> [asciidoc file]
 
-.Hugo in a box
-image::/img/hugo.png[]
+_Not everything is rendered in a collapsible block, like titles_
 
-start inlcude /
+include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/plantuml.smoketest.adoc[]
 
-include::content/posts/include.asciidoc.adoc[]
-
-/ end include
-
-.Asciidoctor usage example, should contain 3 lines
-[source, ruby]
-----
-doc = Asciidoctor::Document.new("*This* is it!", :header_footer => false)
-
-puts doc.render
-----
-
-// FIXME: use ifdef to show output according to backend
-Here's what it outputs (using the built-in templates):
-
-....
-<div class="paragraph">
-  <p><strong>This</strong> is it!</p>
-</div>
-....
-
-=== ``Quotes''
-
-____
-AsciiDoc is 'so' *powerful*!
-____
-
-This verse comes to mind.
-
-[verse]
-La la la
-
-Here's another quote:
-
-[quote, Sir Arthur Conan Doyle, The Adventures of Sherlock Holmes]
-____
-When you have eliminated all which is impossible, then whatever remains, however improbable, must be the truth.
-____
-
-Getting Literal [[literally]]
------------------------------
-
- Want to get literal? Just prefix a line with a space (just one will do).
-
-....
-I'll join that party, too.
-....
-
-We forgot to mention in <<numbered>> that you can change the numbering style.
-
-.. first item (yeah!)
-.. second item, looking `so mono`
-.. third item, +mono+ it is!
-
-// This attribute line will get reattached to the next block
-// despite being followed by a trailing blank line
-[id='wrapup']
-
-== Wrap-up
-
-NOTE: AsciiDoc is quite cool, you should try it!
-
-[TIP]
-.Info
-=====
-Go to this URL to learn more about it:
-
-* http://asciidoc.org
-
-Or you could return to the xref:first[] or <<purpose,Purpose>>.
-=====
-
-Here's a reference to the definition of <<another_term>>, in case you forgot it.
-
-[NOTE]
-One more thing. Happy documenting!
-
-[[google]]When all else fails, head over to <http://google.com>.
-
-++++
-<details>
-<summary>Passthrough block</summary>
-
-Hello
-
-</summary>
-++++
+====
