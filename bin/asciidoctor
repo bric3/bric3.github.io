@@ -6,26 +6,31 @@ else
   ad="/usr/bin/asciidoctor"
 fi
 
+basedir=.
+diagram_target=/assets/diagram
+
 $ad --trace --verbose \
-  --base-dir=. \
-  --require=asciidoctor-diagram \
-  --attribute=icons=font \
-  --attribute=docinfo=shared \
+  --base-dir ${basedir} \
+  --require asciidoctor-diagram \
+  --attribute icons=font \
+  --attribute docinfo=shared \
   --no-header-footer \
-  --attribute=nofooter \
-  --attribute=sectanchors \
-  --attribute=figure-caption! \
-  --attribute=source-highlighter=highlightjs \
-  --attribute=toc-title! \
+  --attribute nofooter \
+  --attribute sectlinks \
+  --attribute sectanchors \
+  --attribute figure-caption! \
+  --attribute source-highlighter=highlightjs \
+  --attribute toc-title! \
   - \
-  | sed -E -e "s/img src=\"([^/]+)\"/img src=\"\/diagram\/\1\"/"
-  
-mkdir -p static/diagram
-if ls *.svg >/dev/null 2>&1; then
-  mv -f *.svg static/diagram
+  | sed -E -e "s,img src=\"([^/]+)\",img src=\"${diagram_target}/\1\","
+
+mv_diagram_target=static${diagram_target}
+mkdir -p ${mv_diagram_target}
+if ls ${basedir}/*.svg >/dev/null 2>&1; then
+  mv -f ${basedir}/*.svg ${mv_diagram_target}
 fi
 
 if ls *.png >/dev/null 2>&1; then
-  mv -f *.png static/diagram
+  mv -f ${basedir}/*.png ${mv_diagram_target}
 fi
 
