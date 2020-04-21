@@ -1,22 +1,452 @@
-<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Petit retour sur le pair-programming • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Petit retour sur le pair-programming"><meta name=twitter:description content="Lors de ma mission précédente, une des unités business a décidé d&rsquo;investir dans Scrum, avec ce changement de méthodologie, les équipes de développement étant relativement enthousiastes, ont été formées au TDD et au pair-programming."><meta property="og:title" content="Petit retour sur le pair-programming"><meta property="og:description" content="Lors de ma mission précédente, une des unités business a décidé d&rsquo;investir dans Scrum, avec ce changement de méthodologie, les équipes de développement étant relativement enthousiastes, ont été formées au TDD et au pair-programming."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2010/07/11/petit-retour-sur-le-pair-programming/"><meta property="article:published_time" content="2010-07-11T21:44:41+00:00"><meta property="article:modified_time" content="2010-07-11T21:44:41+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.6366af944b58e6d912da2a2b073bc9b52dec0f12cf23aee0e8db5cc0cc9aaf59.css integrity="sha256-Y2avlEtY5tkS2iorBzvJtS3sDxLPI67g6NtcwMyar1k="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
-<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
-<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
-<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
-<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
-<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
-<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Petit retour sur le pair-programming</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2010-07-11<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/agile>agile</a>
-<a class="badge badge-tag" href=/tags/agilite>agilité</a>
-<a class="badge badge-tag" href=/tags/architecture>architecture</a>
-<a class="badge badge-tag" href=/tags/code>code</a>
-<a class="badge badge-tag" href=/tags/pair-programming>pair-programming</a>
-<a class="badge badge-tag" href=/tags/scrum>scrum</a>
-<a class="badge badge-tag" href=/tags/binomage>binomage,</a>
-<a class="badge badge-tag" href=/tags/binome>binome</a>
-<a class="badge badge-tag" href=/tags/experience>expérience</a>
-<a class="badge badge-tag" href=/tags/agile>agile</a>
-<a class="badge badge-tag" href=/tags/scrum>scrum</a><br><i class="fas fa-clock"></i>8 min read</div></header><div class=post><p>Lors de ma mission précédente, une des unités business a décidé d&rsquo;investir dans Scrum, avec ce changement de méthodologie, les équipes de développement étant relativement enthousiastes, ont été formées au TDD et au pair-programming. Une discussion avec un pote, nous a amené à parler du pair-architecturing, ou la confrontation des idées, le challenge apporté par son alter-ego, m&rsquo;a conduit à écrire ce petit retour à propos du pair-programming, et pourquoi l&rsquo;appliquer à d&rsquo;autres discipline n&rsquo;est pas une mauvaise idée, au contraire.</p><p>Après plus d&rsquo;un an passé dans ce contexte d&rsquo;agilité avec Scrum, je vous livre quelques pensées sur le pair-programming.</p><h1 id=dabord-lévolution>D&rsquo;abord l'évolution</h1><p>Toutes les équipes n&rsquo;ont pas choisi d&rsquo;adopter le pair-programming comme pratique régulière pour l&rsquo;ensemble des développements.</p><ol><li><p>Avant Scrum, les développeurs se voyaient confiés certains dossiers, et chacun travaillait vaguement dans son coin avec parfois l&rsquo;aide des autres.</p></li><li><p>Coup de bol expérience de refactoring de l&rsquo;architecture. J&rsquo;ai eu l&rsquo;occasion en temps que développeur de travailler avec un autre développeurs sur l&rsquo;architecture de l&rsquo;application. Les enjeux sont importants, ce serait dommage de se louper et de planter une version.</p><blockquote><p>A cette époque là j&rsquo;ai vraiment eu plaisir à travailler avec l&rsquo;autre développeur, à faire ce que j&rsquo;appellerai du <em><strong>pair-architecturing</strong></em>.</p></blockquote></li><li><p>En effet, au démarrage de Scrum les développeurs n'étaient pas encore près à faire le changement, moi y compris:</p><blockquote><p>J'étais à l&rsquo;aise seul devant mon poste, et parfois je demandais l&rsquo;aide ou le retour des membres de mon équipes, et cela me convenait bien.</p></blockquote></li><li><p>Ensuite l&rsquo;assignation des taches est petit à petit sorti mais en partie seulement de la responsabilité des développeurs, par conséquent le choix de faire du pair-programming était de moins en moins une option possible pour le développement. C&rsquo;est dommage.</p></li><li><p>Pendant les phases (par développeur) destinées à la maintenance, il fallait transmettre la connaissance métier, j&rsquo;ai vu et même participé à l&rsquo;analyse de problèmes métier complexes, très spécifiques, mais sur des domaines très variés. A ce moment il ne s&rsquo;agit pas encore véritablement de pair-programming, mais de <em><strong>pair-analysing</strong></em>. Cette étape finalement couteuse en temps pour ceux qui possèdent la connaissance métier et la connaissance du code afférent est nécessaire pour les développeurs qui passent donc par cette case maintenance.</p><blockquote><p>J&rsquo;ai trouvé ces moments de pair-analysing comme particulièrement intéressant, car très riche en métier, et surtout très formateurs sur les chose à ne pas faire, typiquement lorsqu&rsquo;il faut corriger du code legacy, le design de celui-ci devient une caractéristique majeure du temps de compréhension et du temps de correction d&rsquo;anomalies. Egalement je ne faisais déjà plus vraiment confiance aux commentaires, mais ces passages ont à nouveau enfoncé le clou.</p></blockquote></li><li><p>Un sujet technique assez poussé et sur un sujet délicat à maitriser, pour terminer ce projet, il a été décidé de staffer les deux personnes qui avait bossé dessus (seules mais à la suite l&rsquo;une de l&rsquo;autre pour des raisons de planning). A deux donc nous avons décidé de faire du pair-programming. C&rsquo;est la première véritable expérience de pair que j&rsquo;ai eu.</p><blockquote><p>Et j&rsquo;en ai été très heureux, car à deux avec un niveau relativement équivalent, on a pu travailler avantageusement le design du code, et la testabilité de nos design. Egalement aussi on a pu penser au cas limites bien mieux que lorsqu&rsquo;on avait travaillé chacun de notre coté, et pourtant nous avions fait régulièrement des réunions (informelles) avec l&rsquo;architecte pour discuter des points sombres.</p></blockquote></li><li><p>Puis arrivé dans une équipe avec des newbies sur le projet; il fallait transmettre les connaissances. Et là c&rsquo;est la volonté forte du nouveau scrum master de pousser le pair-programming, j&rsquo;ai définitivement apprécié cette pratique quand j&rsquo;ai travaillé dans cette équipe, j&rsquo;ai vécu la plupart du temps des succes story, mais aussi quelques petits écueils et inconvénients, j&rsquo;en fait donc part dans la suite de l&rsquo;article.</p><p>Nous avons pratiqué le pair-programming pour l'écriture de nouveau code, pour la réhabilitation de code legacy, et pour le refactoring de code legacy (ce n&rsquo;est pas la même chose).</p><blockquote><p>Ce que je retiendrais c&rsquo;est que l'équipe était reconnue comme véloce, et de mon point de vue je pense que le travail réalisé était plutôt bon. Et que définitivement le travail aurait pris bien plus de temps et aurait été moins bien fait si chacun était resté sur ses tâches.</p></blockquote></li></ol><h1 id=les-retours-enfin>Les retours enfin</h1><p>Honnêtement je pense que travailler en binôme est vraiment très bien et très bon pour un projet, en particulier si le code du projet doit survivre longtemps. Mais il y a certaines choses à éviter.</p><ol><li><p>Le pair-programming c&rsquo;est lent et ça coute cher, c&rsquo;est ce qu&rsquo;on peut vous dire, mais ceux qui avancent ça n&rsquo;ont aucun argument pour étayer ces propos.</p><ol><li><p>A propos de la lenteur : il n&rsquo;y a pas de mesures que je connait qui vont dans ce sens ou dans l&rsquo;autre d&rsquo;ailleurs.</p><blockquote><p>C&rsquo;est la raison pour laquelle je souhaite témoigner, et je tiens à dire que c&rsquo;est <strong>l'équipe qui favorisait au maximum le pair-programming qui était ressentie comme la plus véloce</strong>.</p></blockquote></li><li><p>A propos du coût, effectivement il y a deux éléments qui travaillent ensemble sur un sujet, mais le sujet fonctionnel est finalement mieux maitrisé par les développeurs, les aller-retours entre les deux personnes favorisent l'échange d&rsquo;information et les réflexions relatives, bref ça favorise le bon sens et l&rsquo;intelligence. Ces deux choses donnent naturellement <strong>un code mieux réfléchi, plus robuste et plus évolutif</strong>, pour sûr <strong>pour les besoins du présent</strong>, et très probablement <strong>pour les besoins futurs</strong> comme les évolutions ou la maintenance (on ne sait jamais). Évidement faire du vrai code objet et utiliser avantageusement TDD/BDD permet de booster cet aspect. Il en résulte que sur le moyen et le long terme, les couts deviennent avantageux, et encore plus si d&rsquo;autres aspects entre en jeux comme le SLA, les aspects contractuels, légaux, et autres.</p></li></ol></li><li><p>Travailler à deux n&rsquo;est pas de tout repos, si vraiment il y a un échange intense, <strong>6h de travail à deux c&rsquo;est déjà une grosse journée</strong>, franchement on est ruiné, l&rsquo;un comme l&rsquo;autre. Faites le comprendre à votre entourage que travailler en binôme est fatiguant (mais productif).</p></li><li><p>Quoi qu&rsquo;il arrive il y a toujours des mails à dépiler, il y a toujours des interruptions, et même parfois il faut aller interrompre d&rsquo;autres personnes. Organisez votre temps à deux pour faire ces activités sans gêner le binôme.</p></li><li><p>Quand vous travaillez à deux n&rsquo;oublier pas d'échanger régulièrement les rôles de pilote (celui qui code) de celui qui observe. C&rsquo;est très important d'échanger les rôles, ça permet de faire fonctionner l&rsquo;esprit avec un point de vue différent, ça stimule le cerveau. Le binôme choisira sa cadence.</p></li><li><p>Ce n&rsquo;est pas une relation professeur/enseignant, c&rsquo;est une relation qui se base sur les responsabilités :</p><ol><li><p>celui qui code qui a le clavier entre les mains qui a la seule responsabilité de penser le code et de l'écrire</p></li><li><p>celui qui à accès aux docs papier qui a le temps de prendre du recul</p></li></ol><p>Encore une fois il doit y avoir un échange régulier entre le driver et l&rsquo;observer.</p></li><li><p><strong>Il faut savoir essayer les idées des autres!</strong> Surtout s&rsquo;il n&rsquo;y a pas de contre-indications et que les deux idées se valent (avant de les mettre en application).</p></li><li><p><strong>La différence de niveau des deux commendataires ne doit pas être trop grande</strong>, effet, c&rsquo;est irritant, ennuyant, pénible, une perte de temps pour celui qui a les compétences, et ça ne permet pas de former adéquatement le plus faible. En bref ce binôme est à la fois une perte d&rsquo;argent et de temps. Pour former le newbie il faut utiliser autre chose.</p></li><li><p>Tous le monde ne sait pas travailler en binôme, il ne faut pas forcer une personne qui ne sait pas ou ne veut pas faire du binômage. Cette approche demande des compétences sociales importantes (quelque soit le rôle) comme de la patience, de l&rsquo;humilité, du calme. Et ce que je peux dire c&rsquo;est que j&rsquo;ai vraiment eu la chance de m&rsquo;améliorer sur ces qualité grâce au pair-programming.</p></li><li><p>Le design du code et des tests est plus propre, plus intelligibles, les impacts des changements mieux maitrisés, bref que du bien pour le code (même s&rsquo;il peut toujours y avoir mieux, mais le mieux est l&rsquo;ennemi du bien à ce qu&rsquo;il parrait).</p></li><li><p><strong>C&rsquo;est un tandem dans lequel chacun protège l&rsquo;autre de faire de la sur-ingénierie, ou inversement de prendre des raccourcis</strong>. Il ne faut pas seulement avoir du code correct, il faut aussi avoir un code solide pour les gens de la maintenance, pour les gens de l&rsquo;exploitation, pour les futurs ingénieurs.</p></li></ol><h1 id=finalement>Finalement</h1><p>Le pair programming est une pratique remarquablement efficace, quand elle est bien appliquée. C&rsquo;est un véritable bénéfice pour tout de suite, mais surtout pour demain. Et c&rsquo;est bien le demain qui est souvent le grand oublié des clients, ils ne voient pas les couts et les problèmes de notre métier qu&rsquo;il faudra adresser sur du code legacy lors d&rsquo;un refactoring, lors d&rsquo;une évolution ,ou lors d&rsquo;une correction d&rsquo;anomalie.</p><p>Egalement je trouve que le code objet est véritablement le meilleur outils lorsqu&rsquo;on travaille en pair-programming. Ce langage permet vraiment de mieux exprimer ce qui ressort des échanges observateurs/pilote. A deux il faut se protéger et s&rsquo;inciter mutuellement pour faire du bon code.</p><p>L&rsquo;utilisation en plus de TDD, et même de BDD qui est plus orienté responsabilité et comportement booste encore la qualité du code et de réfléchir en terme de business, de métier.</p><p>Pour aller plus loin je pense que le travaille en binôme favorise l&rsquo;intellect et la consommation la plus exhaustive des scénarii métier. L&rsquo;appliquer au développement est manifestement très bien, mais l&rsquo;appliquer à d&rsquo;autre métier est encore mieux. Typiquement pour des rôles aussi importants et impactants que l&rsquo;architecture, avoir en face de soi un challenger, qui remet véritablement en question les élément sur les quels il n&rsquo;est pas d&rsquo;accord est un vrai plus. En plus de transmettre la connaissance, cette confrontation solidifie l&rsquo;ensemble.</p><p>Je suis content et même reconnaissant d&rsquo;avoir pu travailler avec la plupart des personnes en binôme, il m&rsquo;ont énormément appris. Pour peu que chacun accepte le dialogue et argumente constructivement, il n&rsquo;en ressortira que du bon.</p><p>Vous avez des remarques ou des retours à faire partagez, n&rsquo;hésiter pas!</p></div><div class="navigation navigation-single"><a href=/2010/05/06/les-visiteurs-une-question-de-nommage-et-le-double-dispatch/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Les visiteurs, une question de nommage, et le double-dispatch</span></a>
-<a href=/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/ class=navigation-next><span class=navigation-tittle>Lenteur d'une appli Web sur une JVM IBM</span>
-<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2010/07/11/petit-retour-sur-le-pair-programming/';this.page.title='Petit retour sur le pair-programming';this.page.url='https://blog.arkey.fr/2010/07/11/petit-retour-sur-le-pair-programming/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
-var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Petit retour sur le pair-programming • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Petit retour sur le pair-programming"/>
+<meta name="twitter:description" content="Lors de ma mission précédente, une des unités business a décidé d&rsquo;investir dans Scrum, avec ce changement de méthodologie, les équipes de développement étant relativement enthousiastes, ont été formées au TDD et au pair-programming."/>
+
+<meta property="og:title" content="Petit retour sur le pair-programming" />
+<meta property="og:description" content="Lors de ma mission précédente, une des unités business a décidé d&rsquo;investir dans Scrum, avec ce changement de méthodologie, les équipes de développement étant relativement enthousiastes, ont été formées au TDD et au pair-programming." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2010/07/11/petit-retour-sur-le-pair-programming/" />
+<meta property="article:published_time" content="2010-07-11T21:44:41+00:00" />
+<meta property="article:modified_time" content="2010-07-11T21:44:41+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css">
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.4f7a9eea99b1ffe5dcdd1e948a610c331be6316c39a65d78979aa9eed6a6105d.css" integrity="sha256-T3qe6pmx/&#43;Xc3R6UimEMMxvmMWw5pl14l5qp7tamEF0=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/svg-with-js.min.css" integrity="sha256-GyCVXSM0LI7EPORc9EWykRKWjlig49LoHPKt6s8NjBg=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>Petit retour sur le pair-programming</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2010-07-11
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/agile">agile</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/agilite">agilité</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/architecture">architecture</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/code">code</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/pair-programming">pair-programming</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/scrum">scrum</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/binomage">binomage,</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/binome">binome</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/experience">expérience</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/agile">agile</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/scrum">scrum</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 8 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <p>Lors de ma mission précédente, une des unités business a décidé d&rsquo;investir dans Scrum, avec ce changement de méthodologie, les équipes de développement étant relativement enthousiastes, ont été formées au TDD et au pair-programming. Une discussion avec un pote, nous a amené à parler du pair-architecturing, ou la confrontation des idées, le challenge apporté par son alter-ego, m&rsquo;a conduit à écrire ce petit retour à propos du pair-programming, et pourquoi l&rsquo;appliquer à d&rsquo;autres discipline n&rsquo;est pas une mauvaise idée, au contraire.</p>
+<p>Après plus d&rsquo;un an passé dans ce contexte d&rsquo;agilité avec Scrum, je vous livre quelques pensées sur le pair-programming.</p>
+<h1 id="dabord-lévolution">D&rsquo;abord l'évolution</h1>
+<p>Toutes les équipes n&rsquo;ont pas choisi d&rsquo;adopter le pair-programming comme pratique régulière pour l&rsquo;ensemble des développements.</p>
+<ol>
+<li>
+<p>Avant Scrum, les développeurs se voyaient confiés certains dossiers, et chacun travaillait vaguement dans son coin avec parfois l&rsquo;aide des autres.</p>
+</li>
+<li>
+<p>Coup de bol expérience de refactoring de l&rsquo;architecture. J&rsquo;ai eu l&rsquo;occasion en temps que développeur de travailler avec un autre développeurs sur l&rsquo;architecture de l&rsquo;application. Les enjeux sont importants, ce serait dommage de se louper et de planter une version.</p>
+<blockquote>
+<p>A cette époque là j&rsquo;ai vraiment eu plaisir à travailler avec l&rsquo;autre développeur, à faire ce que j&rsquo;appellerai du <em><strong>pair-architecturing</strong></em>.</p>
+</blockquote>
+</li>
+<li>
+<p>En effet, au démarrage de Scrum les développeurs n'étaient pas encore près à faire le changement, moi y compris:</p>
+<blockquote>
+<p>J'étais à l&rsquo;aise seul devant mon poste, et parfois je demandais l&rsquo;aide ou le retour des membres de mon équipes, et cela me convenait bien.</p>
+</blockquote>
+</li>
+<li>
+<p>Ensuite l&rsquo;assignation des taches est petit à petit sorti mais en partie seulement de la responsabilité des développeurs, par conséquent le choix de faire du pair-programming était de moins en moins une option possible pour le développement. C&rsquo;est dommage.</p>
+</li>
+<li>
+<p>Pendant les phases (par développeur) destinées à la maintenance, il fallait transmettre la connaissance métier, j&rsquo;ai vu et même participé à l&rsquo;analyse de problèmes métier complexes, très spécifiques, mais sur des domaines très variés. A ce moment il ne s&rsquo;agit pas encore véritablement de pair-programming, mais de <em><strong>pair-analysing</strong></em>. Cette étape finalement couteuse en temps pour ceux qui possèdent la connaissance métier et la connaissance du code afférent est nécessaire pour les développeurs qui passent donc par cette case maintenance.</p>
+<blockquote>
+<p>J&rsquo;ai trouvé ces moments de pair-analysing comme particulièrement intéressant, car très riche en métier, et surtout très formateurs sur les chose à ne pas faire, typiquement lorsqu&rsquo;il faut corriger du code legacy, le design de celui-ci devient une caractéristique majeure du temps de compréhension et du temps de correction d&rsquo;anomalies. Egalement je ne faisais déjà plus vraiment confiance aux commentaires, mais ces passages ont à nouveau enfoncé le clou.</p>
+</blockquote>
+</li>
+<li>
+<p>Un sujet technique assez poussé et sur un sujet délicat à maitriser, pour terminer ce projet, il a été décidé de staffer les deux personnes qui avait bossé dessus (seules mais à la suite l&rsquo;une de l&rsquo;autre pour des raisons de planning). A deux donc nous avons décidé de faire du pair-programming. C&rsquo;est la première véritable expérience de pair que j&rsquo;ai eu.</p>
+<blockquote>
+<p>Et j&rsquo;en ai été très heureux, car à deux avec un niveau relativement équivalent, on a pu travailler avantageusement le design du code, et la testabilité de nos design. Egalement aussi on a pu penser au cas limites bien mieux que lorsqu&rsquo;on avait travaillé chacun de notre coté, et pourtant nous avions fait régulièrement des réunions (informelles) avec l&rsquo;architecte pour discuter des points sombres.</p>
+</blockquote>
+</li>
+<li>
+<p>Puis arrivé dans une équipe avec des newbies sur le projet; il fallait transmettre les connaissances. Et là c&rsquo;est la volonté forte du nouveau scrum master de pousser le pair-programming, j&rsquo;ai définitivement apprécié cette pratique quand j&rsquo;ai travaillé dans cette équipe, j&rsquo;ai vécu la plupart du temps des succes story, mais aussi quelques petits écueils et inconvénients, j&rsquo;en fait donc part dans la suite de l&rsquo;article.</p>
+<p>Nous avons pratiqué le pair-programming pour l'écriture de nouveau code, pour la réhabilitation de code legacy, et pour le refactoring de code legacy (ce n&rsquo;est pas la même chose).</p>
+<blockquote>
+<p>Ce que je retiendrais c&rsquo;est que l'équipe était reconnue comme véloce, et de mon point de vue je pense que le travail réalisé était plutôt bon. Et que définitivement le travail aurait pris bien plus de temps et aurait été moins bien fait si chacun était resté sur ses tâches.</p>
+</blockquote>
+</li>
+</ol>
+<h1 id="les-retours-enfin">Les retours enfin</h1>
+<p>Honnêtement je pense que travailler en binôme est vraiment très bien et très bon pour un projet, en particulier si le code du projet doit survivre longtemps. Mais il y a certaines choses à éviter.</p>
+<ol>
+<li>
+<p>Le pair-programming c&rsquo;est lent et ça coute cher, c&rsquo;est ce qu&rsquo;on peut vous dire, mais ceux qui avancent ça n&rsquo;ont aucun argument pour étayer ces propos.</p>
+<ol>
+<li>
+<p>A propos de la lenteur : il n&rsquo;y a pas de mesures que je connait qui vont dans ce sens ou dans l&rsquo;autre d&rsquo;ailleurs.</p>
+<blockquote>
+<p>C&rsquo;est la raison pour laquelle je souhaite témoigner, et je tiens à dire que c&rsquo;est <strong>l'équipe qui favorisait au maximum le pair-programming qui était ressentie comme la plus véloce</strong>.</p>
+</blockquote>
+</li>
+<li>
+<p>A propos du coût, effectivement il y a deux éléments qui travaillent ensemble sur un sujet, mais le sujet fonctionnel est finalement mieux maitrisé par les développeurs, les aller-retours entre les deux personnes favorisent l'échange d&rsquo;information et les réflexions relatives, bref ça favorise le bon sens et l&rsquo;intelligence. Ces deux choses donnent naturellement <strong>un code mieux réfléchi, plus robuste et plus évolutif</strong>, pour sûr <strong>pour les besoins du présent</strong>, et très probablement <strong>pour les besoins futurs</strong> comme les évolutions ou la maintenance (on ne sait jamais). Évidement faire du vrai code objet et utiliser avantageusement TDD/BDD permet de booster cet aspect. Il en résulte que sur le moyen et le long terme, les couts deviennent avantageux, et encore plus si d&rsquo;autres aspects entre en jeux comme le <!-- raw HTML omitted -->SLA<!-- raw HTML omitted -->, les aspects contractuels, légaux, et autres.</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Travailler à deux n&rsquo;est pas de tout repos, si vraiment il y a un échange intense, <strong>6h de travail à deux c&rsquo;est déjà une grosse journée</strong>, franchement on est ruiné, l&rsquo;un comme l&rsquo;autre. Faites le comprendre à votre entourage que travailler en binôme est fatiguant (mais productif).</p>
+</li>
+<li>
+<p>Quoi qu&rsquo;il arrive il y a toujours des mails à dépiler, il y a toujours des interruptions, et même parfois il faut aller interrompre d&rsquo;autres personnes. Organisez votre temps à deux pour faire ces activités sans gêner le binôme.</p>
+</li>
+<li>
+<p>Quand vous travaillez à deux n&rsquo;oublier pas d'échanger régulièrement les rôles de pilote (celui qui code) de celui qui observe. C&rsquo;est très important d'échanger les rôles, ça permet de faire fonctionner l&rsquo;esprit avec un point de vue différent, ça stimule le cerveau. Le binôme choisira sa cadence.</p>
+</li>
+<li>
+<p>Ce n&rsquo;est pas une relation professeur/enseignant, c&rsquo;est une relation qui se base sur les responsabilités :</p>
+<ol>
+<li>
+<p>celui qui code qui a le clavier entre les mains qui a la seule responsabilité de penser le code et de l'écrire</p>
+</li>
+<li>
+<p>celui qui à accès aux docs papier qui a le temps de prendre du recul</p>
+</li>
+</ol>
+<p>Encore une fois il doit y avoir un échange régulier entre le driver et l&rsquo;observer.</p>
+</li>
+<li>
+<p><strong>Il faut savoir essayer les idées des autres!</strong> Surtout s&rsquo;il n&rsquo;y a pas de contre-indications et que les deux idées se valent (avant de les mettre en application).</p>
+</li>
+<li>
+<p><strong>La différence de niveau des deux commendataires ne doit pas être trop grande</strong>, effet, c&rsquo;est irritant, ennuyant, pénible, une perte de temps pour celui qui a les compétences, et ça ne permet pas de former adéquatement le plus faible. En bref ce binôme est à la fois une perte d&rsquo;argent et de temps. Pour former le newbie il faut utiliser autre chose.</p>
+</li>
+<li>
+<p>Tous le monde ne sait pas travailler en binôme, il ne faut pas forcer une personne qui ne sait pas ou ne veut pas faire du binômage. Cette approche demande des compétences sociales importantes (quelque soit le rôle) comme de la patience, de l&rsquo;humilité, du calme. Et ce que je peux dire c&rsquo;est que j&rsquo;ai vraiment eu la chance de m&rsquo;améliorer sur ces qualité grâce au pair-programming.</p>
+</li>
+<li>
+<p>Le design du code et des tests est plus propre, plus intelligibles, les impacts des changements mieux maitrisés, bref que du bien pour le code (même s&rsquo;il peut toujours y avoir mieux, mais le mieux est l&rsquo;ennemi du bien à ce qu&rsquo;il parrait).</p>
+</li>
+<li>
+<p><strong>C&rsquo;est un tandem dans lequel chacun protège l&rsquo;autre de faire de la sur-ingénierie, ou inversement de prendre des raccourcis</strong>. Il ne faut pas seulement avoir du code correct, il faut aussi avoir un code solide pour les gens de la maintenance, pour les gens de l&rsquo;exploitation, pour les futurs ingénieurs.</p>
+</li>
+</ol>
+<h1 id="finalement">Finalement</h1>
+<p>Le pair programming est une pratique remarquablement efficace, quand elle est bien appliquée. C&rsquo;est un véritable bénéfice pour tout de suite, mais surtout pour demain. Et c&rsquo;est bien le demain qui est souvent le grand oublié des clients, ils ne voient pas les couts et les problèmes de notre métier qu&rsquo;il faudra adresser sur du code legacy lors d&rsquo;un refactoring, lors d&rsquo;une évolution ,ou lors d&rsquo;une correction d&rsquo;anomalie.</p>
+<p>Egalement je trouve que le code objet est véritablement le meilleur outils lorsqu&rsquo;on travaille en pair-programming. Ce langage permet vraiment de mieux exprimer ce qui ressort des échanges observateurs/pilote. A deux il faut se protéger et s&rsquo;inciter mutuellement pour faire du bon code.</p>
+<p>L&rsquo;utilisation en plus de TDD, et même de BDD qui est plus orienté responsabilité et comportement booste encore la qualité du code et de réfléchir en terme de business, de métier.</p>
+<p>Pour aller plus loin je pense que le travaille en binôme favorise l&rsquo;intellect et la consommation la plus exhaustive des scénarii métier. L&rsquo;appliquer au développement est manifestement très bien, mais l&rsquo;appliquer à d&rsquo;autre métier est encore mieux. Typiquement pour des rôles aussi importants et impactants que l&rsquo;architecture, avoir en face de soi un challenger, qui remet véritablement en question les élément sur les quels il n&rsquo;est pas d&rsquo;accord est un vrai plus. En plus de transmettre la connaissance, cette confrontation solidifie l&rsquo;ensemble.</p>
+<p>Je suis content et même reconnaissant d&rsquo;avoir pu travailler avec la plupart des personnes en binôme, il m&rsquo;ont énormément appris. Pour peu que chacun accepte le dialogue et argumente constructivement, il n&rsquo;en ressortira que du bon.</p>
+<p>Vous avez des remarques ou des retours à faire partagez, n&rsquo;hésiter pas!</p>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2010/05/06/les-visiteurs-une-question-de-nommage-et-le-double-dispatch/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Les visiteurs, une question de nommage, et le double-dispatch</span>
+    </a>
+    
+    
+    <a href="/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/" class="navigation-next">
+      <span class="navigation-tittle">Lenteur d&#39;une appli Web sur une JVM IBM</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2010/07/11/petit-retour-sur-le-pair-programming/';
+        this.page.title = 'Petit retour sur le pair-programming';
+        this.page.url = 'https://blog.arkey.fr/2010/07/11/petit-retour-sur-le-pair-programming/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

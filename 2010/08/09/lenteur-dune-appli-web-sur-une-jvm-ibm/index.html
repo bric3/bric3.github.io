@@ -1,70 +1,752 @@
-<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Lenteur d'une appli Web sur une JVM IBM • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Lenteur d'une appli Web sur une JVM IBM"><meta name=twitter:description content="Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d'équipe."><meta property="og:title" content="Lenteur d'une appli Web sur une JVM IBM"><meta property="og:description" content="Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d'équipe."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/"><meta property="article:published_time" content="2010-08-09T16:16:43+00:00"><meta property="article:modified_time" content="2010-08-09T16:16:43+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.6366af944b58e6d912da2a2b073bc9b52dec0f12cf23aee0e8db5cc0cc9aaf59.css integrity="sha256-Y2avlEtY5tkS2iorBzvJtS3sDxLPI67g6NtcwMyar1k="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
-<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
-<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
-<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
-<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
-<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
-<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Lenteur d'une appli Web sur une JVM IBM</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2010-08-09<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/code>code</a>
-<a class="badge badge-tag" href=/tags/mco>mco</a>
-<a class="badge badge-tag" href=/tags/performance>performance</a>
-<a class="badge badge-tag" href=/tags/prod>prod</a>
-<a class="badge badge-tag" href=/tags/fuite>fuite</a>
-<a class="badge badge-tag" href=/tags/memoryleak>memoryleak</a>
-<a class="badge badge-tag" href=/tags/performance>performance</a>
-<a class="badge badge-tag" href=/tags/j9>j9</a>
-<a class="badge badge-tag" href=/tags/ibm-j9>ibm j9</a>
-<a class="badge badge-tag" href=/tags/websphere>websphere</a>
-<a class="badge badge-tag" href=/tags/jvm>jvm</a>
-<a class="badge badge-tag" href=/tags/thread-dump>thread dump</a>
-<a class="badge badge-tag" href=/tags/ps>ps</a>
-<a class="badge badge-tag" href=/tags/waiting-on-condition>waiting on condition</a>
-<a class="badge badge-tag" href=/tags/gc>gc</a>
-<a class="badge badge-tag" href=/tags/garbage-collector>garbage collector</a><br><i class="fas fa-clock"></i>19 min read</div></header><div class=post><p>Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d'équipe. L&rsquo;organisation dans la boite favorise ou freine cette opportunité de résoudre un problème à travers les différentes équipe impliquées. Dans ce billet je vous fait un petit retour d&rsquo;expérience sur un problème de lenteur sur une application web genre &ldquo;<em>CRUD</em>&rdquo; sur une JVM IBM.</p><h1 id=le-contexte>Le contexte</h1><p><em>&ldquo;The context is King&rdquo;</em> disait Andy Hunt dans son livre Pragmatic Learning and Thinking. Alors brève introduction au contexte du problème.</p><ul><li>Application assez simple qui permet de rechercher, consulter, créer, modifier des données différentes issues du domaine métier.</li><li>L&rsquo;application tourne sur un WebSphere.</li><li>WebSphere tourne sur une JVM IBM. <em>Ah là ça sent la pêche aux informations, n&rsquo;ayant jamais travaillé sur cette JVM, et pas de bol non plus la JVM IBM sur Windows n&rsquo;est pas accessible gratuitement depuis le site de IBM.</em></li><li>L&rsquo;ensemble tourne sur une machine AIX.</li><li>L&rsquo;entreprise utilise l&rsquo;outils Introscope qui permet d&rsquo;avoir plein de métriques.</li></ul><h1 id=le-problème>Le problème</h1><p>Les utilisateurs ressentent des lenteurs, voire des freezes. L&rsquo;outil INSC identifie ces threads en <em>Stalled</em>, et permet de donner des métriques sur les temps d&rsquo;attentes et de réponses de certains éléments du systèmes, les ingénieurs systèmes utilisent abondamment cet outils. Bref, les temps de réponses vont de quelques dizaines de secondes à plusieurs minutes.</p><p>Il y a définitivement un problème. Forcément quand on a un super outils comme INSC qui a plein de métriques, on se balade dedans pour essayer de trouver le problème. Malheureusement <strong>un seul</strong> thread dump pour voir ce qu&rsquo;il se passe dans les threads ne suffit pas. Le thread dump révèle que la plupart des threads sont à l'état &ldquo;<strong>Waiting On Condition</strong>". Le super outils INSC indique un usage de la heap, il indique aussi que certaines requêtes SQL sont très très longues, il indique les sessions web ouvertes une petite trentaine, pas de quoi fouetter un chat. Et pourtant il y aurait du CPU assez fortement utilisé, vu depuis Introscope.</p><p>Mais voilà l&rsquo;analyse tourne un peu autour du pot. Pourquoi ces threads sont-elles bloquées? Pourquoi les requêtes SQL sont-elles aussi longues?!</p><h1 id=le-problème-dans-lanalyse>Le problème dans l&rsquo;analyse</h1><p>Récapitulons, dans cette situation les métriques de Introscope ont été regardées, et on a un seul thread dump.</p><p>Introscope malgré ces métriques ne dit pas ou est le problème, il ne dit même pas quel est le type de problème. Les métriques affichées sont pour certaines intéressantes, je pense à l&rsquo;identification des threads figées, les temps de réponses de certains composants, la consommation mémoire, et l&rsquo;utilisation du CPU.</p><p>Mais pourquoi cet outils n&rsquo;a pas aidé à trouver le problème, parce qu&rsquo;il ne mesure pas les bonnes choses. Et il faut en particulier comprendre que quand un système fonctionne mal il y a un effet de corrélation qui s&rsquo;applique sur un ensemble de variable. Et ce n&rsquo;est pas avec Introscope qu&rsquo;on va pouvoir identifier la cause du ralentissement généralisé, ni trouver** une relation de cause-à-effet**.</p><blockquote><p>Pour résoudre un problème, il faut s'équiper avec les bons outils! Il faut aussi regarder les bonnes données, au bon endroit, et au bon moment!</p></blockquote><h1 id=a-la-poursuite-du-vrai-problème-partie-1>A la poursuite du vrai problème (partie 1)</h1><p>Bon hop, déjà pour commencer j'écarte pour le moment Introscope. Et j&rsquo;ai un thread dump &mldr; de la JVM de IBM, il va falloir essayer les outils IBM qui permettent de traiter ces informations. Je vais me satisfaire ça pour l&rsquo;instant.</p><h2 id=lanalyse-du-thread-dump>L&rsquo;analyse du thread dump</h2><h3 id=avec--ibm-thread-and-monitor-dump-analyzer-for-java>Avec : IBM Thread and Monitor Dump Analyzer for Java</h3><p>Évidement le format ne correspond pas à celui de Sun, heureusement IBM nous fournit des outils pour analyser ces informations. Direction : <a href=http://www.alphaworks.ibm.com/tech/jca>http://www.alphaworks.ibm.com/tech/jca</a>.</p><p>A l&rsquo;ouverture un rapport apparait, il commence par ça en rouge :</p><blockquote><span class=red-span><strong>WARNING</strong> Java heap is almost exhausted : 0% free Java heap Please enable verbosegc trace and use IBM Pattern Modeling and Analysis Tool(<a href=http://www.alphaworks.ibm.com/tech/pmat>http://www.alphaworks.ibm.com/tech/pmat</a>) to analyze garbage collection activities. If heapdumps are generated at the same time, please use IBM HeapAnalyzer(<a href=http://www.alphaworks.ibm.com/tech/heapanalyzer>http://www.alphaworks.ibm.com/tech/heapanalyzer</a>) to analyze Java heap.</span></blockquote><p>Ok, là c&rsquo;est assez facile de savoir ou ça va! Mais allons plus loin!</p><p>Il y a également :</p><pre><code>**Number of Processors : 4**
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Lenteur d&#39;une appli Web sur une JVM IBM • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Lenteur d&#39;une appli Web sur une JVM IBM"/>
+<meta name="twitter:description" content="Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d&#39;équipe."/>
+
+<meta property="og:title" content="Lenteur d&#39;une appli Web sur une JVM IBM" />
+<meta property="og:description" content="Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d&#39;équipe." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/" />
+<meta property="article:published_time" content="2010-08-09T16:16:43+00:00" />
+<meta property="article:modified_time" content="2010-08-09T16:16:43+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css">
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.4f7a9eea99b1ffe5dcdd1e948a610c331be6316c39a65d78979aa9eed6a6105d.css" integrity="sha256-T3qe6pmx/&#43;Xc3R6UimEMMxvmMWw5pl14l5qp7tamEF0=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/svg-with-js.min.css" integrity="sha256-GyCVXSM0LI7EPORc9EWykRKWjlig49LoHPKt6s8NjBg=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>Lenteur d&#39;une appli Web sur une JVM IBM</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2010-08-09
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/code">code</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/mco">mco</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/performance">performance</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/prod">prod</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/fuite">fuite</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/memoryleak">memoryleak</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/performance">performance</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/j9">j9</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/ibm-j9">ibm j9</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/websphere">websphere</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jvm">jvm</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/thread-dump">thread dump</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/ps">ps</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/waiting-on-condition">waiting on condition</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/gc">gc</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/garbage-collector">garbage collector</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 19 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <p>Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d'équipe. L&rsquo;organisation dans la boite favorise ou freine cette opportunité de résoudre un problème à travers les différentes équipe impliquées. Dans ce billet je vous fait un petit retour d&rsquo;expérience sur un problème de lenteur sur une application web genre &ldquo;<em>CRUD</em>&rdquo; sur une JVM IBM.</p>
+<h1 id="le-contexte">Le contexte</h1>
+<p><em>&ldquo;The context is King&rdquo;</em> disait Andy Hunt dans son livre Pragmatic Learning and Thinking. Alors brève introduction au contexte du problème.</p>
+<ul>
+<li>Application assez simple qui permet de rechercher, consulter, créer, modifier des données différentes issues du domaine métier.</li>
+<li>L&rsquo;application tourne sur un WebSphere.</li>
+<li>WebSphere tourne sur une JVM IBM. <em>Ah là ça sent la pêche aux informations, n&rsquo;ayant jamais travaillé sur cette JVM, et pas de bol non plus la JVM IBM sur Windows n&rsquo;est pas accessible gratuitement depuis le site de IBM.</em></li>
+<li>L&rsquo;ensemble tourne sur une machine AIX.</li>
+<li>L&rsquo;entreprise utilise l&rsquo;outils Introscope qui permet d&rsquo;avoir plein de métriques.</li>
+</ul>
+<h1 id="le-problème">Le problème</h1>
+<p>Les utilisateurs ressentent des lenteurs, voire des freezes. L&rsquo;outil INSC identifie ces threads en <em>Stalled</em>, et permet de donner des métriques sur les temps d&rsquo;attentes et de réponses de certains éléments du systèmes, les ingénieurs systèmes utilisent abondamment cet outils. Bref, les temps de réponses vont de quelques dizaines de secondes à plusieurs minutes.</p>
+<p>Il y a définitivement un problème. Forcément quand on a un super outils comme INSC qui a plein de métriques, on se balade dedans pour essayer de trouver le problème. Malheureusement <strong>un seul</strong> thread dump pour voir ce qu&rsquo;il se passe dans les threads ne suffit pas. Le thread dump révèle que la plupart des threads sont à l'état &ldquo;<strong>Waiting On Condition</strong>&quot;. Le super outils INSC indique un usage de la heap, il indique aussi que certaines requêtes SQL sont très très longues, il indique les sessions web ouvertes une petite trentaine, pas de quoi fouetter un chat. Et pourtant il y aurait du CPU assez fortement utilisé, vu depuis Introscope.</p>
+<p>Mais voilà l&rsquo;analyse tourne un peu autour du pot. Pourquoi ces threads sont-elles bloquées? Pourquoi les requêtes SQL sont-elles aussi longues?!</p>
+<h1 id="le-problème-dans-lanalyse">Le problème dans l&rsquo;analyse</h1>
+<p>Récapitulons, dans cette situation les métriques de Introscope ont été regardées, et on a un seul thread dump.</p>
+<p>Introscope malgré ces métriques ne dit pas ou est le problème, il ne dit même pas quel est le type de problème. Les métriques affichées sont pour certaines intéressantes, je pense à l&rsquo;identification des threads figées, les temps de réponses de certains composants, la consommation mémoire, et l&rsquo;utilisation du CPU.</p>
+<p>Mais pourquoi cet outils n&rsquo;a pas aidé à trouver le problème, parce qu&rsquo;il ne mesure pas les bonnes choses. Et il faut en particulier comprendre que quand un système fonctionne mal il y a un effet de corrélation qui s&rsquo;applique sur un ensemble de variable. Et ce n&rsquo;est pas avec Introscope qu&rsquo;on va pouvoir identifier la cause du ralentissement généralisé, ni trouver** une relation de cause-à-effet**.</p>
+<blockquote>
+<p>Pour résoudre un problème, il faut s'équiper avec les bons outils! Il faut aussi regarder les bonnes données, au bon endroit, et au bon moment!</p>
+</blockquote>
+<h1 id="a-la-poursuite-du-vrai-problème-partie-1">A la poursuite du vrai problème (partie 1)</h1>
+<p>Bon hop, déjà pour commencer j'écarte pour le moment Introscope. Et j&rsquo;ai un thread dump &hellip; de la JVM de IBM, il va falloir essayer les outils IBM qui permettent de traiter ces informations. Je vais me satisfaire ça pour l&rsquo;instant.</p>
+<h2 id="lanalyse-du-thread-dump">L&rsquo;analyse du thread dump</h2>
+<h3 id="avec--ibm-thread-and-monitor-dump-analyzer-for-java">Avec : IBM Thread and Monitor Dump Analyzer for Java</h3>
+<p>Évidement le format ne correspond pas à celui de Sun, heureusement IBM nous fournit des outils pour analyser ces informations. Direction :  <a href="http://www.alphaworks.ibm.com/tech/jca">http://www.alphaworks.ibm.com/tech/jca</a>.</p>
+<p>A l&rsquo;ouverture un rapport apparait, il commence par ça en rouge :</p>
+<blockquote>
+
+<span class="red-span"><strong>WARNING</strong> Java heap is almost exhausted : 0% free Java heap Please enable verbosegc trace and use IBM Pattern Modeling and Analysis Tool(<a href="http://www.alphaworks.ibm.com/tech/pmat">http://www.alphaworks.ibm.com/tech/pmat</a>) to analyze garbage collection activities. If heapdumps are generated at the same time, please use IBM HeapAnalyzer(<a href="http://www.alphaworks.ibm.com/tech/heapanalyzer">http://www.alphaworks.ibm.com/tech/heapanalyzer</a>) to analyze Java heap.</span>
+</blockquote>
+<p>Ok, là c&rsquo;est assez facile de savoir ou ça va! Mais allons plus loin!</p>
+<p>Il y a également :</p>
+<pre><code>**Number of Processors : 4**
 Java version : J2RE 5.0 **IBM J9** 2.3 AIX ppc64-64 build j9vmap6423-20090707
 Java Heap Information
 **Maximum Java heap size : 384m**
 **Initial Java heap size : 384m**
-</code></pre><p>OK, j&rsquo;en apprends un peu plus sur la JVM et la machine.</p><pre><code>Free Java heap size: 0 bytes
+</code></pre>
+<p>OK, j&rsquo;en apprends un peu plus sur la JVM et la machine.</p>
+<pre><code>Free Java heap size: 0 bytes
 Allocated Java heap size: 402 653 184 bytes
-</code></pre><p>Ok évidement tout s&rsquo;explique il ne reste plus rien pour allouer dans la Heap.</p><p>Tiens dans la ligne de commande je voit que Introscope est un agent de le JVM:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>-Xshareclasses:name<span style=color:#000;font-weight:700>=</span>webspherev61_%g,groupAccess,nonFatal
--Dibm.websphere.internalClassAccessMode<span style=color:#000;font-weight:700>=</span>allow
--Dcom.wily.introscope.agentProfile<span style=color:#000;font-weight:700>=</span>/opt/wily/wilyAgent/AvtAgent.profile
+</code></pre>
+<p>Ok évidement tout s&rsquo;explique il ne reste plus rien pour allouer dans la Heap.</p>
+<p>Tiens dans la ligne de commande je voit que Introscope est un agent de le JVM:</p>
+<pre><code class="language-bash">-Xshareclasses:name=webspherev61_%g,groupAccess,nonFatal
+-Dibm.websphere.internalClassAccessMode=allow
+-Dcom.wily.introscope.agentProfile=/opt/wily/wilyAgent/AvtAgent.profile
 -javaagent:/opt/wily/wilyAgent/Agent.jar
-</code></pre></div><p><strong>C&rsquo;est intéressant, si la JVM est <em>lente</em>, ca peut vouloir dire que les mesures Introscope sont aussi soumises aux lenteurs de la JVM.</strong></p><p>Le rapport est sympa, il donne la répartition de la mémoire de la JVM :</p><p><strong>Memory Segment Analysis:</strong></p><div class=table-wrapper></div><table><thead><tr><th>Memory Type</th><th align=right># of Segments</th><th align=right>Used Memory(bytes)</th><th align=right>Used Memory(%)</th><th align=right>Free Memory(bytes)</th><th align=right>Free Memory(%)</th><th align=right>Total Memory(bytes)</th></tr></thead><tbody><tr><td>Internal</td><td align=right>13</td><td align=right>1 191 740</td><td align=right><mark><strong>88,4</strong></mark></td><td align=right>156 452</td><td align=right>11,6</td><td align=right>1 348 192</td></tr><tr><td>Object (reversed)</td><td align=right>1</td><td align=right>402 653 184</td><td align=right><mark><strong>100</strong></mark></td><td align=right>0</td><td align=right>0</td><td align=right><mark><strong>402 653 184</strong></mark></td></tr><tr><td>Class</td><td align=right>9 735</td><td align=right>228 637 344</td><td align=right><mark><strong>90,96</strong></mark></td><td align=right>22 724 116</td><td align=right>9,04</td><td align=right><mark><strong>251 361 460</strong></mark></td></tr><tr><td>JIT Code Cache</td><td align=right>5</td><td align=right>41 943 040</td><td align=right><mark><strong>100</strong></mark></td><td align=right>0</td><td align=right>0</td><td align=right>41 943 040</td></tr><tr><td>JIT Data Cache</td><td align=right>3</td><td align=right>17 018 496</td><td align=right>67,63</td><td align=right>8 147 328</td><td align=right>32,37</td><td align=right>25 165 824</td></tr><tr><td>Overall</td><td align=right>9 757</td><td align=right>691 443 804</td><td align=right>95,71</td><td align=right>31 027 896</td><td align=right>4,29</td><td align=right>722 471 700</td></tr></tbody></table><div class=table-wrapper></div><p>Ok, c'était un tableau intéressant, on voit clairement que dans une JVM il n&rsquo;y a pas que de la Heap (pour ceux qui ne le savait pas), en effet on voit donc les sections suivantes (les passages surlignés viennent de moi, malheureusement l&rsquo;outil d&rsquo;IBM ne nous aide pas là dessus) :</p><ul><li>la mémoire interne de la JVM (les objets internes, les structure de thread, et autres objets natifs) : bonne utilisation</li><li>les objets, en une seule section de mémoire, c&rsquo;est la Heap, et là ben effectivement elle utilisée à 100%.</li><li>les sections des classes, c&rsquo;est la ou le byte code de vos classes est stocké par la JVM, <strong>mais ce n&rsquo;est pas dans la Heap</strong> (chez la JVM de Sun ça correspondrait à la PermGen area), bref là aussi 90% d&rsquo;utilisation c&rsquo;est plutôt pas mal.</li><li>JIT Code Cache et JIT Data Cache, c&rsquo;est là ou la JVM va stocker le code natif qu&rsquo;elle aura compilée depuis le bytecode, là aussi c&rsquo;est rempli à 100% mais c&rsquo;est peut-être normal, après tout la taille totale est plus petite.</li></ul><p>On voit aussi que la mémoire accessible dans la Heap est quand même supérieure a ce qui est indiqué dans la ligne de commande, à savoir les 384 MB. Ne connaissant pas la JVM IBM, je ne suis pas certains des raisons induisant ce phénomène.</p><p>Mais à 100% d&rsquo;utilisation, ça sent le GC qui s&rsquo;excite pour garder ses petits. Mais le rapport est long et n&rsquo;est pas terminé, il reste des choses à lire.</p><p><strong>Thread Status Analysis :</strong></p><div class=table-wrapper><table><thead><tr><th>Status</th><th align=right>Number of Threads : 170</th><th align=right>Percentage</th></tr></thead><tbody><tr><td>Deadlock</td><td align=right>0</td><td align=right>0 %</td></tr><tr><td>Runnable</td><td align=right>12</td><td align=right>7 %</td></tr><tr><td>Waiting on Condition</td><td align=right>158</td><td align=right>93 %</td></tr><tr><td>Waiting On Monitor</td><td align=right>0</td><td align=right>0 %</td></tr><tr><td>Suspended</td><td align=right>0</td><td align=right>0 %</td></tr><tr><td>Object.wait()</td><td align=right>0</td><td align=right>0 %</td></tr><tr><td>Blocked</td><td align=right>0</td><td align=right>0 %</td></tr><tr><td>Parked</td><td align=right>0</td><td align=right>0 %</td></tr></tbody></table></div><p>Vous vous souvenez des threads vues en <strong>Wait on Condition</strong> au tout début, on les retrouve donc ici dans les stats du thread dump. Il y a environ 158 thread qui ne font rien et 12 threads qui travaillent. Alors petite parenthèse, qu&rsquo;est ce que ça veut dire ce Waiting on Condition. Les raisons peuvent être les suivantes :</p><ul><li><code>Thread.sleep()</code>, en gros on indique simplement à la thread de ne rien faire, mais c&rsquo;est quand même la JVM qui gère ce <code>sleep()</code></li><li><code>Object.wait()</code>, en gros quelque part dans le code un thread est en attente pour qu&rsquo;une condition se réalise, voire le code en question pour en savoir plus sur la condition. Cette condition peut aussi être une condition interne à la JVM.</li><li>La thread est en train de se synchroniser avec une autre, elle doit donc attendre que l&rsquo;autre thread finisse son job, on verra probablement dans la stack un appel à un <code>Thread.join()</code>.</li><li><code>Unsafe.park</code>, et autres support pour les lock</li><li>La thread est blockée par des opérations d&rsquo;I/O.</li></ul><p>Déjà ce n&rsquo;est pas forcément un problème pour toutes les threads, typiquement on peut s&rsquo;attendre à voir des threads relatives aux systèmes de cache (ehcache et consorts) qui sont dans ces états. Ensuite il faut comprendre que ce mécanisme implique des conditions internes à la JVM. L&rsquo;ordonnanceur (scheduler) de la JVM, qui en réalité fait appel au scheduler de l&rsquo;OS, donne la main à d&rsquo;autres traitements (java ou pas).</p><p>Le prochain tableau du rapport nous indique ou sont (toutes) nos threads, mais pas d&rsquo;analyse par type de statut. On observe bien certaines des raisons citées plus haut.</p><p><strong>Thread Method Analysis :</strong></p><div class=table-wrapper><table><thead><tr><th>Method Name</th><th align=right>Number of Threads : 170</th><th align=right>Percentage</th></tr></thead><tbody><tr><td>java/lang/Object.wait(Native Method)</td><td align=right>88</td><td align=right>52 %</td></tr><tr><td>java/lang/Thread.sleep(Native Method)</td><td align=right>63</td><td align=right>37%</td></tr><tr><td>NO JAVA STACK</td><td align=right>6</td><td align=right>4 %</td></tr><tr><td>java/net/PlainSocketImpl.socketAccept(<strong>Native Method</strong>)</td><td align=right>5</td><td align=right>3 %</td></tr><tr><td>java/net/SocketInputStream.socketRead0(<strong>Native Method</strong>)</td><td align=right>3</td><td align=right>2 %</td></tr><tr><td>com/ibm/misc/SignalDispatcher.waitForSignal(<strong>Native Method</strong>)</td><td align=right>1</td><td align=right>1 %</td></tr><tr><td>d&rsquo;autres ligne à 1%&mldr;</td><td align=right></td><td align=right></td></tr></tbody></table></div><p>Pas mal de thread sont en attente, et beaucoup d&rsquo;autres dorment. Quelques threads sans stack Java, ce sont des threads qui appartiennent à la JVM.</p><p>J&rsquo;arrête là pour le moment  sur le rapport de cet outils IBM, mais ce qu&rsquo;il faut retenir c&rsquo;est que le thread dump est utile pour étudier des threads, mais c&rsquo;est utile sur un laps de temps, avec un seul cliché on ne se rends pas compte réellement du comportement. Et en plus ces données ne sont pas intéressantes pour savoir ce qu&rsquo;il se passe coté gestion mémoire. Heureusement que J9 (la JVM de Mr IBM) fournit quelques infos, sinon je ne vois pas comment diagnostiquer le problème sans jeter un œil sur les données adéquates, c&rsquo;est à dire le log du Garbage Collector.</p><h2 id=lanalyse-du-log-gc-enfin>L&rsquo;analyse du log GC, enfin!</h2><p>Après l&rsquo;obtention du fameux log, il faut encore trouver un outil IBM pour analyser le fichier. Les choses deviennent intéressantes. Comme je l&rsquo;ai déjà dit, les logs sont au format IBM, ça ressemble à du XML. Et pour analyser ces logs rien de mieux que les outils de IBM, non? Google me dit rapidement qu&rsquo;il me faut donc ce truc <strong>Pattern Modeling and Analysis Tool for Java Garbage Collector</strong>, à nouveau direction <a href=http://www.alphaworks.ibm.com/tech/pmat>http://www.alphaworks.ibm.com/tech/pmat</a>.</p><h3 id=avec--pattern-modeling-and-analysis-tool-for-java-garbage-collector>Avec : Pattern Modeling and Analysis Tool for Java Garbage Collector</h3><p>Un petit graphique pour regarder ce qu&rsquo;il se passe.</p><p><img src=/assets/gclog.png alt=gclog></p><p>En rouge l&rsquo;usage de la Heap, en bleu le marquage des objets à virer, et en vert les temps de compression de la mémoire. Effectivement le GC à l&rsquo;air de bien s&rsquo;amuser dans la mémoire, et d'être appelé assez souvent.</p><p>Bon celà dit je ne suis pas convaincu par l&rsquo;outil IBM, il manque des informations que j&rsquo;avais vu en texte dans le log GC ; un évènement GC à  cette tête là :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-xml data-lang=xml><span style=color:navy>&lt;af</span> <span style=color:teal>type=</span><span style=color:#d14>&#34;tenured&#34;</span> <span style=color:teal>id=</span><span style=color:#d14>&#34;388571&#34;</span> <span style=color:teal>timestamp=</span><span style=color:#d14>&#34;Jun 21 03:01:11 2010&#34;</span> <span style=color:teal>intervalms=</span><span style=color:#d14>&#34;228.858&#34;</span><span style=color:navy>&gt;</span>
-  <span style=color:navy>&lt;minimum</span> <span style=color:teal>requested_bytes=</span><span style=color:#d14>&#34;168&#34;</span> <span style=color:navy>/&gt;</span>
-  <span style=color:navy>&lt;time</span> <span style=color:teal>exclusiveaccessms=</span><span style=color:#d14>&#34;0.489&#34;</span> <span style=color:navy>/&gt;</span>
-  <span style=color:navy>&lt;tenured</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;402653184&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:navy>&gt;</span>
-    <span style=color:navy>&lt;soa</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;402653184&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:navy>/&gt;</span>
-    <span style=color:navy>&lt;loa</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:navy>/&gt;</span>
-  <span style=color:navy>&lt;/tenured&gt;</span>
-  <span style=color:navy>&lt;gc</span> <span style=color:teal>type=</span><span style=color:#d14>&#34;global&#34;</span> <span style=color:teal>id=</span><span style=color:#d14>&#34;388576&#34;</span> <span style=color:teal>totalid=</span><span style=color:#d14>&#34;388576&#34;</span> <span style=color:teal>intervalms=</span><span style=color:#d14>&#34;230.720&#34;</span><span style=color:navy>&gt;</span>
-    <span style=color:navy>&lt;refs_cleared</span> <span style=color:teal>soft=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>threshold=</span><span style=color:#d14>&#34;32&#34;</span> <span style=color:teal>weak=</span><span style=color:#d14>&#34;76&#34;</span> <span style=color:teal>phantom=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:navy>/&gt;</span>
-    <span style=color:navy>&lt;finalization</span> <span style=color:teal>objectsqueued=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:navy>/&gt;</span>
-    <span style=color:navy>&lt;timesms</span> <span style=color:teal>mark=</span><span style=color:#d14>&#34;408.282&#34;</span> <span style=color:teal>sweep=</span><span style=color:#d14>&#34;5.061&#34;</span> <span style=color:teal>compact=</span><span style=color:#d14>&#34;0.000&#34;</span> <span style=color:teal>total=</span><span style=color:#d14>&#34;415.341&#34;</span> <span style=color:navy>/&gt;</span>
-    <span style=color:navy>&lt;tenured</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;209018360&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;402653184&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;51&#34;</span> <span style=color:navy>&gt;</span>
-      <span style=color:navy>&lt;soa</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;209018360&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;402653184&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;51&#34;</span> <span style=color:navy>/&gt;</span>
-      <span style=color:navy>&lt;loa</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:navy>/&gt;</span>
-    <span style=color:navy>&lt;/tenured&gt;</span>
-  <span style=color:navy>&lt;/gc&gt;</span>
-  <span style=color:navy>&lt;tenured</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;209013328&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;402653184&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;51&#34;</span> <span style=color:navy>&gt;</span>
-    <span style=color:navy>&lt;soa</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;209013328&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;402653184&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;51&#34;</span> <span style=color:navy>/&gt;</span>
-    <span style=color:navy>&lt;loa</span> <span style=color:teal>freebytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>totalbytes=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:teal>percent=</span><span style=color:#d14>&#34;0&#34;</span> <span style=color:navy>/&gt;</span>
-  <span style=color:navy>&lt;/tenured&gt;</span>
-  <span style=color:navy>&lt;time</span> <span style=color:teal>totalms=</span><span style=color:#d14>&#34;417.431&#34;</span> <span style=color:navy>/&gt;</span>
-<span style=color:navy>&lt;/af&gt;</span>
-</code></pre></div><p>Vu l&rsquo;allure du log, on a pas l&rsquo;impression d'être sur un GC de type generationnel, mais je ne suis pas encore sûr, c&rsquo;est une JVM IBM. Bon revenons à nos moutons:</p><ul><li>il y a eu 230 ms d'écoulées avant le dernier GC.</li><li>la tenured indique directement qu&rsquo;il n&rsquo;y a plus de place dans la mémoire,</li><li>on voit que le GC est de type global, ce qui veut dire que c&rsquo;est toute la zone mémoire qui est affectée par le GC, c&rsquo;est long</li><li>la tenured libère environ 200 MB, soit 51%!</li><li>le temps total mis par ce GC est de 420 ms, c&rsquo;est long.</li></ul><p>Et il y a plein d&rsquo;entrées comme ça, ça fait beaucoup de GC globaux de 1 demi-secondes, tous les 5ème de secondes. Le GC prends du temps CPU pour nettoyer la mémoire un peu trop souvent. Et ce ci pourrait bien être la cause des ralentissements observés. En gros soit il n&rsquo;y a simplement pas assez de mémoire, soit il y a une fuite mémoire.</p><h3 id=avec--ibm-support-assistant-et-garbage-collection-and-memory-visualizer>Avec : IBM Support Assistant et Garbage Collection and Memory Visualizer</h3><p>En me renseignant, je voulais jeter un œil aux outils IBM plus récents, tel que celui mentionné par <a href=http://www-01.ibm.com/software/support/isa/>http://www-01.ibm.com/software/support/isa/</a>.</p><p>Après une fois qu&rsquo;on a l&rsquo;outil, il faut à nouveau télécharger des plugins (nommé <em>additif</em> sur l&rsquo;interface en français). Bon en fait le Health Center en me sert à rien puisqu&rsquo;il il faut se connecter à une <strong>JVM IBM</strong>, ayant une JVM Sun sur mon poste je ne vais quand même pas aller taper sur la prod si tenté que ce soit possible. Finalement j&rsquo;opte pour le plugin : <strong>Garbage Collection and Memory Visualizer</strong>.</p><p>Donc finalement j&rsquo;essaye cet outils d&rsquo;analyse, et j&rsquo;ai un rapport bien plus sympa et complet avec plein de graphiques qui m&rsquo;intéressent.</p><p>Déjà le rapport débute par :</p><blockquote><p>Your application appears to be leaking memory. This is indicated by the used heap increasing at a greater rate than the application workload (measured by the amount of data freed). To investigate further see <a href="http://publib.boulder.ibm.com/infocenter/javasdk/tools/index.jsp?topic=/com.ibm.java.doc.igaa/_1vg00011e17d8ea-1163a087e6c-7ffe_1001.html">Guided debugging for Java</a></p></blockquote><p>Ok, je m&rsquo;en doutais déjà mais c&rsquo;est quand même mieux que de dire que la mémoire est quasiment entièrement utilisée. Et on retrouve les alertes suivantes dans le rapport :</p><blockquote><p>The application seems to be using some quite large objects. The largest request which triggered an allocation failure (and was recorded in the verbose gc log) was for 5242904 bytes.</p></blockquote><p>5MB quand même! Cela dit ça n&rsquo;arrive pas souvent, c&rsquo;est peut-être un cache qui charge des données depuis le disque. Le graphe suivant (choisir Object Size dans les templates de graphique sur la droite) montre la taille des allocations demandées.</p><p><img src=/assets/object_sizes.jpg alt=object_sizes></p><p>Mais la concomitance de ses demandes d&rsquo;allocation avec l&rsquo;utilisation de la heap fait sourciller.</p><p>On continue</p><blockquote><p>Garbage collection is causing some large pauses. The largest pause was 7362 ms. This may affect application responsiveness. If responsiveness is a concern then a switch of policy or reduction in heap size may be helpful.</p></blockquote><p>Effectivement le temps passé dans l&rsquo;application et le temps passé dans le GC indique manifestement qu&rsquo;il y a une suractivité anormale du GC.</p><p><img src=/assets/compaction_pauses.jpg alt=compaction_pauses></p><p>En fait on voit même que le GC est en train de compacter la mémoire au moment  de l&rsquo;incident, c&rsquo;est la courbe rouge clair (entre ~0.5s et 1s), ajouté à cela le temps de marquage des objets à virer (<em>bon en fait dans le graphique que j&rsquo;ai fait, le temps de pause est principalement du au temps de marquage</em>), l&rsquo;ensemble donnant un temps de pause pour laisser le GC travailler allant de 1 à 7s (par GC bien évidement).</p><p>Et là effectivement expliquer les ralentissements de l&rsquo;application devient plus facile, merci à ces beaux graphiques explicites.</p><p>On peut regarder vraiment beaucoup de chose avec cet outils, même s&rsquo;il y a des défauts manifestes dans l&rsquo;interface utilisateur. C&rsquo;est quand même plutôt pas mal.</p><p>Je termine sur un petit résumé des valeurs intéressantes que nous donne cet outils.</p><div class=table-wrapper></div><table><thead><tr><th>Allocation failure count</th><th align=right>59971</th></tr></thead><tbody><tr><td>Forced collection count</td><td align=right>3</td></tr><tr><td>GC Mode</td><td align=right><mark><strong>optthruput</strong></mark></td></tr><tr><td>Largest memory request (bytes)</td><td align=right>5242904</td></tr><tr><td>Mean garbage collection pause (ms)</td><td align=right>491</td></tr><tr><td>Mean heap unusable due to fragmentation (MB)</td><td align=right>0.2</td></tr><tr><td>Mean interval between collections (minutes)</td><td align=right><mark><strong>0.01</strong></mark></td></tr><tr><td>Number of collections</td><td align=right>59974</td></tr><tr><td>Proportion of time spent in garbage collection pauses (%)</td><td align=right><mark><strong>58.24</strong></mark></td></tr><tr><td>Proportion of time spent unpaused (%)</td><td align=right><mark><strong>41.76</strong></mark></td></tr><tr><td>Rate of garbage collection (MB/minutes)</td><td align=right><mark><strong>13250</strong></mark></td></tr></tbody></table><div class=table-wrapper></div><p>Tiens le mode GC est <code>optthruput</code>, en fait c&rsquo;est une des polices du comportement du GC, et probablement de la manière de segmenter la mémoire (Nursery (Young), Old (Tenured)).</p><p>En effet dans les logs GC, je n&rsquo;ai pratiquement vu que des GC globaux et uniquement sur la section de la tenured, à priori pas de zone nursery, c&rsquo;est probablement du à ce comportement du GC.</p><p>En me renseignant donc, il y a 4 polices de GC dans la JVM J9 de IBM :</p><ul><li><code>optthruput</code> : Optimisé pour throughput (le débit), flat heap <strong>&lt;= Bingo</strong></li><li><code>optavgpause</code> : Optimisé pour les temps de pause (Stop-The-World), le CMS est configuré pour prendre le moins de temps, flat heap</li><li><code>subpool</code> : Un police optimisé pour les machine multi-processeur, flat heap</li><li><code>gencon</code>: C&rsquo;est le GC générationnel, qui est divisé en zone<ul><li><code>nursery</code> : qui permet la collection rapide et efficace des objets de vie courte, pas de pause</li><li><code>tenured</code> : zone des vieux objets, mais un GC dans cette zone est global et demande à pauser l&rsquo;application</li></ul></li></ul><h1 id=a-la-poursuite-du-vrai-problème-partie-2>A la poursuite du vrai problème (partie 2)</h1><h2 id=la-pèche-aux-informations>La pèche aux informations</h2><p>Après avoir passé le GC au mode générationnel, il y a toujours ces problèmes de lenteurs mais ce n&rsquo;est plus généralisé à toute l&rsquo;appli, pas de log GC pour vérifier mais Introscope indique une utilisation relativement correcte de la mémoire, bizarre. Back to basics!</p><p>Le thread dump de la JVM IBM me dit toujours que la Heap est utilisée à 100%, mais je vois quand même</p><pre><code>Free Java heap size: 72 041 864 bytes
+</code></pre>
+<p><strong>C&rsquo;est intéressant, si la JVM est <em>lente</em>, ca peut vouloir dire que les mesures Introscope sont aussi soumises aux lenteurs de la JVM.</strong></p>
+<p>Le rapport est sympa, il donne la répartition de la mémoire de la JVM :</p>
+<p><strong>Memory Segment Analysis:</strong></p>
+
+
+
+<div class="table-wrapper">
+    
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Memory Type</th>
+<th align="right"># of Segments</th>
+<th align="right">Used Memory(bytes)</th>
+<th align="right">Used Memory(%)</th>
+<th align="right">Free Memory(bytes)</th>
+<th align="right">Free Memory(%)</th>
+<th align="right">Total Memory(bytes)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Internal</td>
+<td align="right">13</td>
+<td align="right">1 191 740</td>
+<td align="right">
+
+<mark><strong>88,4</strong></mark></td>
+<td align="right">156 452</td>
+<td align="right">11,6</td>
+<td align="right">1 348 192</td>
+</tr>
+<tr>
+<td>Object (reversed)</td>
+<td align="right">1</td>
+<td align="right">402 653 184</td>
+<td align="right">
+
+<mark><strong>100</strong></mark></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">
+
+<mark><strong>402 653 184</strong></mark></td>
+</tr>
+<tr>
+<td>Class</td>
+<td align="right">9 735</td>
+<td align="right">228 637 344</td>
+<td align="right">
+
+<mark><strong>90,96</strong></mark></td>
+<td align="right">22 724 116</td>
+<td align="right">9,04</td>
+<td align="right">
+
+<mark><strong>251 361 460</strong></mark></td>
+</tr>
+<tr>
+<td>JIT Code Cache</td>
+<td align="right">5</td>
+<td align="right">41 943 040</td>
+<td align="right">
+
+<mark><strong>100</strong></mark></td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">41 943 040</td>
+</tr>
+<tr>
+<td>JIT Data Cache</td>
+<td align="right">3</td>
+<td align="right">17 018 496</td>
+<td align="right">67,63</td>
+<td align="right">8 147 328</td>
+<td align="right">32,37</td>
+<td align="right">25 165 824</td>
+</tr>
+<tr>
+<td>Overall</td>
+<td align="right">9 757</td>
+<td align="right">691 443 804</td>
+<td align="right">95,71</td>
+<td align="right">31 027 896</td>
+<td align="right">4,29</td>
+<td align="right">722 471 700</td>
+</tr>
+</tbody>
+</table>
+
+
+
+<div class="table-wrapper">
+    
+</div>
+
+<p>Ok, c'était un tableau intéressant, on voit clairement que dans une JVM il n&rsquo;y a pas que de la Heap (pour ceux qui ne le savait pas), en effet on voit donc les sections suivantes (les passages surlignés viennent de moi, malheureusement l&rsquo;outil d&rsquo;IBM ne nous aide pas là dessus) :</p>
+<ul>
+<li>la mémoire interne de la JVM (les objets internes, les structure de thread, et autres objets natifs) : bonne utilisation</li>
+<li>les objets, en une seule section de mémoire, c&rsquo;est la Heap, et là ben effectivement elle utilisée à 100%.</li>
+<li>les sections des classes, c&rsquo;est la ou le byte code de vos classes est stocké par la JVM, <strong>mais ce n&rsquo;est pas dans la Heap</strong> (chez la JVM de Sun ça correspondrait à la PermGen area), bref là aussi 90% d&rsquo;utilisation c&rsquo;est plutôt pas mal.</li>
+<li>JIT Code Cache et JIT Data Cache, c&rsquo;est là ou la JVM va stocker le code natif qu&rsquo;elle aura compilée depuis le bytecode, là aussi c&rsquo;est rempli à 100% mais c&rsquo;est peut-être normal, après tout la taille totale est plus petite.</li>
+</ul>
+<p>On voit aussi que la mémoire accessible dans la Heap est quand même supérieure a ce qui est indiqué dans la ligne de commande, à savoir les 384 MB. Ne connaissant pas la JVM IBM, je ne suis pas certains des raisons induisant ce phénomène.</p>
+<p>Mais à 100% d&rsquo;utilisation, ça sent le GC qui s&rsquo;excite pour garder ses petits. Mais le rapport est long et n&rsquo;est pas terminé, il reste des choses à lire.</p>
+<p><strong>Thread Status Analysis :</strong></p>
+
+
+
+<div class="table-wrapper">
+    <table>
+<thead>
+<tr>
+<th>Status</th>
+<th align="right">Number of Threads : 170</th>
+<th align="right">Percentage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deadlock</td>
+<td align="right">0</td>
+<td align="right">0 %</td>
+</tr>
+<tr>
+<td>Runnable</td>
+<td align="right">12</td>
+<td align="right">7 %</td>
+</tr>
+<tr>
+<td>Waiting on Condition</td>
+<td align="right">158</td>
+<td align="right">93 %</td>
+</tr>
+<tr>
+<td>Waiting On Monitor</td>
+<td align="right">0</td>
+<td align="right">0 %</td>
+</tr>
+<tr>
+<td>Suspended</td>
+<td align="right">0</td>
+<td align="right">0 %</td>
+</tr>
+<tr>
+<td>Object.wait()</td>
+<td align="right">0</td>
+<td align="right">0 %</td>
+</tr>
+<tr>
+<td>Blocked</td>
+<td align="right">0</td>
+<td align="right">0 %</td>
+</tr>
+<tr>
+<td>Parked</td>
+<td align="right">0</td>
+<td align="right">0 %</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+<p>Vous vous souvenez des threads vues en <strong>Wait on Condition</strong> au tout début, on les retrouve donc ici dans les stats du thread dump. Il y a environ 158 thread qui ne font rien et 12 threads qui travaillent. Alors petite parenthèse, qu&rsquo;est ce que ça veut dire ce Waiting on Condition. Les raisons peuvent être les suivantes :</p>
+<ul>
+<li><code>Thread.sleep()</code>, en gros on indique simplement à la thread de ne rien faire, mais c&rsquo;est quand même la JVM qui gère ce <code>sleep()</code></li>
+<li><code>Object.wait()</code>, en gros quelque part dans le code un thread est en attente pour qu&rsquo;une condition se réalise, voire le code en question pour en savoir plus sur la condition. Cette condition peut aussi être une condition interne à la JVM.</li>
+<li>La thread est en train de se synchroniser avec une autre, elle doit donc attendre que l&rsquo;autre thread finisse son job, on verra probablement dans la stack un appel à un <code>Thread.join()</code>.</li>
+<li><code>Unsafe.park</code>, et autres support pour les lock</li>
+<li>La thread est blockée par des opérations d&rsquo;I/O.</li>
+</ul>
+<p>Déjà ce n&rsquo;est pas forcément un problème pour toutes les threads, typiquement on peut s&rsquo;attendre à voir des threads relatives aux systèmes de cache (ehcache et consorts) qui sont dans ces états. Ensuite il faut comprendre que ce mécanisme implique des conditions internes à la JVM. L&rsquo;ordonnanceur (scheduler) de la JVM, qui en réalité fait appel au scheduler de l&rsquo;OS, donne la main à d&rsquo;autres traitements (java ou pas).</p>
+<p>Le prochain tableau du rapport nous indique ou sont (toutes) nos threads, mais pas d&rsquo;analyse par type de statut. On observe bien certaines des raisons citées plus haut.</p>
+<p><strong>Thread Method Analysis :</strong></p>
+
+
+
+<div class="table-wrapper">
+    <table>
+<thead>
+<tr>
+<th>Method Name</th>
+<th align="right">Number of Threads : 170</th>
+<th align="right">Percentage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>java/lang/Object.wait(Native Method)</td>
+<td align="right">88</td>
+<td align="right">52 %</td>
+</tr>
+<tr>
+<td>java/lang/Thread.sleep(Native Method)</td>
+<td align="right">63</td>
+<td align="right">37%</td>
+</tr>
+<tr>
+<td>NO JAVA STACK</td>
+<td align="right">6</td>
+<td align="right">4 %</td>
+</tr>
+<tr>
+<td>java/net/PlainSocketImpl.socketAccept(<strong>Native Method</strong>)</td>
+<td align="right">5</td>
+<td align="right">3 %</td>
+</tr>
+<tr>
+<td>java/net/SocketInputStream.socketRead0(<strong>Native Method</strong>)</td>
+<td align="right">3</td>
+<td align="right">2 %</td>
+</tr>
+<tr>
+<td>com/ibm/misc/SignalDispatcher.waitForSignal(<strong>Native Method</strong>)</td>
+<td align="right">1</td>
+<td align="right">1 %</td>
+</tr>
+<tr>
+<td>d&rsquo;autres ligne à 1%&hellip;</td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+<p>Pas mal de thread sont en attente, et beaucoup d&rsquo;autres dorment. Quelques threads sans stack Java, ce sont des threads qui appartiennent à la JVM.</p>
+<p>J&rsquo;arrête là pour le moment  sur le rapport de cet outils IBM, mais ce qu&rsquo;il faut retenir c&rsquo;est que le thread dump est utile pour étudier des threads, mais c&rsquo;est utile sur un laps de temps, avec un seul cliché on ne se rends pas compte réellement du comportement. Et en plus ces données ne sont pas intéressantes pour savoir ce qu&rsquo;il se passe coté gestion mémoire. Heureusement que J9 (la JVM de Mr IBM) fournit quelques infos, sinon je ne vois pas comment diagnostiquer le problème sans jeter un œil sur les données adéquates, c&rsquo;est à dire le log du Garbage Collector.</p>
+<h2 id="lanalyse-du-log-gc-enfin">L&rsquo;analyse du log GC, enfin!</h2>
+<p>Après l&rsquo;obtention du fameux log, il faut encore trouver un outil IBM pour analyser le fichier. Les choses deviennent intéressantes. Comme je l&rsquo;ai déjà dit, les logs sont au format IBM, ça ressemble à du XML. Et pour analyser ces logs rien de mieux que les outils de IBM, non? Google me dit rapidement qu&rsquo;il me faut donc ce truc <strong>Pattern Modeling and Analysis Tool for Java Garbage Collector</strong>, à nouveau direction <a href="http://www.alphaworks.ibm.com/tech/pmat">http://www.alphaworks.ibm.com/tech/pmat</a>.</p>
+<h3 id="avec--pattern-modeling-and-analysis-tool-for-java-garbage-collector">Avec : Pattern Modeling and Analysis Tool for Java Garbage Collector</h3>
+<p>Un petit graphique pour regarder ce qu&rsquo;il se passe.</p>
+<p><img src="/assets/gclog.png" alt="gclog"></p>
+<p>En rouge l&rsquo;usage de la Heap, en bleu le marquage des objets à virer, et en vert les temps de compression de la mémoire. Effectivement le GC à l&rsquo;air de bien s&rsquo;amuser dans la mémoire, et d'être appelé assez souvent.</p>
+<p>Bon celà dit je ne suis pas convaincu par l&rsquo;outil IBM, il manque des informations que j&rsquo;avais vu en texte dans le log GC ; un évènement GC à  cette tête là :</p>
+<pre><code class="language-xml">&lt;af type=&quot;tenured&quot; id=&quot;388571&quot; timestamp=&quot;Jun 21 03:01:11 2010&quot; intervalms=&quot;228.858&quot;&gt;
+  &lt;minimum requested_bytes=&quot;168&quot; /&gt;
+  &lt;time exclusiveaccessms=&quot;0.489&quot; /&gt;
+  &lt;tenured freebytes=&quot;0&quot; totalbytes=&quot;402653184&quot; percent=&quot;0&quot; &gt;
+    &lt;soa freebytes=&quot;0&quot; totalbytes=&quot;402653184&quot; percent=&quot;0&quot; /&gt;
+    &lt;loa freebytes=&quot;0&quot; totalbytes=&quot;0&quot; percent=&quot;0&quot; /&gt;
+  &lt;/tenured&gt;
+  &lt;gc type=&quot;global&quot; id=&quot;388576&quot; totalid=&quot;388576&quot; intervalms=&quot;230.720&quot;&gt;
+    &lt;refs_cleared soft=&quot;0&quot; threshold=&quot;32&quot; weak=&quot;76&quot; phantom=&quot;0&quot; /&gt;
+    &lt;finalization objectsqueued=&quot;0&quot; /&gt;
+    &lt;timesms mark=&quot;408.282&quot; sweep=&quot;5.061&quot; compact=&quot;0.000&quot; total=&quot;415.341&quot; /&gt;
+    &lt;tenured freebytes=&quot;209018360&quot; totalbytes=&quot;402653184&quot; percent=&quot;51&quot; &gt;
+      &lt;soa freebytes=&quot;209018360&quot; totalbytes=&quot;402653184&quot; percent=&quot;51&quot; /&gt;
+      &lt;loa freebytes=&quot;0&quot; totalbytes=&quot;0&quot; percent=&quot;0&quot; /&gt;
+    &lt;/tenured&gt;
+  &lt;/gc&gt;
+  &lt;tenured freebytes=&quot;209013328&quot; totalbytes=&quot;402653184&quot; percent=&quot;51&quot; &gt;
+    &lt;soa freebytes=&quot;209013328&quot; totalbytes=&quot;402653184&quot; percent=&quot;51&quot; /&gt;
+    &lt;loa freebytes=&quot;0&quot; totalbytes=&quot;0&quot; percent=&quot;0&quot; /&gt;
+  &lt;/tenured&gt;
+  &lt;time totalms=&quot;417.431&quot; /&gt;
+&lt;/af&gt;
+</code></pre>
+<p>Vu l&rsquo;allure du log, on a pas l&rsquo;impression d'être sur un GC de type generationnel, mais je ne suis pas encore sûr, c&rsquo;est une JVM IBM. Bon revenons à nos moutons:</p>
+<ul>
+<li>il y a eu 230 ms d'écoulées avant le dernier GC.</li>
+<li>la tenured indique directement qu&rsquo;il n&rsquo;y a plus de place dans la mémoire,</li>
+<li>on voit que le GC est de type global, ce qui veut dire que c&rsquo;est toute la zone mémoire qui est affectée par le GC, c&rsquo;est long</li>
+<li>la tenured libère environ 200 MB, soit 51%!</li>
+<li>le temps total mis par ce GC est de 420 ms, c&rsquo;est long.</li>
+</ul>
+<p>Et il y a plein d&rsquo;entrées comme ça, ça fait beaucoup de GC globaux de 1 demi-secondes, tous les 5ème de secondes. Le GC prends du temps CPU pour nettoyer la mémoire un peu trop souvent. Et ce ci pourrait bien être la cause des ralentissements observés. En gros soit il n&rsquo;y a simplement pas assez de mémoire, soit il y a une fuite mémoire.</p>
+<h3 id="avec--ibm-support-assistant-et-garbage-collection-and-memory-visualizer">Avec : IBM Support Assistant et Garbage Collection and Memory Visualizer</h3>
+<p>En me renseignant, je voulais jeter un œil aux outils IBM plus récents, tel que celui mentionné par <a href="http://www-01.ibm.com/software/support/isa/">http://www-01.ibm.com/software/support/isa/</a>.</p>
+<p>Après une fois qu&rsquo;on a l&rsquo;outil, il faut à nouveau télécharger des plugins (nommé <em>additif</em> sur l&rsquo;interface en français). Bon en fait le Health Center en me sert à rien puisqu&rsquo;il il faut se connecter à une <strong>JVM IBM</strong>, ayant une JVM Sun sur mon poste je ne vais quand même pas aller taper sur la prod si tenté que ce soit possible. Finalement j&rsquo;opte pour le plugin : <strong>Garbage Collection and Memory Visualizer</strong>.</p>
+<p>Donc finalement j&rsquo;essaye cet outils d&rsquo;analyse, et j&rsquo;ai un rapport bien plus sympa et complet avec plein de graphiques qui m&rsquo;intéressent.</p>
+<p>Déjà le rapport débute par :</p>
+<blockquote>
+<p>Your application appears to be leaking memory. This is indicated by the used heap increasing at a greater rate than the application workload (measured by the amount of data freed). To investigate further see <a href="http://publib.boulder.ibm.com/infocenter/javasdk/tools/index.jsp?topic=/com.ibm.java.doc.igaa/_1vg00011e17d8ea-1163a087e6c-7ffe_1001.html">Guided debugging for Java</a></p>
+</blockquote>
+<p>Ok, je m&rsquo;en doutais déjà mais c&rsquo;est quand même mieux que de dire que la mémoire est quasiment entièrement utilisée. Et on retrouve les alertes suivantes dans le rapport :</p>
+<blockquote>
+<p>The application seems to be using some quite large objects. The largest request which triggered an allocation failure (and was recorded in the verbose gc log) was for 5242904 bytes.</p>
+</blockquote>
+<p>5MB quand même! Cela dit ça n&rsquo;arrive pas souvent, c&rsquo;est peut-être un cache qui charge des données depuis le disque. Le graphe suivant (choisir Object Size dans les templates de graphique sur la droite) montre la taille des allocations demandées.</p>
+<p><img src="/assets/object_sizes.jpg" alt="object_sizes"></p>
+<p>Mais la concomitance de ses demandes d&rsquo;allocation avec l&rsquo;utilisation de la heap fait sourciller.</p>
+<p>On continue</p>
+<blockquote>
+<p>Garbage collection is causing some large pauses. The largest pause was 7362 ms. This may affect application responsiveness. If responsiveness is a concern then a switch of policy or reduction in heap size may be helpful.</p>
+</blockquote>
+<p>Effectivement le temps passé dans l&rsquo;application et le temps passé dans le GC indique manifestement qu&rsquo;il y a une suractivité anormale du GC.</p>
+<p><img src="/assets/compaction_pauses.jpg" alt="compaction_pauses"></p>
+<p>En fait on voit même que le GC est en train de compacter la mémoire au moment  de l&rsquo;incident, c&rsquo;est la courbe rouge clair (entre ~0.5s et 1s), ajouté à cela le temps de marquage des objets à virer (<em>bon en fait dans le graphique que j&rsquo;ai fait, le temps de pause est principalement du au temps de marquage</em>), l&rsquo;ensemble donnant un temps de pause pour laisser le GC travailler allant de 1 à 7s (par GC bien évidement).</p>
+<p>Et là effectivement expliquer les ralentissements de l&rsquo;application devient plus facile, merci à ces beaux graphiques explicites.</p>
+<p>On peut regarder vraiment beaucoup de chose avec cet outils, même s&rsquo;il y a des défauts manifestes dans l&rsquo;interface utilisateur. C&rsquo;est quand même plutôt pas mal.</p>
+<p>Je termine sur un petit résumé des valeurs intéressantes que nous donne cet outils.</p>
+
+
+
+<div class="table-wrapper">
+    
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Allocation failure count</th>
+<th align="right">59971</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Forced collection count</td>
+<td align="right">3</td>
+</tr>
+<tr>
+<td>GC Mode</td>
+<td align="right">
+
+<mark><strong>optthruput</strong></mark></td>
+</tr>
+<tr>
+<td>Largest memory request (bytes)</td>
+<td align="right">5242904</td>
+</tr>
+<tr>
+<td>Mean garbage collection pause (ms)</td>
+<td align="right">491</td>
+</tr>
+<tr>
+<td>Mean heap unusable due to fragmentation (MB)</td>
+<td align="right">0.2</td>
+</tr>
+<tr>
+<td>Mean interval between collections (minutes)</td>
+<td align="right">
+
+<mark><strong>0.01</strong></mark></td>
+</tr>
+<tr>
+<td>Number of collections</td>
+<td align="right">59974</td>
+</tr>
+<tr>
+<td>Proportion of time spent in garbage collection pauses (%)</td>
+<td align="right">
+
+<mark><strong>58.24</strong></mark></td>
+</tr>
+<tr>
+<td>Proportion of time spent unpaused (%)</td>
+<td align="right">
+
+<mark><strong>41.76</strong></mark></td>
+</tr>
+<tr>
+<td>Rate of garbage collection (MB/minutes)</td>
+<td align="right">
+
+<mark><strong>13250</strong></mark></td>
+</tr>
+</tbody>
+</table>
+
+
+
+<div class="table-wrapper">
+    
+</div>
+
+<p>Tiens le mode GC est <code>optthruput</code>, en fait c&rsquo;est une des polices du comportement du GC, et probablement de la manière de segmenter la mémoire (Nursery (Young), Old (Tenured)).</p>
+<p>En effet dans les logs GC, je n&rsquo;ai pratiquement vu que des GC globaux et uniquement sur la section de la tenured, à priori pas de zone nursery, c&rsquo;est probablement du à ce comportement du GC.</p>
+<p>En me renseignant donc, il y a 4 polices de GC dans la JVM J9 de IBM :</p>
+<ul>
+<li><code>optthruput</code> : Optimisé pour throughput (le débit), flat heap <strong>&lt;= Bingo</strong></li>
+<li><code>optavgpause</code> : Optimisé pour les temps de pause (Stop-The-World), le CMS est configuré pour prendre le moins de temps, flat heap</li>
+<li><code>subpool</code> : Un police optimisé pour les machine multi-processeur, flat heap</li>
+<li><code>gencon</code>: C&rsquo;est le GC générationnel, qui est divisé en zone
+<ul>
+<li><code>nursery</code> : qui permet la collection rapide et efficace des objets de vie courte, pas de pause</li>
+<li><code>tenured</code> : zone des vieux objets, mais un GC dans cette zone est global et demande à pauser l&rsquo;application</li>
+</ul>
+</li>
+</ul>
+<h1 id="a-la-poursuite-du-vrai-problème-partie-2">A la poursuite du vrai problème (partie 2)</h1>
+<h2 id="la-pèche-aux-informations">La pèche aux informations</h2>
+<p>Après avoir passé le GC au mode générationnel, il y a toujours ces problèmes de lenteurs mais ce n&rsquo;est plus généralisé à toute l&rsquo;appli, pas de log GC pour vérifier mais Introscope indique une utilisation relativement correcte de la mémoire, bizarre. Back to basics!</p>
+<p>Le thread dump de la JVM IBM me dit toujours que la Heap est utilisée à 100%, mais je vois quand même</p>
+<pre><code>Free Java heap size: 72 041 864 bytes
 Allocated Java heap size: 402 653 184 bytes
-</code></pre><p>Et plus loin :</p><pre><code>Last Garbage Collection Detail
+</code></pre>
+<p>Et plus loin :</p>
+<pre><code>Last Garbage Collection Detail
 
 Nursery Area Free : 59 307 392 bytes Total : 60 397 568 bytes 98% free
 Tenured Area Free : 17 058 368 bytes Total : 335 544 320 bytes 5% free
 Global Garbage Collector Counter : 148
-</code></pre><p>La tenured est bien remplie et utilise un très grosse partie de la heap ; memory leak ou beaucoup d&rsquo;objet à mettre en cache. Ou encore autre chose, sans mesures claires pour écarter les hypothèses ces dur.</p><p>Pour quoi ne pas <strong>activer dans tous les cas le log GC</strong>, la JVM IBM offre des option pour gérer la rotation des logs GC, comme ça l&rsquo;argument de saturation du disque tombe à l&rsquo;eau. Mais bon il faut lire la documentation; donc petit passage chez IBM grâce à Google, et hop :</p><pre><code>-Xverbosegclog[:&lt;file&gt;[,&lt;x&gt;,&lt;y&gt;]]
-</code></pre><p>Et voilà : <strong>file</strong> étant le couple chemin + fichier, <strong>X</strong> le nombre de fichier maximum (ça tourne et écrase les fichiers), <strong>Y</strong> le nombre de cycle GC. Ce que ne dis pas par contre la doc IBM c&rsquo;est la taille approximative d&rsquo;un GC, donc 700 cycles de GC ≃ 1 MB. Il est même possible d&rsquo;utiliser des tokens utilisés pour les dumps dans WAS 7 (voir <a href="http://www-01.ibm.com/support/docview.wss?rs=180&context=SSEQTP&dc=DB560&dc=DB520&uid=swg21384096&loc=en_US&cs=UTF-8&lang=en&rss=ct180websphere">ici</a>).</p><h2 id=recoupement-des-informations>Recoupement des informations</h2><p>Le log du Garbage Collector ne venant pas, il faut chercher autrement. Je demande au moment ou le problème se reproduit , de faire plusieurs thread dump d&rsquo;affilé séparé de quelques secondes (~20s) et de faire également un listing des sous-processus java.</p><p>En effet le thread dump est bien sympa, mais il ne donne pas la consommation CPU des threads.</p><p>Dans un environnement il faut entre dans le terminal (Dans Linux l&rsquo;identifiant des thread est dans la colonne LWD.) :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>ps -fLp &lt;processid&gt; -L
-</code></pre></div><p>Evidement il s&rsquo;agit d&rsquo;un AIX et les commendes sont différents, pas de soucis un petit tour dans la doc IBM et il faut entrer la commande suivante, et là l&rsquo;identifiant de la thread est dans la colonne TID :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>ps -mp -o THREAD
-</code></pre></div><p>On a alors un listing énorme, que j&rsquo;ai tronqué ici.</p><pre><code>USER    PID   PPID       TID S  CP PRI SC    WCHAN        F     TT BND COMMAND
+</code></pre>
+<p>La tenured est bien remplie et utilise un très grosse partie de la heap ; memory leak ou beaucoup d&rsquo;objet à mettre en cache. Ou encore autre chose, sans mesures claires pour écarter les hypothèses ces dur.</p>
+<p>Pour quoi ne pas <strong>activer dans tous les cas le log GC</strong>, la JVM IBM offre des option pour gérer la rotation des logs GC, comme ça l&rsquo;argument de saturation du disque tombe à l&rsquo;eau. Mais bon il faut lire la documentation; donc petit passage chez IBM grâce à Google, et hop :</p>
+<pre><code>-Xverbosegclog[:&lt;file&gt;[,&lt;x&gt;,&lt;y&gt;]]
+</code></pre>
+<p>Et voilà : <strong>file</strong> étant le couple chemin + fichier, <strong>X</strong> le nombre de fichier maximum (ça tourne et écrase les fichiers), <strong>Y</strong> le nombre de cycle GC. Ce que ne dis pas par contre la doc IBM c&rsquo;est la taille approximative d&rsquo;un GC, donc 700 cycles de GC ≃ 1 MB. Il est même possible d&rsquo;utiliser des tokens utilisés pour les dumps dans WAS 7 (voir <a href="http://www-01.ibm.com/support/docview.wss?rs=180&amp;context=SSEQTP&amp;dc=DB560&amp;dc=DB520&amp;uid=swg21384096&amp;loc=en_US&amp;cs=UTF-8&amp;lang=en&amp;rss=ct180websphere">ici</a>).</p>
+<h2 id="recoupement-des-informations">Recoupement des informations</h2>
+<p>Le log du Garbage Collector ne venant pas, il faut chercher autrement. Je demande au moment ou le problème se reproduit , de faire plusieurs thread dump d&rsquo;affilé séparé de quelques secondes (~20s) et de faire également un listing des sous-processus java.</p>
+<p>En effet le thread dump est bien sympa, mais il ne donne pas la consommation CPU des threads.</p>
+<p>Dans un environnement il faut entre dans le terminal (Dans Linux l&rsquo;identifiant des thread est dans la colonne LWD.) :</p>
+<pre><code class="language-sh">ps -fLp &lt;processid&gt; -L
+</code></pre>
+<p>Evidement il s&rsquo;agit d&rsquo;un AIX et les commendes sont différents, pas de soucis un petit tour dans la doc IBM et il faut entrer la commande suivante, et là l&rsquo;identifiant de la thread est dans la colonne TID :</p>
+<pre><code class="language-sh">ps -mp -o THREAD
+</code></pre>
+<p>On a alors un listing énorme, que j&rsquo;ai tronqué ici.</p>
+<pre><code>USER    PID   PPID       TID S  CP PRI SC    WCHAN        F     TT BND COMMAND
 wasadmin 393262 401580         - A 188  60 203        *   202001      -   - /opt/was61/java/bin/java ...
  -      -      -    700535 S   0  82  1 f100070f1000ab40  8410400      -   - -
  -      -      -    741581 S   0  82  1 f100070f1000b540  8410400      -   - -
@@ -74,7 +756,106 @@ wasadmin 393262 401580         - A 188  60 203        *   2020
  -      -      -   1667157 R  60 122  0            -    400000       -   - -
  -      -      -   1708269 S   0  82  1 f100070f1001a140  8410400      -   - -
  -      -      -   1736831 S   0  82  1 f100070f1001a840  8410400      -   - -
-</code></pre><p>La colonne CP me dit que manifestement la thread <strong>1667157</strong> utilise plutôt pas mal le CPU, qu&rsquo;est-ce que donne cette thread du coté du thread dump ?! Au fait on repère 3 threads dans le même cas.</p><p>Il faut savoir que dans le thread dump il y a l&rsquo;identifiant de la thread en Java, mais qu&rsquo;il y a aussi et surtout de mentionné l&rsquo;identifiant natif de la thread, par exemple <strong>NID</strong>.</p><p>Je google &ldquo;<strong>1667157 in hex</strong>&rdquo; ce qui me renvoie <strong>0x197055</strong>. En utilisant l&rsquo;outils IBM mentionné plus haut, on voit clairement que la thread en cause correspond à du code métier, développé ici.</p><p><img src=/assets/tdump-cause2.png alt=tdump-cause></p><p>Chacune des 3 threads passent dans le même bout de code. Autant au début j&rsquo;ai des doutes, après toute la présomption d&rsquo;innocence compte aussi pour le code, d&rsquo;autant plus qu&rsquo;il s&rsquo;agit d&rsquo;un code lent qui utilise beaucoup de reflection. Mais faut prendre en compte aussi le fait que la pile descend à chaque fois dans la couche Hibernate, ça vaut le coup d&rsquo;aller voir. Les développeurs qui connaissent un peu mieux le code poussent dans cette direction.</p><p>Entre temps les DBA confirme que la base de données réponds très bien, mais qu&rsquo;elle enregistre un très fort nombre d&rsquo;un certain type de requête SQL.</p><p>Bingo, il y a une race condition dans une des boucles, et celle-ci part en boucle infinie. Ceci explique la très forte utilisation de la mémoire et les lenteurs remarquées.</p><h1 id=bilan>Bilan</h1><p>Un problème peut en cacher un autre, ou plus exactement un problème peut en provoquer d&rsquo;autres. Il faut juste avoir des moyens de mesurer les changements qu&rsquo;on apporte si on veut isoler / écarter des catégorie de problèmes.</p><p>L&rsquo;outillage on l&rsquo;a vu est essentiel, Introscope apporte des choses, mais il ne permet pas tout. Qui plus est, on ne sait pas précisément ce qu&rsquo;il mesure et ou! Les temps de réponses SQL, n'étaient par exemple pas crédible, car Introscope mesurait également les GC.</p><p>Dans notre cas ici, j&rsquo;aurais aussi bien aimé avoir une JVM IBM sur mon poste histoire de jouer plus facilement avec. C&rsquo;est dommage que IBM ne fournisse pas gratuitement sa JVM au moins pour le développement.</p><p>Accessoirement ce serait bien un jour d&rsquo;avoir des format de log normalisé entre les JVM, ainsi que certaines des options afférentes.</p><p>Finalement ce qui a pris le plus de temps était d&rsquo;obtenir les bonnes données, pour prendre les meilleurs choix. L&rsquo;impression de travailler les mains dans le noir n'était pas l&rsquo;idéal pour résoudre le problème, mais c&rsquo;est au moins formateur. Je peux dire que j&rsquo;ai bien apprécié certains retours et recommandations des  développeurs. L'équipe système étant surchargée n&rsquo;a pas pu nous donné un support optimal, et cette carence s&rsquo;est ressentie notamment pour avoir les données à temps. Mais leur vu du problème a permis d&rsquo;orienter la recherche sur les parties qui pouvait poser problème.</p><h1 id=références--documentation>Références & Documentation</h1><ul><li><a href="http://websphere.sys-con.com/node/921279?page=0,1">http://websphere.sys-con.com/node/921279?page=0,1</a></li><li><a href=http://sites.google.com/site/threaddumps/java-thread-dumps>http://sites.google.com/site/threaddumps/java-thread-dumps</a></li><li><a href=http://java.sun.com/developer/technicalArticles/Programming/Stacktrace/>http://java.sun.com/developer/technicalArticles/Programming/Stacktrace/</a></li><li><a href=http://geekexplains.blogspot.com/2008/07/threadstate-in-java-blocked-vs-waiting.html>http://geekexplains.blogspot.com/2008/07/threadstate-in-java-blocked-vs-waiting.html</a></li><li><a href=http://www.ibm.com/developerworks/java/library/j-nativememory-aix/>http://www.ibm.com/developerworks/java/library/j-nativememory-aix/</a></li><li><a href=http://www.ibm.com/developerworks/ibm/library/i-garbage1/>http://www.ibm.com/developerworks/ibm/library/i-garbage1/</a></li><li><a href="http://www-01.ibm.com/support/docview.wss?rs=180&context=SSEQTP&dc=DB560&dc=DB520&uid=swg21384096&loc=en_US&cs=UTF-8&lang=en&rss=ct180websphere">http://www-01.ibm.com/support/docview.wss?rs=180&context=SSEQTP&dc=DB560&dc=DB520&uid=swg21384096&loc=en_US&cs=UTF-8&lang=en&rss=ct180websphere</a></li><li><a href="http://publib.boulder.ibm.com/infocenter/javasdk/v6r0/index.jsp?topic=/com.ibm.java.doc.diagnostics.60/diag/appendixes/cmdline/cmdline_gc.htm">http://publib.boulder.ibm.com/infocenter/javasdk/v6r0/index.jsp?topic=/com.ibm.java.doc.diagnostics.60/diag/appendixes/cmdline/cmdline_gc.htm</a></li></ul></div><div class="navigation navigation-single"><a href=/2010/07/11/petit-retour-sur-le-pair-programming/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Petit retour sur le pair-programming</span></a>
-<a href=/2010/09/27/sexprimer-regulierement-partie-1/ class=navigation-next><span class=navigation-tittle>Expressions régulières (Partie 1)</span>
-<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/';this.page.title='Lenteur d\x27une appli Web sur une JVM IBM';this.page.url='https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
-var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>
+</code></pre>
+<p>La colonne CP me dit que manifestement la thread <strong>1667157</strong> utilise plutôt pas mal le CPU, qu&rsquo;est-ce que donne cette thread du coté du thread dump ?! Au fait on repère 3 threads dans le même cas.</p>
+<p>Il faut savoir que dans le thread dump il y a l&rsquo;identifiant de la thread en Java, mais qu&rsquo;il y a aussi et surtout de mentionné l&rsquo;identifiant natif de la thread, par exemple <strong>NID</strong>.</p>
+<p>Je google &ldquo;<strong>1667157 in hex</strong>&rdquo; ce qui me renvoie <strong>0x197055</strong>. En utilisant l&rsquo;outils IBM mentionné plus haut, on voit clairement que la thread en cause correspond à du code métier, développé ici.</p>
+<p><img src="/assets/tdump-cause2.png" alt="tdump-cause"></p>
+<p>Chacune des 3 threads passent dans le même bout de code. Autant au début j&rsquo;ai des doutes, après toute la présomption d&rsquo;innocence compte aussi pour le code, d&rsquo;autant plus qu&rsquo;il s&rsquo;agit d&rsquo;un code lent qui utilise beaucoup de reflection. Mais faut prendre en compte aussi le fait que la pile descend à chaque fois dans la couche Hibernate, ça vaut le coup d&rsquo;aller voir. Les développeurs qui connaissent un peu mieux le code poussent dans cette direction.</p>
+<p>Entre temps les DBA confirme que la base de données réponds très bien, mais qu&rsquo;elle enregistre un très fort nombre d&rsquo;un certain type de requête SQL.</p>
+<p>Bingo, il y a une race condition dans une des boucles, et celle-ci part en boucle infinie. Ceci explique la très forte utilisation de la mémoire et les lenteurs remarquées.</p>
+<h1 id="bilan">Bilan</h1>
+<p>Un problème peut en cacher un autre, ou plus exactement un problème peut en provoquer d&rsquo;autres. Il faut juste avoir des moyens de mesurer les changements qu&rsquo;on apporte si on veut isoler / écarter des catégorie de problèmes.</p>
+<p>L&rsquo;outillage on l&rsquo;a vu est essentiel, Introscope apporte des choses, mais il ne permet pas tout. Qui plus est, on ne sait pas précisément ce qu&rsquo;il mesure et ou! Les temps de réponses SQL, n'étaient par exemple pas crédible, car Introscope mesurait également les GC.</p>
+<p>Dans notre cas ici, j&rsquo;aurais aussi bien aimé avoir une JVM IBM sur mon poste histoire de jouer plus facilement avec. C&rsquo;est dommage que IBM ne fournisse pas gratuitement sa JVM au moins pour le développement.</p>
+<p>Accessoirement ce serait bien un jour d&rsquo;avoir des format de log normalisé entre les JVM, ainsi que certaines des options afférentes.</p>
+<p>Finalement ce qui a pris le plus de temps était d&rsquo;obtenir les bonnes données, pour prendre les meilleurs choix. L&rsquo;impression de travailler les mains dans le noir n'était pas l&rsquo;idéal pour résoudre le problème, mais c&rsquo;est au moins formateur. Je peux dire que j&rsquo;ai bien apprécié certains retours et recommandations des  développeurs. L'équipe système étant surchargée n&rsquo;a pas pu nous donné un support optimal, et cette carence s&rsquo;est ressentie notamment pour avoir les données à temps. Mais leur vu du problème a permis d&rsquo;orienter la recherche sur les parties qui pouvait poser problème.</p>
+<h1 id="références--documentation">Références &amp; Documentation</h1>
+<ul>
+<li><a href="http://websphere.sys-con.com/node/921279?page=0,1">http://websphere.sys-con.com/node/921279?page=0,1</a></li>
+<li><a href="http://sites.google.com/site/threaddumps/java-thread-dumps">http://sites.google.com/site/threaddumps/java-thread-dumps</a></li>
+<li><a href="http://java.sun.com/developer/technicalArticles/Programming/Stacktrace/">http://java.sun.com/developer/technicalArticles/Programming/Stacktrace/</a></li>
+<li><a href="http://geekexplains.blogspot.com/2008/07/threadstate-in-java-blocked-vs-waiting.html">http://geekexplains.blogspot.com/2008/07/threadstate-in-java-blocked-vs-waiting.html</a></li>
+<li><a href="http://www.ibm.com/developerworks/java/library/j-nativememory-aix/">http://www.ibm.com/developerworks/java/library/j-nativememory-aix/</a></li>
+<li><a href="http://www.ibm.com/developerworks/ibm/library/i-garbage1/">http://www.ibm.com/developerworks/ibm/library/i-garbage1/</a></li>
+<li><a href="http://www-01.ibm.com/support/docview.wss?rs=180&amp;context=SSEQTP&amp;dc=DB560&amp;dc=DB520&amp;uid=swg21384096&amp;loc=en_US&amp;cs=UTF-8&amp;lang=en&amp;rss=ct180websphere">http://www-01.ibm.com/support/docview.wss?rs=180&amp;context=SSEQTP&amp;dc=DB560&amp;dc=DB520&amp;uid=swg21384096&amp;loc=en_US&amp;cs=UTF-8&amp;lang=en&amp;rss=ct180websphere</a></li>
+<li><a href="http://publib.boulder.ibm.com/infocenter/javasdk/v6r0/index.jsp?topic=/com.ibm.java.doc.diagnostics.60/diag/appendixes/cmdline/cmdline_gc.htm">http://publib.boulder.ibm.com/infocenter/javasdk/v6r0/index.jsp?topic=/com.ibm.java.doc.diagnostics.60/diag/appendixes/cmdline/cmdline_gc.htm</a></li>
+</ul>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2010/07/11/petit-retour-sur-le-pair-programming/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Petit retour sur le pair-programming</span>
+    </a>
+    
+    
+    <a href="/2010/09/27/sexprimer-regulierement-partie-1/" class="navigation-next">
+      <span class="navigation-tittle">Expressions régulières (Partie 1)</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/';
+        this.page.title = 'Lenteur d\x27une appli Web sur une JVM IBM';
+        this.page.url = 'https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

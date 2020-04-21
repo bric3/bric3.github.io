@@ -1,151 +1,562 @@
-<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Les visiteurs, une question de nommage, et le double-dispatch • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Les visiteurs, une question de nommage, et le double-dispatch"><meta name=twitter:description content="Une histoire qui commence mal OK, je tranche le malheureux pattern Visiteur a la vie dure; on ne l&rsquo;aime pas trop, il est mal compris, et le pauvre est sous utilisé."><meta property="og:title" content="Les visiteurs, une question de nommage, et le double-dispatch"><meta property="og:description" content="Une histoire qui commence mal OK, je tranche le malheureux pattern Visiteur a la vie dure; on ne l&rsquo;aime pas trop, il est mal compris, et le pauvre est sous utilisé."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2010/05/06/les-visiteurs-une-question-de-nommage-et-le-double-dispatch/"><meta property="article:published_time" content="2010-05-06T16:02:10+00:00"><meta property="article:modified_time" content="2010-05-06T16:02:10+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.6366af944b58e6d912da2a2b073bc9b52dec0f12cf23aee0e8db5cc0cc9aaf59.css integrity="sha256-Y2avlEtY5tkS2iorBzvJtS3sDxLPI67g6NtcwMyar1k="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
-<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
-<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
-<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
-<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
-<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
-<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Les visiteurs, une question de nommage, et le double-dispatch</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2010-05-06<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/code>code</a>
-<a class="badge badge-tag" href=/tags/design>design</a>
-<a class="badge badge-tag" href=/tags/pattern>pattern</a><br><i class="fas fa-clock"></i>10 min read</div></header><div class=post><h1 id=une-histoire-qui-commence-mal>Une histoire qui commence mal</h1><p>OK, je tranche le malheureux pattern Visiteur a la vie dure; on ne l&rsquo;aime pas trop, il est mal compris, et le pauvre est sous utilisé. Alors bon même s&rsquo;il a ses défauts, pourquoi lui en vouloir autant, alors qu&rsquo;il apporte justement ses avantages au <strong>code orienté objet</strong>.</p><p>Et oui vous avez bien lu orienté objet. Jusqu'à aujourd&rsquo;hui j&rsquo;ai vu du code qui ressemble à ça?</p><ul><li>On a soit des objets très complexes, avec des comportements qu&rsquo;il n&rsquo;est pas forcément intéressant de mettre dans l&rsquo;objet même. Le code ci-dessous montre un objet ou les méthodes qui permettent de récupérer les livres d&rsquo;un certain genre ne sont pas forcément appropriées dans cette partie du code. Pourquoi parce qu&rsquo;il est envisageable (selon le bon sens) que d&rsquo;autres genres serait apprécié. Et s&rsquo;il faut ajouter d&rsquo;autres méthodes encore.</li></ul><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>FatObject</span> <span style=color:#000;font-weight:700>{</span>
-  <span style=color:#000;font-weight:700>private</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>book<span style=color:#000;font-weight:700>&gt;</span> books<span style=color:#000;font-weight:700>;</span>
+<!DOCTYPE html>
+<html lang="en">
+    
+    
 
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>selectOnlySciFi</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>selectOnlyThriller</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>selectOnlyDetectiveStory</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>selectOnlyRomance</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>selectOnlyManga</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><ul><li>Ou alors on a des objets anémiques (cf <a href=http://www.martinfowler.com/bliki/AnemicDomainModel.html>Martin Fowler</a>) et le comportement est bien en dehors des objets traités, mais, et c&rsquo;est la ça pèche, le comportement est délocalisé dans des helpers. Bref en gros c&rsquo;est de la programmation procédurale, ce sont des structures qui sont manipulées par des fonctions, c&rsquo;est du C avec des espaces de nommage (les classes <code>Helper.java</code>). La programmation objet en prends un coup, pas étonnant que les principes objets ne marchent pas dans ce contexte, mais je diverge. Bref on a du code qui ressemble à ce qui suit. Un objet anémique qui ne fait rien. Au mieux il aura probablement les méthodes <code>equals</code> et <code>hashCode</code> et peut-être un <code>toString</code>.</li></ul><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>AnemicObject</span> <span style=color:#000;font-weight:700>{</span>
-<span style=color:#000;font-weight:700>private</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> books<span style=color:#000;font-weight:700>;</span>
-  <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>setBooks</span><span style=color:#000;font-weight:700>(</span>Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> books<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>this</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>books</span> <span style=color:#000;font-weight:700>=</span> books<span style=color:#000;font-weight:700>;</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>getBooks</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>return</span> books<span style=color:#000;font-weight:700>;</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#3c5d5d;font-weight:700>@Override</span> <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>boolean</span> <span style=color:#900;font-weight:700>equals</span><span style=color:#000;font-weight:700>(</span>Object o<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#3c5d5d;font-weight:700>@Override</span> <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>hashCode</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Et le démoniaque helper :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>Helper</span> <span style=color:#000;font-weight:700>{</span>
-  <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>iDoSomethingWith</span><span style=color:#000;font-weight:700>(</span>AnemicObject anemicObject<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Price <span style=color:#900;font-weight:700>iExtractTotalPriceFrom</span><span style=color:#000;font-weight:700>(</span>AnemicObject anemicObject<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>getSciFiBooks</span><span style=color:#000;font-weight:700>(</span>AnemicObject anemicObject<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-  <span style=color:#000;font-weight:700>public</span> Iterable<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>getDetectiveStoryBooks</span><span style=color:#000;font-weight:700>(</span>AnemicObject anemicObject<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>...</span> <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Comme vous le voyez les deux exemples ci-dessus ne sont pas vraiment élégants, même si je préfère la première voie. A long terme ce n&rsquo;est probablement pas une bonne idée. J&rsquo;aimerais d&rsquo;ailleurs avoir l&rsquo;avis des gens du [](<a href=http://fr.wikipedia.org/wiki/Conception_pilot%C3%A9e_par_le_domaine%22%3E>http://fr.wikipedia.org/wiki/Conception_pilot%C3%A9e_par_le_domaine"></a>&lt;acronym title="Domain Driven Design)?</p><p>Et c&rsquo;est là que notre ami le visiteur va nous aider.</p><h1 id=pourquoi-le-visiteur-nous-aide-quapporte-t-il->Pourquoi le visiteur nous aide, qu&rsquo;apporte-t-il ?</h1><p>Bonne question, ce pattern est souvent incompris, et pour cause, il ne porte pas un nom qui lui facilite la vie.</p><p>Et oui pour le coup un <strong>visiteur n&rsquo;est pas fait pour visiter</strong>. Page 387 de la traduction française du livre Design Patterns (par le GoF), nous pouvons lire :</p><blockquote><p>Le visiteur fait la représentation d&rsquo;une opération applicable aux éléments d&rsquo;une structure d&rsquo;objet. <strong>Il permet de définir une nouvelle opération, sans qu&rsquo;il soit nécessaire de modifier la classe des éléments sur lesquels il agit.</strong></p></blockquote><p>Effectivement aussi, ce livre donne comme un exemple un arbre. Et le visiteur prends toute sa puissance sur un arbre ou sur une structure composite. Mais ce n&rsquo;est le seul cas ou celui-ci est utile, dans tous les cas <strong>il s&rsquo;agit bien de permettre l&rsquo;ajout / la suppression / la modification de comportements d&rsquo;une manière objet sans retoucher à ce qui existe déjà</strong>.</p><blockquote><p>Je le répète le fait que le visiteur marche super bien sur un arbre est un bonus, mais le problème adressé, l&rsquo;intention du visiteur n&rsquo;est pas de visiter, mais de <strong>définir une nouvelle opération sans changer le code existant sur lequel il agit</strong>.</p></blockquote><p>Il faut mesurer l&rsquo;intérêt du visiteur suivant deux axes.</p><ol><li>S&rsquo;il y a beaucoup d&rsquo;objet du domaine qui peuvent avoir le même comportement, ou si la grappe de nœud d&rsquo;un arbre est importante, un ou des visiteurs sera une bonne solution de conception pour mutualiser du code.</li><li>S&rsquo;il n&rsquo;y a pas énormément d&rsquo;objet du domaine, voir qu&rsquo;un seul, mais que les comportements relatifs sont à la fois divers et volatiles. Alors le visiteur est un candidat pour ajouter des comportements sans faire de satané helper et sans avoir à modifier les éléments du domaine.</li><li>Si vous avez des opérations différentes et un arbre ou des objets composite, le visiteur est le pattern pour vous, c&rsquo;est la qu&rsquo;il prendra toute son essence.</li><li>Si finalement vous n&rsquo;avez pas beaucoup de comportement, qu&rsquo;ils ne risque pas beaucoup de bouger et que vous n&rsquo;avez pas des objets variés pour mutualiser ce code, alors le visiteur n&rsquo;est probablement pas pour vous.</li></ol><p>Egalement aussi le visiteur étant un objet permet de conserver un état, ce que ne permettent pas les objets même du domaine ou les helpers (sauf si on utilise des objets contextes passé de fonction en fonction, ce n&rsquo;est pas exceptionnel).</p><h2 id=exemple-de-visiteurs>Exemple de visiteurs</h2><p>D&rsquo;abord la grappe d&rsquo;objet &ldquo;<em>complète</em>&rdquo; :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>CoolBookCollection</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>private</span> Collection<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> books<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>private</span> String owner<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>private</span> CollectionStatus status<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>private</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>accept</span><span style=color:#000;font-weight:700>(</span>DomainOperation operation<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        operation<span style=color:#000;font-weight:700>.</span><span style=color:teal>operateOn</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>this</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>public</span> Collection<span style=color:#000;font-weight:700>&lt;</span>Book<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>books</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>return</span> books<span style=color:#000;font-weight:700>;</span> <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>enum</span> CollectionStatus <span style=color:#000;font-weight:700>{</span>
-        TIDY<span style=color:#000;font-weight:700>,</span> MESSY<span style=color:#000;font-weight:700>,</span> OK
-    <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#998;font-style:italic>// ...
-</span><span style=color:#998;font-style:italic></span><span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>Book</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>private</span> Price price<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>private</span> String title<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>private</span> String author<span style=color:#000;font-weight:700>;</span>
 
-    <span style=color:#000;font-weight:700>public</span> Price <span style=color:#900;font-weight:700>price</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>return</span> price<span style=color:#000;font-weight:700>;</span> <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>public</span> String <span style=color:#900;font-weight:700>title</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>return</span> title<span style=color:#000;font-weight:700>;</span> <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>public</span> String <span style=color:#900;font-weight:700>author</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>return</span> author<span style=color:#000;font-weight:700>;</span> <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>Price</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#900;font-weight:700>Price</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#900;font-weight:700>Price</span><span style=color:#000;font-weight:700>(</span>Price priceA<span style=color:#000;font-weight:700>,</span> Price priceB<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>public</span> Price <span style=color:#900;font-weight:700>add</span><span style=color:#000;font-weight:700>(</span>Price price<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>return</span> <span style=color:#000;font-weight:700>new</span> Price<span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>this</span><span style=color:#000;font-weight:700>,</span> price<span style=color:#000;font-weight:700>);</span> <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Et la partie relatives aux visiteurs, d&rsquo;abord l&rsquo;interface (ou j&rsquo;ai choisi volontairement de ne pas mettre les mot Visitor et visit) :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>interface</span> <span style=color:#458;font-weight:700>DomainOperation</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>CoolBookCollection coolBookCollection<span style=color:#000;font-weight:700>);</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>CountAllBooks</span> <span style=color:#000;font-weight:700>implements</span> DomainOperation <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>private</span> <span style=color:#458;font-weight:700>int</span> count<span style=color:#000;font-weight:700>;</span>
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
 
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>CoolBookCollection coolBookCollection<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        count <span style=color:#000;font-weight:700>=</span> coolBookCollection<span style=color:#000;font-weight:700>.</span><span style=color:teal>books</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>size</span><span style=color:#000;font-weight:700>();</span>
-    <span style=color:#000;font-weight:700>}</span>
+    
+    
+    
 
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>bookCount</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span>
-        <span style=color:#000;font-weight:700>return</span> count<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>ObtainCollectionPriceByGenre</span> <span style=color:#000;font-weight:700>implements</span> DomainOperation <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>private</span> <span style=color:#000;font-weight:700>final</span> String genre<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>private</span> Price totalPrice <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> Price<span style=color:#000;font-weight:700>();</span>
+<title>Les visiteurs, une question de nommage, et le double-dispatch • The Coffee Workshop</title>
 
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#900;font-weight:700>ObtainCollectionPriceByGenre</span><span style=color:#000;font-weight:700>(</span>String genre<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        <span style=color:#000;font-weight:700>this</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>genre</span> <span style=color:#000;font-weight:700>=</span> genre<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>}</span>
 
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>CoolBookCollection coolBookCollection<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        <span style=color:#000;font-weight:700>for</span> <span style=color:#000;font-weight:700>(</span>Book book <span style=color:#000;font-weight:700>:</span> coolBookCollection<span style=color:#000;font-weight:700>.</span><span style=color:teal>books</span><span style=color:#000;font-weight:700>())</span> <span style=color:#000;font-weight:700>{</span>
-            totalPrice<span style=color:#000;font-weight:700>.</span><span style=color:teal>add</span><span style=color:#000;font-weight:700>(</span>book<span style=color:#000;font-weight:700>.</span><span style=color:teal>price</span><span style=color:#000;font-weight:700>());</span>
-        <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>public</span> Price <span style=color:#900;font-weight:700>totalPrice</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#000;font-weight:700>return</span> totalPrice<span style=color:#000;font-weight:700>;</span> <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Et voilà on des comportements différents liés à un objet en particulier, pas besoin de retoucher notre élément. Et on a une manière élégante de sortir nos comportements. Bien entendu, ce genre de chose est à faire avec du bon sens, en fonction du contexte et de l&rsquo;opération à effectuer.</p><h2 id=quand-on-a-davatage-dobjets-du-domaine-à-visiter-attention>Quand on a davatage d&rsquo;objets du domaine à visiter, attention!</h2><p>Attention quand même, comme précisé plus haut, le visiteur n&rsquo;est pas non plus sans défaut. Sur une structure d&rsquo;objet profonde ou large, votre pattern visiteur va créer une dépendance cyclique entre lui et les objets sur lesquels il est sensé s&rsquo;appliquer.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>interface</span> <span style=color:#458;font-weight:700>DomainOperation</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>CoolBookCollection coolBookCollection<span style=color:#000;font-weight:700>);</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Si mon visiteur doit par exemple travailler sur plusieurs sous type de l&rsquo;objet (on pourrait typiquement avoir ce genre de problème avec les structures composites) :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>interface</span> <span style=color:#458;font-weight:700>DomainOperation</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>BookCollection bookCollection<span style=color:#000;font-weight:700>);</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>CoolBookCollection coolBookCollection<span style=color:#000;font-weight:700>);</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>CheesyBookCollection cheesyBookCollection<span style=color:#000;font-weight:700>);</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>operateOn</span><span style=color:#000;font-weight:700>(</span>InTheCaveBookCollection inTheCaveBookCollection<span style=color:#000;font-weight:700>);</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>On voit vite le problème ou le visiteur est forcé d&rsquo;implémenter des opérations pour des objets qui ne l&rsquo;intéresse pas forcément. Le problème est contournable en utilisant intelligemment les interfaces, mais cette solution palliative a également des limites; on ne va faire implémenter 45 interfaces à nos objets.</p><p>Pour cela il y a une solution un peu plus complexe qui est également un pattern, c&rsquo;est le <a href=http://www.objectmentor.com/resources/articles/acv.pdf>Visiteur Acyclique</a>. Je n&rsquo;approfondie pas trop, mais l&rsquo;idée est d&rsquo;avoir pour chaque sous type du domaine une interface de visiteur qui permet de vérifier que l&rsquo;instance du visiteur est acceptable. Evidemment vous pourrez adapter le comportement, et vous n'êtes non plus obligé d&rsquo;implémenter toutes les méthodes, c&rsquo;est le but de ce pattern acyclique.</p><p><img src=/assets/VisiteurAcyclique.png alt=VisiteurAcyclique></p><p>Et typiquement le code du accept pour chaque sous-type de collection aurait une tête du genre :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>accept</span><span style=color:#000;font-weight:700>(</span>DomainOperation operation<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>if</span><span style=color:#000;font-weight:700>(</span>operation instanceOf BookCollectionOperation<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        <span style=color:#000;font-weight:700>((</span>BookCollectionOperation<span style=color:#000;font-weight:700>)</span> operation<span style=color:#000;font-weight:700>).</span><span style=color:teal>operateOn</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>this</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Et voilà on a cassé les dépendance, et on est pas obligé d&rsquo;implémenter toute les interfaces de chaque type de collection.</p><blockquote><p><strong>Le double dispatch, à ne pas confondre avec un visiteur</strong></p></blockquote><p>Le lecteur avertit aura vite deviné que ça ressemble au pattern stratégie, et il aura raison, ce sont des patterns comportementaux. Mais là ou le visiteur se distingue, et notamment dans des langages comme Java, .Net, C++ c&rsquo;est qu&rsquo;il utilise la technique du <strong>double dispatch</strong>.</p><p>Alors le double dispatch (double répartition) c&rsquo;est quoi exactement, c&rsquo;est un moyen pour le logiciel de résoudre au runtime les méthodes à exécuter.</p><p>Je vais citer les exemples <a href=http://en.wikipedia.org/wiki/Double_dispatch>wikipédia</a> et transformer leurs exemples en Java.</p><p>On a donc deux catégories d&rsquo;objets, des astéroïdes et des vaisseaux spatiaux.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>SpaceShip</span> <span style=color:#000;font-weight:700>{</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>GiantSpaceShip</span> <span style=color:#000;font-weight:700>extends</span> SpaceShip <span style=color:#000;font-weight:700>{</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>Asteroid</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>collideWith</span><span style=color:#000;font-weight:700>(</span>SpaceShip spaceShip<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Asteroid hit a SpaceShip&#34;</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>collideWith</span><span style=color:#000;font-weight:700>(</span>GiantSpaceShip giantSpaceShip<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Asteroid hit a GiantSpaceShip&#34;</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>ExplodingAsteroid</span> <span style=color:#000;font-weight:700>extends</span> Asteroid <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>collideWith</span><span style=color:#000;font-weight:700>(</span>SpaceShip spaceShip<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;ExplodingAsteroid hit a Spaceship&#34;</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Les visiteurs, une question de nommage, et le double-dispatch"/>
+<meta name="twitter:description" content="Une histoire qui commence mal OK, je tranche le malheureux pattern Visiteur a la vie dure; on ne l&rsquo;aime pas trop, il est mal compris, et le pauvre est sous utilisé."/>
 
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>collideWith</span><span style=color:#000;font-weight:700>(</span>GiantSpaceShip giantSpaceShip<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>println</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;ExplodingAsteroid hit a GiantSpaceShip&#34;</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Ok, maintenant dans le code on a ça</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>Asteroid theAsteroid <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> ExplodingAsteroid<span style=color:#000;font-weight:700>();</span>
-SpaceShip theSpaceShip <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> GiantSpaceShip<span style=color:#000;font-weight:700>();</span>
-GiantSpaceShip theGiantSpaceShip <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> GiantSpaceShip<span style=color:#000;font-weight:700>();</span>
+<meta property="og:title" content="Les visiteurs, une question de nommage, et le double-dispatch" />
+<meta property="og:description" content="Une histoire qui commence mal OK, je tranche le malheureux pattern Visiteur a la vie dure; on ne l&rsquo;aime pas trop, il est mal compris, et le pauvre est sous utilisé." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2010/05/06/les-visiteurs-une-question-de-nommage-et-le-double-dispatch/" />
+<meta property="article:published_time" content="2010-05-06T16:02:10+00:00" />
+<meta property="article:modified_time" content="2010-05-06T16:02:10+00:00" /><meta property="og:site_name" content="Arkey" />
 
-theAsteroid<span style=color:#000;font-weight:700>.</span><span style=color:teal>collideWith</span><span style=color:#000;font-weight:700>(</span>theSpaceShip<span style=color:#000;font-weight:700>);</span>
-theAsteroid<span style=color:#000;font-weight:700>.</span><span style=color:teal>collideWith</span><span style=color:#000;font-weight:700>(</span>theGiantSpaceShip<span style=color:#000;font-weight:700>);</span>
-</code></pre></div><p>Comme en java c&rsquo;est la méthode de l&rsquo;instance qui est appelée, pas de problème pour nos astéroïdes. Mais là ou ça coince c&rsquo;est au niveau des vaisseaux spatiaux. Les deux appels vont afficher sur la sortie sandard:</p><pre><code>ExplodingAsteroid hit a SpaceShip
+
+    
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css">
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.4f7a9eea99b1ffe5dcdd1e948a610c331be6316c39a65d78979aa9eed6a6105d.css" integrity="sha256-T3qe6pmx/&#43;Xc3R6UimEMMxvmMWw5pl14l5qp7tamEF0=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/svg-with-js.min.css" integrity="sha256-GyCVXSM0LI7EPORc9EWykRKWjlig49LoHPKt6s8NjBg=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>Les visiteurs, une question de nommage, et le double-dispatch</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2010-05-06
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/code">code</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/design">design</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/pattern">pattern</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 10 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <h1 id="une-histoire-qui-commence-mal">Une histoire qui commence mal</h1>
+<p>OK, je tranche le malheureux pattern Visiteur a la vie dure; on ne l&rsquo;aime pas trop, il est mal compris, et le pauvre est sous utilisé. Alors bon même s&rsquo;il a ses défauts, pourquoi lui en vouloir autant, alors qu&rsquo;il apporte justement ses avantages au <strong>code orienté objet</strong>.</p>
+<p>Et oui vous avez bien lu orienté objet. Jusqu'à aujourd&rsquo;hui j&rsquo;ai vu du code qui ressemble à ça?</p>
+<ul>
+<li>On a soit des objets très complexes, avec des comportements qu&rsquo;il n&rsquo;est pas forcément intéressant de mettre dans l&rsquo;objet même. Le code ci-dessous montre un objet ou les méthodes qui permettent de récupérer les livres d&rsquo;un certain genre ne sont pas forcément appropriées dans cette partie du code. Pourquoi parce qu&rsquo;il est envisageable (selon le bon sens) que d&rsquo;autres genres serait apprécié. Et s&rsquo;il faut ajouter d&rsquo;autres méthodes encore.</li>
+</ul>
+<pre><code class="language-java">public class FatObject {
+  private Iterable&lt;book&gt; books;
+
+  public Iterable&lt;Book&gt; selectOnlySciFi() { ... }
+  public Iterable&lt;Book&gt; selectOnlyThriller() { ... }
+  public Iterable&lt;Book&gt; selectOnlyDetectiveStory() { ... }
+  public Iterable&lt;Book&gt; selectOnlyRomance() { ... }
+  public Iterable&lt;Book&gt; selectOnlyManga() { ... }
+}
+</code></pre>
+<ul>
+<li>Ou alors on a des objets anémiques (cf <a href="http://www.martinfowler.com/bliki/AnemicDomainModel.html">Martin Fowler</a>) et le comportement est bien en dehors des objets traités, mais, et c&rsquo;est la ça pèche, le comportement est délocalisé dans des helpers. Bref en gros c&rsquo;est de la programmation procédurale, ce sont des structures qui sont manipulées par des fonctions, c&rsquo;est du C avec des espaces de nommage (les classes <code>Helper.java</code>). La programmation objet en prends un coup, pas étonnant que les principes objets ne marchent pas dans ce contexte, mais je diverge. Bref on a du code qui ressemble à ce qui suit. Un objet anémique qui ne fait rien. Au mieux il aura probablement les méthodes <code>equals</code> et <code>hashCode</code> et peut-être un <code>toString</code>.</li>
+</ul>
+<pre><code class="language-java">public class AnemicObject {
+private Iterable&lt;Book&gt; books;
+  public void setBooks(Iterable&lt;Book&gt; books) { this.books = books; }
+  public Iterable&lt;Book&gt; getBooks() { return books; }
+  @Override public boolean equals(Object o) { ... }
+  @Override public int hashCode() { ... }
+}
+</code></pre>
+<p>Et le démoniaque helper :</p>
+<pre><code class="language-java">public class Helper {
+  public void iDoSomethingWith(AnemicObject anemicObject) { ... }
+  public Price iExtractTotalPriceFrom(AnemicObject anemicObject) { ... }
+  public Iterable&lt;Book&gt; getSciFiBooks(AnemicObject anemicObject) { ... }
+  public Iterable&lt;Book&gt; getDetectiveStoryBooks(AnemicObject anemicObject) { ... }
+}
+</code></pre>
+<p>Comme vous le voyez les deux exemples ci-dessus ne sont pas vraiment élégants, même si je préfère la première voie. A long terme ce n&rsquo;est probablement pas une bonne idée. J&rsquo;aimerais d&rsquo;ailleurs avoir l&rsquo;avis des gens du [](<a href="http://fr.wikipedia.org/wiki/Conception_pilot%C3%A9e_par_le_domaine%22%3E">http://fr.wikipedia.org/wiki/Conception_pilot%C3%A9e_par_le_domaine&quot;&gt;</a>&lt;acronym title=&quot;Domain Driven Design)?</p>
+<p>Et c&rsquo;est là que notre ami le visiteur va nous aider.</p>
+<h1 id="pourquoi-le-visiteur-nous-aide-quapporte-t-il-">Pourquoi le visiteur nous aide, qu&rsquo;apporte-t-il ?</h1>
+<p>Bonne question, ce pattern est souvent incompris, et pour cause, il ne porte pas un nom qui lui facilite la vie.</p>
+<p>Et oui pour le coup un <strong>visiteur n&rsquo;est pas fait pour visiter</strong>. Page 387 de la traduction française du livre Design Patterns (par le GoF), nous pouvons lire :</p>
+<blockquote>
+<p>Le visiteur fait la représentation d&rsquo;une opération applicable aux éléments d&rsquo;une structure d&rsquo;objet. <strong>Il permet de définir une nouvelle opération, sans qu&rsquo;il soit nécessaire de modifier la classe des éléments sur lesquels il agit.</strong></p>
+</blockquote>
+<p>Effectivement aussi, ce livre donne comme un exemple un arbre. Et le visiteur prends toute sa puissance sur un arbre ou sur une structure composite. Mais ce n&rsquo;est le seul cas ou celui-ci est utile, dans tous les cas <strong>il s&rsquo;agit bien de permettre l&rsquo;ajout / la suppression / la modification de comportements d&rsquo;une manière objet sans retoucher à ce qui existe déjà</strong>.</p>
+<blockquote>
+<p>Je le répète le fait que le visiteur marche super bien sur un arbre est un bonus, mais le problème adressé, l&rsquo;intention du visiteur n&rsquo;est pas de visiter, mais de <strong>définir une nouvelle opération sans changer le code existant sur lequel il agit</strong>.</p>
+</blockquote>
+<p>Il faut mesurer l&rsquo;intérêt du visiteur suivant deux axes.</p>
+<ol>
+<li>S&rsquo;il y a beaucoup d&rsquo;objet du domaine qui peuvent avoir le même comportement, ou si la grappe de nœud d&rsquo;un arbre est importante, un ou des visiteurs sera une bonne solution de conception pour mutualiser du code.</li>
+<li>S&rsquo;il n&rsquo;y a pas énormément d&rsquo;objet du domaine, voir qu&rsquo;un seul, mais que les comportements relatifs sont à la fois divers et volatiles. Alors le visiteur est un candidat pour ajouter des comportements sans faire de satané helper et sans avoir à modifier les éléments du domaine.</li>
+<li>Si vous avez des opérations différentes et un arbre ou des objets composite, le visiteur est le pattern pour vous, c&rsquo;est la qu&rsquo;il prendra toute son essence.</li>
+<li>Si finalement vous n&rsquo;avez pas beaucoup de comportement, qu&rsquo;ils ne risque pas beaucoup de bouger et que vous n&rsquo;avez pas des objets variés pour mutualiser ce code, alors le visiteur n&rsquo;est probablement pas pour vous.</li>
+</ol>
+<p>Egalement aussi le visiteur étant un objet permet de conserver un état, ce que ne permettent pas les objets même du domaine ou les helpers (sauf si on utilise des objets contextes passé de fonction en fonction, ce n&rsquo;est pas exceptionnel).</p>
+<h2 id="exemple-de-visiteurs">Exemple de visiteurs</h2>
+<p>D&rsquo;abord la grappe d&rsquo;objet &ldquo;<em>complète</em>&rdquo; :</p>
+<pre><code class="language-java">public class CoolBookCollection {
+    private Collection&lt;Book&gt; books;
+    private String owner;
+    private CollectionStatus status;
+    private void accept(DomainOperation operation) {
+        operation.operateOn(this);
+    }
+    public Collection&lt;Book&gt; books() { return books; }
+    public static enum CollectionStatus {
+        TIDY, MESSY, OK
+    }
+    // ...
+}
+</code></pre>
+<pre><code class="language-java">public class Book {
+    private Price price;
+    private String title;
+    private String author;
+
+    public Price price() { return price; }
+    public String title() { return title; }
+    public String author() { return author; }
+}
+</code></pre>
+<pre><code class="language-java">public class Price {
+    public Price() { }
+    public Price(Price priceA, Price priceB) { }
+    public Price add(Price price) { return new Price(this, price); }
+}
+</code></pre>
+<p>Et la partie relatives aux visiteurs, d&rsquo;abord l&rsquo;interface (ou j&rsquo;ai choisi volontairement de ne pas mettre les mot Visitor et visit) :</p>
+<pre><code class="language-java">public interface DomainOperation {
+    void operateOn(CoolBookCollection coolBookCollection);
+}
+</code></pre>
+<pre><code class="language-java">public class CountAllBooks implements DomainOperation {
+    private int count;
+
+    public void operateOn(CoolBookCollection coolBookCollection) {
+        count = coolBookCollection.books().size();
+    }
+
+    public int bookCount() {
+        return count;
+    }
+}
+</code></pre>
+<pre><code class="language-java">public class ObtainCollectionPriceByGenre implements DomainOperation {
+    private final String genre;
+    private Price totalPrice = new Price();
+
+    public ObtainCollectionPriceByGenre(String genre) {
+        this.genre = genre;
+    }
+
+    public void operateOn(CoolBookCollection coolBookCollection) {
+        for (Book book : coolBookCollection.books()) {
+            totalPrice.add(book.price());
+        }
+    }
+    public Price totalPrice() { return totalPrice; }
+}
+</code></pre>
+<p>Et voilà on des comportements différents liés à un objet en particulier, pas besoin de retoucher notre élément. Et on a une manière élégante de sortir nos comportements. Bien entendu, ce genre de chose est à faire avec du bon sens, en fonction du contexte et de l&rsquo;opération à effectuer.</p>
+<h2 id="quand-on-a-davatage-dobjets-du-domaine-à-visiter-attention">Quand on a davatage d&rsquo;objets du domaine à visiter, attention!</h2>
+<p>Attention quand même, comme précisé plus haut, le visiteur n&rsquo;est pas non plus sans défaut. Sur une structure d&rsquo;objet profonde ou large, votre pattern visiteur va créer une dépendance cyclique entre lui et les objets sur lesquels il est sensé s&rsquo;appliquer.</p>
+<pre><code class="language-java">public interface DomainOperation {
+    void operateOn(CoolBookCollection coolBookCollection);
+}
+</code></pre>
+<p>Si mon visiteur doit par exemple travailler sur plusieurs sous type de l&rsquo;objet (on pourrait typiquement avoir ce genre de problème avec les structures composites) :</p>
+<pre><code class="language-java">public interface DomainOperation {
+    void operateOn(BookCollection bookCollection);
+    void operateOn(CoolBookCollection coolBookCollection);
+    void operateOn(CheesyBookCollection cheesyBookCollection);
+    void operateOn(InTheCaveBookCollection inTheCaveBookCollection);
+}
+</code></pre>
+<p>On voit vite le problème ou le visiteur est forcé d&rsquo;implémenter des opérations pour des objets qui ne l&rsquo;intéresse pas forcément. Le problème est contournable en utilisant intelligemment les interfaces, mais cette solution palliative a également des limites; on ne va faire implémenter 45 interfaces à nos objets.</p>
+<p>Pour cela il y a une solution un peu plus complexe qui est également un pattern, c&rsquo;est le <a href="http://www.objectmentor.com/resources/articles/acv.pdf">Visiteur Acyclique</a>. Je n&rsquo;approfondie pas trop, mais l&rsquo;idée est d&rsquo;avoir pour chaque sous type du domaine une interface de visiteur qui permet de vérifier que l&rsquo;instance du visiteur est acceptable. Evidemment vous pourrez adapter le comportement, et vous n'êtes non plus obligé d&rsquo;implémenter toutes les méthodes, c&rsquo;est le but de ce pattern acyclique.</p>
+<p><img src="/assets/VisiteurAcyclique.png" alt="VisiteurAcyclique"></p>
+<p>Et typiquement le code du accept pour chaque sous-type de collection aurait une tête du genre :</p>
+<pre><code class="language-java">public void accept(DomainOperation operation) {
+    if(operation instanceOf BookCollectionOperation) {
+        ((BookCollectionOperation) operation).operateOn(this);
+    }
+}
+</code></pre>
+<p>Et voilà on a cassé les dépendance, et on est pas obligé d&rsquo;implémenter toute les interfaces de chaque type de collection.</p>
+<blockquote>
+<p><strong>Le double dispatch, à ne pas confondre avec un visiteur</strong></p>
+</blockquote>
+<p>Le lecteur avertit aura vite deviné que ça ressemble au pattern stratégie, et il aura raison, ce sont des patterns comportementaux. Mais là ou le visiteur se distingue, et notamment dans des langages comme Java, .Net, C++ c&rsquo;est qu&rsquo;il utilise la technique du <strong>double dispatch</strong>.</p>
+<p>Alors le double dispatch (double répartition) c&rsquo;est quoi exactement, c&rsquo;est un moyen pour le logiciel de résoudre au runtime les méthodes à exécuter.</p>
+<p>Je vais citer les exemples <a href="http://en.wikipedia.org/wiki/Double_dispatch">wikipédia</a> et transformer leurs exemples en Java.</p>
+<p>On a donc deux catégories d&rsquo;objets, des astéroïdes et des vaisseaux spatiaux.</p>
+<pre><code class="language-java">public class SpaceShip {
+}
+</code></pre>
+<pre><code class="language-java">public class GiantSpaceShip extends SpaceShip {
+}
+</code></pre>
+<pre><code class="language-java">public class Asteroid {
+    void collideWith(SpaceShip spaceShip) {
+        System.out.println(&quot;Asteroid hit a SpaceShip&quot;);
+    }
+    void collideWith(GiantSpaceShip giantSpaceShip) {
+        System.out.println(&quot;Asteroid hit a GiantSpaceShip&quot;);
+    }
+}
+</code></pre>
+<pre><code class="language-java">public class ExplodingAsteroid extends Asteroid {
+    void collideWith(SpaceShip spaceShip) {
+        System.out.println(&quot;ExplodingAsteroid hit a Spaceship&quot;);
+    }
+
+    void collideWith(GiantSpaceShip giantSpaceShip) {
+        System.out.println(&quot;ExplodingAsteroid hit a GiantSpaceShip&quot;);
+    }
+}
+</code></pre>
+<p>Ok, maintenant dans le code on a ça</p>
+<pre><code class="language-java">Asteroid theAsteroid = new ExplodingAsteroid();
+SpaceShip theSpaceShip = new GiantSpaceShip();
+GiantSpaceShip theGiantSpaceShip = new GiantSpaceShip();
+
+theAsteroid.collideWith(theSpaceShip);
+theAsteroid.collideWith(theGiantSpaceShip);
+</code></pre>
+<p>Comme en java c&rsquo;est la méthode de l&rsquo;instance qui est appelée, pas de problème pour nos astéroïdes. Mais là ou ça coince c&rsquo;est au niveau des vaisseaux spatiaux. Les deux appels vont afficher sur la sortie sandard:</p>
+<pre><code>ExplodingAsteroid hit a SpaceShip
 ExplodingAsteroid hit a GiantSpaceShip
-</code></pre><p>En effet le type réel du vaisseau spatial n&rsquo;est pas connu, sauf si on fait de la reflection avec un <code>instanceof</code>, mais il y a plus élégant, c&rsquo;est le double dispatch.</p><p>Si maintenant nos vaisseaux spatiaux ont tous les deux cette méthode définie :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>SpaceShip</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>collideWith</span><span style=color:#000;font-weight:700>(</span>Asteroid asteroid<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        asteroid<span style=color:#000;font-weight:700>.</span><span style=color:teal>collideWith</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>this</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>GiantSpaceShip</span> <span style=color:#000;font-weight:700>extends</span> SpaceShip <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>collideWith</span><span style=color:#000;font-weight:700>(</span>Asteroid asteroid<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        asteroid<span style=color:#000;font-weight:700>.</span><span style=color:teal>collideWith</span><span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>this</span><span style=color:#000;font-weight:700>);</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Maintenant notre code utilisera l&rsquo;API de cette façon :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>Asteroid theAsteroid <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> ExplodingAsteroid<span style=color:#000;font-weight:700>();</span>
-SpaceShip theSpaceShip <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> GiantSpaceShip<span style=color:#000;font-weight:700>();</span>
-GiantSpaceShip theGiantSpaceShip <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> GiantSpaceShip<span style=color:#000;font-weight:700>();</span>
+</code></pre>
+<p>En effet le type réel du vaisseau spatial n&rsquo;est pas connu, sauf si on fait de la reflection avec un <code>instanceof</code>, mais il y a plus élégant, c&rsquo;est le double dispatch.</p>
+<p>Si maintenant nos vaisseaux spatiaux ont tous les deux cette méthode définie :</p>
+<pre><code class="language-java">public class SpaceShip {
+    void collideWith(Asteroid asteroid) {
+        asteroid.collideWith(this);
+    }
+}
+</code></pre>
+<pre><code class="language-java">public class GiantSpaceShip extends SpaceShip {
+    void collideWith(Asteroid asteroid) {
+        asteroid.collideWith(this);
+    }
+}
+</code></pre>
+<p>Maintenant notre code utilisera l&rsquo;API de cette façon :</p>
+<pre><code class="language-java">Asteroid theAsteroid = new ExplodingAsteroid();
+SpaceShip theSpaceShip = new GiantSpaceShip();
+GiantSpaceShip theGiantSpaceShip = new GiantSpaceShip();
 
-theSpaceShip<span style=color:#000;font-weight:700>.</span><span style=color:teal>collideWith</span><span style=color:#000;font-weight:700>(</span>theAsteroid<span style=color:#000;font-weight:700>);</span>
-theGiantSpaceShip<span style=color:#000;font-weight:700>.</span><span style=color:teal>collideWith</span><span style=color:#000;font-weight:700>(</span>theAsteroid<span style=color:#000;font-weight:700>);</span>
-</code></pre></div><p>Et on aura le code correcte utilisé.</p><p>Cette technique est utilisée par le visiteur, mais nous ne somme pas obligé d&rsquo;avoir des visiteurs pour l&rsquo;utiliser (la preuve par l&rsquo;exemple grâce à wikipédia). C&rsquo;est utilisé régulièrement dans la JDK, typiquement pour la sérialisation (même si c&rsquo;est caché). Coté performance si on a le choix, le double dispatch sera toujours plus rapide qu&rsquo;un instanceof. Coté design c&rsquo;est pratique quand on a des branches d&rsquo;objets qui travaillent ensemble.</p><p>Certains langages proposent nativement un support pour ces problèmes de résolution de type d&rsquo;opérande, comme Nice.</p><p>A regarder aussi, c&rsquo;est le multi dispatch ou les multi-méthodes, il y a notamment une implémentation de Rémy Forax de l&rsquo;université de Marne-la-Vallée, cette implémentation a le mérite d'être standard Java, c&rsquo;est à dire qu&rsquo;elle n'étends pas le langage lui-même.</p><p>Pour y jeter un œil : <a href=http://www-igm.univ-mlv.fr/~forax/works/jmmf/index.html>http://www-igm.univ-mlv.fr/~forax/works/jmmf/index.html</a></p><h1 id=récapitulatif-sur-le-visiteur>Récapitulatif sur le visiteur</h1><p>Le visiteur est bien un ami, mais comme tous les potes, il ne sait pas tous faire non plus.</p><p>Un visiteur sait parcourir des arbres, il se débrouille super bien avec, mais il est aussi utile quand il n&rsquo;y a pas d&rsquo;arbre.</p><p>Un visiteur sert avant tout à extraire des comportements lié à un structure d&rsquo;objet qui bouge peu. La structure peut être plate, ou en profondeur (cela dit je privilégierait la composition à la lace de l&rsquo;héritage).</p><p>Le visiteur utilise la technique du double dispatch, ne pas confondre les deux.</p><p>Le visiteur permet de respecter le SRP (Single Responsibility Principle).</p><p>Le visiteur aide à maintenir le CCP (Common Closure Principle), c&rsquo;est une histoire de cohésion entre les classes qui sont regroupées dans un même package.</p><blockquote><p>The classes in a package should be closed together against the same kind of changes. A change that affects a package affects all the classes in that package.</p></blockquote><p>Bon voilà, le débat reste ouvert, si vous pensez que j&rsquo;ai tort, que j&rsquo;oublie un point important, ou pour autre chose, il y a les commentaires.</p><h1 id=références>Références</h1><ul><li><a href=http://www.objectmentor.com/omSolutions/oops_what.html>http://www.objectmentor.com/omSolutions/oops_what.html</a></li><li><a href=http://www.objectmentor.com/resources/articles/visitor.pdf>http://www.objectmentor.com/resources/articles/visitor.pdf</a></li><li><a href=http://www.objectmentor.com/resources/articles/acv.pdf>http://www.objectmentor.com/resources/articles/acv.pdf</a></li><li><a href=http://codebetter.com/blogs/jeremy.miller/archive/2007/10/31/be-not-afraid-of-the-visitor-the-big-bad-composite-or-their-little-friend-double-dispatch.aspx>be-not-afraid-of-the-visitor-the-big-bad-composite-or-their-little-friend-double-dispatch</a></li><li><a href=http://www.artima.com/cppsource/top_cpp_aha_moments.html>http://www.artima.com/cppsource/top_cpp_aha_moments.html</a></li><li><a href=http://butunclebob.com/ArticleS.UncleBob.VisitorVersusInstanceOf>http://butunclebob.com/ArticleS.UncleBob.VisitorVersusInstanceOf</a></li><li><a href=http://www.javaperformancetuning.com/articles/ddispatch.shtml>http://www.javaperformancetuning.com/articles/ddispatch.shtml</a></li></ul></div><div class="navigation navigation-single"><a href=/2010/03/30/a-propos-du-design-de-vos-objets-des-getters-et-setters-de-equalshashcode-et-de-la-mutabilite/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>A propos du design de vos objets, des getters et setters, de equals/hashCode et de la mutabilité</span></a>
-<a href=/2010/07/11/petit-retour-sur-le-pair-programming/ class=navigation-next><span class=navigation-tittle>Petit retour sur le pair-programming</span>
-<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='136 http:\/\/dutheil.brice.online.fr\/blog\/?p=136';this.page.title='Les visiteurs, une question de nommage, et le double-dispatch';this.page.url='https://blog.arkey.fr/2010/05/06/les-visiteurs-une-question-de-nommage-et-le-double-dispatch/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
-var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>
+theSpaceShip.collideWith(theAsteroid);
+theGiantSpaceShip.collideWith(theAsteroid);
+</code></pre>
+<p>Et on aura le code correcte utilisé.</p>
+<p>Cette technique est utilisée par le visiteur, mais nous ne somme pas obligé d&rsquo;avoir des visiteurs pour l&rsquo;utiliser (la preuve par l&rsquo;exemple grâce à wikipédia). C&rsquo;est utilisé régulièrement dans la JDK, typiquement pour la sérialisation (même si c&rsquo;est caché). Coté performance si on a le choix, le double dispatch sera toujours plus rapide qu&rsquo;un instanceof. Coté design c&rsquo;est pratique quand on a des branches d&rsquo;objets qui travaillent ensemble.</p>
+<p>Certains langages proposent nativement un support pour ces problèmes de résolution de type d&rsquo;opérande, comme Nice.</p>
+<p>A regarder aussi, c&rsquo;est le multi dispatch ou les multi-méthodes, il y a notamment une implémentation de Rémy Forax de l&rsquo;université de Marne-la-Vallée, cette implémentation a le mérite d'être standard Java, c&rsquo;est à dire qu&rsquo;elle n'étends pas le langage lui-même.</p>
+<p>Pour y jeter un œil : <a href="http://www-igm.univ-mlv.fr/~forax/works/jmmf/index.html">http://www-igm.univ-mlv.fr/~forax/works/jmmf/index.html</a></p>
+<h1 id="récapitulatif-sur-le-visiteur">Récapitulatif sur le visiteur</h1>
+<p>Le visiteur est bien un ami, mais comme tous les potes, il ne sait pas tous faire non plus.</p>
+<p>Un visiteur sait parcourir des arbres, il se débrouille super bien avec, mais il est aussi utile quand il n&rsquo;y a pas d&rsquo;arbre.</p>
+<p>Un visiteur sert avant tout à extraire des comportements lié à un structure d&rsquo;objet qui bouge peu. La structure peut être plate, ou en profondeur (cela dit je privilégierait la composition à la lace de l&rsquo;héritage).</p>
+<p>Le visiteur utilise la technique du double dispatch, ne pas confondre les deux.</p>
+<p>Le visiteur permet de respecter le SRP (Single Responsibility Principle).</p>
+<p>Le visiteur aide à maintenir le CCP (Common Closure Principle), c&rsquo;est une histoire de cohésion entre les classes qui sont regroupées dans un même package.</p>
+<blockquote>
+<p>The classes in a package should be closed together against the same kind of changes. A change that affects a package affects all the classes in that package.</p>
+</blockquote>
+<p>Bon voilà, le débat reste ouvert, si vous pensez que j&rsquo;ai tort, que j&rsquo;oublie un point important, ou pour autre chose, il y a les commentaires.</p>
+<h1 id="références">Références</h1>
+<ul>
+<li><a href="http://www.objectmentor.com/omSolutions/oops_what.html">http://www.objectmentor.com/omSolutions/oops_what.html</a></li>
+<li><a href="http://www.objectmentor.com/resources/articles/visitor.pdf">http://www.objectmentor.com/resources/articles/visitor.pdf</a></li>
+<li><a href="http://www.objectmentor.com/resources/articles/acv.pdf">http://www.objectmentor.com/resources/articles/acv.pdf</a></li>
+<li><a href="http://codebetter.com/blogs/jeremy.miller/archive/2007/10/31/be-not-afraid-of-the-visitor-the-big-bad-composite-or-their-little-friend-double-dispatch.aspx">be-not-afraid-of-the-visitor-the-big-bad-composite-or-their-little-friend-double-dispatch</a></li>
+<li><a href="http://www.artima.com/cppsource/top_cpp_aha_moments.html">http://www.artima.com/cppsource/top_cpp_aha_moments.html</a></li>
+<li><a href="http://butunclebob.com/ArticleS.UncleBob.VisitorVersusInstanceOf">http://butunclebob.com/ArticleS.UncleBob.VisitorVersusInstanceOf</a></li>
+<li><a href="http://www.javaperformancetuning.com/articles/ddispatch.shtml">http://www.javaperformancetuning.com/articles/ddispatch.shtml</a></li>
+</ul>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2010/03/30/a-propos-du-design-de-vos-objets-des-getters-et-setters-de-equalshashcode-et-de-la-mutabilite/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">A propos du design de vos objets, des getters et setters, de equals/hashCode et de la mutabilité</span>
+    </a>
+    
+    
+    <a href="/2010/07/11/petit-retour-sur-le-pair-programming/" class="navigation-next">
+      <span class="navigation-tittle">Petit retour sur le pair-programming</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = '136 http:\/\/dutheil.brice.online.fr\/blog\/?p=136';
+        this.page.title = 'Les visiteurs, une question de nommage, et le double-dispatch';
+        this.page.url = 'https://blog.arkey.fr/2010/05/06/les-visiteurs-une-question-de-nommage-et-le-double-dispatch/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

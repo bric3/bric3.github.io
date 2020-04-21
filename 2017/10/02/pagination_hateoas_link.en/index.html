@@ -1,215 +1,613 @@
-<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>JAX-RS 2.0 pagination with Link header • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="JAX-RS 2.0 pagination with Link header"><meta name=twitter:description content="Your REST API is looking good, everything is ready, but here comes a paginated resource. There could be various reasons to do it, be it search, listing, etc.
-In this matter several choices to implement that appear :"><meta property="og:title" content="JAX-RS 2.0 pagination with Link header"><meta property="og:description" content="Your REST API is looking good, everything is ready, but here comes a paginated resource. There could be various reasons to do it, be it search, listing, etc.
-In this matter several choices to implement that appear :"><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2017/10/02/pagination_hateoas_link.en/"><meta property="article:published_time" content="2017-10-02T00:00:00+00:00"><meta property="article:modified_time" content="2017-10-02T00:00:00+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.6366af944b58e6d912da2a2b073bc9b52dec0f12cf23aee0e8db5cc0cc9aaf59.css integrity="sha256-Y2avlEtY5tkS2iorBzvJtS3sDxLPI67g6NtcwMyar1k="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
-<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
-<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
-<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
-<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
-<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
-<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>JAX-RS 2.0 pagination with Link header</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2017-10-02<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/java>java</a>
-<a class="badge badge-tag" href=/tags/jaxrs>jaxrs</a>
-<a class="badge badge-tag" href=/tags/pagination>pagination</a>
-<a class="badge badge-tag" href=/tags/http>http</a>
-<a class="badge badge-tag" href=/tags/github>github</a><br><i class="fas fa-clock"></i>7 min read</div></header><div class=post><p>Your REST API is looking good, everything is ready, but here comes a
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>JAX-RS 2.0 pagination with Link header • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="JAX-RS 2.0 pagination with Link header"/>
+<meta name="twitter:description" content="Your REST API is looking good, everything is ready, but here comes a paginated resource. There could be various reasons to do it, be it search, listing, etc.
+In this matter several choices to implement that appear :"/>
+
+<meta property="og:title" content="JAX-RS 2.0 pagination with Link header" />
+<meta property="og:description" content="Your REST API is looking good, everything is ready, but here comes a paginated resource. There could be various reasons to do it, be it search, listing, etc.
+In this matter several choices to implement that appear :" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2017/10/02/pagination_hateoas_link.en/" />
+<meta property="article:published_time" content="2017-10-02T00:00:00+00:00" />
+<meta property="article:modified_time" content="2017-10-02T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css">
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.4f7a9eea99b1ffe5dcdd1e948a610c331be6316c39a65d78979aa9eed6a6105d.css" integrity="sha256-T3qe6pmx/&#43;Xc3R6UimEMMxvmMWw5pl14l5qp7tamEF0=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/svg-with-js.min.css" integrity="sha256-GyCVXSM0LI7EPORc9EWykRKWjlig49LoHPKt6s8NjBg=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>JAX-RS 2.0 pagination with Link header</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2017-10-02
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/java">java</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jaxrs">jaxrs</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/pagination">pagination</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/http">http</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/github">github</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 7 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <p>Your REST API is looking good, everything is ready, but here comes a
 paginated resource. There could be various reasons to do it, be it
-search, listing, etc.</p><p>In this matter several choices to implement that appear :</p><ul><li><p>Do nothing that&rsquo;s the client&rsquo;s job to control everything to iterate over pages</p></li><li><p>Wrap the items within an envelope in the HTTP body, this envelope
+search, listing, etc.</p>
+<p>In this matter several choices to implement that appear :</p>
+<ul>
+<li>
+<p>Do nothing that&rsquo;s the client&rsquo;s job to control everything to iterate over pages</p>
+</li>
+<li>
+<p>Wrap the items within an envelope in the HTTP body, this envelope
 will also contain field having information on the pagination. You can find
 variation on the exact implementation some choose json-api, some their home
 brewed solution. This is probably the most common approach as this does
-require less HTTP knowledge.</p><p>And it is likely preferred by pure Javascript clients as there&rsquo;s no need
-to peek outside the body.</p></li><li><p>Use the HTTP response with pagination meta-data being placed in the
+require less HTTP knowledge.</p>
+<p>And it is likely preferred by pure Javascript clients as there&rsquo;s no need
+to peek outside the body.</p>
+</li>
+<li>
+<p>Use the HTTP response with pagination meta-data being placed in the
 headers. That&rsquo;s the path chosen by Github in their
-<a href=https://developer.github.com/v3/guides/traversing-with-pagination/>v3 API</a>.
-That&rsquo;s also this option that this blog post will explore.</p></li></ul><p>More specifically the Github API is using the <code>Link</code> header form the HTTP
-standard. It allows express <em>relations</em> and how to reach them for a resource.</p><p>API implementors that want separate concerns between the content and the
+<a href="https://developer.github.com/v3/guides/traversing-with-pagination/">v3 API</a>.
+That&rsquo;s also this option that this blog post will explore.</p>
+</li>
+</ul>
+<p>More specifically the Github API is using the <code>Link</code> header form the HTTP
+standard. It allows express <em>relations</em> and how to reach them for a resource.</p>
+<p>API implementors that want separate concerns between the content and the
 pagination could be interested by this article that show a basic setup
-in footsteps of Github and with JAX-RS 2.</p><h2 id=whats-the-link-header>What&rsquo;s the Link header?</h2><p>The <a href=https://tools.ietf.org/html/rfc5988>RFC 5988</a> says :</p><blockquote><p>In this specification, a link is a typed connection between two
+in footsteps of Github and with JAX-RS 2.</p>
+<h2 id="whats-the-link-header">What&rsquo;s the Link header?</h2>
+<p>The <a href="https://tools.ietf.org/html/rfc5988">RFC 5988</a> says :</p>
+<blockquote>
+<p>In this specification, a link is a typed connection between two
 resources that are identified by Internationalised Resource
-Identifiers (IRIs) [RFC3987], and is comprised of:</p><ul><li>A context IRI,</li><li>a link relation type (Section 4),</li><li>a target IRI, and</li><li>optionally, target attributes.</li></ul><p><strong>A link can be viewed as a statement of the form &ldquo;{context IRI} has a
+Identifiers (IRIs) [RFC3987], and is comprised of:</p>
+<ul>
+<li>A context IRI,</li>
+<li>a link relation type (Section 4),</li>
+<li>a target IRI, and</li>
+<li>optionally, target attributes.</li>
+</ul>
+<p><strong>A link can be viewed as a statement of the form &ldquo;{context IRI} has a
 {relation type} resource at {target IRI}, which has {target
-attributes}".</strong></p></blockquote><p>The RFC gives this example :</p><pre><code>Link: &lt;http://example.com/TheBook/chapter2&gt;; rel=&quot;previous&quot;; title=&quot;previous chapter&quot;
-</code></pre><p>The <code>Link</code> header is a way to advertise to the client what are the URIs of
+attributes}&quot;.</strong></p>
+</blockquote>
+<p>The RFC gives this example :</p>
+<pre><code>Link: &lt;http://example.com/TheBook/chapter2&gt;; rel=&quot;previous&quot;; title=&quot;previous chapter&quot;
+</code></pre>
+<p>The <code>Link</code> header is a way to advertise to the client what are the URIs of
 this resource&rsquo;s relations.
 This header can also contains several <em>links</em> and so several relations. These
 relations allows a client to <em>navigate</em> from a resource to another ; GitHub
 chose this approach with their V3 API. In other words <strong>the HTTP response is
-the envelope of the payload</strong>.</p><h2 id=jax-rs-do-it-yourself>JAX-RS, Do it yourself</h2><p>How to implement this pagination approach with JAX-RS ?</p><p>Since JAX-RS 2.0 the <code>Link</code> header is specifically supported via the <code>Link</code> class
-and via the <code>.links(Link...)</code> in the <code>Response</code> builder.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java>Response<span style=color:#000;font-weight:700>.</span><span style=color:teal>ok</span><span style=color:#000;font-weight:700>()</span>
-        <span style=color:#000;font-weight:700>.</span><span style=color:teal>links</span><span style=color:#000;font-weight:700>(</span>Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>valueOf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;&lt;https://host:port/path?q=foo&amp;page=72&gt;; rel=\&#34;previous results\&#34;&#34;</span><span style=color:#000;font-weight:700>),</span>
-               Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>valueOf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;&lt;https://host:port/path?q=foo&amp;page=74&gt;; rel=\&#34;next results\&#34;&#34;</span><span style=color:#000;font-weight:700>))</span>
-        <span style=color:#000;font-weight:700>.</span><span style=color:teal>entity</span><span style=color:#000;font-weight:700>(</span>page_73_results<span style=color:#000;font-weight:700>)</span>
-        <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
-</code></pre></div><p>In the above example, a link is created by parsing an actual Link string with
-the target <em>IRI</em> and other meta-data like the relation parameter.</p><p>In order to generate the target IRI, be it relative or absolute, the code would
+the envelope of the payload</strong>.</p>
+<h2 id="jax-rs-do-it-yourself">JAX-RS, Do it yourself</h2>
+<p>How to implement this pagination approach with JAX-RS ?</p>
+<p>Since JAX-RS 2.0 the <code>Link</code> header is specifically supported via the <code>Link</code> class
+and via the <code>.links(Link...)</code> in the <code>Response</code> builder.</p>
+<pre><code class="language-java">Response.ok()
+        .links(Link.valueOf(&quot;&lt;https://host:port/path?q=foo&amp;page=72&gt;; rel=\&quot;previous results\&quot;&quot;),
+               Link.valueOf(&quot;&lt;https://host:port/path?q=foo&amp;page=74&gt;; rel=\&quot;next results\&quot;&quot;))
+        .entity(page_73_results)
+        .build());
+</code></pre>
+<p>In the above example, a link is created by parsing an actual Link string with
+the target <em>IRI</em> and other meta-data like the relation parameter.</p>
+<p>In order to generate the target IRI, be it relative or absolute, the code would
 need the actual URI data in order to generate all constituent parts of the
-relation. We&rsquo;ll need JAX-RS&rsquo;s <code>UriInfo</code> class. As a reminder:</p><p>Given the following URI <code>http://localhost:59520/path/to/search?foo=bar&qix=zzz</code>, then</p><ul><li><code>uriInfo.getAbsolutePath()</code> will return <code>http://localhost:59520/path/to/search</code></li><li><code>uriInfo.getBaseUri()</code> will return <code>http://localhost:59520/</code></li><li><code>uriInfo.getPath()</code> will return <code>path/to/search</code></li><li><code>uriInfo.getQueryParameters()</code> will return a <code>MultivaluedMap</code> with<pre><code>&quot;foo&quot; : [&quot;bar&quot;]
+relation. We&rsquo;ll need JAX-RS&rsquo;s <code>UriInfo</code> class. As a reminder:</p>
+<p>Given the following URI <code>http://localhost:59520/path/to/search?foo=bar&amp;qix=zzz</code>, then</p>
+<ul>
+<li><code>uriInfo.getAbsolutePath()</code> will return <code>http://localhost:59520/path/to/search</code></li>
+<li><code>uriInfo.getBaseUri()</code> will return <code>http://localhost:59520/</code></li>
+<li><code>uriInfo.getPath()</code> will return <code>path/to/search</code></li>
+<li><code>uriInfo.getQueryParameters()</code> will return a <code>MultivaluedMap</code> with
+<pre><code>&quot;foo&quot; : [&quot;bar&quot;]
 &quot;qix&quot; : [&quot;zzz&quot;]
-</code></pre></li><li><code>uriInfo.getRequestUri()</code> will return <code>http://localhost:59520/path/to/search?foo=bar&qix=zzz</code></li></ul><p>A JAX-RS resource will typically be written like that.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> String X_TOTAL_COUNT <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;X-Total-Count&#34;</span><span style=color:#000;font-weight:700>;</span>
+</code></pre>
+</li>
+<li><code>uriInfo.getRequestUri()</code> will return <code>http://localhost:59520/path/to/search?foo=bar&amp;qix=zzz</code></li>
+</ul>
+<p>A JAX-RS resource will typically be written like that.</p>
+<pre><code class="language-java">public static String X_TOTAL_COUNT = &quot;X-Total-Count&quot;;
 
-<span style=color:#3c5d5d;font-weight:700>@Context</span>
-UriInfo uriInfo<span style=color:#000;font-weight:700>;</span>
+@Context
+UriInfo uriInfo;
 
-<span style=color:#3c5d5d;font-weight:700>@GET</span> <span style=color:#3c5d5d;font-weight:700>@Path</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;search&#34;</span><span style=color:#000;font-weight:700>)</span>
-<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>search</span><span style=color:#000;font-weight:700>(</span><span style=color:#3c5d5d;font-weight:700>@BeanParam</span> QueryParams queryParams<span style=color:#000;font-weight:700>,</span>
-                   <span style=color:#3c5d5d;font-weight:700>@Suspended</span> AsyncResponse asyncResponse<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+@GET @Path(&quot;search&quot;)
+public void search(@BeanParam QueryParams queryParams,
+                   @Suspended AsyncResponse asyncResponse) {
 
-    SamePaginated results <span style=color:#000;font-weight:700>=</span> <span style=color:#998;font-style:italic>// get paginated results
-</span><span style=color:#998;font-style:italic></span>    LinkPagination linkPagination <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>new</span> LinkPagination<span style=color:#000;font-weight:700>(</span>results<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPageIndex</span><span style=color:#000;font-weight:700>(),</span>
-                                                       results<span style=color:#000;font-weight:700>.</span><span style=color:teal>pageCount</span><span style=color:#000;font-weight:700>())</span>
+    SamePaginated results = // get paginated results
+    LinkPagination linkPagination = new LinkPagination(results.currentPageIndex(),
+                                                       results.pageCount())
 
-    asyncResponse<span style=color:#000;font-weight:700>.</span><span style=color:teal>resume</span><span style=color:#000;font-weight:700>(</span>Response<span style=color:#000;font-weight:700>.</span><span style=color:teal>ok</span><span style=color:#000;font-weight:700>()</span>
-                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>links</span><span style=color:#000;font-weight:700>(</span>linkPagination<span style=color:#000;font-weight:700>.</span><span style=color:teal>toLinks</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>)</span>
-                                                      <span style=color:#000;font-weight:700>.</span><span style=color:teal>toArray</span><span style=color:#000;font-weight:700>(</span>Link<span style=color:#000;font-weight:700>[]::</span><span style=color:#000;font-weight:700>new</span><span style=color:#000;font-weight:700>))</span>
-                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>header</span><span style=color:#000;font-weight:700>(</span>X_TOTAL_COUNT<span style=color:#000;font-weight:700>,</span> results<span style=color:#000;font-weight:700>.</span><span style=color:teal>totalCount</span><span style=color:#000;font-weight:700>())</span>
-                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>entity</span><span style=color:#000;font-weight:700>(</span>results<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPage</span><span style=color:#000;font-weight:700>())</span>
-                                 <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Notice the class <code>LinkPagination</code> that has the responsibility to create
-the JAX-RS <code>Link</code> instances that have to be used in the response builder.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>import</span> <span style=color:#555>javax.ws.rs.core.Link</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>javax.ws.rs.core.UriInfo</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.util.stream.Stream</span><span style=color:#000;font-weight:700>;</span>
+    asyncResponse.resume(Response.ok()
+                                 .links(linkPagination.toLinks(uriInfo)
+                                                      .toArray(Link[]::new))
+                                 .header(X_TOTAL_COUNT, results.totalCount())
+                                 .entity(results.currentPage())
+                                 .build());
+}
+</code></pre>
+<p>Notice the class <code>LinkPagination</code> that has the responsibility to create
+the JAX-RS <code>Link</code> instances that have to be used in the response builder.</p>
+<pre><code class="language-java">import javax.ws.rs.core.Link;
+import javax.ws.rs.core.UriInfo;
+import java.util.stream.Stream;
 
-<span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>LinkPagination</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String PREV_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;prev&#34;</span><span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String NEXT_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;next&#34;</span><span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String FIRST_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;first&#34;</span><span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String LAST_REL <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;last&#34;</span><span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String PAGE_QUERY_PARAM <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;page&#34;</span><span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> <span style=color:#458;font-weight:700>int</span> FIRST_PAGE <span style=color:#000;font-weight:700>=</span> 1
+public class LinkPagination {
+    public static final String PREV_REL = &quot;prev&quot;;
+    public static final String NEXT_REL = &quot;next&quot;;
+    public static final String FIRST_REL = &quot;first&quot;;
+    public static final String LAST_REL = &quot;last&quot;;
+    public static final String PAGE_QUERY_PARAM = &quot;page&quot;;
+    public static final int FIRST_PAGE = 1
 
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>final</span> <span style=color:#458;font-weight:700>int</span> pageCount<span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>final</span> <span style=color:#458;font-weight:700>int</span> currentPageIndex<span style=color:#000;font-weight:700>;</span>
+    public final int pageCount;
+    public final int currentPageIndex;
 
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#900;font-weight:700>LinkPagination</span><span style=color:#000;font-weight:700>(</span><span style=color:#458;font-weight:700>int</span> currentPageIndex<span style=color:#000;font-weight:700>,</span> <span style=color:#458;font-weight:700>int</span> pageCount<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#998;font-style:italic>/* ... */</span> <span style=color:#000;font-weight:700>}</span>
+    public LinkPagination(int currentPageIndex, int pageCount) { /* ... */ }
 
-    <span style=color:#000;font-weight:700>public</span> Stream<span style=color:#000;font-weight:700>&lt;</span>Link<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#900;font-weight:700>toLinks</span><span style=color:#000;font-weight:700>(</span>UriInfo uriInfo<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(</span>currentPageIndex <span style=color:#000;font-weight:700>==</span> 1 <span style=color:#000;font-weight:700>&amp;&amp;</span> pageCount <span style=color:#000;font-weight:700>==</span> 1<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-            <span style=color:#000;font-weight:700>return</span> Stream<span style=color:#000;font-weight:700>.</span><span style=color:teal>empty</span><span style=color:#000;font-weight:700>();</span>
-        <span style=color:#000;font-weight:700>}</span>
+    public Stream&lt;Link&gt; toLinks(UriInfo uriInfo) {
+        if (currentPageIndex == 1 &amp;&amp; pageCount == 1) {
+            return Stream.empty();
+        }
 
-        Stream<span style=color:#000;font-weight:700>.</span><span style=color:teal>Builder</span><span style=color:#000;font-weight:700>&lt;</span>Link<span style=color:#000;font-weight:700>&gt;</span> linkStreamBuilder <span style=color:#000;font-weight:700>=</span> Stream<span style=color:#000;font-weight:700>.</span><span style=color:teal>builder</span><span style=color:#000;font-weight:700>();</span>
+        Stream.Builder&lt;Link&gt; linkStreamBuilder = Stream.builder();
 
-        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(</span>currentPageIndex <span style=color:#000;font-weight:700>&gt;</span> 1<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-            linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
-                Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
-                                           <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
-                                                              currentPageIndex <span style=color:#000;font-weight:700>-</span> 1<span style=color:#000;font-weight:700>))</span>
-                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>PREV_REL<span style=color:#000;font-weight:700>)</span>
-                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
-        <span style=color:#000;font-weight:700>}</span>
+        if (currentPageIndex &gt; 1) {
+            linkStreamBuilder.accept(
+                Link.fromUriBuilder(uriInfo.getRequestUriBuilder()
+                                           .replaceQueryParam(PAGE_QUERY_PARAM,
+                                                              currentPageIndex - 1))
+                    .rel(PREV_REL)
+                    .build());
+        }
 
-        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(</span>currentPageIndex <span style=color:#000;font-weight:700>&lt;</span> pageCount<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-            linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
-                Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
-                                           <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
-                                                              currentPageIndex <span style=color:#000;font-weight:700>+</span> 1<span style=color:#000;font-weight:700>))</span>
-                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>NEXT_REL<span style=color:#000;font-weight:700>)</span>
-                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
-        <span style=color:#000;font-weight:700>}</span>
+        if (currentPageIndex &lt; pageCount) {
+            linkStreamBuilder.accept(
+                Link.fromUriBuilder(uriInfo.getRequestUriBuilder()
+                                           .replaceQueryParam(PAGE_QUERY_PARAM,
+                                                              currentPageIndex + 1))
+                    .rel(NEXT_REL)
+                    .build());
+        }
 
-        linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
-            Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
-                                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
-                                                          FIRST_PAGE<span style=color:#000;font-weight:700>))</span>
-                <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>FIRST_REL<span style=color:#000;font-weight:700>)</span>
-                <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
+        linkStreamBuilder.accept(
+            Link.fromUriBuilder(uriInfo.getRequestUriBuilder()
+                                       .replaceQueryParam(PAGE_QUERY_PARAM,
+                                                          FIRST_PAGE))
+                .rel(FIRST_REL)
+                .build());
 
-        linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>accept</span><span style=color:#000;font-weight:700>(</span>
-            Link<span style=color:#000;font-weight:700>.</span><span style=color:teal>fromUriBuilder</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>.</span><span style=color:teal>getRequestUriBuilder</span><span style=color:#000;font-weight:700>()</span>
-                                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>replaceQueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>,</span>
-                                                          pageCount<span style=color:#000;font-weight:700>))</span>
-                <span style=color:#000;font-weight:700>.</span><span style=color:teal>rel</span><span style=color:#000;font-weight:700>(</span>LAST_REL<span style=color:#000;font-weight:700>)</span>
-                <span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>());</span>
+        linkStreamBuilder.accept(
+            Link.fromUriBuilder(uriInfo.getRequestUriBuilder()
+                                       .replaceQueryParam(PAGE_QUERY_PARAM,
+                                                          pageCount))
+                .rel(LAST_REL)
+                .build());
 
-        <span style=color:#000;font-weight:700>return</span> linkStreamBuilder<span style=color:#000;font-weight:700>.</span><span style=color:teal>build</span><span style=color:#000;font-weight:700>();</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>The <code>toLinks()</code> method&rsquo;s job is to determine which page relations exists
+        return linkStreamBuilder.build();
+    }
+}
+</code></pre>
+<p>The <code>toLinks()</code> method&rsquo;s job is to determine which page relations exists
 and emit them if necessary. As a side: when there a Link header there&rsquo;s
 usually <em>self</em> Link, the implementation chose not to emit this
-<em>self</em> relation.</p><p><code>uriInfo</code> is used to build the link URI, the Uri builder has useful method
+<em>self</em> relation.</p>
+<p><code>uriInfo</code> is used to build the link URI, the Uri builder has useful method
 that allows replace query params <code>replaceQueryParam(paramName,value)</code>.
 This approach require however to make sure the parameter have the same name ;
 however as developers we understand that pagination is cross cutting concern
 and as such we understand that pagination parameters have to be the same
 across the application. This resource uses the bean param class <code>QueryParams</code>
-that use a constant for page param.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Data</span>
-<span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>QueryParams</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#3c5d5d;font-weight:700>@QueryParam</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;q&#34;</span><span style=color:#000;font-weight:700>)</span> String question<span style=color:#000;font-weight:700>;</span>
+that use a constant for page param.</p>
+<pre><code class="language-java">@Data
+public class QueryParams {
+    @QueryParam(&quot;q&quot;) String question;
 
-    <span style=color:#3c5d5d;font-weight:700>@Min</span><span style=color:#000;font-weight:700>(</span>value <span style=color:#000;font-weight:700>=</span> 1<span style=color:#000;font-weight:700>,</span> message <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;page start at 1&#34;</span><span style=color:#000;font-weight:700>)</span>
-    <span style=color:#3c5d5d;font-weight:700>@QueryParam</span><span style=color:#000;font-weight:700>(</span>PAGE_QUERY_PARAM<span style=color:#000;font-weight:700>)</span> <span style=color:#3c5d5d;font-weight:700>@DefaultValue</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;1&#34;</span><span style=color:#000;font-weight:700>)</span> Integer page<span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Obviously this naming constraint could be improved in various ways outside the
-scope of this blog post.</p><p>However if there&rsquo;s multiple paginated resources, then we want to avoid
+    @Min(value = 1, message = &quot;page start at 1&quot;)
+    @QueryParam(PAGE_QUERY_PARAM) @DefaultValue(&quot;1&quot;) Integer page;
+}
+</code></pre>
+<p>Obviously this naming constraint could be improved in various ways outside the
+scope of this blog post.</p>
+<p>However if there&rsquo;s multiple paginated resources, then we want to avoid
 repeating this code in each JAX-RS resource. Having multiple places with such
 code make more likely to be borken, or harder to benefit from bugfix or updates
-in general. It&rsquo;s time for a better design.</p><h2 id=jax-rs-a-more-generic-approach>JAX-RS, a more generic approach</h2><p>The version 2 of JAX-RS alos brought us <em>filters</em>, they are applied on the
+in general. It&rsquo;s time for a better design.</p>
+<h2 id="jax-rs-a-more-generic-approach">JAX-RS, a more generic approach</h2>
+<p>The version 2 of JAX-RS alos brought us <em>filters</em>, they are applied on the
 request <em>pipeline</em>. There&rsquo;s two type of filters, one integrates in the request
 processing, the second integrates on the response processing. This design
 need to <em>filter</em> the response. The following code implements <code>ContainerResponseFilter</code>
-to identify a <strong>paginated</strong> payload and to emit the links header in the response.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@Provider</span>
-<span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>LinkPaginationContainerResponseFilter</span> <span style=color:#000;font-weight:700>implements</span> ContainerResponseFilter <span style=color:#000;font-weight:700>{</span>
+to identify a <strong>paginated</strong> payload and to emit the links header in the response.</p>
+<pre><code class="language-java">@Provider
+public class LinkPaginationContainerResponseFilter implements ContainerResponseFilter {
 
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String X_TOTAL_COUNT <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;X-Total-Count&#34;</span><span style=color:#000;font-weight:700>;</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#000;font-weight:700>final</span> String X_PAGE_COUNT <span style=color:#000;font-weight:700>=</span> <span style=color:#d14>&#34;X-Page-Count&#34;</span><span style=color:#000;font-weight:700>;</span>
+    public static final String X_TOTAL_COUNT = &quot;X-Total-Count&quot;;
+    public static final String X_PAGE_COUNT = &quot;X-Page-Count&quot;;
 
-    <span style=color:#3c5d5d;font-weight:700>@Override</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>filter</span><span style=color:#000;font-weight:700>(</span>ContainerRequestContext requestContext<span style=color:#000;font-weight:700>,</span>
-                       ContainerResponseContext responseContext<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+    @Override
+    public void filter(ContainerRequestContext requestContext,
+                       ContainerResponseContext responseContext) {
 
-        <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(!(</span>responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getEntity</span><span style=color:#000;font-weight:700>()</span> <span style=color:#000;font-weight:700>instanceof</span> Paginated<span style=color:#000;font-weight:700>))</span> <span style=color:#000;font-weight:700>{</span>
-            <span style=color:#000;font-weight:700>return</span><span style=color:#000;font-weight:700>;</span>
-        <span style=color:#000;font-weight:700>}</span>
+        if (!(responseContext.getEntity() instanceof Paginated)) {
+            return;
+        }
 
-        UriInfo uriInfo <span style=color:#000;font-weight:700>=</span> requestContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getUriInfo</span><span style=color:#000;font-weight:700>();</span>
-        Paginated entity <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>(</span>Paginated<span style=color:#000;font-weight:700>)</span> responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getEntity</span><span style=color:#000;font-weight:700>();</span>
+        UriInfo uriInfo = requestContext.getUriInfo();
+        Paginated entity = (Paginated) responseContext.getEntity();
 
-        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>setEntity</span><span style=color:#000;font-weight:700>(</span>entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPage</span><span style=color:#000;font-weight:700>);</span>
-        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getHeaders</span><span style=color:#000;font-weight:700>()</span>
-                       <span style=color:#000;font-weight:700>.</span><span style=color:teal>addAll</span><span style=color:#000;font-weight:700>(</span>LINK<span style=color:#000;font-weight:700>,</span>
-                               <span style=color:#000;font-weight:700>new</span> LinkPagination<span style=color:#000;font-weight:700>(</span>
-                                   entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>currentPageIndex</span><span style=color:#000;font-weight:700>(),</span>
-                                   entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>pageCount</span><span style=color:#000;font-weight:700>()</span>
-                               <span style=color:#000;font-weight:700>).</span><span style=color:teal>toLinks</span><span style=color:#000;font-weight:700>(</span>uriInfo<span style=color:#000;font-weight:700>).</span><span style=color:teal>toArray</span><span style=color:#000;font-weight:700>(</span>Link<span style=color:#000;font-weight:700>[]::</span><span style=color:#000;font-weight:700>new</span><span style=color:#000;font-weight:700>)</span>
-                       <span style=color:#000;font-weight:700>);</span>
-        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getHeaders</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>add</span><span style=color:#000;font-weight:700>(</span>X_TOTAL_COUNT<span style=color:#000;font-weight:700>,</span> entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>totalCount</span><span style=color:#000;font-weight:700>());</span>
-        responseContext<span style=color:#000;font-weight:700>.</span><span style=color:teal>getHeaders</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>add</span><span style=color:#000;font-weight:700>(</span>X_PAGE_COUNT<span style=color:#000;font-weight:700>,</span> entity<span style=color:#000;font-weight:700>.</span><span style=color:teal>pageCount</span><span style=color:#000;font-weight:700>());</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>This code uses the request&rsquo;s <code>UriInfo</code> in order to build relation links.</p><p>As one can notice the API of <code>ContainerResponseContext</code> is a bit less
+        responseContext.setEntity(entity.currentPage);
+        responseContext.getHeaders()
+                       .addAll(LINK,
+                               new LinkPagination(
+                                   entity.currentPageIndex(),
+                                   entity.pageCount()
+                               ).toLinks(uriInfo).toArray(Link[]::new)
+                       );
+        responseContext.getHeaders().add(X_TOTAL_COUNT, entity.totalCount());
+        responseContext.getHeaders().add(X_PAGE_COUNT, entity.pageCount());
+    }
+}
+</code></pre>
+<p>This code uses the request&rsquo;s <code>UriInfo</code> in order to build relation links.</p>
+<p>As one can notice the API of <code>ContainerResponseContext</code> is a bit less
 comfortable to use than the <code>Response</code> builder API in the regard of Link
-headers (there&rsquo;s no <code>.links()</code> equivalent).</p><p>To activate this filter the entity has to implement <code>Paginated</code>, let&rsquo;s
-declare it on the business <em>DTO</em> <code>SomePaginated</code>.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>interface</span> <span style=color:#458;font-weight:700>Paginated</span><span style=color:#000;font-weight:700>&lt;</span>T<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#000;font-weight:700>{</span>
-    T <span style=color:#900;font-weight:700>currentPage</span><span style=color:#000;font-weight:700>();</span>
-    <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>currentPageIndex</span><span style=color:#000;font-weight:700>();</span>
-    <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>pageCount</span><span style=color:#000;font-weight:700>();</span>
-    <span style=color:#458;font-weight:700>int</span> <span style=color:#900;font-weight:700>totalCount</span><span style=color:#000;font-weight:700>();</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>SomePaginated</span> <span style=color:#000;font-weight:700>implements</span> Paginated<span style=color:#000;font-weight:700>&lt;</span>Page<span style=color:#000;font-weight:700>&gt;</span> <span style=color:#000;font-weight:700>{</span> <span style=color:#998;font-style:italic>/* ... */</span> <span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Then the resource code can be written in much more simplier way :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#3c5d5d;font-weight:700>@GET</span> <span style=color:#3c5d5d;font-weight:700>@Path</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;search&#34;</span><span style=color:#000;font-weight:700>)</span>
-<span style=color:#000;font-weight:700>public</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>search</span><span style=color:#000;font-weight:700>(</span><span style=color:#3c5d5d;font-weight:700>@BeanParam</span> QueryParams queryParams<span style=color:#000;font-weight:700>,</span>
-                   <span style=color:#3c5d5d;font-weight:700>@Suspended</span> AsyncResponse asyncResponse<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
+headers (there&rsquo;s no <code>.links()</code> equivalent).</p>
+<p>To activate this filter the entity has to implement <code>Paginated</code>, let&rsquo;s
+declare it on the business <em>DTO</em> <code>SomePaginated</code>.</p>
+<pre><code class="language-java">public interface Paginated&lt;T&gt; {
+    T currentPage();
+    int currentPageIndex();
+    int pageCount();
+    int totalCount();
+}
+</code></pre>
+<pre><code class="language-java">public class SomePaginated implements Paginated&lt;Page&gt; { /* ... */ }
+</code></pre>
+<p>Then the resource code can be written in much more simplier way :</p>
+<pre><code class="language-java">@GET @Path(&quot;search&quot;)
+public void search(@BeanParam QueryParams queryParams,
+                   @Suspended AsyncResponse asyncResponse) {
 
-    SomePaginated results <span style=color:#000;font-weight:700>=</span> <span style=color:#998;font-style:italic>// get paginated results
-</span><span style=color:#998;font-style:italic></span>    asyncResponse<span style=color:#000;font-weight:700>.</span><span style=color:teal>resume</span><span style=color:#000;font-weight:700>(</span>results<span style=color:#000;font-weight:700>);</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><p>Any future resource can then return any object representing a pagination
+    SomePaginated results = // get paginated results
+    asyncResponse.resume(results);
+}
+</code></pre>
+<p>Any future resource can then return any object representing a pagination
 by making the entity class implements <code>Paginated</code>. The filter will be the
-only place where bugfix or improvements will take place.</p><h1 id=things-to-consider>Things to consider</h1><ul><li><p>Wether the link IRI should be absolute with authority or relative.</p><p>e.g. It may be that there&rsquo;s a front that serves rendered pages on a different
-domain than the domain of the API.</p></li><li><p>Weither the enclosing type of the payload is a collection type or an object.</p><p>An array has the merit to actually represent a collection of items. However
+only place where bugfix or improvements will take place.</p>
+<h1 id="things-to-consider">Things to consider</h1>
+<ul>
+<li>
+<p>Wether the link IRI should be absolute with authority or relative.</p>
+<p>e.g. It may be that there&rsquo;s a front that serves rendered pages on a different
+domain than the domain of the API.</p>
+</li>
+<li>
+<p>Weither the enclosing type of the payload is a collection type or an object.</p>
+<p>An array has the merit to actually represent a collection of items. However
 the server may want to expose business meta-data, related to the items
 returned, like A/B testing flags, or search flags if is a search, etc. This
 information may be exposed via headers, but is it the right place for
-business data ?</p></li><li><p>That last point lead to another thought, if meta-data are in the payload
-does the pagination data must be there as well ?</p><p>My opinion is it shouldn&rsquo;t. The pagination is elated to the protocol and
+business data ?</p>
+</li>
+<li>
+<p>That last point lead to another thought, if meta-data are in the payload
+does the pagination data must be there as well ?</p>
+<p>My opinion is it shouldn&rsquo;t. The pagination is elated to the protocol and
 how to access pages of a resource, while other business related data isn&rsquo;t.
 Besides having this pagination data in the response headers don&rsquo;t force
-someone to parse the payload to access and use them.</p></li></ul><hr><p><a href=https://psamsotha.github.io/jersey/2017/01/07/jersey-pagination-with-spring-data.html>Blog post</a>
+someone to parse the payload to access and use them.</p>
+</li>
+</ul>
+<hr>
+<p><a href="https://psamsotha.github.io/jersey/2017/01/07/jersey-pagination-with-spring-data.html">Blog post</a>
 on the same topic but focusing specifically on how to handle
-the pagination with a DB and only with Jersey.</p></div><div class="navigation navigation-single"><a href=/2017/10/02/pagination_hateoas_link/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Pagination en JAX-RS 2.0 avec le header Link</span></a>
-<a href=/2017/10/19/self-signed-certificates-in-java.en/ class=navigation-next><span class=navigation-tittle>HTTPS in Java with a self-signed certificate</span>
-<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2017/10/02/pagination_hateoas_link.en/';this.page.title='JAX-RS 2.0 pagination with Link header';this.page.url='https://blog.arkey.fr/2017/10/02/pagination_hateoas_link.en/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
-var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>
+the pagination with a DB and only with Jersey.</p>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2017/10/02/pagination_hateoas_link/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Pagination en JAX-RS 2.0 avec le header Link</span>
+    </a>
+    
+    
+    <a href="/2017/10/19/self-signed-certificates-in-java.en/" class="navigation-next">
+      <span class="navigation-tittle">HTTPS in Java with a self-signed certificate</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2017/10/02/pagination_hateoas_link.en/';
+        this.page.title = 'JAX-RS 2.0 pagination with Link header';
+        this.page.url = 'https://blog.arkey.fr/2017/10/02/pagination_hateoas_link.en/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

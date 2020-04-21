@@ -1,97 +1,501 @@
-<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>Problème de connexion à Oracle • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="Problème de connexion à Oracle"><meta name=twitter:description content="Deux problèmes assez courant peuvent survenir sur les connexions à une base de donnée Oracle. Ces problèmes peuvent être à l’origine de timeout sur les connexions HTTP, etc…
-Ces deux problèmes touchent deux choses totalement différente, l’entropie du système et la coupure de connexion par un firewall."><meta property="og:title" content="Problème de connexion à Oracle"><meta property="og:description" content="Deux problèmes assez courant peuvent survenir sur les connexions à une base de donnée Oracle. Ces problèmes peuvent être à l’origine de timeout sur les connexions HTTP, etc…
-Ces deux problèmes touchent deux choses totalement différente, l’entropie du système et la coupure de connexion par un firewall."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2015/11/06/probleme-de-connection-a-oracle/"><meta property="article:published_time" content="2015-11-06T22:33:53+00:00"><meta property="article:modified_time" content="2015-11-06T22:33:53+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.6366af944b58e6d912da2a2b073bc9b52dec0f12cf23aee0e8db5cc0cc9aaf59.css integrity="sha256-Y2avlEtY5tkS2iorBzvJtS3sDxLPI67g6NtcwMyar1k="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
-<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
-<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
-<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
-<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
-<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
-<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>Problème de connexion à Oracle</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2015-11-06<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/prod>prod</a>
-<a class="badge badge-tag" href=/tags/tips>tips</a>
-<a class="badge badge-tag" href=/tags/entropie>entropie</a>
-<a class="badge badge-tag" href=/tags/entropy>entropy</a>
-<a class="badge badge-tag" href=/tags/firewall>firewall</a>
-<a class="badge badge-tag" href=/tags/jdbc>jdbc</a>
-<a class="badge badge-tag" href=/tags/keepalive>keepalive</a>
-<a class="badge badge-tag" href=/tags/oracle>oracle</a>
-<a class="badge badge-tag" href=/tags/random>random</a><br><i class="fas fa-clock"></i>7 min read</div></header><div class=post><p>Deux problèmes assez courant peuvent survenir sur les connexions à une base de donnée Oracle. Ces problèmes peuvent
-être à l’origine de timeout sur les connexions HTTP, etc…</p><p>Ces deux problèmes touchent deux choses totalement différente, l’entropie du système et la coupure de connexion par
-un firewall.</p><h1 id=manque-dentropie>Manque d&rsquo;Entropie</h1><p>Pourquoi l’entropie ? L’entropie est une mesure de l’incertitude d’un message par rapport à celui qui le précède.
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Problème de connexion à Oracle • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Problème de connexion à Oracle"/>
+<meta name="twitter:description" content="Deux problèmes assez courant peuvent survenir sur les connexions à une base de donnée Oracle. Ces problèmes peuvent être à l’origine de timeout sur les connexions HTTP, etc…
+Ces deux problèmes touchent deux choses totalement différente, l’entropie du système et la coupure de connexion par un firewall."/>
+
+<meta property="og:title" content="Problème de connexion à Oracle" />
+<meta property="og:description" content="Deux problèmes assez courant peuvent survenir sur les connexions à une base de donnée Oracle. Ces problèmes peuvent être à l’origine de timeout sur les connexions HTTP, etc…
+Ces deux problèmes touchent deux choses totalement différente, l’entropie du système et la coupure de connexion par un firewall." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2015/11/06/probleme-de-connection-a-oracle/" />
+<meta property="article:published_time" content="2015-11-06T22:33:53+00:00" />
+<meta property="article:modified_time" content="2015-11-06T22:33:53+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css">
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.4f7a9eea99b1ffe5dcdd1e948a610c331be6316c39a65d78979aa9eed6a6105d.css" integrity="sha256-T3qe6pmx/&#43;Xc3R6UimEMMxvmMWw5pl14l5qp7tamEF0=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/svg-with-js.min.css" integrity="sha256-GyCVXSM0LI7EPORc9EWykRKWjlig49LoHPKt6s8NjBg=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>Problème de connexion à Oracle</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2015-11-06
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/prod">prod</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/tips">tips</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/entropie">entropie</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/entropy">entropy</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/firewall">firewall</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jdbc">jdbc</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/keepalive">keepalive</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/oracle">oracle</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/random">random</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 7 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <p>Deux problèmes assez courant peuvent survenir sur les connexions à une base de donnée Oracle. Ces problèmes peuvent
+être à l’origine de timeout sur les connexions HTTP, etc…</p>
+<p>Ces deux problèmes touchent deux choses totalement différente, l’entropie du système et la coupure de connexion par
+un firewall.</p>
+<h1 id="manque-dentropie">Manque d&rsquo;Entropie</h1>
+<p>Pourquoi l’entropie ? L’entropie est une mesure de l’incertitude d’un message par rapport à celui qui le précède.
 Sur un système POSIX c’est <code>/dev/random</code> qui est mesuré avec l’entropie. La JVM utilise ce device
 pour la génération de nombres aléatoires avec la classe <code>SecureRandom</code> qui est souvent utilisé pour des fonctions
-<em>cryptographique</em>.</p><p>Le driver Oracle 11g <em>(probablement dans les versions précédentes aussi)</em> établit un lien sécurisé avec la base donnée
-pour protéger les échanges de credentials lors de l&rsquo;initialisation d&rsquo;une nouvelle connexion.</p><p>Le problème vient du fait que la lecture dans <code>/dev/random</code> est bloquante tant que le système (Linux, BSD, etc.)
+<em>cryptographique</em>.</p>
+<p>Le driver Oracle 11g <em>(probablement dans les versions précédentes aussi)</em> établit un lien sécurisé avec la base donnée
+pour protéger les échanges de credentials lors de l&rsquo;initialisation d&rsquo;une nouvelle connexion.</p>
+<p>Le problème vient du fait que la lecture dans <code>/dev/random</code> est bloquante tant que le système (Linux, BSD, etc.)
 considère qu’il n’y a pas assez d’entropie. Heureusement en bon lecteur de la javadoc il y a une note
-sur <code>SecureRandom</code> pour nous aider à résoudre le problème.</p><blockquote><p>Note: Depending on the implementation, the generateSeed and nextBytes methods may block as entropy is being gathered,
-for example, if they need to read from /dev/random on various unix-like operating systems.</p></blockquote><h2 id=la-solution>La solution</h2><p>Java permet de changer la source du random avec la propriété <code>java.security.egd</code> (egd = entropy gathering device).
-Sur les systèmes UNIX il y a deux devices:</p><ul><li><code>/dev/random</code> Source <strong>bloquante</strong> de nombres aléatoires</li><li><code>/dev/urandom</code> Source <strong>non-bloquante</strong> de nombre aléatoires</li></ul><p>Sur la ligne de commande ça se passe comme ça :</p><pre><code>-Djava.security.egd=file:/dev/./urandom
-</code></pre><p>Ainsi si en choisissant le device <code>/dev/urandom</code> on aurait résolu le problème d&rsquo;entropie. Pas si vite !</p><p>Les deux sources <a href=http://linux.die.net/man/4/random><code>/dev/random</code></a> et
-<a href=http://linux.die.net/man/4/urandom><code>/dev/urandom</code></a> utilisent le même mécanisme, basé sur un CSPRNG (cryptographic
+sur <code>SecureRandom</code> pour nous aider à résoudre le problème.</p>
+<blockquote>
+<p>Note: Depending on the implementation, the generateSeed and nextBytes methods may block as entropy is being gathered,
+for example, if they need to read from /dev/random on various unix-like operating systems.</p>
+</blockquote>
+<h2 id="la-solution">La solution</h2>
+<p>Java permet de changer la source du random avec la propriété <code>java.security.egd</code> (egd = entropy gathering device).
+Sur les systèmes UNIX il y a deux devices:</p>
+<ul>
+<li><code>/dev/random</code> Source <strong>bloquante</strong> de nombres aléatoires</li>
+<li><code>/dev/urandom</code> Source <strong>non-bloquante</strong> de nombre aléatoires</li>
+</ul>
+<p>Sur la ligne de commande ça se passe comme ça :</p>
+<pre><code>-Djava.security.egd=file:/dev/./urandom
+</code></pre>
+<p>Ainsi si en choisissant le device <code>/dev/urandom</code> on aurait résolu le problème d&rsquo;entropie. Pas si vite !</p>
+<p>Les deux sources <a href="http://linux.die.net/man/4/random"><code>/dev/random</code></a> et
+<a href="http://linux.die.net/man/4/urandom"><code>/dev/urandom</code></a> utilisent le même mécanisme, basé sur un CSPRNG (cryptographic
 pseudo-random number generator), la différence étant que <code>/dev/urandom</code> peut fournir des nombres avec une entropie
-moins élevée afin de ne pas être bloquant.</p><p><img src=http://www.2uo.de/myths-about-urandom/structure-yes.png alt=Entropy>
-<em>Source : <a href=http://www.2uo.de/myths-about-urandom/>http://www.2uo.de/myths-about-urandom/</a></em></p><blockquote><p>A read from the /dev/urandom device will not block waiting for more entropy. As a result, if there is not sufficient
+moins élevée afin de ne pas être bloquant.</p>
+<p><img src="http://www.2uo.de/myths-about-urandom/structure-yes.png" alt="Entropy">
+<em>Source : <a href="http://www.2uo.de/myths-about-urandom/">http://www.2uo.de/myths-about-urandom/</a></em></p>
+<blockquote>
+<p>A read from the /dev/urandom device will not block waiting for more entropy. As a result, if there is not sufficient
 entropy in the entropy pool, the returned values are theoretically vulnerable to a cryptographic attack on the
 algorithms used by the driver. Knowledge of how to do this is not available in the current unclassified literature,
 but it is theoretically possible that such an attack may exist. If this is a concern in your application,
-use /dev/random instead.</p></blockquote><p>Quoiqu&rsquo;il en soit ce n&rsquo;est pas sensé être un soucis pour l'établissement de connexions SSH ou à la base de donnée.
-Pour la génération de clef SSH c&rsquo;est une autre histoire.</p><hr><p>D&rsquo;après la page <code>man</code> le scénario catastrophe, <strong>si un attaquant a accès à la machine</strong>, serait que celui-ci arrive
+use /dev/random instead.</p>
+</blockquote>
+<p>Quoiqu&rsquo;il en soit ce n&rsquo;est pas sensé être un soucis pour l'établissement de connexions SSH ou à la base de donnée.
+Pour la génération de clef SSH c&rsquo;est une autre histoire.</p>
+<hr>
+<p>D&rsquo;après la page <code>man</code> le scénario catastrophe, <strong>si un attaquant a accès à la machine</strong>, serait que celui-ci arrive
 à connaitre ou à déterminer quel seraient les prochains nombres qui sortiront de <code>/dev/urandom</code>, donc de <code>SecureRandom</code>,
-et ainsi de reconstruire les éléments cryptographiques tel que des clés privées.</p><h2 id=dans-les-faits-ce-scénario-est-très-peu-probable>Dans les faits ce scénario est très peu probable.</h2><blockquote><p>If you are unsure about whether you should use /dev/random or /dev/urandom, then probably you want to use the latter.
-As a general rule, /dev/urandom should be used for everything except long-lived GPG/SSL/SSH keys.</p></blockquote><p>En revanche sur des serveurs fortement chargés et parceque cette modification touche la JVM, On peut vouloir entretenir
-le niveau d&rsquo;entropie.</p><h2 id=ajouter-de-lentropie>Ajouter de l&rsquo;entropie</h2><p>Les OS alimentent <code>/dev/random</code> généralement à partir de plusieurs sources, comme :</p><ul><li>les sondes de température,</li><li>l’activité du CPU,</li><li>le trafic réseau,</li></ul><p>De retour au problème initial, suivant les aléas de ces sources l&rsquo;OS sera capable de maintenir une bonne entropie,
+et ainsi de reconstruire les éléments cryptographiques tel que des clés privées.</p>
+<h2 id="dans-les-faits-ce-scénario-est-très-peu-probable">Dans les faits ce scénario est très peu probable.</h2>
+<blockquote>
+<p>If you are unsure about whether you should use /dev/random or /dev/urandom, then probably you want to use the latter.
+As a general rule, /dev/urandom should be used for everything except long-lived GPG/SSL/SSH keys.</p>
+</blockquote>
+<p>En revanche sur des serveurs fortement chargés et parceque cette modification touche la JVM, On peut vouloir entretenir
+le niveau d&rsquo;entropie.</p>
+<h2 id="ajouter-de-lentropie">Ajouter de l&rsquo;entropie</h2>
+<p>Les OS alimentent <code>/dev/random</code> généralement à partir de plusieurs sources, comme :</p>
+<ul>
+<li>les sondes de température,</li>
+<li>l’activité du CPU,</li>
+<li>le trafic réseau,</li>
+</ul>
+<p>De retour au problème initial, suivant les aléas de ces sources l&rsquo;OS sera capable de maintenir une bonne entropie,
 sinon il <em>bloque</em> la lecture de <code>/dev/random</code> tant qu&rsquo;il n&rsquo;y a pas assez d&rsquo;entropie (selon les euils configuré de l&rsquo;OS).
-En utilisant <code>/dev/urandom</code> l&rsquo;entropie est potentiellement moins bonne.</p><p>Pour celà <strong>l’idée est donc d’aider l’OS à entretenir l&rsquo;entropie</strong>, plusieurs solutions existent, soit hardware soit
-software. Mais l&rsquo;idée maître est que ces solutions <em>contribuent</em> leur entropie.</p><p>Coté logiciel, les <em>démons</em> suivant peuvent être mis en place</p><ul><li>Haveged</li><li>Frandom</li><li>rng-tools</li></ul><p><strong>HAVEGED</strong> utilise comme <em>source</em> les états des composants internes des processeurs modernes pour augmenter
+En utilisant <code>/dev/urandom</code> l&rsquo;entropie est potentiellement moins bonne.</p>
+<p>Pour celà <strong>l’idée est donc d’aider l’OS à entretenir l&rsquo;entropie</strong>, plusieurs solutions existent, soit hardware soit
+software. Mais l&rsquo;idée maître est que ces solutions <em>contribuent</em> leur entropie.</p>
+<p>Coté logiciel, les <em>démons</em> suivant peuvent être mis en place</p>
+<ul>
+<li>Haveged</li>
+<li>Frandom</li>
+<li>rng-tools</li>
+</ul>
+<p><strong>HAVEGED</strong> utilise comme <em>source</em> les états des composants internes des processeurs modernes pour augmenter
 significativement l’entropie du système.
-À noter : il tourne dans le user space donc assez facile à installer.</p><p>Passons au deuxième soucis : les coupures de connexions.</p><h1 id=coupure-de-connexion-par-le-firewall>Coupure de connexion par le Firewall</h1><p>Suivant les infras, en fonction des besoins de légalité, il faut protéger les bases de données par un firewall.
+À noter : il tourne dans le user space donc assez facile à installer.</p>
+<p>Passons au deuxième soucis : les coupures de connexions.</p>
+<h1 id="coupure-de-connexion-par-le-firewall">Coupure de connexion par le Firewall</h1>
+<p>Suivant les infras, en fonction des besoins de légalité, il faut protéger les bases de données par un firewall.
 Ce firewall va inspecter et protéger les équipements derrière mais il fait aussi de <em>l’assainissement de connexions
-TCP</em>, c&rsquo;est-à-dire qu&rsquo;il va couper les connexions inactives au bout d’un certain temps.</p><h2 id=le-pool-de-connexion>Le pool de connexion</h2><p>De manière générale un serveur d&rsquo;application est configuré avec une <code>DataSource</code> pour faire du connexion pooling ;
+TCP</em>, c&rsquo;est-à-dire qu&rsquo;il va couper les connexions inactives au bout d’un certain temps.</p>
+<h2 id="le-pool-de-connexion">Le pool de connexion</h2>
+<p>De manière générale un serveur d&rsquo;application est configuré avec une <code>DataSource</code> pour faire du connexion pooling ;
 en effet la création d&rsquo;une connexion est cher et augmente le temps de latence du service, le but du pool est donc
 de partager les connexions une fois que celles-ci ne sont plus utilisées. En revanche quand le pool donne une
 connexion il ne sait pas forcement qu’elle à été fermé par un composant tierce (un firewall).
 Heureusement la plupart des pools implémente un mécanisme de vérification qui peut s&rsquo;effectuer à différentes étapes
-de l&rsquo;utilsation de la connexion.</p><p>Pour traiter ce problème de coupure de connexion par le firewall il faudra activer les bonnes options
-au niveau du pool, par exemple afin de vérifier les connexions régulièrement avec <code>tomcat-jdbc</code> :</p><ul><li><code>minEvictableIdleTimeMillis</code> : The minimum amount of time an object may sit idle in the pool before it is
-eligible for eviction. The default value is 60000 (60 seconds).</li><li><code>timeBetweenEvictionRunsMillis</code> : The number of milliseconds to sleep between runs of the idle connection
+de l&rsquo;utilsation de la connexion.</p>
+<p>Pour traiter ce problème de coupure de connexion par le firewall il faudra activer les bonnes options
+au niveau du pool, par exemple afin de vérifier les connexions régulièrement avec <code>tomcat-jdbc</code> :</p>
+<ul>
+<li><code>minEvictableIdleTimeMillis</code> : The minimum amount of time an object may sit idle in the pool before it is
+eligible for eviction. The default value is 60000 (60 seconds).</li>
+<li><code>timeBetweenEvictionRunsMillis</code> : The number of milliseconds to sleep between runs of the idle connection
 validation/cleaner thread. This value should not be set under 1 second. It dictates how often we check for
-idle, abandoned connections, and how often we validate idle connections. The default value is <code>5000</code> (5 seconds).</li></ul><p>Ci-dessous un exemple de déclaration de <code>DataSource</code>, paramètres qui devront bien sûr être adpatés à votre instrastructure.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-xml data-lang=xml><span style=color:navy>&lt;Resource</span> <span style=color:teal>name=</span><span style=color:#d14>&#34;Locator&#34;</span>
-      <span style=color:teal>type=</span><span style=color:#d14>&#34;javax.sql.DataSource&#34;</span>
-      <span style=color:teal>factory=</span><span style=color:#d14>&#34;org.apache.tomcat.jdbc.pool.DataSourceFactory&#34;</span>
-      <span style=color:teal>testOnBorrow=</span><span style=color:#d14>&#34;true&#34;</span> <span style=color:teal>driverClassName=</span><span style=color:#d14>&#34;oracle.jdbc.OracleDriver&#34;</span>
-      <span style=color:teal>validationInterval=</span><span style=color:#d14>&#34;30000&#34;</span>
-      <span style=color:teal>validationQuery=</span><span style=color:#d14>&#34;SELECT 1 FROM DUAL&#34;</span>
-      <span style=color:#a61717;background-color:#e3d2d2>...</span>
-      <span style=color:teal>timeBetweenEvictionRunsMillis=</span><span style=color:#d14>&#34;30000&#34;</span>
-      <span style=color:teal>minEvictableIdleTimeMillis=</span><span style=color:#d14>&#34;60000&#34;</span>
-      <span style=color:teal>url=</span><span style=color:#d14>&#34;jdbc:oracle:thin:@...&#34;</span>
-      <span style=color:#a61717;background-color:#e3d2d2>...</span>
-      <span style=color:navy>&gt;</span>
-<span style=color:navy>&lt;/Resource&gt;</span>
-</code></pre></div><p>Il y a plusieurs implémentations de pool, ceux-ci ont un fonctionnement plus ou moins abouti et donc offrent
+idle, abandoned connections, and how often we validate idle connections. The default value is <code>5000</code> (5 seconds).</li>
+</ul>
+<p>Ci-dessous un exemple de déclaration de <code>DataSource</code>, paramètres qui devront bien sûr être adpatés à votre instrastructure.</p>
+<pre><code class="language-xml">&lt;Resource name=&quot;Locator&quot;
+      type=&quot;javax.sql.DataSource&quot;
+      factory=&quot;org.apache.tomcat.jdbc.pool.DataSourceFactory&quot;
+      testOnBorrow=&quot;true&quot; driverClassName=&quot;oracle.jdbc.OracleDriver&quot;
+      validationInterval=&quot;30000&quot;
+      validationQuery=&quot;SELECT 1 FROM DUAL&quot;
+      ...
+      timeBetweenEvictionRunsMillis=&quot;30000&quot;
+      minEvictableIdleTimeMillis=&quot;60000&quot;
+      url=&quot;jdbc:oracle:thin:@...&quot;
+      ...
+      &gt;
+&lt;/Resource&gt;
+</code></pre>
+<p>Il y a plusieurs implémentations de pool, ceux-ci ont un fonctionnement plus ou moins abouti et donc offrent
 une configuration plus ou moins fine voire différente (ex: HirakiCP). Il faudra donc consulter la documentation
-des options pour corriger le problème.</p><p><strong>Quoiqu’il en soit cette option n’est pas optimale car elle ne traite pas le problème de rupture de connexion à sa source.</strong></p><h2 id=tcp-keepalive>TCP Keepalive</h2><p><strong>TCP</strong>, le protocole réseau sur lequel transite la connexion oracle, fourni un mécanisme de keepalive.
+des options pour corriger le problème.</p>
+<p><strong>Quoiqu’il en soit cette option n’est pas optimale car elle ne traite pas le problème de rupture de connexion à sa source.</strong></p>
+<h2 id="tcp-keepalive">TCP Keepalive</h2>
+<p><strong>TCP</strong>, le protocole réseau sur lequel transite la connexion oracle, fourni un mécanisme de keepalive.
 Ce mécanisme va envoyer un paquet sur la connexion pour que les équipements de l’infrastructure réseau dont le fameux
-firewall maintiennent cette connexion ouverte.</p><p>Dans l&rsquo;univers Java il faut passer la bonne option à l’ouverture de la socket
-<a href=http://docs.oracle.com/javase/7/docs/api/java/net/SocketOptions.html#SO_KEEPALIVE><code>SopcketOptions.SO_KEEPALIVE</code></a>.
+firewall maintiennent cette connexion ouverte.</p>
+<p>Dans l&rsquo;univers Java il faut passer la bonne option à l’ouverture de la socket
+<a href="http://docs.oracle.com/javase/7/docs/api/java/net/SocketOptions.html#SO_KEEPALIVE"><code>SopcketOptions.SO_KEEPALIVE</code></a>.
 La plupart des drivers, frameworks exposent une API pour activer cette option. Il en est de même avec le driver
-JDBC Oracle.</p><p>D’après la <a href=http://docs.oracle.com/cd/E11882_01/java.112/e16548/apxtblsh.htm#JJDBC28984>documentation Oracle</a> il y a
-plusieurs moyens de configurer le driver JDBC pour travailler avec un firewall.</p><p>Dans le cas d’une configuration style <code>TNSNAMES</code> il faudra utiliser la chaine suivante <code>ENABLE=BROKEN</code> pour activer
-le keepalive. Par exemple :</p><pre><code>jdbc:oracle:thin:@(DESCRIPTION=(ENABLE=BROKEN)(ADDRESS=(PROTOCOL=tcp)(PORT=1521)(HOST=myhost))(CONNECT_DATA=(SID=orcl)))
-</code></pre><p>Dans le cas d’une configuration sans <code>TNSNAMES</code> il faut passer la propriété <code>oracle.net.keepAlive</code> à <code>true</code>
+JDBC Oracle.</p>
+<p>D’après la <a href="http://docs.oracle.com/cd/E11882_01/java.112/e16548/apxtblsh.htm#JJDBC28984">documentation Oracle</a> il y a
+plusieurs moyens de configurer le driver JDBC pour travailler avec un firewall.</p>
+<p>Dans le cas d’une configuration style <code>TNSNAMES</code> il faudra utiliser la chaine suivante <code>ENABLE=BROKEN</code> pour activer
+le keepalive. Par exemple :</p>
+<pre><code>jdbc:oracle:thin:@(DESCRIPTION=(ENABLE=BROKEN)(ADDRESS=(PROTOCOL=tcp)(PORT=1521)(HOST=myhost))(CONNECT_DATA=(SID=orcl)))
+</code></pre>
+<p>Dans le cas d’une configuration sans <code>TNSNAMES</code> il faut passer la propriété <code>oracle.net.keepAlive</code> à <code>true</code>
 programmatiquement via les properties passée à l’API JDBC
 <code>java.sql.DriverManager#getConnection(java.lang.String, java.util.Properties)</code>. Attention à la casse des caractères!
-Les propriété non documentées du driver sont disponible sur la javadoc de <a href=http://download.oracle.com/otn_hosted_doc/jdeveloper/905/jdbc-javadoc/index.html?constant-values.html><code>oracle.jdbc.OracleConnection</code></a></p><p>Enfin, dans tout les cas il faut aussi configurer le keepalive sur l’OS
-Sur Linux par exemple, la <a href=http://tldp.org/HOWTO/TCP-Keepalive-HOWTO/usingkeepalive.html>documentation</a> indique
-comment il faut faire our les configurer. Et pour vérifier qu’il correspondent aux valeurs souhaitées :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh>$ cat /proc/sys/net/ipv4/tcp_keepalive_time
-<span style=color:#099>2400</span>
+Les propriété non documentées du driver sont disponible sur la javadoc de <a href="http://download.oracle.com/otn_hosted_doc/jdeveloper/905/jdbc-javadoc/index.html?constant-values.html"><code>oracle.jdbc.OracleConnection</code></a></p>
+<p>Enfin, dans tout les cas il faut aussi configurer le keepalive sur l’OS
+Sur Linux par exemple, la <a href="http://tldp.org/HOWTO/TCP-Keepalive-HOWTO/usingkeepalive.html">documentation</a> indique
+comment il faut faire our les configurer. Et pour vérifier qu’il correspondent aux valeurs souhaitées :</p>
+<pre><code class="language-sh">$ cat /proc/sys/net/ipv4/tcp_keepalive_time
+2400
 $ cat /proc/sys/net/ipv4/tcp_keepalive_intvl
-<span style=color:#099>75</span>
+75
 $ cat /proc/sys/net/ipv4/tcp_keepalive_probes
-<span style=color:#099>6</span>
-</code></pre></div><p>Ces paramètres disent :</p><ul><li>la pile TCP enverra la première sonde (premier paquet de keepalive) au bout de <strong><code>40min</code></strong>,</li><li>attendra <strong><code>75</code></strong> millisecondes avant de renvoyer une sonde</li><li>dans la limite de <strong><code>6</code></strong> essais.</li><li>Si aucun pacquet <code>ACK</code> n’est reçu alors la connexion est reconnue par l’OS comme fermée.</li></ul><p>Il faut régler ces paramètres en accord avec les réglages des équipements réseau qui constitue l&rsquo;infrastructure.</p><p>À noter que la documention indique bien que le <strong>keepalive</strong> est un comportement à activer volontairement,
-d’ou la présence de l’option <code>SopcketOptions.SO_KEEPALIVE</code> dans le JDK.</p><blockquote><p>Remember that keepalive support, even if configured in the kernel, is not the default behavior in Linux. Programs must request keepalive control for their sockets using the setsockopt interface.</p></blockquote></div><div class="navigation navigation-single"><a href=/2015/08/07/generer-le-script-ddl-programmatiquement-avec-hibernate-4-x/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Générer le script DDL programmatiquement avec Hibernate 4.x</span></a>
-<a href=/2015/11/16/1password-wine/ class=navigation-next><span class=navigation-tittle>Install 1Password & browser agent with wine on Linux</span>
-<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2015/11/06/probleme-de-connection-a-oracle/';this.page.title='Problème de connexion à Oracle';this.page.url='https://blog.arkey.fr/2015/11/06/probleme-de-connection-a-oracle/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
-var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>
+6
+</code></pre>
+<p>Ces paramètres disent :</p>
+<ul>
+<li>la pile TCP enverra la première sonde (premier paquet de keepalive) au bout de <strong><code>40min</code></strong>,</li>
+<li>attendra <strong><code>75</code></strong> millisecondes avant de renvoyer une sonde</li>
+<li>dans la limite de <strong><code>6</code></strong> essais.</li>
+<li>Si aucun pacquet <code>ACK</code> n’est reçu alors la connexion est reconnue par l’OS comme fermée.</li>
+</ul>
+<p>Il faut régler ces paramètres en accord avec les réglages des équipements réseau qui constitue l&rsquo;infrastructure.</p>
+<p>À noter que la documention indique bien que le <strong>keepalive</strong> est un comportement à activer volontairement,
+d’ou la présence de l’option <code>SopcketOptions.SO_KEEPALIVE</code> dans le JDK.</p>
+<blockquote>
+<p>Remember that keepalive support, even if configured in the kernel, is not the default behavior in Linux. Programs must request keepalive control for their sockets using the setsockopt interface.</p>
+</blockquote>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2015/08/07/generer-le-script-ddl-programmatiquement-avec-hibernate-4-x/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Générer le script DDL programmatiquement avec Hibernate 4.x</span>
+    </a>
+    
+    
+    <a href="/2015/11/16/1password-wine/" class="navigation-next">
+      <span class="navigation-tittle">Install 1Password &amp; browser agent with wine on Linux</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2015/11/06/probleme-de-connection-a-oracle/';
+        this.page.title = 'Problème de connexion à Oracle';
+        this.page.url = 'https://blog.arkey.fr/2015/11/06/probleme-de-connection-a-oracle/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>

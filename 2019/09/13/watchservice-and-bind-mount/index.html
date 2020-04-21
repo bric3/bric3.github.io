@@ -1,63 +1,317 @@
-<!doctype html><html lang=en><head><link href=https://gmpg.org/xfn/11 rel=profile><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta http-equiv=cache-control content="public"><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1"><meta name=generator content="Hugo 0.69.0"><title>When Java's WatchService is not the right tool in a container • The Coffee Workshop</title><meta name=twitter:card content="summary"><meta name=twitter:title content="When Java's WatchService is not the right tool in a container"><meta name=twitter:description content="Boring code that should be written once and run everywhere Suppose the application you&rsquo;re working on needs to monitor changes to a file and rely on Java&rsquo;s WatchService introduced in Java 7."><meta property="og:title" content="When Java's WatchService is not the right tool in a container"><meta property="og:description" content="Boring code that should be written once and run everywhere Suppose the application you&rsquo;re working on needs to monitor changes to a file and rely on Java&rsquo;s WatchService introduced in Java 7."><meta property="og:type" content="article"><meta property="og:url" content="https://blog.arkey.fr/2019/09/13/watchservice-and-bind-mount/"><meta property="article:published_time" content="2019-09-13T00:00:00+00:00"><meta property="article:modified_time" content="2019-09-13T00:00:00+00:00"><meta property="og:site_name" content="Arkey"><link rel=stylesheet href=/scss/hyde-hyde.6366af944b58e6d912da2a2b073bc9b52dec0f12cf23aee0e8db5cc0cc9aaf59.css integrity="sha256-Y2avlEtY5tkS2iorBzvJtS3sDxLPI67g6NtcwMyar1k="><link rel=stylesheet href=/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58+TzH3icCkSHGoJ+ed7w=" media=print><!--[if lt IE 9]><script src=https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js></script><script src=https://oss.maxcdn.com/respond/1.4.2/respond.min.js></script><![endif]--><link rel=apple-touch-icon-precomposed sizes=72x72 href=/apple-touch-icon-72-precomposed.png><link rel=apple-touch-icon-precomposed sizes=114x114 href=/apple-touch-icon-114-precomposed.png><link rel=apple-touch-icon-precomposed sizes=144x144 href=/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" sizes=192x192 href=/android-192-favicon.png><link rel="shortcut icon" href=/android-192-favicon.png></head><body><div class=sidebar><div class=container><div class=sidebar-about><span class=site__title><a href=https://blog.arkey.fr>The Coffee Workshop</a></span><div class=author-image><img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt=gravatar></div><p class=site__description>Java mostly, and general tech</p></div><div class=collapsible-menu><input type=checkbox id=menuToggle>
-<label for=menuToggle>The Coffee Workshop</label><div class=menu-content><div><ul class=sidebar-nav><li><a href=/><span class=fa-icon><i class="fas fa-home"></i></span><code>cd <em>~</em></code>
-<span></span></a></li><li><a href=/posts/><span class=fa-icon><i class="fas fa-stream"></i></span><code>ls <em>posts/*</em></code>
-<span></span></a></li><li><a href=/series/><span class=fa-icon><i class="fas fa-list-alt"></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/tags/><span class=fa-icon><i class="fas fa-tags"></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
-<span></span></a></li><li><a href=/cool-stuff/><span class=fa-icon><i class="fas fa-thumbtack"></i></span><code>cd <em>cool-stuff</em></code>
-<span></span></a></li><li><a href=/whoami/><span class=fa-icon><i class="fas fa-id-card"></i></span><code>whoami</code>
-<span></span></a></li></ul></div><section class=social><a href=https://twitter.com/@BriceDutheil rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentcolor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645.0 138.72-105.583 298.558-298.558 298.558-59.452.0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055.0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421.0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391.0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04.0-57.828 46.782-104.934 104.934-104.934 30.213.0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg></a><a href=https://github.com/bric3 rel=me><i class="fab fa-github fa-lg" aria-hidden=true></i></a><a href=https://speakerdeck.com/bric3 rel=me><i class="fab fa-speaker-deck" aria-hidden=true></i></i></a><a href=https://linkedin.com/in/dutheilbrice rel=me><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentcolor" d="M416 32H31.9C14.3 32 0 46.5.0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6.0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3.0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2.0 38.5 17.3 38.5 38.5.0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6.0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2.0 79.7 44.3 79.7 101.9V416z"/></svg></a><a href=https://stackoverflow.com/users/48136/brice rel=me><i class="fab fa-stack-overflow fa-lg" aria-hidden=true></i></a></section></div></div><div class=copyright>&copy; 2010 - 2020 Brice Dutheil
-<a href=https://creativecommons.org/licenses/by-sa/4.0>CC BY-SA 4.0</a></div></div></div><div class="content container"><article><header><h1>When Java's WatchService is not the right tool in a container</h1><div class=post__meta><i class="fas fa-calendar-alt"></i>2019-09-13<br><i class="fas fa-tags"></i><a class="badge badge-tag" href=/tags/java>java</a>
-<a class="badge badge-tag" href=/tags/linux>linux</a>
-<a class="badge badge-tag" href=/tags/docker>docker</a>
-<a class="badge badge-tag" href=/tags/kubernetes>kubernetes</a>
-<a class="badge badge-tag" href=/tags/inotify>inotify</a>
-<a class="badge badge-tag" href=/tags/watchservice>watchservice</a><br><i class="fas fa-clock"></i>10 min read</div></header><div class=post><h2 id=boring-code-that-should-be-written-once-and-run-everywhere>Boring code that should be written once and run everywhere</h2><p>Suppose the application you&rsquo;re working on needs to monitor changes to a
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>When Java&#39;s WatchService is not the right tool in a container • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="When Java&#39;s WatchService is not the right tool in a container"/>
+<meta name="twitter:description" content="Boring code that should be written once and run everywhere Suppose the application you&rsquo;re working on needs to monitor changes to a file and rely on Java&rsquo;s WatchService introduced in Java 7."/>
+
+<meta property="og:title" content="When Java&#39;s WatchService is not the right tool in a container" />
+<meta property="og:description" content="Boring code that should be written once and run everywhere Suppose the application you&rsquo;re working on needs to monitor changes to a file and rely on Java&rsquo;s WatchService introduced in Java 7." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2019/09/13/watchservice-and-bind-mount/" />
+<meta property="article:published_time" content="2019-09-13T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-09-13T00:00:00+00:00" /><meta property="og:site_name" content="Arkey" />
+
+
+    
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css">
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.4f7a9eea99b1ffe5dcdd1e948a610c331be6316c39a65d78979aa9eed6a6105d.css" integrity="sha256-T3qe6pmx/&#43;Xc3R6UimEMMxvmMWw5pl14l5qp7tamEF0=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/svg-with-js.min.css" integrity="sha256-GyCVXSM0LI7EPORc9EWykRKWjlig49LoHPKt6s8NjBg=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>When Java&#39;s WatchService is not the right tool in a container</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2019-09-13
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/java">java</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/linux">linux</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/docker">docker</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/kubernetes">kubernetes</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/inotify">inotify</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/watchservice">watchservice</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 10 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <h2 id="boring-code-that-should-be-written-once-and-run-everywhere">Boring code that should be written once and run everywhere</h2>
+<p>Suppose the application you&rsquo;re working on needs to monitor changes to a
 file and rely on Java&rsquo;s <code>WatchService</code> introduced in Java 7. Development
 and test on the local machine works ; the unit tests rely on a
 <code>TemporaryFolder</code> Junit rule as you want to control the content of the file,
 running the code on the actual machine just works as expected.
-Everything is green to go live.</p><p>The file is <code>/etc/hosts</code> (that&rsquo;s important).</p><p>However, when the application is live in production, nothing happen when
-the file is modified.</p><p>The code to reproduce this issue is quite boring:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.lang.Exception</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.nio.file.Files</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.nio.file.Path</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.nio.file.FileSystems</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.nio.file.StandardWatchEventKinds</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.nio.file.WatchEvent</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.nio.file.WatchKey</span><span style=color:#000;font-weight:700>;</span>
-<span style=color:#000;font-weight:700>import</span> <span style=color:#555>java.nio.file.WatchService</span><span style=color:#000;font-weight:700>;</span>
+Everything is green to go live.</p>
+<p>The file is <code>/etc/hosts</code> (that&rsquo;s important).</p>
+<p>However, when the application is live in production, nothing happen when
+the file is modified.</p>
+<p>The code to reproduce this issue is quite boring:</p>
+<pre><code class="language-java">import java.lang.Exception;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.FileSystems;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 
-<span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>class</span> <span style=color:#458;font-weight:700>WatchFile</span> <span style=color:#000;font-weight:700>{</span>
-    <span style=color:#000;font-weight:700>public</span> <span style=color:#000;font-weight:700>static</span> <span style=color:#458;font-weight:700>void</span> <span style=color:#900;font-weight:700>main</span><span style=color:#000;font-weight:700>(</span>String<span style=color:#000;font-weight:700>...</span> args<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>throws</span> Exception <span style=color:#000;font-weight:700>{</span>
-        String filepath <span style=color:#000;font-weight:700>=</span> args<span style=color:#000;font-weight:700>[</span>0<span style=color:#000;font-weight:700>];</span>
-        Path path <span style=color:#000;font-weight:700>=</span> FileSystems<span style=color:#000;font-weight:700>.</span><span style=color:teal>getDefault</span><span style=color:#000;font-weight:700>()</span>
-                               <span style=color:#000;font-weight:700>.</span><span style=color:teal>getPath</span><span style=color:#000;font-weight:700>(</span>filepath<span style=color:#000;font-weight:700>);</span>
-        System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>printf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Watching : %s%n&#34;</span><span style=color:#000;font-weight:700>,</span> path<span style=color:#000;font-weight:700>);</span>
-        <span style=color:#000;font-weight:700>try</span> <span style=color:#000;font-weight:700>(</span>WatchService watchService <span style=color:#000;font-weight:700>=</span> FileSystems<span style=color:#000;font-weight:700>.</span><span style=color:teal>getDefault</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>newWatchService</span><span style=color:#000;font-weight:700>())</span> <span style=color:#000;font-weight:700>{</span>
-            WatchKey watchKey <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>(</span>Files<span style=color:#000;font-weight:700>.</span><span style=color:teal>isDirectory</span><span style=color:#000;font-weight:700>(</span>path<span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>?</span> path <span style=color:#000;font-weight:700>:</span> path<span style=color:#000;font-weight:700>.</span><span style=color:teal>getParent</span><span style=color:#000;font-weight:700>())</span>
-                                    <span style=color:#000;font-weight:700>.</span><span style=color:teal>register</span><span style=color:#000;font-weight:700>(</span>watchService<span style=color:#000;font-weight:700>,</span> 
-                                              StandardWatchEventKinds<span style=color:#000;font-weight:700>.</span><span style=color:teal>ENTRY_MODIFY</span><span style=color:#000;font-weight:700>);</span>
-            <span style=color:#000;font-weight:700>while</span> <span style=color:#000;font-weight:700>(</span><span style=color:#000;font-weight:700>true</span><span style=color:#000;font-weight:700>)</span> <span style=color:#000;font-weight:700>{</span>
-                WatchKey wk <span style=color:#000;font-weight:700>=</span> watchService<span style=color:#000;font-weight:700>.</span><span style=color:teal>take</span><span style=color:#000;font-weight:700>();</span>
-                <span style=color:#000;font-weight:700>for</span> <span style=color:#000;font-weight:700>(</span>WatchEvent<span style=color:#000;font-weight:700>&lt;?&gt;</span> event <span style=color:#000;font-weight:700>:</span> wk<span style=color:#000;font-weight:700>.</span><span style=color:teal>pollEvents</span><span style=color:#000;font-weight:700>())</span> <span style=color:#000;font-weight:700>{</span>
-                    Path changed <span style=color:#000;font-weight:700>=</span> <span style=color:#000;font-weight:700>(</span>Path<span style=color:#000;font-weight:700>)</span> event<span style=color:#000;font-weight:700>.</span><span style=color:teal>context</span><span style=color:#000;font-weight:700>();</span>
-                    System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>printf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;Modified : %s%n&#34;</span><span style=color:#000;font-weight:700>,</span> changed<span style=color:#000;font-weight:700>);</span>
-                    <span style=color:#000;font-weight:700>if</span> <span style=color:#000;font-weight:700>(</span>changed<span style=color:#000;font-weight:700>.</span><span style=color:teal>endsWith</span><span style=color:#000;font-weight:700>(</span>path<span style=color:#000;font-weight:700>.</span><span style=color:teal>getFileName</span><span style=color:#000;font-weight:700>().</span><span style=color:teal>toString</span><span style=color:#000;font-weight:700>()))</span> <span style=color:#000;font-weight:700>{</span>
-                        System<span style=color:#000;font-weight:700>.</span><span style=color:teal>out</span><span style=color:#000;font-weight:700>.</span><span style=color:teal>printf</span><span style=color:#000;font-weight:700>(</span><span style=color:#d14>&#34;  -&gt; : %s%n&#34;</span><span style=color:#000;font-weight:700>,</span> path<span style=color:#000;font-weight:700>);</span>
-                    <span style=color:#000;font-weight:700>}</span>
-                <span style=color:#000;font-weight:700>}</span>
-            <span style=color:#000;font-weight:700>}</span>
-        <span style=color:#000;font-weight:700>}</span>
-    <span style=color:#000;font-weight:700>}</span>
-<span style=color:#000;font-weight:700>}</span>
-</code></pre></div><h3 id=running-this-code-locally-on-a-physical-machine>Running this code locally (on a physical machine)</h3><p>This simple code expects an argument that is a path to a directory or, a file.
-When this code is run locally on the physical machine:</p><pre><code>############ terminal A ##############|############ terminal B ###########
+public class WatchFile {
+    public static void main(String... args) throws Exception {
+        String filepath = args[0];
+        Path path = FileSystems.getDefault()
+                               .getPath(filepath);
+        System.out.printf(&quot;Watching : %s%n&quot;, path);
+        try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
+            WatchKey watchKey = (Files.isDirectory(path) ? path : path.getParent())
+                                    .register(watchService, 
+                                              StandardWatchEventKinds.ENTRY_MODIFY);
+            while (true) {
+                WatchKey wk = watchService.take();
+                for (WatchEvent&lt;?&gt; event : wk.pollEvents()) {
+                    Path changed = (Path) event.context();
+                    System.out.printf(&quot;Modified : %s%n&quot;, changed);
+                    if (changed.endsWith(path.getFileName().toString())) {
+                        System.out.printf(&quot;  -&gt; : %s%n&quot;, path);
+                    }
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<h3 id="running-this-code-locally-on-a-physical-machine">Running this code locally (on a physical machine)</h3>
+<p>This simple code expects an argument that is a path to a directory or, a file.
+When this code is run locally on the physical machine:</p>
+<pre><code>############ terminal A ##############|############ terminal B ###########
 &gt; java WatchFile /etc/hosts           | 
 Watching : /etc/hosts                 | # wait for WatchFile to be started
                                       | &gt; touch /etc/hosts
 Modified : hosts                      |
   -&gt; : /etc/hosts                     |
-</code></pre><p>The code work as expected.</p><h3 id=running-this-code-in-a-container>Running this code in a container</h3><p>Then we are running in a container (and on Linux), expecting the following should
-just work. <em>Write once run everywhere!</em></p><pre><code>############ terminal A ##############|############ terminal B ###########
+</code></pre>
+<p>The code work as expected.</p>
+<h3 id="running-this-code-in-a-container">Running this code in a container</h3>
+<p>Then we are running in a container (and on Linux), expecting the following should
+just work. <em>Write once run everywhere!</em></p>
+<pre><code>############ terminal A ##############|############ terminal B ###########
 &gt; docker container run -it \          | &gt; docker container exec -it \
   adoptopenjdk/openjdk8:latest \      |   612f6247d0b7 \
   /bin/bash                           |   /bin/bash
@@ -66,37 +320,51 @@ root@612f6247d0b7:/# \                | # wait for WatchFile to be started
 Watching : /etc/hosts                 |   touch /etc/hosts
                                       | 
 # nothing happens                     | 
-</code></pre><p>But no, it doesn&rsquo;t ! If it works fine on a physical machine, and
-in a JUnit test what is happening for this code to not work within a container ?!</p><h2 id=understanding-how-this-code-is-working-differently-on-these-two-platforms>Understanding how this code is working differently on these two platforms</h2><p>When using <code>WatchService</code> the first thing to understand about it is that
+</code></pre>
+<p>But no, it doesn&rsquo;t ! If it works fine on a physical machine, and
+in a JUnit test what is happening for this code to not work within a container ?!</p>
+<h2 id="understanding-how-this-code-is-working-differently-on-these-two-platforms">Understanding how this code is working differently on these two platforms</h2>
+<p>When using <code>WatchService</code> the first thing to understand about it is that
 it tries to abstract filesystems and platform facilities regarding file
 changes that happen on the file-system. However, while the API tries
 its best to be platform agnostic there are substantial variations in behavior
-in each platform implementation.</p><p>For example the JDK 8 on MacOs the following statement
+in each platform implementation.</p>
+<p>For example the JDK 8 on MacOs the following statement
 <code>FileSystems.getDefault().newWatchService()</code> will return a very basic
-<a href=https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/share/classes/sun/nio/fs/PollingWatchService.java>polling watcher</a>,
+<a href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/share/classes/sun/nio/fs/PollingWatchService.java">polling watcher</a>,
 other platforms integration code may benefit from more intimate knowledge of the OS
-and the file-system. Linux uses <code>inotify</code> and its integration appears to leverage it.</p><h3 id=linux-watch-service-uses-inotify>Linux Watch Service uses <code>inotify</code></h3><p>The above code works on almost any - if not all - Linux physical box.
+and the file-system. Linux uses <code>inotify</code> and its integration appears to leverage it.</p>
+<h3 id="linux-watch-service-uses-inotify">Linux Watch Service uses <code>inotify</code></h3>
+<p>The above code works on almost any - if not all - Linux physical box.
 What&rsquo;s wrong then? First let&rsquo;s dig a little bit in the <code>WatchService</code>
-Linux implementation.</p><p>Depending on the installed JDK distribution <code>sun.nio.fs.LinuxWatchService</code>
+Linux implementation.</p>
+<p>Depending on the installed JDK distribution <code>sun.nio.fs.LinuxWatchService</code>
 may or may not be available, however the source is available in the JDK
 repository.
-<a href=https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java><code>sun.nio.fs.LinuxWatchService</code></a>
+<a href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java"><code>sun.nio.fs.LinuxWatchService</code></a>
 makes use of <code>inotify</code> and <code>inotify</code> has been around for a long time, it
-is a proven technology to watch file-system events on Linux.</p><p>The issue has to be between the chair and the keyboard!</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#998;font-style:italic>/**
-</span><span style=color:#998;font-style:italic> * Linux implementation of WatchService based on inotify.
-</span><span style=color:#998;font-style:italic> *
-</span><span style=color:#998;font-style:italic> * In summary a background thread polls inotify plus a socket used for the wakeup
-</span><span style=color:#998;font-style:italic> * mechanism. Requests to add or remove a watch, or close the watch service,
-</span><span style=color:#998;font-style:italic> * cause the thread to wakeup and process the request. Events are processed
-</span><span style=color:#998;font-style:italic> * by the thread which causes it to signal/queue the corresponding watch keys.
-</span><span style=color:#998;font-style:italic> */</span>
-</code></pre></div><p>In shorts <code>inotify</code> allows to register a <em>watch</em> and receive notifications
+is a proven technology to watch file-system events on Linux.</p>
+<p>The issue has to be between the chair and the keyboard!</p>
+<pre><code class="language-java">/**
+ * Linux implementation of WatchService based on inotify.
+ *
+ * In summary a background thread polls inotify plus a socket used for the wakeup
+ * mechanism. Requests to add or remove a watch, or close the watch service,
+ * cause the thread to wakeup and process the request. Events are processed
+ * by the thread which causes it to signal/queue the corresponding watch keys.
+ */
+</code></pre>
+<p>In shorts <code>inotify</code> allows to register a <em>watch</em> and receive notifications
 upon file-system change events. So let&rsquo;s try with the system tools in our
-container in order to have a quick understanding of how it works.</p><p>First install <code>inotify-tools</code> in the running container.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>root@612f6247d0b7:/# apt-get update
+container in order to have a quick understanding of how it works.</p>
+<p>First install <code>inotify-tools</code> in the running container.</p>
+<pre><code class="language-bash">root@612f6247d0b7:/# apt-get update
 ...
 root@612f6247d0b7:/# apt-get install -y inotify-tools
-</code></pre></div><p>Then let&rsquo;s add a watch on <code>/etc/hosts</code> in shell session <em>A</em>, once
-<em>established</em> modify the watched file in session <em>B</em>.</p><pre><code>############ terminal A ##############|############ terminal B ###########
+</code></pre>
+<p>Then let&rsquo;s add a watch on <code>/etc/hosts</code> in shell session <em>A</em>, once
+<em>established</em> modify the watched file in session <em>B</em>.</p>
+<pre><code>############ terminal A ##############|############ terminal B ###########
 root@612f6247d0b7:/# \                | 
   inotifywait -m /etc/hosts           | 
 Setting up watches.                   | 
@@ -106,18 +374,24 @@ Watches established.                  |
 /etc/hosts OPEN                       | 
 /etc/hosts ATTRIB                     | 
 /etc/hosts CLOSE_WRITE,CLOSE          | 
-</code></pre><p>In terminal <em>A</em>, the expected events are being observed, meaning that <code>inotify</code>
-appears to be working as desired.</p><p>The question remains ; why is this working when using system tools but not in
-the Java program?</p><p>Now remember that the Java <code>WatchService</code> API only allow to register a directory.</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#998;font-style:italic>/**
-</span><span style=color:#998;font-style:italic> * A watch service that &lt;em&gt;watches&lt;/em&gt; registered objects for changes and
-</span><span style=color:#998;font-style:italic> * events. For example a file manager may use a watch service to monitor a
-</span><span style=color:#998;font-style:italic> * directory for changes so that it can update its display of the list of files
-</span><span style=color:#998;font-style:italic> * when files are created or deleted.
-</span><span style=color:#998;font-style:italic> * ...
-</span><span style=color:#998;font-style:italic> */</span>
-</code></pre></div><p>So let&rsquo;s try again with a watch on the <code>/etc</code> folder instead following the
+</code></pre>
+<p>In terminal <em>A</em>, the expected events are being observed, meaning that <code>inotify</code>
+appears to be working as desired.</p>
+<p>The question remains ; why is this working when using system tools but not in
+the Java program?</p>
+<p>Now remember that the Java <code>WatchService</code> API only allow to register a directory.</p>
+<pre><code class="language-java">/**
+ * A watch service that &lt;em&gt;watches&lt;/em&gt; registered objects for changes and
+ * events. For example a file manager may use a watch service to monitor a
+ * directory for changes so that it can update its display of the list of files
+ * when files are created or deleted.
+ * ...
+ */
+</code></pre>
+<p>So let&rsquo;s try again with a watch on the <code>/etc</code> folder instead following the
 same scenario: in shell session <em>A</em> set-up a watch, then once ready modify
-the actual file in session <em>B</em>:</p><pre><code>############ terminal A ##############|############ terminal B ###########
+the actual file in session <em>B</em>:</p>
+<pre><code>############ terminal A ##############|############ terminal B ###########
 root@612f6247d0b7:/# \                | 
   inotifywait -m /etc                 | 
 Setting up watches.                   | 
@@ -126,10 +400,13 @@ Watches established.                  |
                                       |   touch /etc/hosts
 /etc/ OPEN ld.so.cache                | 
 /etc/ CLOSE_NOWRITE,CLOSE ld.so.cache | 
-</code></pre><p>The first thing to notice is that in terminal <em>A</em>, a different set of events
+</code></pre>
+<p>The first thing to notice is that in terminal <em>A</em>, a different set of events
 are being observed ; but neither <code>ATTRIB</code> or <code>MODIFY</code> events and there&rsquo;s something
-especially that catches our attention: the events are about <code>ld.so.cache</code>.</p><p>That&rsquo;s unexpected, let&rsquo;s try the same scenario on a different file in <code>/etc</code>,
-that is a newly created file named <code>somefile</code></p><pre><code>############ terminal A ##############|############ terminal B ###########
+especially that catches our attention: the events are about <code>ld.so.cache</code>.</p>
+<p>That&rsquo;s unexpected, let&rsquo;s try the same scenario on a different file in <code>/etc</code>,
+that is a newly created file named <code>somefile</code></p>
+<pre><code>############ terminal A ##############|############ terminal B ###########
 root@612f6247d0b7:/# \                | 
   inotifywait -m /etc                 | 
 Setting up watches.                   | 
@@ -142,8 +419,10 @@ Watches established.                  |
 /etc/ OPEN somefile
 /etc/ ATTRIB somefile
 /etc/ CLOSE_WRITE,CLOSE somefile
-</code></pre><p>OK, we&rsquo;ve got <code>ld.so.cache</code> events plus the wanted events. If we run our
-Java <code>WatchFile</code> program it is notified by the file change, as expected.</p><pre><code>############ terminal A ##############|############ terminal B ###########
+</code></pre>
+<p>OK, we&rsquo;ve got <code>ld.so.cache</code> events plus the wanted events. If we run our
+Java <code>WatchFile</code> program it is notified by the file change, as expected.</p>
+<pre><code>############ terminal A ##############|############ terminal B ###########
 root@612f6247d0b7:/# \                |
   java WatchFile /etc/somefile        | 
 Watching : /etc/somefile              | # wait for WatchFile to be started
@@ -151,71 +430,86 @@ Watching : /etc/somefile              | # wait for WatchFile to be started
                                       |   touch /etc/somefile
 Modified : somefile                   |
   -&gt; : /etc/somefile                  |
-</code></pre><p>This raises questions about <code>/etc/hosts</code> in particular, there is something that
-prevents <code>inotify</code> to see the change if the watch is set up on the parent directory.</p><p>In the example with <code>/etc/hosts</code>, <code>inotify</code> only emitted <code>OPEN</code>,
+</code></pre>
+<p>This raises questions about <code>/etc/hosts</code> in particular, there is something that
+prevents <code>inotify</code> to see the change if the watch is set up on the parent directory.</p>
+<p>In the example with <code>/etc/hosts</code>, <code>inotify</code> only emitted <code>OPEN</code>,
 <code>CLOSE_NO_WRITE</code> and <code>CLOSE</code> events, those events alone are not what
 the Linux implementation expects in order to be notified of file
-modifications (<a href=https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l382>source code (line 382)</a>).</p><h2 id=the-clue>The clue</h2><p>When reading the javadoc of <code>WatchService</code> one paragraph caught my eye :</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#998;font-style:italic>/**
-</span><span style=color:#998;font-style:italic> * ...
-</span><span style=color:#998;font-style:italic> * &lt;p&gt; If a watched file is not located on a local storage device then it is
-</span><span style=color:#998;font-style:italic> * implementation specific if changes to the file can be detected. In particular,
-</span><span style=color:#998;font-style:italic> * it is not required that changes to files carried out on remote systems be
-</span><span style=color:#998;font-style:italic> * detected.
-</span><span style=color:#998;font-style:italic> * ...
-</span><span style=color:#998;font-style:italic> */</span>
-</code></pre></div><p>This means that changes carried out on remote filesystems may not be detected.
+modifications (<a href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l382">source code (line 382)</a>).</p>
+<h2 id="the-clue">The clue</h2>
+<p>When reading the javadoc of <code>WatchService</code> one paragraph caught my eye :</p>
+<pre><code class="language-java">/**
+ * ...
+ * &lt;p&gt; If a watched file is not located on a local storage device then it is
+ * implementation specific if changes to the file can be detected. In particular,
+ * it is not required that changes to files carried out on remote systems be
+ * detected.
+ * ...
+ */
+</code></pre>
+<p>This means that changes carried out on remote filesystems may not be detected.
 It&rsquo;s natural to think that <code>/etc/hosts</code> is present on the local filesystem, but
 this code run in a container, and containers <del>may</del> do fancy stuff especially
-on the <code>hosts</code> file.</p><p>Let&rsquo;s have a look at mounts:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>root@612f6247d0b7:/# findmnt
+on the <code>hosts</code> file.</p>
+<p>Let&rsquo;s have a look at mounts:</p>
+<pre><code class="language-bash">root@612f6247d0b7:/# findmnt
 TARGET                          SOURCE                                                                               FSTYPE  OPTIONS
-/                               overlay                                                                              overlay rw,relatime,lowerdir<span style=color:#000;font-weight:700>=</span>/var/lib/docker/overlay2/l/TZPBTDTJWKHEY
+/                               overlay                                                                              overlay rw,relatime,lowerdir=/var/lib/docker/overlay2/l/TZPBTDTJWKHEY
 |-/proc                         proc                                                                                 proc    rw,nosuid,nodev,noexec,relatime
-| |-/proc/bus                   proc<span style=color:#000;font-weight:700>[</span>/bus<span style=color:#000;font-weight:700>]</span>                                                                           proc    ro,relatime
-| |-/proc/fs                    proc<span style=color:#000;font-weight:700>[</span>/fs<span style=color:#000;font-weight:700>]</span>                                                                            proc    ro,relatime
-| |-/proc/irq                   proc<span style=color:#000;font-weight:700>[</span>/irq<span style=color:#000;font-weight:700>]</span>                                                                           proc    ro,relatime
-| |-/proc/sys                   proc<span style=color:#000;font-weight:700>[</span>/sys<span style=color:#000;font-weight:700>]</span>                                                                           proc    ro,relatime
-| |-/proc/sysrq-trigger         proc<span style=color:#000;font-weight:700>[</span>/sysrq-trigger<span style=color:#000;font-weight:700>]</span>                                                                 proc    ro,relatime
+| |-/proc/bus                   proc[/bus]                                                                           proc    ro,relatime
+| |-/proc/fs                    proc[/fs]                                                                            proc    ro,relatime
+| |-/proc/irq                   proc[/irq]                                                                           proc    ro,relatime
+| |-/proc/sys                   proc[/sys]                                                                           proc    ro,relatime
+| |-/proc/sysrq-trigger         proc[/sysrq-trigger]                                                                 proc    ro,relatime
 | |-/proc/acpi                  tmpfs                                                                                tmpfs   ro,relatime
-| |-/proc/kcore                 tmpfs<span style=color:#000;font-weight:700>[</span>/null<span style=color:#000;font-weight:700>]</span>                                                                         tmpfs   rw,nosuid,size<span style=color:#000;font-weight:700>=</span>65536k,mode<span style=color:#000;font-weight:700>=</span><span style=color:#099>755</span>
-| |-/proc/keys                  tmpfs<span style=color:#000;font-weight:700>[</span>/null<span style=color:#000;font-weight:700>]</span>                                                                         tmpfs   rw,nosuid,size<span style=color:#000;font-weight:700>=</span>65536k,mode<span style=color:#000;font-weight:700>=</span><span style=color:#099>755</span>
-| |-/proc/timer_list            tmpfs<span style=color:#000;font-weight:700>[</span>/null<span style=color:#000;font-weight:700>]</span>                                                                         tmpfs   rw,nosuid,size<span style=color:#000;font-weight:700>=</span>65536k,mode<span style=color:#000;font-weight:700>=</span><span style=color:#099>755</span>
-| <span style=color:#d14>`</span>-/proc/sched_debug           tmpfs<span style=color:#000;font-weight:700>[</span>/null<span style=color:#000;font-weight:700>]</span>                                                                         tmpfs   rw,nosuid,size<span style=color:#000;font-weight:700>=</span>65536k,mode<span style=color:#000;font-weight:700>=</span><span style=color:#099>755</span>
-|-/dev                          tmpfs                                                                                tmpfs   rw,nosuid,size<span style=color:#000;font-weight:700>=</span>65536k,mode<span style=color:#000;font-weight:700>=</span><span style=color:#099>755</span>
-| |-/dev/console                devpts<span style=color:#000;font-weight:700>[</span>/0<span style=color:#000;font-weight:700>]</span>                                                                           devpts  rw,nosuid,noexec,relatime,gid<span style=color:#000;font-weight:700>=</span>5,mode<span style=color:#000;font-weight:700>=</span>620,ptmxmode<span style=color:#000;font-weight:700>=</span><span style=color:#099>666</span>
-| |-/dev/pts                    devpts                                                                               devpts  rw,nosuid,noexec,relatime,gid<span style=color:#000;font-weight:700>=</span>5,mode<span style=color:#000;font-weight:700>=</span>620,ptmxmode<span style=color:#000;font-weight:700>=</span><span style=color:#099>666</span>
+| |-/proc/kcore                 tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+| |-/proc/keys                  tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+| |-/proc/timer_list            tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+| `-/proc/sched_debug           tmpfs[/null]                                                                         tmpfs   rw,nosuid,size=65536k,mode=755
+|-/dev                          tmpfs                                                                                tmpfs   rw,nosuid,size=65536k,mode=755
+| |-/dev/console                devpts[/0]                                                                           devpts  rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666
+| |-/dev/pts                    devpts                                                                               devpts  rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=666
 | |-/dev/mqueue                 mqueue                                                                               mqueue  rw,nosuid,nodev,noexec,relatime
-| <span style=color:#d14>`</span>-/dev/shm                    shm                                                                                  tmpfs   rw,nosuid,nodev,noexec,relatime,size<span style=color:#000;font-weight:700>=</span>65536k
+| `-/dev/shm                    shm                                                                                  tmpfs   rw,nosuid,nodev,noexec,relatime,size=65536k
 |-/sys                          sysfs                                                                                sysfs   ro,nosuid,nodev,noexec,relatime
 | |-/sys/firmware               tmpfs                                                                                tmpfs   ro,relatime
-| <span style=color:#d14>`</span>-/sys/fs/cgroup              tmpfs                                                                                tmpfs   ro,nosuid,nodev,noexec,relatime,mode<span style=color:#000;font-weight:700>=</span><span style=color:#099>755</span>
-|   |-/sys/fs/cgroup/cpuset     cpuset<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>     cgroup  ro,nosuid,nodev,noexec,relatime,cpuset
-|   |-/sys/fs/cgroup/cpu        cpu<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>        cgroup  ro,nosuid,nodev,noexec,relatime,cpu
-|   |-/sys/fs/cgroup/cpuacct    cpuacct<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>    cgroup  ro,nosuid,nodev,noexec,relatime,cpuacct
-|   |-/sys/fs/cgroup/blkio      blkio<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>      cgroup  ro,nosuid,nodev,noexec,relatime,blkio
-|   |-/sys/fs/cgroup/memory     memory<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>     cgroup  ro,nosuid,nodev,noexec,relatime,memory
-|   |-/sys/fs/cgroup/devices    devices<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>    cgroup  ro,nosuid,nodev,noexec,relatime,devices
-|   |-/sys/fs/cgroup/freezer    freezer<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>    cgroup  ro,nosuid,nodev,noexec,relatime,freezer
-|   |-/sys/fs/cgroup/net_cls    net_cls<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>    cgroup  ro,nosuid,nodev,noexec,relatime,net_cls
-|   |-/sys/fs/cgroup/perf_event perf_event<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span> cgroup  ro,nosuid,nodev,noexec,relatime,perf_event
-|   |-/sys/fs/cgroup/net_prio   net_prio<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>   cgroup  ro,nosuid,nodev,noexec,relatime,net_prio
-|   |-/sys/fs/cgroup/hugetlb    hugetlb<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>    cgroup  ro,nosuid,nodev,noexec,relatime,hugetlb
-|   |-/sys/fs/cgroup/pids       pids<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>       cgroup  ro,nosuid,nodev,noexec,relatime,pids
-|   <span style=color:#d14>`</span>-/sys/fs/cgroup/systemd    cgroup<span style=color:#000;font-weight:700>[</span>/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8<span style=color:#000;font-weight:700>]</span>     cgroup  ro,nosuid,nodev,noexec,relatime,name<span style=color:#000;font-weight:700>=</span>systemd
-|-/etc/resolv.conf              /dev/sda1<span style=color:#000;font-weight:700>[</span>/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/resolv.conf<span style=color:#000;font-weight:700>]</span>
-|                                                                                                                    ext4    rw,relatime,stripe<span style=color:#000;font-weight:700>=</span>1024,data<span style=color:#000;font-weight:700>=</span>ordered
-|-/etc/hostname                 /dev/sda1<span style=color:#000;font-weight:700>[</span>/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/hostname<span style=color:#000;font-weight:700>]</span>
-|                                                                                                                    ext4    rw,relatime,stripe<span style=color:#000;font-weight:700>=</span>1024,data<span style=color:#000;font-weight:700>=</span>ordered
-<span style=color:#d14>`</span>-/etc/hosts                    /dev/sda1<span style=color:#000;font-weight:700>[</span>/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/hosts<span style=color:#000;font-weight:700>]</span>
-                                                                                                                     ext4    rw,relatime,stripe<span style=color:#000;font-weight:700>=</span>1024,data<span style=color:#000;font-weight:700>=</span>ordered
-</code></pre></div><blockquote><p><em>You can find the same content in the container at the following location
-<code>/proc/self/mountinfo</code>.</em></p></blockquote><p>The information above looks interesting, <code>/etc/hosts</code> appears to be a
-<a href=http://man7.org/linux/man-pages/man8/mount.8.html><em>bind mount</em></a> where the
+| `-/sys/fs/cgroup              tmpfs                                                                                tmpfs   ro,nosuid,nodev,noexec,relatime,mode=755
+|   |-/sys/fs/cgroup/cpuset     cpuset[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]     cgroup  ro,nosuid,nodev,noexec,relatime,cpuset
+|   |-/sys/fs/cgroup/cpu        cpu[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]        cgroup  ro,nosuid,nodev,noexec,relatime,cpu
+|   |-/sys/fs/cgroup/cpuacct    cpuacct[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,cpuacct
+|   |-/sys/fs/cgroup/blkio      blkio[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]      cgroup  ro,nosuid,nodev,noexec,relatime,blkio
+|   |-/sys/fs/cgroup/memory     memory[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]     cgroup  ro,nosuid,nodev,noexec,relatime,memory
+|   |-/sys/fs/cgroup/devices    devices[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,devices
+|   |-/sys/fs/cgroup/freezer    freezer[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,freezer
+|   |-/sys/fs/cgroup/net_cls    net_cls[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,net_cls
+|   |-/sys/fs/cgroup/perf_event perf_event[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8] cgroup  ro,nosuid,nodev,noexec,relatime,perf_event
+|   |-/sys/fs/cgroup/net_prio   net_prio[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]   cgroup  ro,nosuid,nodev,noexec,relatime,net_prio
+|   |-/sys/fs/cgroup/hugetlb    hugetlb[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]    cgroup  ro,nosuid,nodev,noexec,relatime,hugetlb
+|   |-/sys/fs/cgroup/pids       pids[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]       cgroup  ro,nosuid,nodev,noexec,relatime,pids
+|   `-/sys/fs/cgroup/systemd    cgroup[/docker/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8]     cgroup  ro,nosuid,nodev,noexec,relatime,name=systemd
+|-/etc/resolv.conf              /dev/sda1[/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/resolv.conf]
+|                                                                                                                    ext4    rw,relatime,stripe=1024,data=ordered
+|-/etc/hostname                 /dev/sda1[/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/hostname]
+|                                                                                                                    ext4    rw,relatime,stripe=1024,data=ordered
+`-/etc/hosts                    /dev/sda1[/docker/containers/612f6247d0b7cae71c1373076d88f1b71f44e7fc44c5535564052260e2ed3ab8/hosts]
+                                                                                                                     ext4    rw,relatime,stripe=1024,data=ordered
+</code></pre>
+<blockquote>
+<p><em>You can find the same content in the container at the following location
+<code>/proc/self/mountinfo</code>.</em></p>
+</blockquote>
+<p>The information above looks interesting, <code>/etc/hosts</code> appears to be a
+<a href="http://man7.org/linux/man-pages/man8/mount.8.html"><em>bind mount</em></a> where the
 source comes from another filesystem.
 (To understand better what is a bind mound there&rsquo;s a more human and
 pedagogic explanation in this
-<a href=https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount>StackExchange answer</a>).</p><p>When there&rsquo;s a <em>filesystem boundary</em> <code>inotify</code> encounter some
+<a href="https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount">StackExchange answer</a>).</p>
+<p>When there&rsquo;s a <em>filesystem boundary</em> <code>inotify</code> encounter some
 limitations in its ability to report events, the man page
-is not quite clear on the matter though:</p><blockquote><pre><code>Limitations and caveats
+is not quite clear on the matter though:</p>
+<blockquote>
+<pre><code>Limitations and caveats
       The inotify API provides no information about the user or process
       that triggered the inotify event.  In particular, there is no easy
       way for a process that is monitoring events via inotify to
@@ -231,34 +525,140 @@ is not quite clear on the matter though:</p><blockquote><pre><code>Limitations a
 
       The inotify API does not report file accesses and modifications that
       may occur because of mmap(2), msync(2), and munmap(2).
-</code></pre></blockquote><p>source: <a href=http://man7.org/linux/man-pages/man7/inotify.7.html>man7.org</a></p><p>What this mean is that for some files and for <code>/etc/hosts</code> in this case
+</code></pre>
+</blockquote>
+<p>source: <a href="http://man7.org/linux/man-pages/man7/inotify.7.html">man7.org</a></p>
+<p>What this mean is that for some files and for <code>/etc/hosts</code> in this case
 this constraint may cause some misbehavior for some tools,
-e.g (non exhaustive list of issues) :</p><ul><li><a href=https://github.com/docker/for-mac/issues/2375>https://github.com/docker/for-mac/issues/2375</a></li><li><a href=https://github.com/moby/moby/issues/11705>https://github.com/moby/moby/issues/11705</a></li><li><a href=https://github.com/libuv/libuv/issues/1201>https://github.com/libuv/libuv/issues/1201</a></li></ul><p>Concretely this explains why the code was working when being tested with
+e.g (non exhaustive list of issues) :</p>
+<ul>
+<li><a href="https://github.com/docker/for-mac/issues/2375">https://github.com/docker/for-mac/issues/2375</a></li>
+<li><a href="https://github.com/moby/moby/issues/11705">https://github.com/moby/moby/issues/11705</a></li>
+<li><a href="https://github.com/libuv/libuv/issues/1201">https://github.com/libuv/libuv/issues/1201</a></li>
+</ul>
+<p>Concretely this explains why the code was working when being tested with
 JUnit 4&rsquo;s <code>TemporaryFolder</code> and on a physical machine because the watched
-was not <em>bind mounted</em>.</p><h2 id=how-to-fix-this>How to fix this</h2><p>This knowledge is interesting, but the program still has to watch changes to this
-file which in practice suggests two approaches:</p><ol><li>Either poll the file regularly</li><li>or use an implementation that leverage the right <code>inotify</code>
-abstraction (i.e. that do not only allow to watch folder).</li></ol><p>Implementations for both approaches exist. However, at this time
+was not <em>bind mounted</em>.</p>
+<h2 id="how-to-fix-this">How to fix this</h2>
+<p>This knowledge is interesting, but the program still has to watch changes to this
+file which in practice suggests two approaches:</p>
+<ol>
+<li>Either poll the file regularly</li>
+<li>or use an implementation that leverage the right <code>inotify</code>
+abstraction (i.e. that do not only allow to watch folder).</li>
+</ol>
+<p>Implementations for both approaches exist. However, at this time
 I&rsquo;m uneasy to share a list or to recommend any as I do not have
 sufficient experience with the second alternative and as such unable to
-make a critical assessment comparing both.</p><p>Typically, when watching files there&rsquo;s some tricky details that cannot
+make a critical assessment comparing both.</p>
+<p>Typically, when watching files there&rsquo;s some tricky details that cannot
 be overlooked when using the whole set of events offered by <code>inotify</code>
 or when considering other OS native file watching API. Additionally,
-this may very well depend on the actual use case that has to be solved.</p><p>Note that this happened on <code>/etc/hosts</code>, but the same issue can happen
+this may very well depend on the actual use case that has to be solved.</p>
+<p>Note that this happened on <code>/etc/hosts</code>, but the same issue can happen
 on any file that is <em>bind mounted</em> in the container, like it is customary
-for configuration files (configmap) in Kubernetes.</p><h2 id=remaining-questions>Remaining questions</h2><p>The Java&rsquo;s <code>WatchService</code> design targets both simplicity and portability at
-a time when containers (and their funky filesystem) were not a thing.</p><p>The API is flexible enough to enable the usage of the platform
+for configuration files (configmap) in Kubernetes.</p>
+<h2 id="remaining-questions">Remaining questions</h2>
+<p>The Java&rsquo;s <code>WatchService</code> design targets both simplicity and portability at
+a time when containers (and their funky filesystem) were not a thing.</p>
+<p>The API is flexible enough to enable the usage of the platform
 specific features. I&rsquo;m certainly hoping for a way to tweak the
 behavior of the Linux integration as the current one does not
 yet support any modifiers
-(<a href=https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l230><code>// no modifiers supported at this time</code></a>)</p><p>This could be implemented this way:</p><blockquote><p>The WatchService API allows customization using <em>modifiers</em>
-<code>WatchKey Path.register(WatchService watcher, WatchEvent.Kind&lt;?>[] events, WatchEvent.Modifier... modifiers)</code>.
+(<a href="https://hg.openjdk.java.net/jdk8u/jdk8u/jdk/file/478a4add975b/src/solaris/classes/sun/nio/fs/LinuxWatchService.java#l230"><code>// no modifiers supported at this time</code></a>)</p>
+<p>This could be implemented this way:</p>
+<blockquote>
+<p>The WatchService API allows customization using <em>modifiers</em>
+<code>WatchKey Path.register(WatchService watcher, WatchEvent.Kind&lt;?&gt;[] events, WatchEvent.Modifier... modifiers)</code>.
 For example <code>com.sun.nio.file.SensitivityWatchEventModifier</code>.
-Using this, it could be possible to tweak <code>inotify</code> usage.</p></blockquote><p>Also, why the Java watchservice only allow to register folders ?
+Using this, it could be possible to tweak <code>inotify</code> usage.</p>
+</blockquote>
+<p>Also, why the Java watchservice only allow to register folders ?
 Since there is some differences in the implementation already
 why not relaxing the limitation for implementation to allow them
 to watch files and in the case of Linux it would allow to leverage
 the <code>inotify</code> event model. For backward compatibility this could be
-enabled only when the right modifier is passed to <code>Path.register(...)</code>.</p><p>At this time I could only find these discussions on the matter:</p><ul><li><a href=http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/thread.html#1059>http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/thread.html#1059</a></li><li><a href=http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/001070.html>http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/001070.html</a></li></ul></div><div class="navigation navigation-single"><a href=/2018/06/18/minikube-with-hyperkit/ class=navigation-prev><i aria-hidden=true class="fa fa-chevron-left"></i><span class=navigation-tittle>Minikube with hyperkit</span></a>
-<a href=/2020/04/01/manage_dotfiles_with_chezmoi/ class=navigation-next><span class=navigation-tittle>Managing dotfiles and secret with chezmoi</span>
-<i aria-hidden=true class="fa fa-chevron-right"></i></a></div><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){this.page.identifier='https://blog.arkey.fr/2019/09/13/watchservice-and-bind-mount/';this.page.title='When Java\x27s WatchService is not the right tool in a container';this.page.url='https://blog.arkey.fr/2019/09/13/watchservice-and-bind-mount/';};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return;}
-var d=document,s=d.createElement('script');s.async=true;s.src='//'+"thecoffeeworkshop"+'.disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></div><script defer src=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin=anonymous></script><script type=text/javascript>hljs.initHighlightingOnLoad();</script></body></html>
+enabled only when the right modifier is passed to <code>Path.register(...)</code>.</p>
+<p>At this time I could only find these discussions on the matter:</p>
+<ul>
+<li><a href="http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/thread.html#1059">http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/thread.html#1059</a></li>
+<li><a href="http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/001070.html">http://mail.openjdk.java.net/pipermail/nio-dev/2010-September/001070.html</a></li>
+</ul>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2018/06/18/minikube-with-hyperkit/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Minikube with hyperkit</span>
+    </a>
+    
+    
+    <a href="/2020/04/01/manage_dotfiles_with_chezmoi/" class="navigation-next">
+      <span class="navigation-tittle">Managing dotfiles and secret with chezmoi</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2019/09/13/watchservice-and-bind-mount/';
+        this.page.title = 'When Java\x27s WatchService is not the right tool in a container';
+        this.page.url = 'https://blog.arkey.fr/2019/09/13/watchservice-and-bind-mount/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>
