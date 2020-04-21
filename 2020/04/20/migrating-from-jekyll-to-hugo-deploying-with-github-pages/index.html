@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Migrating From Jekyll to Hugo, deploying with Github Pages • The Coffee Workshop</title>
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Migrating From Jekyll to Hugo, deploying with Github Pages"/>
+<meta name="twitter:description" content="Moving away form Jekyll. Import is easy, but tackling important details (conserve links to article, conserve comments, migrate some jekyll liquid template, theme tweaking deployment) has been challenging sometime.
+ Motivation When started this blog in 2010 I went like a lot other to Wordpress as this was the one of the most common and easy way to write and publish something, then I got pissed at Wordpress as it was a pain to maintain and to write code, not to mention the speed, it was bad, then Github announced Github Pages, this was a revelation : articles written in pure Markdown, no database or server to maintain, fast writing, fast page thanks to static files."/>
+
+<meta property="og:title" content="Migrating From Jekyll to Hugo, deploying with Github Pages" />
+<meta property="og:description" content="Moving away form Jekyll. Import is easy, but tackling important details (conserve links to article, conserve comments, migrate some jekyll liquid template, theme tweaking deployment) has been challenging sometime.
+ Motivation When started this blog in 2010 I went like a lot other to Wordpress as this was the one of the most common and easy way to write and publish something, then I got pissed at Wordpress as it was a pain to maintain and to write code, not to mention the speed, it was bad, then Github announced Github Pages, this was a revelation : articles written in pure Markdown, no database or server to maintain, fast writing, fast page thanks to static files." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.arkey.fr/2020/04/20/migrating-from-jekyll-to-hugo-deploying-with-github-pages/" />
+<meta property="article:published_time" content="2020-04-20T23:42:10+02:00" />
+<meta property="article:modified_time" content="2020-04-20T23:42:10+02:00" /><meta property="og:site_name" content="Arkey" />
+
+
+
+    
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css">
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.4f7a9eea99b1ffe5dcdd1e948a610c331be6316c39a65d78979aa9eed6a6105d.css" integrity="sha256-T3qe6pmx/&#43;Xc3R6UimEMMxvmMWw5pl14l5qp7tamEF0=">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/svg-with-js.min.css" integrity="sha256-GyCVXSM0LI7EPORc9EWykRKWjlig49LoHPKt6s8NjBg=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class=" ">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+<article>
+  <header>
+    <h1>Migrating From Jekyll to Hugo, deploying with Github Pages</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-04-20
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/webpages">webpages</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jekyll">jekyll</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/staticsite">staticsite</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/hugo">hugo</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/github-pages">github pages</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 19 min read
+</div>
+
+
+  </header>
+  
+  
+  <div class="post">
+    <div class="paragraph">
+<p>Moving away form Jekyll. Import is easy, but tackling important details
+(conserve links to article, conserve comments, migrate some jekyll liquid
+template, theme tweaking deployment) has been challenging sometime.</p>
+</div>
+<div class="sect1">
+<h2 id="_motivation"><a class="anchor" href="#_motivation"></a><a class="link" href="#_motivation">Motivation</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>When started this blog in 2010 I went like a lot other to Wordpress
+as this was the one of the most common and easy way to write and publish
+something, then I got pissed at Wordpress as it was a pain to maintain
+and to write code, not to mention the speed, it was bad, then Github
+announced <em>Github Pages</em>, this was a revelation : articles written in
+pure Markdown, no database or server to maintain, fast writing, fast page
+thanks to static files. There were quite a few things that were icky
+like theme modifications, and some Wordpress plugins that were simply
+not there, but once done it was a robust machine.</p>
+</div>
+<div class="paragraph">
+<p>Now would like to write using <strong>Asciidoc</strong>.</p>
+</div>
+<div class="paragraph">
+<p>So what&#8217;s wrong with Jekyll with Github Pages.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Github Pages for good reasons limit what can be executed on their
+server, that means limited jekyll plugins, and with limited plugins
+comes limited theme choice.</p>
+</li>
+<li>
+<p>Generating the files locally is hazardous, because you need to keep the same
+configuration as the one used by Github Pages, I was fist installing Ruby
+packages, but that was resolved when I switched to a docker images.</p>
+</li>
+<li>
+<p>You basically to fork or copy the theme files in the repo, making difficult
+to track change from upstream while keeping your local changes.</p>
+</li>
+<li>
+<p>I want to write in <strong>Asciidoc</strong> as it offers more way to layout information
+in the article.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I could have chosen to simply use a Jekyll Asciidoc plugin, generate the static
+files and push them to Github in an automated way. There&#8217;s now decent
+alternatives to consider, like Hugo, to be fair it&#8217;s the only thing I tried
+because of it&#8217;s <em>native</em> <code>asciidoctor</code> support. And it has other interesting
+aspects:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Just one executable</p>
+</li>
+<li>
+<p>Really fast to generate (with markdown content), not that jekyll was too slow
+for me, but the speed is noticeable.</p>
+</li>
+<li>
+<p>Theme (from another repo) and content are well separated</p>
+</li>
+<li>
+<p>Templating and overrides is superior in my opinion</p>
+</li>
+<li>
+<p>Support more than markdown if external tool are available like <code>asciidoctor</code>.</p>
+</li>
+<li>
+<p>Multi lingual content supported</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This long article won&#8217;t talk much about Asciidoc, but much more about the migration
+phase as there was a lot of rocks on the road. Let&#8217;s start by the first step:
+Importing Jekyll blog.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_importing_from_jekyll"><a class="anchor" href="#_importing_from_jekyll"></a><a class="link" href="#_importing_from_jekyll">Importing from Jekyll</a></h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ hugo import jekyll --log ../bric3.github.io .
+Importing...
+Congratulations! 42 post(s) imported!
+Now, start Hugo by yourself:
+$ git clone https://github.com/spf13/herring-cove.git ./themes/herring-cove
+$ cd .
+$ hugo server --theme=herring-cove
+❯ git clone https://github.com/achary/engimo.git ./themes/engimo
+Cloning into './themes/herring-cove'...
+remote: Enumerating objects: 40, done.
+remote: Counting objects: 100% (40/40), done.
+remote: Compressing objects: 100% (27/27), done.
+remote: Total 4367 (delta 14), reused 26 (delta 12), pack-reused 4327
+Receiving objects: 100% (4367/4367), 4.77 MiB | 6.88 MiB/s, done.
+Resolving deltas: 100% (2270/2270), done.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Let’s run the server to see that basic import works</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ hugo server --theme=engimo
+
+                   | EN
+-------------------+------
+  Pages            | 294
+  Paginator pages  |   4
+  Non-page files   |   0
+  Static files     | 106
+  Processed images |   0
+  Aliases          | 127
+  Sitemaps         |   1
+  Cleaned          |   0
+
+Built in 170 ms
+Watching for changes in /Users/bric3/private/bric3-hugo/{archetypes,content,data,layouts,static,themes}
+Watching for config changes in /Users/bric3/private/bric3-hugo/config.yaml
+Environment: "development"
+Serving pages from memory
+Running in Fast Render Mode. For full rebuilds on change: hugo server --disableFastRender
+Web Server is available at http://localhost:1313/ (bind address 127.0.0.1)
+Press Ctrl+C to stop</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But nothing’s there.</p>
+</div>
+<div class="paragraph">
+<p>What I missed is that I actually needed to copy the <code>config.yaml|toml</code>  configuration
+example file from the theme’s <code>exampleSite</code> folder.  Eventually depending on the theme,
+this file format may be <code>yaml</code> or <code>tool</code> format, my theme one was a <code>toml</code> file, so
+I had to remove the <code>yaml</code> configuration file that was generated by the Hugo import;
+the generated content was pretty thin so that was easy to port over the <code>config.toml</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">cp themes/hyde-hyde/exampleSite/config.toml .
+rm config.yaml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Also, I noticed it’s easier to switch theme by not using the command line flag <code>--theme=&lt;theme&gt;</code>
+and instead use the configuration file <code>config.yaml|toml</code> instead by using the
+<code>theme</code> field. And simply run <code>hugo server</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="toml" class="language-toml hljs">theme = "hyde-hyde"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By the way here’s what my directory structure looks like, before I perform some
+changes to fix some issues</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">/Users/bric3/private/bric3-hugo
+├──archetypes
+├──config.toml
+├──content
+│  ├──post
+│  │  ├──2010-01-24-hello-world.md
+│  │  ├──2010-02-09-a-propos-de-joda-time.md
+│  │  ├──2010-02-12-une-fuite-memoire-beaucoup-de-reflection-et-pas-de-outofmemoryerror.md
+│  │  ├──2010-02-16-les-collections-par-google-comment-sy-retrouver.md
+│  │  └──37 unlisted
+├──data
+├──layouts
+├──resources
+│  └──_gen
+│     ├──assets …
+│     └──images
+├──static
+│  ├──assets
+│  │  ├──0x304D-ki-hiragana.png
+│  │  ├──0x6C23-chi.png
+│  │  ├──add_new_jsdk.png
+│  │  ├──application-gc.png
+│  │  └──20 unlisted
+│  ├──CNAME
+│  ├──css
+│  │  ├──highlightjs.piperita.scss
+│  │  ├──jquery.mmenu.all.css
+│  │  ├──simplebar.css
+│  │  └──style.scss
+│  ├──favicons
+│  │  ├──android-chrome-144x144.png
+│  │  ├──android-chrome-192x192.png
+│  │  ├──android-chrome-36x36.png
+│  │  └──26 unlisted
+│  ├──js
+│  │  ├──jekyll-search.js
+│  │  └──jquery.mmenu.min.all.js
+│  ├──search.json
+│  └──serve.sh
+└──themes
+   ├──hyde-hyde
+   │  ├──archetypes …
+   │  ├──assets …
+   │  ├──CHANGELOG.md
+   │  ├──exampleSite …
+   │  └──7 unlisted
+   └──slick
+      ├──_assets …
+      ├──_sites …
+      ├──archetypes …
+      ├──build-site.js
+      └──12 unlisted</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_a_long_way_to_fix_the_small_issues"><a class="anchor" href="#_a_long_way_to_fix_the_small_issues"></a><a class="link" href="#_a_long_way_to_fix_the_small_issues">A long way to fix the small issues</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Right now finding the theme that works for your blog is one of the most
+time-consuming tasks, as you need to identify which feature you need and
+how to migrate, I&#8217;ve been trying several themes to see how they work, one
+aspect that I didn’t quite like is that you need to adapt for each theme
+the configuration file.</p>
+</div>
+<div class="paragraph">
+<p>Especially the section <code>[params]</code> which is used by the theme templates,
+and each theme differ well enough for that to be a cumbersome process.
+At this point it’s really a good thing to read the
+<a href="https://gohugo.io/getting-started/configuration/">Hugo configuration documentation</a>.</p>
+</div>
+<div class="sect2">
+<h3 id="_fixing_the_post_permalinks"><a class="anchor" href="#_fixing_the_post_permalinks"></a><a class="link" href="#_fixing_the_post_permalinks">Fixing the post permalinks</a></h3>
+<div class="paragraph">
+<p>My current blog expose posts with the following path</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">https://blog.arkey.fr/2020/04/02/manage_dotfiles_with_chezmoi/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The default configuration exposed these links as</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">http://localhost:1313/posts/2020-04-01-manage_dotfiles_with_chezmoi/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>After some search I found these can tweaked with the
+<a href="https://gohugo.io/content-management/urls/">permalink setting</a>, I don’t
+know exactly why but this was only taken in account after the <code>[params]</code>
+section.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="toml" class="language-toml hljs">[permalinks]
+    posts = "/:year/:month/:day/:title/"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Which made the post accessible to this url.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">http://localhost:1313/2020/04/01/managing-dotfiles-and-secret-with-chezmoi/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>At some point I might be considering the use of Hugo
+<a href="https://gohugo.io/content-management/urls/#aliases">aliases</a> and change
+the urls of the post to something like</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">http://localhost:1313/posts/2020/04/01/managing-dotfiles-and-secret-with-chezmoi/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>…</p>
+</div>
+<div class="paragraph">
+<p>Actually I got this wrong, Jekyll’s permalink configuration <code>/:year/:month/:day/:title</code>
+has a small <em>unusual</em> thing, when reading the doc :</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 100%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>title</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Title from the <strong>document’s filename</strong>. May be overridden via the
+document’s <code>slug</code> front matter.</p></td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>So when setting <code>/:year/:month/:day/:title/</code> in Hugo <code>config.toml</code> the permalink
+are not exactly what I hoped them to be, this actually the title from the
+<em>front matter</em> of the article. I had to resort to the technic used in this blog
+<a href="https://www.dev-eth0.de/2019/07/13/convert-jekyll-to-hugo-permalinks/">Convert Jekyll to Hugo Permalinks</a>
+to keep the same permalinks.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">cd content/posts
+for f in *.md;
+do
+  base=`basename "$f" '.md' | cut -f 4- -d '-'`
+  gsed -i "s/title:/slug: $base\ntitle:/" "$f"
+done</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>gsed</code> is gnu-sed from <code>brew install gnu-sed</code> on MacOs. Because newlines
+don&#8217;t work with the BSD <code>sed</code> .</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_adding_custom_pages"><a class="anchor" href="#_adding_custom_pages"></a><a class="link" href="#_adding_custom_pages">Adding custom pages</a></h3>
+<div class="paragraph">
+<p>My Jekyll site had some other pages, those where located in the <code>_pages</code>
+of my Jekyll site. In order to understand how the site works, I needed
+to read <a href="https://gohugo.io/content-management/organization/">content organization documentation</a>.
+The only thing I had to do is copy these files over the <code>content</code>
+directory of the Hugo site.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">/Users/bric3/private/bric3-hugo
+├──archetypes
+├──config.toml
+├──content
+│  ├──cool-stuff.md
+│  ├──post
+│  │  ├──2010-01-24-hello-world.md
+│  │  ├──2010-02-09-a-propos-de-joda-time.md
+│  │  ├──2010-02-12-une-fuite-memoire-beaucoup-de-reflection-et-pas-de-outofmemoryerror.md
+│  │  ├──2010-02-16-les-collections-par-google-comment-sy-retrouver.md
+│  │  └──37 unlisted
+│  └──whoami.md</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It’s even possible to do a layout like that.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">/Users/bric3/private/bric3-hugo
+├──archetypes
+├──config.toml
+├──content
+│  ├──cool-stuff
+│  │  └──index.md
+│  ├──post</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I preferred the easy way in regard of these page content. Also, I wanted
+my post in the <code>posts</code> folder instead of <code>post</code>, I just had to rename
+the folder and that was it.</p>
+</div>
+<div class="paragraph">
+<p>Finally, in order to access the content I needed to add the menu entries,
+like that. I didn’t need to read the <a href="https://gohugo.io/content-management/menus/">menu documentation</a>
+for it to work, but there’s more stuff possible when going over it.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="toml" class="language-toml hljs">[menu]
+    [[menu.main]]
+        identifier = "post"
+        name = "Posts"
+        title = "All posts"
+        url = "/posts/"
+        weight = 1
+
+    # ...
+
+    [[menu.main]]
+        identifier = "whoami"
+        name = "Who Am I ?"
+        title = "About me"
+        weight = 4
+        url = "/whoami/"
+
+    # ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_accents_diacritical_marks_in_some_url"><a class="anchor" href="#_accents_diacritical_marks_in_some_url"></a><a class="link" href="#_accents_diacritical_marks_in_some_url">Accents (diacritical marks) in some url</a></h3>
+<div class="paragraph">
+<p>This will be appreciated for languages that have diacritical marks like
+French. So defining the permalink with <code>/:year/:month/:day/:title/</code> lead
+to use the post title for the link, however some have accent that are
+then url-encoded :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">http://localhost:1313/2012/07/30/script-dinstallation-du-jdk-5-sur-macosx-lion-et-mountain-lion-mis-%C3%A0-jour/</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I didn’t find it in the Hugo doc, but in the Hugo issue tracker, it&#8217;s possible
+to add in the <code>config.toml</code>, this setting is not part of any section.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="toml" class="language-toml hljs">removePathAccents = true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Will then make the urls as follows :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">http://localhost:1313/2012/07/30/script-dinstallation-du-jdk-5-sur-macosx-lion-et-mountain-lion-mis-a-jour/</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_migrate_jekyll_related_stuff"><a class="anchor" href="#_migrate_jekyll_related_stuff"></a><a class="link" href="#_migrate_jekyll_related_stuff">Migrate Jekyll related stuff</a></h3>
+<div class="sect3">
+<h4 id="_migrate_jekyll_liquid_template_to_hugo"><a class="anchor" href="#_migrate_jekyll_liquid_template_to_hugo"></a><a class="link" href="#_migrate_jekyll_liquid_template_to_hugo">Migrate Jekyll liquid template to Hugo</a></h4>
+<div class="ulist">
+<ul>
+<li>
+<p><code>{{ site.baseurl }}</code> for images, simply removed as website base url
+starts with <code>/assets</code> too.</p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>{% comment %} &#8230;&#8203; {% endcomment %}</code> &#8658; comments are tricky, if it&#8217;s a
+shortcake, this is part of the markdown generation and using html comment
+may work <code>&lt;!-- {{&lt; shortcode &gt;}} -&#8594;</code>. But for notes taken during
+articles, in the end I created my own shortcode <code>draftNotes</code>.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{{ if .Site.Params.DisplayDraftNotes }}
+{{ .Inner | markdownify }}
+{{ end }}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p><code>{% if &#8230;&#8203; %} {% endif %}</code> was used to comment stuff, it&#8217;s replaced by <code>draftNotes</code> shortcode.</p>
+</li>
+<li>
+<p><code>{% gist gist_id %}</code> &#8658; <code><script type="application/javascript" src="https://gist.github.com/user_name/gist_id.js"></script>
+</code></p>
+</li>
+<li>
+<p><code>{% raw %} {% endraw %}</code> there&#8217;s nothing to do here for me, this directive
+disables Jekyll processing for text having <code>{{ &#8230;&#8203; }}</code> which Jekyll
+interpreted as Jekyll template.</p>
+</li>
+<li>
+<p><code>{:.alternate}</code> &#8658; used by <em>kramdown</em> to apply a CSS style, it can be removed</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I had to read the <a href="https://gohugo.io/content-management/shortcodes/">shortcodes documentation</a>
+and look at how to <a href="https://gohugo.io/templates/shortcode-templates/">create my own shortcode</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_amazon_links"><a class="anchor" href="#_amazon_links"></a><a class="link" href="#_amazon_links">Amazon links</a></h4>
+<div class="paragraph">
+<p>They are just as other Jekyll liquid template :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{{ amazon_product_image_link | replace:'$asin$','0132350882' | replace:'$size$',img_size }}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>These can be easily changed to a shortcode. Hugo doc for example showcase
+the <code>figure</code> shortcode:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{{&lt; figure src="/media/spf13.jpg" title="Steve Francia" &gt;}}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I&#8217;ve crafted my own simple shortcode for Amazon <code>{{&lt; amzn "B07XW76VHZ" &gt;}}</code> :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="html" class="language-html hljs">&lt;a href="https://www.amazon.com/exec/obidos/ASIN/{{ $itemId }}/" class="amazon-shortcode" target="\_blank"&gt;
+    &lt;figure&gt;
+        {{- if eq (len .Params) 1 -}}
+        &lt;img src="https://images-na.ssl-images-amazon.com/images/P/{{ $itemId }}.jpg"/&gt;
+        {{- else if eq (len .Params) 2 -}}
+        {{- $imageId := .Get 1 -}}
+        &lt;img src="https://images-na.ssl-images-amazon.com/images/I/{{ $imageId }}.jpg"/&gt;
+        {{- end -}}
+    &lt;/figure&gt;
+&lt;/a&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By the way I have found this
+<a href="https://www.thepolyglotdeveloper.com/2019/01/create-custom-shortcodes-embed-content-hugo-posts-pages/">blog post</a>
+interesting to read to craft my own shortcodes.</p>
+</div>
+<div class="paragraph">
+
+
+
+</div>
+</div>
+<div class="sect3">
+<h4 id="_migrate_inline_html_in_the_markdown_content"><a class="anchor" href="#_migrate_inline_html_in_the_markdown_content"></a><a class="link" href="#_migrate_inline_html_in_the_markdown_content">Migrate inline HTML in the markdown content</a></h4>
+<div class="paragraph">
+<p>The following HTML elements will be omitted in the rendered page</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="markdown" class="language-markdown hljs">&lt;div class="table-wrapper" markdown="block"&gt;
+| Markdown table |
+&lt;/div&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="html" class="language-html hljs">&lt;!-- raw HTML omitted --&gt;
+&lt;table&gt;...&lt;/table&gt;
+&lt;!-- raw HTML omitted --&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Hugo <code>0.69</code> uses Goldmark to render markdown, and it has a setting allow inline HTML</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="toml" class="language-toml hljs">[markup]
+  defaultMarkdownHandler = "goldmark"
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But for safety, and self documentation, I&#8217;d prefer to migrate those to
+shortcodes as well, like <code>wrapTable</code> for this one.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="html" class="language-html hljs">&lt;div class="table-wrapper"&gt;
+{{ .Inner | markdownify }}
+&lt;/div&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I encountered an issue however when the table itself has shortcodes. This
+break table rendering. The only way to support that is to use/create
+shortcodes for opening and for closing the <code>div</code> in this cases.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_cleanup"><a class="anchor" href="#_cleanup"></a><a class="link" href="#_cleanup">Cleanup</a></h3>
+<div class="paragraph">
+<p>The Hugo import command copied over a few Jekyll stuffs that are not
+anymore useful. So git gives me these files for example that could be
+removed. I included the favicon as well, as I wanted some refresh.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">	renamed:    css/highlightjs.piperita.scss -&gt; static/css/highlightjs.piperita.scss
+	renamed:    css/jquery.mmenu.all.css -&gt; static/css/jquery.mmenu.all.css
+	renamed:    css/simplebar.css -&gt; static/css/simplebar.css
+	renamed:    css/style.scss -&gt; static/css/style.scss
+	renamed:    favicons/README.md -&gt; static/favicons/README.md
+	renamed:    favicons/android-chrome-144x144.png -&gt; static/favicons/android-chrome-144x144.png
+    ...
+	renamed:    favicons/favicon.ico -&gt; static/favicons/favicon.ico
+	renamed:    js/jekyll-search.js -&gt; static/js/jekyll-search.js
+	renamed:    js/jquery.mmenu.min.all.js -&gt; static/js/jquery.mmenu.min.all.js
+	renamed:    search.json -&gt; static/search.json</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">rm -rf static/{css,js,favicons,search.json}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>However, the <code>CNAME</code> file has been moved to <code>static</code> folder, which is wrong,
+let’s put it back at the root of the git repository.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">renamed:    CNAME -&gt; static/CNAME</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Remove unused Hugo themes</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">rm -rf themes/slick</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Adapt my <code>.gitignore</code></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs"># Created by https://www.gitignore.io/api/hugo
+# Edit at https://www.gitignore.io/?templates=hugo
+
+### Hugo ###
+# Generated files by hugo
+/public/
+/resources/_gen/
+
+# Executable may be added to repository
+hugo.exe
+hugo.darwin
+hugo.linux
+
+# End of https://www.gitignore.io/api/hugo</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_paginate_post_list_page"><a class="anchor" href="#_paginate_post_list_page"></a><a class="link" href="#_paginate_post_list_page">Paginate post list page</a></h3>
+<div class="paragraph">
+<p>I found this issue <a href="https://github.com/htr3n/hyde-hyde/issues/18">#18 on Hyde-hyde theme</a>,
+however this issue referred to an old version of the theme which has
+since been updated.</p>
+</div>
+<div class="paragraph">
+<p>One thing that is interesting and useful is how Hugo allows overriding
+parts of a theme. The themes are located in the <code>./theme</code> folder, e.g.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">/Users/bric3/private/bric3-hugo/themes/hyde-hyde
+├──archetypes
+│  └──default.md
+├──assets
+│  └──scss
+│     ├──hyde-hyde …
+│     ├──hyde-hyde.scss
+│     └──4 unlisted
+├──CHANGELOG.md
+├──exampleSite
+│  ├──config.toml
+│  ├──content
+│  │  ├──about.md
+│  │  ├──portfolio …
+│  │  └──posts …
+│  ├──layouts
+│  └──static
+│     └──img …
+├──images
+│  ├──main.png
+│  ├──mobile.png
+│  ├──portfolio.png
+│  ├──post.png
+│  ├──screenshot.png
+│  └──tn.png
+├──layouts
+│  ├──404.html
+│  ├──_default
+│  │  ├──baseof.html
+│  │  ├──list.html
+│  │  └──single.html
+│  ├──about
+│  │  └──single.html
+│  ├──index.html
+│  ├──partials
+│  │  ├──footer …
+│  │  ├──header …
+│  │  └──9 unlisted
+│  ├──portfolio
+│  │  └──list.html
+│  └──shortcodes
+│     ├──fig.html
+│     ├──kbd.html
+│     └──3 unlisted
+├──LICENSE.md
+├──README.md
+├──resources
+│  └──_gen
+│     └──assets …
+├──static
+│  ├──apple-touch-icon-144-precomposed.png
+│  ├──css
+│  │  ├──hugo-toc.css
+│  │  ├──hugo-toc.css.map
+│  │  ├──hyde-hyde.css
+│  │  └──9 unlisted
+│  ├──favicon.png
+│  └──img
+│     ├──hugo.png
+│     ├──menu-close-dark.svg
+│     ├──menu-close.svg
+│     └──2 unlisted
+└──theme.toml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In order to override parts of the theme it’s possible to copy the file
+in the root of the Hugo site (following the same directory structure). For post
+lists, I identified two files in the theme directory :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>layouts/partials/page-list/content.html</code></p>
+</li>
+<li>
+<p><code>layouts/partials/posts-list.html</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These files need to be copied over the root of the Hugo site with the
+same relative path. And modify them as needed.</p>
+</div>
+<div class="listingblock">
+<div class="title">layouts/partials/page-list/content.html</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">--- 1/themes/hyde-hyde/layouts/partials/page-list/content.html
++++ 2/layouts/partials/page-list/content.html
+@@ -1,6 +1,4 @@
+ &lt;span class="section__title"&gt;{{ .Title }}&lt;/span&gt;
+ &lt;ul class="posts"&gt;
+-    {{ with .Data.Pages }}
+-        {{ partial "posts-list.html" . }}
+-    {{ end }}
+-&lt;/ul&gt;
++    {{ partial "posts-list.html" . }}
++&lt;/ul&gt;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">layouts/partials/posts-list.html</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">--- 1/themes/hyde-hyde/layouts/partials/posts-list.html
++++ 2/layouts/partials/posts-list.html
+@@ -1,6 +1,7 @@
+-{{ range . }}
++{{ $paginator := .Paginate (where .Pages "Type" "in" "posts") }}
++{{ template "_internal/pagination.html" . }}
++&lt;br/&gt;
++{{ range $paginator.Pages }}
+ &lt;li&gt;
+     &lt;a href="{{ .RelPermalink }}" {{if .Draft}}class="draft"{{end}}&gt;{{ .Title }}&lt;/a&gt;
+       {{if not .Date.IsZero}}
+       &lt;time class="pull-right hidden-tablet"&gt;{{ .Date.Format (.Site.Params.dateformat | default "Jan 02 '06") }}&lt;/time&gt;
+@@ -8,3 +9,4 @@
+   &lt;/span&gt;
+ &lt;/li&gt;
+ {{ end }}
++&lt;br/&gt;
++{{ template "_internal/pagination.html" . }}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here I’m using the Hugo internal template for pagination but one can
+image using a custom template. The <code>.Paginate</code> directive was taken
+from <a href="https://gohugo.io/templates/pagination/">pagination doc</a>, however
+the doc have a slight issue, the where query needs to be
+<code>where .Pages “Type” “in” “posts”</code> keyword.</p>
+</div>
+<div class="paragraph">
+<p>However, I noted that other lists do not render anymore, for example
+<code>/tags</code> or <code>/series</code>, this is because the file we modified affect all
+list based page, search where the <code>page-list/content.html</code> partial is
+used raises the general <code>list.html</code> located there
+<code>themes/hyde-hyde/layouts/_default/list.html</code>. Since I want the pagination
+only for posts at this time, I just have to create a structure like
+this in my root Hugo site.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">/Users/bric3/private/bric3-hugo/layouts
+├──index.html
+├──partials
+│  └──posts
+│     └──content.html
+└──posts
+   └──list.html</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I created a <code>posts</code> folder in the <code>layouts</code> directory and in the <code>layouts/partials</code>,
+then I moved the file <code>layouts/partials/page-list/content.html</code>
+to <code>layouts/partials/posts/content.html</code> and merged the content
+of <code>layouts/partials/posts-list.html</code> replacing the Hugo function
+<code>{{ partial "posts-list.html" . }}</code>, and I removed this file as it breaks other
+<em>taxinomies</em>. Finally, I had to create the <code>layouts/posts/list.html</code> file, that
+invokes <code>{{ partial "posts/content.html" . }}</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tweak_landing_page_number_of_posts"><a class="anchor" href="#_tweak_landing_page_number_of_posts"></a><a class="link" href="#_tweak_landing_page_number_of_posts">Tweak landing page number of posts</a></h3>
+<div class="paragraph">
+<p>Here I needed to modify the index layout to only display the last <em>X</em> recent post.</p>
+</div>
+<div class="listingblock">
+<div class="title">layouts/index.html</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">--- 1/themes/hyde-hyde/layouts/index.html
++++ 2/layouts/index.html
+@@ -4,7 +4,7 @@
+
+ {{ define "content" }}
+   &lt;div class="post-list"&gt;
+-    {{ $paginator := .Paginate (where .Site.RegularPages "Type" "in" site.Params.mainSections) }}
++    {{ $paginator := .Paginate (first .Site.Params.landingLastPosts (where .Site.RegularPages "Type" "in" site.Params.mainSections)) }}
+     {{ range $paginator.Pages }}
+       {{ if .Draft }}
+         {{ .Scratch.Set "draftPage" true }}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This trick is not current as you need to <em>wrap</em> the query part with
+the <code>first</code> function <code>(first .Site.Params.landingLastPosts &lt;query&gt;)</code>,
+and I added <code>landingLastPosts</code> in the params section.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="toml" class="language-toml hljs">[params]
+    landingLastPosts = 5</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_comments_with_disqus"><a class="anchor" href="#_comments_with_disqus"></a><a class="link" href="#_comments_with_disqus">Comments with Disqus</a></h3>
+<div class="paragraph">
+<p>So Hugo supports <a href="https://gohugo.io/content-management/comments/#add-disqus">Disqus comments</a>,
+but the thing is that site is generated by a theme and the theme may
+or may not handle comments as you wished, so it&#8217;s necessary to look
+at how it&#8217;s done in Hugo and in the theme depending on the requirements.</p>
+</div>
+<div class="paragraph">
+<p>For my Jekyll site, my comments had to be migrated from a Wordpress engine,
+posts on Wordpress have different Disqus identifier that is now specified
+in the front matter, and this identifier was passed to Disqus script
+configuration. Here&#8217;s my Jekyll website relevant part:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="html" class="language-html hljs">&lt;script type=“text/javascript”&gt;
+    function disqus_config() {
+        this.experiment.enable_scroll_container = true;
+        this.page.url = “{{ site.cname }}{{ page.url }}”;  // Replace PAGE_URL with your page’s canonical URL variable
+        this.page.identifier = ‘{% if page.disqus_identifier %}{{ page.disqus_identifier}}{% else %}{{ site.cname }}{{ page.url }}{% endif %}’; // Replace PAGE_IDENTIFIER with your page’s unique identifier variable
+    }
+    var disqus_shortname = "{{ site.disqus_account }}"; // required: replace example with your forum shortname
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function () {
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+&lt;/script&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This script was crafted manually to pass identifier coming from the old
+days when it was powered by Wordpress. Looking at the Hugo
+<a href="https://github.com/gohugoio/hugo/blob/master/tpl/tplimpl/embedded/templates/disqus.html">template for Disqus</a>,
+I know there are other elements of the page configuration that are actually
+passed over to Disqus.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{{with .Params.disqus_identifier }}this.page.identifier = '{{ . }}';{{end}}
+{{with .Params.disqus_title }}this.page.title = '{{ . }}';{{end}}
+{{with .Params.disqus_url }}this.page.url = '{{ . | html  }}';{{end}}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So that&#8217;s interesting but life isn&#8217;t that simple as theme may override as well
+internal template by their own; the theme I chose uses a template that doesn&#8217;t
+use the Hugo internal to initialise Disqus script, my them file is located at
+<code>layouts/partials/page-single/comment/disqus.html</code>. THa leaves me no choice but to
+to override this partial comment template of the theme
+<code>layouts/partials/page-single/post-comment.html</code>, it this I merged the Hugo
+internal template, and I tweaked the template of the script initialization
+to behave the same as my old Jekyll site. The most important bit is here :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">this.page.identifier = {{with .Params.disqus_identifier }}'{{ . }}'{{else}}{{ printf "'%s%s'" .Site.Params.disqusIdentifierBaseURL .RelPermalink | safeJS }}{{end}};
+this.page.title = {{with .Params.disqus_title }}'{{ . }}'{{ else }}'{{ .Title }}'{{end}};
+this.page.url = {{with .Params.disqus_url }}'{{ . | html  }}'{{else}}{{ printf "'%s%s'" .Site.Params.disqusIdentifierBaseURL .RelPermalink | safeJS }}{{end}};</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Also for reasons that I don&#8217;t understand, the <code>.RelPermalink</code> / <code>.Permalink</code>
+Hugo functions escape the URL&#8217;s slashes with backslashes when the template
+function is placed inside a single quotes  of the JS script. The only
+workaround was to use <code>printf "'%s%s'"</code> then pipe to <code>safeJS</code> function.</em></p>
+</div>
+<div class="paragraph">
+<p>Then just in case the admin is available here
+<code><a href="https://&lt;you" class="bare">https://&lt;you</a> disqus short code&gt;.disqus.com/admin/settings/general/</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tie_together_the_permalink_and_the_disqus_content_with_the_slug_for_new_posts"><a class="anchor" href="#_tie_together_the_permalink_and_the_disqus_content_with_the_slug_for_new_posts"></a><a class="link" href="#_tie_together_the_permalink_and_the_disqus_content_with_the_slug_for_new_posts">Tie together the permalink, and the Disqus content with the <code>slug</code> for new posts</a></h3>
+<div class="paragraph">
+<p>Now permalinks for <strong>posts</strong> are defined as <code>/:year/:month/:day/:slug/</code>, the <code>slug</code>
+is a special entry that is computed by Hugo or set in the front matter of the
+content page. And the permalinks are used as Disqus identifiers. In order to have
+stable permalinks and Disqus identifiers if changing the generation backend,
+it&#8217;s better to write it down.</p>
+</div>
+<div class="paragraph">
+<p>I name my posts with a date then a string that is likely the title of the post,
+e.g. <code>2020-04-01-manage_dotfiles_with_chezmoi.md</code>. With the permalink structure
+in mind I need my <code>slug</code> as the part of the filename after the date.</p>
+</div>
+<div class="paragraph">
+<p>So let&#8217;s use the Hugo archetypes that will allow us to create a new post.
+It can be simply done by creating a file <code>archetypes/posts.md</code> with a content like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="markdown" class="language-markdown hljs">---
+authors: ["brice.dutheil"]
+date: "{{ .Date }}"
+language: en
+draft: true
+tags: ["cool"]
+slug: "{{ .Name | replaceRE "\\d{4}-\\d{2}-\\d{2}-(.*)" "$1" }}"
+title: "{{ .Name | replaceRE "\\d{4}-\\d{2}-\\d{2}-(.*)" "$1" | title }}"
+---
+
+Example content</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>slug</code> then becomes the part of the file without the date. Note that this archetype
+file can be easily duplicated as an Asciidoc file by adding a <code>posts.adoc</code>.</p>
+</div>
+<div class="paragraph">
+<p>However, for now it&#8217;s necessary to write manually at the beginning of the
+filename the ISO-8601 date, meaning we have to write :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">hugo new posts/2020-04-14-migrating-from-jekyll-to-hugo.md</code></pre>
+</div>
+</div>
+<div class="paragraph">
+
+
+
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_automate_deployment_on_github_pages"><a class="anchor" href="#_automate_deployment_on_github_pages"></a><a class="link" href="#_automate_deployment_on_github_pages">Automate deployment on Github Pages</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>As I’m using Github Pages to host this site, and it only supports Jekyll
+based website for automatic site generation. This is nice to avoid only
+technical maintenance for me, but with Hugo this is a different story. I need
+to actually generate the website, then push it to a special branch. Let&#8217;s try
+to do that manually before going automatic.</p>
+</div>
+<div class="sect2">
+<h3 id="_manual_deployment_of_the_static_files"><a class="anchor" href="#_manual_deployment_of_the_static_files"></a><a class="link" href="#_manual_deployment_of_the_static_files">Manual deployment of the static files</a></h3>
+<div class="paragraph">
+<p>So that&#8217;s what I had hoped. Yet I got this message in the repository settings.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/jekyll-to-hugo/github-pages-repo-settings.png" alt="Github Pages repository settings"></span></p>
+</div>
+<div class="paragraph">
+<p>I tried to create an empty <code>gh-pages</code> branch. Here&#8217;s some useful git command
+by the way:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs"># create a new empty branch (from your current branch)
+true | git mktree | xargs git commit-tree | xargs git branch gh-ages
+git push --set-upstream origin gh-pages:gh-pages</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But the settings page still insists that it should be done on <code>master</code>, not quite
+the same as mentioned in the
+<a href="https://help.github.com/en/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site">GitHub Pages doc</a>.
+I decided to drop this approach and removed the <code>gh-pages</code> branch for now.</p>
+</div>
+<div class="paragraph">
+<p>Finally, by trying things out, if there&#8217;s an <code>index.html</code> file on <code>master</code>, then
+the branch files will be used to serve as static content. Following this clue,
+removing all files in master but <code>CNAME</code>, it is enough to publish Hugo generated
+file from the <code>./public</code> folder to the <code>master</code> branch.</p>
+</div>
+<div class="paragraph">
+<p>Due to this Github Pages <em>constraint</em> the Hugo directory structure and site
+files are in another branch like <code>hugo-sources</code> that is configured as the
+default branch of this repository.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_automate_deployment"><a class="anchor" href="#_automate_deployment"></a><a class="link" href="#_automate_deployment">Automate deployment</a></h3>
+<div class="paragraph">
+<p>For that let&#8217;s use Github Actions, it&#8217;s possible to declare what needs to be
+done in a yaml file, and it appears the market place has everything I need to do that</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <a href="https://github.com/peaceiris/actions-hugo">Hugo action</a> that install Hugo
+and configures Hugo</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s configure the same version as the local one</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ hugo version
+Hugo Static Site Generator v0.69.0/extended darwin/amd64 BuildDate: unknown</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Version <code>0.69.0</code>, and it is important to activate the <code>extended</code> flag as well.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <a href="https://github.com/peaceiris/actions-gh-pages">GitHub Pages deployment action</a>
+that will push the static file</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The only thing that we need is a deployment key as documented <a href="https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-create-ssh-deploy-key">here</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">ssh-keygen -t rsa -b 4096 -C "$(git config user.email)" -f gh-pages -N ""</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Going <a href="https://github.com/bric3/bric3.github.io/settings/keys">there</a>, and add
+the public deployment key, check <strong>Allow write access</strong> :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">cat gh-pages.pub | pbcopy</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then add the secret key <a href="https://github.com/bric3/bric3.github.io/settings/secrets">here</a>
+named <strong><code>ACTIONS_DEPLOY_KEY</code></strong>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">cat gh-pages | pbcopy</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Don&#8217;t commit these files. But it may be useful to store them securely.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s necessary configure the publication branch to <code>master</code>, apparently using <code>master</code>
+is indeed necessary for a repository like <code>&lt;username&gt;/&lt;username&gt;.github.io</code>,
+see <a href="https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-repository-type---user-and-organization">this section</a>.</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Note that the deployment actions seems to remove all files, but we
+need the <code>CNAME</code> file fortunately it&#8217;s possible to configure the <code>cname</code> option.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>This gives us the following configuration in <code>.github/workflows/&lt;name of the workflow&gt;.yml</code> :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">name: GitHub Pages
+
+on:
+  push:
+    branches:
+      - hugo-sources
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: '0.69.0'
+          extended: true
+
+      - name: Build
+        run: Hugo —minify
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          publish_branch: master
+          publish_dir: ./public
+          cname: blog.arkey.fr</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>After this file has been pushed, it&#8217;s possible to inspect what this action
+has been doing, for how long, etc, at the
+<a href="https://github.com/bric3/bric3.github.io/runs/586180428?check_suite_focus=true">repository actions page</a></p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/jekyll-to-hugo/github-actions-success.png" alt="Github Actions jobs"></span></p>
+</div>
+<div class="paragraph">
+
+
+
+</div>
+<hr>
+<div class="ulist">
+<div class="title">Sources</div>
+<ul>
+<li>
+<p><a href="https://foo-dogsquared.github.io/blog/posts/blogging-with-asciidoctor-and-hugo/">Blogging with Asciidoctor and Hugo</a></p>
+</li>
+<li>
+<p><a href="https://jvns.ca/blog/2016/10/09/switching-to-hugo/">Switching to Hugo - Julia Evans</a></p>
+</li>
+<li>
+<p><a href="https://jshingler.github.io/blog/2019/12/07/creating-this-site/">Creating This Site</a></p>
+</li>
+<li>
+<p><a href="https://rgielen.net/posts/2019/creating-a-blog-with-hugo-and-asciidoctor/">Creating a Blog with Hugo and AsciiDoctor · rgielen.net</a></p>
+</li>
+<li>
+<p><a href="https://rgielen.net/posts/2019/creating-a-dockerized-hugo-asciidoctor-toolchain/">Creating a Dockerized Hugo + AsciiDoctor Toolchain · rgielen.net</a></p>
+</li>
+<li>
+<p><a href="https://dev.to/infominer33/jekyll-hpstr-to-hugo-hpstr-migration-gia">Jekyll HPSTR to Hugo HPSTR Theme Migration - DEV Community 👩‍💻👨‍💻</a></p>
+</li>
+<li>
+<p><a href="https://haefelfinger.ch/posts/2019/2019-11-12-Migrate-from-jekyll-to-hugo/">Migrate from jekyll to gohugo / Haefelfinger - Techblog</a></p>
+</li>
+<li>
+<p><a href="https://gohugo.io/commands/hugo_import_jekyll/">Hugo import jekyll | Hugo</a></p>
+</li>
+<li>
+<p><a href="https://www.morling.dev/blog/automatically-deploying-hugo-website-via-github-actions/">Automatically deploying a Hugo website via Github Actions</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2020/04/01/manage_dotfiles_with_chezmoi.fr/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Gestion des dotfiles et des secrets avec chezmoi</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2020/04/20/migrating-from-jekyll-to-hugo-deploying-with-github-pages/';
+        this.page.title = 'Migrating From Jekyll to Hugo, deploying with Github Pages';
+        this.page.url = 'https://blog.arkey.fr/2020/04/20/migrating-from-jekyll-to-hugo-deploying-with-github-pages/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+
+
+    
+
+
+
+    </body>
+</html>
