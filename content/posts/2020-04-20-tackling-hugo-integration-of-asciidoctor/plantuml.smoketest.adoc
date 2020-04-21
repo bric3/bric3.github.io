@@ -1,0 +1,428 @@
+== Sequence diagram
+
+[plantuml,"sequence-diagram-example",svg]
+.Sequence diagram
+----
+actor Foo1
+boundary Foo2
+control Foo3
+entity Foo4
+database Foo5
+collections Foo6
+Foo1 -> Foo2 : To boundary
+Foo1 -> Foo3 : To control
+Foo1 -> Foo4 : To entity
+Foo1 -> Foo5 : To database
+Foo1 -> Foo6 : To collections
+----
+
+
+== Activity diagrams (the new one)
+
+[plantuml,"activity-diagram-example",svg]
+.Activity diagram
+----
+start
+if (condition A) then (yes)
+  :Text 1a;
+  :Text 1b/
+elseif (condition B) then (yes)
+  :Text 2|
+  stop
+elseif (condition C) then (yes)
+  :Text 3<
+elseif (condition D) then (yes)
+  :Text 4>
+else (nothing)
+  :Text else}
+  note right
+    This note is on several
+    //lines// and can
+    contain <b>HTML</b>
+    ====
+    * Calling the method ""foo()"" is prohibited
+  end note
+endif
+stop
+----
+
+http://plantuml.com/activity-diagram-beta[Documentation]
+
+
+== Timing diagram
+
+[plantuml,"timing-diagram-example",svg]
+.Timing diagram
+----
+robust "Web Browser" as WB
+concise "Web User" as WU
+
+WB is Initializing
+WU is Absent
+
+@WB
+0 is idle
++200 is Processing
++100 is Waiting
+WB@0 <-> @50 : {50 ms lag}
+
+@WU
+0 is Waiting
++500 is ok
+@200 <-> @+150 : {150 ms}
+----
+
+
+http://plantuml.com/timing-diagram[Documentation]
+
+
+== Gantt diagram
+
+[plantuml,"gantt-diagram-example",svg]
+.Gantt diagram
+----
+@startgantt
+[Prototype design] lasts 10 days
+[Code prototype] lasts 10 days
+[Write tests] lasts 5 days
+[Code prototype] starts at [Prototype design]'s end
+[Write tests] starts at [Code prototype]'s start
+@endgantt
+----
+
+
+
+http://plantuml.com/gantt-diagram[Documentation]
+
+
+== Wireframe
+
+[plantuml,"wireframe-example",svg]
+.Wireframe example
+----
+@startsalt
+{+
+{* File | Edit | Source | Refactor
+Refactor | New | Open File | - | Close | Close All }
+{/ General | Fullscreen | Behavior | Saving }
+{
+{ Open image in: | ^Smart Mode^ }
+[X] Smooth images when zoomed
+[X] Confirm image deletion
+[ ] Show hidden images
+}
+[Close]
+}
+@endsalt
+----
+
+== Ditaa
+
+[ditaa,"ditaa-diagram",svg]
+----
++--------+   +-------+    +-------+
+|        +---+ ditaa +--> |       |
+|  Text  |   +-------+    |diagram|
+|Document|   |!magic!|    |       |
+|     {d}|   |       |    |       |
++---+----+   +-------+    +-------+
+    :                         ^
+    |       Lots of work      |
+    +-------------------------+
+----
+
+
+== Sprites diagram
+
+[plantuml,"sprite-example",svg]
+.Diagram with Sprite
+----
+sprite $foo1 {
+  FFFFFFFFFFFFFFF
+  F0123456789ABCF
+  F0123456789ABCF
+  F0123456789ABCF
+  F0123456789ABCF
+  F0123456789ABCF
+  F0123456789ABCF
+  F0123456789ABCF
+  F0123456789ABCF
+  FFFFFFFFFFFFFFF
+}
+sprite $bug [15x15/16z] PKzR2i0m2BFMi15p__FEjQEqB1z27aeqCqixa8S4OT7C53cKpsHpaYPDJY_12MHM-BLRyywPhrrlw3qumqNThmXgd1TOterAZmOW8sgiJafogofWRwtV3nCF
+sprite $printer [15x15/8z] NOtH3W0W208HxFz_kMAhj7lHWpa1XC716sz0Pq4MVPEWfBHIuxP3L6kbTcizR8tAhzaqFvXwvFfPEqm0
+sprite $disk {
+  444445566677881
+  436000000009991
+  43600000000ACA1
+  53700000001A7A1
+  53700000012B8A1
+  53800000123B8A1
+  63800001233C9A1
+  634999AABBC99B1
+  744566778899AB1
+  7456AAAAA99AAB1
+  8566AFC228AABB1
+  8567AC8118BBBB1
+  867BD4433BBBBB1
+  39AAAAABBBBBBC1
+}
+
+Alice -> Bob : Testing <$foo1> <$bug> <$disk> <$printer>
+----
+
+http://plantuml.com/sprite[Documentation]
+
+
+
+
+
+'''
+
+Following diagrams today require GraphViz's `dot` binary, a possible
+alternative would be to use an abandoned port (3 years without update)
+of `dot` in Java, however not everything is supported, like arrows.
+
+----
+!pragma graphviz_dot jdot
+----
+
+'''
+
+
+== Component diagram
+
+[plantuml,"component-diagram-example",svg]
+.Component diagram
+----
+!pragma graphviz_dot jdot
+
+package "Some Group" {
+  HTTP - [First Component]
+  [Another Component]
+}
+
+node "Other Groups" {
+  FTP - [Second Component]
+  [First Component] --> FTP
+}
+
+cloud {
+  [Example 1]
+}
+
+
+database "MySql" {
+  folder "This is my folder" {
+    [Folder 3]
+  }
+  frame "Foo" {
+    [Frame 4]
+  }
+}
+
+
+[Another Component] --> [Example 1]
+[Example 1] --> [Folder 3]
+[Folder 3] --> [Frame 4]
+----
+
+
+
+
+
+
+== State diagram
+
+[plantuml,"state-diagram-example",svg]
+.State diagram
+----
+!pragma graphviz_dot jdot
+
+[*] --> State1
+State1 --> [*]
+State1 : this is a string
+State1 : this is another string
+
+State1 -> State2
+State2 --> [*]
+----
+
+
+
+
+
+== Object diagram
+
+[plantuml,"object-diagram-example",svg]
+.Object diagram
+----
+!pragma graphviz_dot jdot
+
+object Object01
+object Object02
+object Object03
+object Object04
+object Object05
+object Object06
+object Object07
+object Object08
+
+Object01 <|-- Object02
+Object03 *-- Object04
+Object05 o-- "4" Object06
+Object07 .. Object08 : some labels
+
+----
+
+== Class diagram
+
+[plantuml,"class-diagram-example",svg]
+.Class diagram
+----
+!pragma graphviz_dot jdot
+
+class Object << general >>
+Object <|--- ArrayList
+
+note top of Object : In java, every class\nextends this one.
+
+note "This is a floating note" as N1
+note "This note is connected\nto several objects." as N2
+Object .. N2
+N2 .. ArrayList
+
+class Foo
+note left: On last defined class
+----
+
+
+
+== Use-case diagram
+
+[plantuml,"use-case-diagram-example",svg]
+.Use case diagram
+----
+!pragma graphviz_dot jdot
+
+:Main Admin: as Admin
+(Use the application) as (Use)
+
+User -> (Start)
+User --> (Use)
+
+Admin ---> (Use)
+
+note right of Admin : This is an example.
+
+note right of (Use)
+  A note can also
+  be on several lines
+end note
+
+note "This note is connected\nto several objects." as N2
+(Start) .. N2
+N2 .. (Use)
+----
+
+
+== Deployment diagram
+
+[plantuml,"deployment-diagram-example",svg]
+.Deployment diagram
+----
+!pragma graphviz_dot jdot
+
+cloud cloud1
+cloud cloud2
+cloud cloud3
+cloud cloud4
+cloud cloud5
+cloud1 -0- cloud2
+cloud1 -0)- cloud3
+cloud1 -(0- cloud4
+cloud1 -(0)- cloud5
+----
+
+
+
+
+
+== Available archimate sprites
+
+[plantuml,"list-sprites",svg]
+.Available sprites
+----
+listsprite
+----
+
+
+
+== Archimate sprites
+
+[plantuml,"archimate-diagram-example",svg]
+.Archimate diagram
+----
+!pragma graphviz_dot jdot
+
+sprite $bProcess jar:archimate/business-process
+sprite $aService jar:archimate/application-service
+sprite $aComponent jar:archimate/application-component
+
+archimate #Business "Handle claim"  as HC <<business-process>>
+archimate #Business "Capture Information"  as CI <<business-process>>
+archimate #Business "Notify\nAdditional Stakeholders" as NAS <<business-process>>
+archimate #Business "Validate" as V <<business-process>>
+archimate #Business "Investigate" as I <<business-process>>
+archimate #Business "Pay" as P <<business-process>>
+
+HC *-down- CI
+HC *-down- NAS
+HC *-down- V
+HC *-down- I
+HC *-down- P
+
+CI -right->> NAS
+NAS -right->> V
+V -right->> I
+I -right->> P
+
+archimate #APPLICATION "Scanning" as scanning <<application-service>>
+archimate #APPLICATION "Customer admnistration" as customerAdministration <<application-service>>
+archimate #APPLICATION "Claims admnistration" as claimsAdministration <<application-service>>
+archimate #APPLICATION Printing  <<application-service>>
+archimate #APPLICATION Payment  <<application-service>>
+
+scanning -up-> CI
+customerAdministration  -up-> CI
+claimsAdministration -up-> NAS
+claimsAdministration -up-> V
+claimsAdministration -up-> I
+Payment -up-> P
+
+Printing -up-> V
+Printing -up-> P
+
+archimate #APPLICATION "Document\nManagement\nSystem" as DMS <<application-component>>
+archimate #APPLICATION "General\nCRM\nSystem" as CRM <<application-component>>
+archimate #APPLICATION "Home & Away\nPolicy\nAdministration" as HAPA <<application-component>>
+archimate #APPLICATION "Home & Away\nFinancial\nAdministration" as HFPA <<application-component>>
+
+DMS .up.|> scanning
+DMS .up.|> Printing
+CRM .up.|> customerAdministration
+HAPA .up.|> claimsAdministration
+HFPA .up.|> Payment
+
+legend left
+Example from the "Archisurance case study" (OpenGroup).
+See
+==
+<$bProcess> :business process
+==
+<$aService> : application service
+==
+<$aComponent> : application component
+endlegend
+
+----

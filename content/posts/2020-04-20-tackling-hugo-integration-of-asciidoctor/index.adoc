@@ -1,0 +1,465 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-04-20T14:01:50+02:00"
+language: en
+draft: true
+tags: ["webpages", "jekyll", "staticsite", "hugo", "github pages", "asciidoctor"]
+slug: "tackling-hugo-integration-of-asciidoctor" 
+title: "Tackling Hugo Integration of Asciidoctor"
+series: ["Jekyll to Hugo with Asciidoctor"]
+---
+
+== Integrate Asciidoctor as everyone should expect
+
+While Hugo comes with Asciidoctor support, they are in reality several issues
+to account for at this time: 
+
+
+
+While basic rendering of asciidoc files works, we soon encounter problems
+
+* HTML structure is not modern by default
++
+[source,html]
+----
+<div class="paragraph">
+<p>I’ve crafted my own simple shortcode for Amazon <code>{{&lt; amzn "B07XW76VHZ" &gt;}}</code> :</p>
+</div>
+----
+
+But diving in the HTML soon reveal other issues
+
+.div post
+[source, html]
+----
+<div class="post">
+
+<!DOCTYPE html>
+<html lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Asciidoctor 2.0.10">
+    <title>Integrate Asciidoctor as everyone should expect</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+    <style>
+    //... asciidoctor inline css
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+    <body class="article">
+        <div id="header">
+        </div>
+        <div id="content">
+
+        ... the article content
+
+
+        </div>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/github.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js"></script>
+        <script>hljs.initHighlighting()</script>
+        <script type="text/x-mathjax-config;executed=true">
+        MathJax.Hub.Config({
+          messageStyle: "none",
+          tex2jax: {
+            inlineMath: [["\\(", "\\)"]],
+            displayMath: [["\\[", "\\]"]],
+            ignoreClass: "nostem|nolatexmath"
+          },
+          asciimath2jax: {
+            delimiters: [["\\$", "\\$"]],
+            ignoreClass: "nostem|noasciimath"
+          },
+          TeX: { equationNumbers: { autoNumber: "none" } }
+        })
+        MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+          MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+            if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains('stemblock')) {
+              data.math.root.display = "block"
+            }
+            return data
+          })
+        })
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
+    </body>
+    </html>
+</div>
+----
+
+The whole HTML document is here along with other script and css competing with the one of Hugo.
+
+* [x] source listings are not _syntax-highlighted_.
+* [ ] CSS is a bit off for some elements, and _corrupts_ other elements like the sidebar
+* [ ] inline css
+* [ ] Some color codes are not ported, see #_text[this section] of the smoke test
+* [ ] Table of content
+* [ ] Extract colors in Sass variables
+* [ ] investigate `-a data-uri`
+
+
+tweak css to integrate with scss of the theme : https://css2sass.herokuapp.com/
+
+
+TIP: First we need to be able to override how hugo invoke asciidoctor. Hugo expects an
+executable name `asciidoctor`, we can trick it to run a shell script instead, by creating
+in the repository a file named `./bin/asciidoctor`. Then run hugo with the following
+environment : `env PATH=$PWD/bin:$PATH hugo serve`.
+
+
+The Semantic HTML5 converter from https://github.com/jirutka/asciidoctor-html5s
+outputs semantic HTML, but doesn't support all features of asciidoctor like
+icons for admonition blocks, also it uses the default CSS which is not suited
+for this HTML tree path to elements differ, class names differ as well.
+
+
+Then to fix how asciidoc renders the doc, by using the *semantic*
+HTML5 backend as suggested in this https://ratfactor.com/hugo-adoc-html5s/[blog post].
+`gem install asciidoctor-html5s`. And pass this option in the script `--backend html5s`.
+While this slightly improves the HTML, this broke the syntax highlighting, so I didn't
+use it.
+
+Inspired by https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/
+
+hugo uses : `--no-header-footer --safe --trace -`
+
+.from the https://asciidoctor.org/man/asciidoctor/[man page]
+|===
+| `--safe`
+| Set safe mode level to safe. Enables include directives, but prevents access to ancestor paths of source file. Provided for compatibility with the asciidoc command. If not set, the safe mode level defaults to unsafe when Asciidoctor is invoked using this script.
+
+| `-s`, `--no-header-footer`
+| Output an embeddable document, which excludes the header, the footer, and everything outside the body of the document. This option is useful for producing documents that can be inserted into an external template.
+
+| `-`
+| If FILE is - then the AsciiDoc source is read from standard input.
+|===
+
+
+
+../bin/asciidoctor
+[source,bash]
+----
+#!/bin/sh
+
+if [ -f /usr/local/bin/asciidoctor ]; then
+  ad="/usr/local/bin/asciidoctor"
+else
+  ad="/usr/bin/asciidoctor"
+fi
+
+$ad --trace --verbose \
+  --base-dir ./content \                        #  <1>
+  --no-header-footer \                          #  <2>
+  --attribute nofooter \
+  --attribute docinfo=shared \
+  --attribute icons=font \                      #  <3>
+  --attribute source-highlighter=highlightjs \  #  <4>
+  --attribute sectlinks \                       #  <5>
+  --attribute sectanchors \
+  --attribute figure-caption! \
+  --attribute toc-title! \
+  -                                             #  <6>
+
+----
+<1> The dot `.` is where hugo has been started, usually it's the Hugo
+site root, and `content` is where website content is located by default,
+so the content folder is the base directory of asciidoc, this is important
+for `include:` directives where the path will be relative to the `./content`
+folder. This option is useful because asciidoctor is invoked to use
+stdin/stdout via `-`
+<2> The *most important settings*, tell asciidoctor to not
+generate the header and footer as those are part of the Hugo theme,
+in addition, this command also tells to not generate content footer
+and trick asciidoctor to believe header and footer are part of
+https://github.com/asciidoctor/asciidoctor.org/blob/master/docs/_includes/docinfo.adoc#naming-docinfo-files[docinfo]
+by using the value `shared`. This helps in case of some external
+script that are being injected like FontAwesome, Highlight.JS,
+or MathJax for example.
+<3> Use Font Awesome, however Asciidoctor uses Font Awesome 4 which can be
+tricky to integrate in a theme that rely on Font Awesome 5.
+<4> This tells Asciidoctor to render `pre code` elements with
+highlight.js information for them. This require that the theme correctly
+set-up Highlight.JS.
+<5> `sectlinks`, `sectanchors`, `figure-caption`, or `toc-title` are attributes
+to tweak the rendering, usually they are part of the document, but since I prefer to
+have this setting global they are here in the command line.
+<6> Read the source from stdin
+
+
+https://dburet.gitlab.io/blog/2020-01-22-adoc-chart/
+
+
+
+When using defining the attribute `:fonts: icons` asciidoctor will use Font Awesome 4.7 names
+for example with the admonition block like `TIP:` it will generate HTML asking for `icon-tip`,
+which is named differently is FA5 :
+
+There are two issues https://github.com/asciidoctor/asciidoctor/issues/2535[asciidoctor/asciidoctor#2535]
+and https://github.com/asciidoctor/asciidoctor-reveal.js/issues/304[asciidoctor/asciidoctor-reveal.js#304]
+that indicated this is not something supported at the moment, adding the FA4 _shim_
+doews not help, as FA4 conflicts with other solid icons
+
+
+.does not work
+[source, diff]
+----
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
++ <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/v4-shims.min.js" integrity="sha256-prFmieX9aRVhOV/ldXGklUUhS7NRBQUijQU4HcdnO8Q=" crossorigin="anonymous"></script>
+----
+
+So icons remain disabled for now
+
+
+https://github.com/FortAwesome/Font-Awesome/issues/16477
+
+
+
+https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/
+
+icon:tags[] ruby, asciidoctor
+
+
+=== Tweak `.gitignore`
+
+It mostly asciidoctor-diagram that generates temporary files, or cache files
+here in a `.asciidoctor` directory, let's not use commit it.
+
+[source]
+----
+### Asciidoctor
+**/.asciidoctor
+----
+
+[source]
+----
+static/assets/diagram/object-diagram-example.svg
+static/assets/diagram/sequence-diagram-example.svg
+static/assets/diagram/sprite-example.svg
+static/assets/diagram/state-diagram-example.svg
+----
+
+
+== With the Github Actions
+
+
+=== Make a docker image with `hugo` and `aciidoctor`
+
+*TODO* investigate https://github.com/asciidoctor/docker-asciidoctor
+https://github.com/asciidoctor/docker-asciidoctor/blob/master/Dockerfile
+
+Gunnar morling article
+
+Or make your own docker image
+create https://medium.com/better-programming/build-your-docker-images-automatically-when-you-push-on-github-18e80ece76af
+
+[source]
+----
+ERROR 2020/04/20 22:00:39 posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/index.adoc: asciidoctor: ERROR: <stdin>: line 284: Failed to generate image: Could not find Java executable
+----
+
+
+[source]
+----
+bash-5.0# hugo version
+bash: /usr/local/bin/hugo: No such file or directory
+bash-5.0# ldd /usr/local/bin/hugo
+        /lib64/ld-linux-x86-64.so.2 (0x7fcf85eb4000)
+        libpthread.so.0 => /lib64/ld-linux-x86-64.so.2 (0x7fcf85eb4000)
+        libstdc++.so.6 => /usr/lib/libstdc++.so.6 (0x7fcf85d1b000)
+        libdl.so.2 => /lib64/ld-linux-x86-64.so.2 (0x7fcf85eb4000)
+        libm.so.6 => /lib64/ld-linux-x86-64.so.2 (0x7fcf85eb4000)
+        libgcc_s.so.1 => /usr/lib/libgcc_s.so.1 (0x7fcf85d07000)
+        libc.so.6 => /lib64/ld-linux-x86-64.so.2 (0x7fcf85eb4000)
+
+
+...
+
+bash-5.0# ldd /usr/local/hugo/hugo
+        /lib64/ld-linux-x86-64.so.2 (0x7f339a631000)
+        libpthread.so.0 => /lib64/ld-linux-x86-64.so.2 (0x7f339a631000)
+Error loading shared library libstdc++.so.6: No such file or directory (needed by /usr/local/hugo/hugo)
+        libdl.so.2 => /lib64/ld-linux-x86-64.so.2 (0x7f339a631000)
+        libm.so.6 => /lib64/ld-linux-x86-64.so.2 (0x7f339a631000)
+Error loading shared library libgcc_s.so.1: No such file or directory (needed by /usr/local/hugo/hugo)
+        libc.so.6 => /lib64/ld-linux-x86-64.so.2 (0x7f339a631000)
+
+
+----
+
+
+
+=== A note about speed
+
+.speed
+[source]
+----
+❯ docker run --rm --volume $PWD:/src --publish "0.0.0.0:1313:1313" bric3/hugo-builder hugo serve --bind=0.0.0.0 --baseUrl=blog.local --buildDrafts
+Building sites …
+                   | EN-US
+-------------------+--------
+  Pages            |   378
+  Paginator pages  |     1
+  Non-page files   |    18
+  Static files     |    75
+  Processed images |     0
+  Aliases          |     2
+  Sitemaps         |     1
+  Cleaned          |     0
+
+Built in 27921 ms                        <1>
+Watching for changes in /src/{archetypes,assets,content,data,layouts,static,themes}
+Watching for config changes in /src/config.toml
+Environment: "development"
+Serving pages from memory
+Running in Fast Render Mode. For full rebuilds on change: hugo server --disableFastRender
+Web Server is available at //blog.local:1313/ (bind address 0.0.0.0)
+Press Ctrl+C to stop
+^C%                                                                                                                                                                                                       ❯ docker run --rm --volume $PWD:/src --publish "0.0.0.0:1313:1313" bric3/hugo-builder hugo serve --bind=0.0.0.0 --baseUrl=blog.local --buildDrafts
+❯ env PATH=$PWD/bin:$PATH hugo serve --baseUrl=blog.local --bind=0.0.0.0 --buildDrafts
+
+                   | EN-US
+-------------------+--------
+  Pages            |   378
+  Paginator pages  |     1
+  Non-page files   |    18
+  Static files     |    75
+  Processed images |     0
+  Aliases          |     2
+  Sitemaps         |     1
+  Cleaned          |     0
+
+Built in 4767 ms                         <2>
+Watching for changes in /Users/bric3/private/bric3.github.io/{archetypes,assets,content,data,layouts,static,themes}
+Watching for config changes in /Users/bric3/private/bric3.github.io/config.toml
+Environment: "development"
+Serving pages from memory
+Running in Fast Render Mode. For full rebuilds on change: hugo server --disableFastRender
+Web Server is available at //blog.local:1313/ (bind address 0.0.0.0)
+Press Ctrl+C to stop
+^C%
+❯ env PATH=$PWD/bin:$PATH hugo serve --baseUrl=blog.local --bind=0.0.0.0
+
+                   | EN-US
+-------------------+--------
+  Pages            |   307
+  Paginator pages  |     1
+  Non-page files   |     0
+  Static files     |    75
+  Processed images |     0
+  Aliases          |     2
+  Sitemaps         |     1
+  Cleaned          |     0
+
+Built in 145 ms                          <3>
+Watching for changes in /Users/bric3/private/bric3.github.io/{archetypes,assets,content,data,layouts,static,themes}
+Watching for config changes in /Users/bric3/private/bric3.github.io/config.toml
+Environment: "development"
+Serving pages from memory
+Running in Fast Render Mode. For full rebuilds on change: hugo server --disableFastRender
+Web Server is available at //blog.local:1313/ (bind address 0.0.0.0)
+Press Ctrl+C to stop
+^C%
+----
+<1> ~28s to build the whole website in Docker with two asciidoctor
+articles and around ten diagrams.
+<2> ~4.8s seconds to build the whole website with two asciidoctor
+articles and around ten diagrams.
+<3> 145ms to build the whole website, but the two asciidoctor articles (those were drafts)
+
+The docker hugo serve takes quite a long time, even when the site is rebuilt watching
+the changes so it may be use with care. Fortunately the local `hugo serve`
+is much more fast to respond to change.
+
+[NOTE]
+====
+I'm using Docker Desktop for macOs `2.2.3.0` (`edge` channel), engine `19.03.8` with
+4 CPU, 2GB of Memory, 1GB of SWAP.
+
+Hardware :
+* 2,7 GHz Quad-Core Intel Core i7
+* 16 GB 2133 MHz LPDDR3
+====
+
+
+
+
+[source,diff]
+----
+  #!/bin/sh
+
+- if [ -f /usr/local/bin/asciidoctor ]; then
+-   ad="/usr/local/bin/asciidoctor"
+- else
+-   ad="/usr/bin/asciidoctor"
+- fi
++ ad="/usr/local/bin/asciidoctorj"       # <1>
+
+  basedir=./content
+  diagram_target=/assets/diagram
+
+  $ad --trace --verbose \
+  --base-dir ${basedir} \
+  --require asciidoctor-diagram \        # <2>
+  --attribute icons=font \
+  --attribute docinfo=shared \
+  --no-header-footer \
+  --attribute nofooter \
+  --attribute sectlinks \
+  --attribute sectanchors \
+  --attribute figure-caption! \
+  --attribute source-highlighter=highlightjs \
+  --attribute toc-title! \
+- - \
++ - 2> /dev/null \                       # <3>
+    | sed -E -e "s,img src=\"([^/]+)\",img src=\"${diagram_target}/\1\","
+
+
+  mv_diagram_target=static${diagram_target}
+  mkdir -p static/assets/diagram
+  if ls ${basedir}/*.svg >/dev/null 2>&1; then
+  mv -f ${basedir}/*.svg ${mv_diagram_target}
+  fi
+
+  if ls *.png >/dev/null 2>&1; then
+  mv -f ${basedir}/*.png ${mv_diagram_target}
+  fi
+----
+<1> Use `asciidoctorj`, that bath is usually the one from Homebrew,
+maybe Linuxbrew and others
+<2> Asciidoctorj 2.x is packed with asciidoctorj-diagram, and it's not necessary
+to install the gem, but it's necessary to add the `--require` option.
+<3> I'm not yet sure why but any message appearing there are treated as errors
+by Hugo, which terminates the process, so this simply tell to ignore them.
+
+
+You need a smoke test content to check what feature works or not:
+
+'''
+
++++
+<details><summary class="title">Smoke test example</summary>
+<div class="content">
++++
+=> [asciidoc file]
+
+_Not everything is rendered in a collapsible block, like titles_
+
+include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/smoketest.adoc[leveloffset=+2]
+
++++
+</div></details>
++++
+
+
+.PlantUML smoke test example
+[%collapsible]
+====
+=> [asciidoc file]
+
+_Not everything is rendered in a collapsible block, like titles_
+
+include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/plantuml.smoketest.adoc[leveloffset=+2]
+====

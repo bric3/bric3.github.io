@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "Outdated for now, please use `hugo serve` instead"
-exit 1
+# slow but use the same build as used on Github Actions
+#exec docker run --rm --volume $PWD:/src --publish "0.0.0.0:1313:1313" bric3/hugo-builder hugo serve --bind=0.0.0.0 --baseUrl=blog.local --buildDrafts
 
-exec docker run --name blog --tty --rm --volume "$PWD":/usr/src/app:delegated --volume site:/usr/src/app/_site --publish "4000:4000" starefossen/github-pages jekyll serve -d /_site --watch --future --incremental --force_polling -H 0.0.0.0 -P 4000
+exec env PATH=$PWD/bin:$PATH hugo serve --baseUrl=blog.local --bind=0.0.0.0 --buildDrafts
