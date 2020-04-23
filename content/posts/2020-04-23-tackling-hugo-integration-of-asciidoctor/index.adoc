@@ -1,9 +1,9 @@
 ---
 authors: ["brice.dutheil"]
-date: "2020-04-20T14:01:50+02:00"
+date: "2020-04-23T23:59:50+02:00"
 language: en
-draft: true
-tags: ["webpages", "jekyll", "staticsite", "hugo", "github pages", "asciidoctor"]
+draft: false
+tags: ["webpages", "jekyll", "staticsite", "hugo", "github pages", "asciidoctor", "css"]
 slug: "tackling-hugo-integration-of-asciidoctor" 
 title: "Tackling Hugo Integration of Asciidoctor"
 series: ["Jekyll to Hugo with Asciidoctor"]
@@ -29,6 +29,7 @@ So reading a few blogs posts to tackle these issues, and learn :
 * https://blog.anoff.io/2019-02-17-hugo-render-asciidoc/
 * https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/
 * https://ratfactor.com/hugo-adoc-html5s/
+* https://www.morling.dev/blog/automatically-deploying-hugo-website-via-github-actions/
 
 
 === The first useful hack
@@ -40,7 +41,8 @@ shell script instead, by creating in the repository a file named
 `./bin/asciidoctor`. Then run hugo with the following environment :
 `env PATH=$PWD/bin:$PATH hugo serve`.
 
-Hugo uses : `--no-header-footer --safe --trace -`
+Hugo uses : `--no-header-footer --safe --trace -` args, as seen in
+https://github.com/gohugoio/hugo/blob/4205844bcecdc9e1e9456e088a49f38b354ed5a6/markup/asciidoc/convert.go#L72[`getAsciidocContent`].
 
 .from the https://asciidoctor.org/man/asciidoctor/[man page]
 |===
@@ -62,11 +64,7 @@ trial and error I got up the following script:
 ----
 #!/bin/sh
 
-if [ -f /usr/local/bin/asciidoctor ]; then
-  ad="/usr/local/bin/asciidoctor"
-else
-  ad="/usr/bin/asciidoctor"
-fi
+ad="/usr/local/bin/asciidoctor"
 
 $ad --trace --verbose \
   --base-dir ./content \                        #  <1>
@@ -355,12 +353,24 @@ the icon won't be found :
 icon:java[]
 ====
 
-Yet it is still possible to use asciidoctor'spassthrough block with the HTML
-right class from FA5 `<i class="fab fa-java"></i>`
+Yet it is still possible to use asciidoctor's
+https://asciidoctor.org/docs/user-manual/#pass-macros[passthrough macro] with the HTML
+right class from FA5 `<i class="fab fa-java fa-3x"></i>`
 
 ====
-+++ <i class="fab fa-java"></i> +++
++++ <i class="fab fa-java fa-3x"></i> +++
 ====
+
+or the `\pass:[<i class="fab fa-java fa-2x"></i>]` inline macro
+
+====
+pass:[<i class="fab fa-java fa-2x"></i>]
+====
+
+At some point it might be interesting to look for
+https://asciidoctor.org/docs/user-manual/#block-macro-processor-example[macro]
+https://asciidoctor.org/docs/user-manual/#inline-macro-processor-example[extensions],
+also see https://github.com/asciidoctor/asciidoctor-extensions-lab[extension lab] for more.
 
 
 .Github issues that helped me
@@ -370,12 +380,10 @@ right class from FA5 `<i class="fab fa-java"></i>`
 indicated FA5 is not something supported at the moment
 
 
-
-
 === Trying the semantic HTML5 backend
 
-Also some of the blog post are sufggesting to switch to semantic HTML5, because the
-asciidoctor HTML5 structure is not modern enough, e.g.
+Also, one of the blog post is suggesting to switch to semantic HTML5, because the
+structure of the HTML5 asciidoctor's backend is not modern enough, e.g.
 
 [source,html]
 ----
@@ -394,65 +402,157 @@ icons for admonition blocks, also it uses the asciidoctor default CSS which
 is not suited for this semantic HTML5 tree: elements differ, CSS class names differ as well.
 
 So while this slightly improves the HTML structure, this made CSS port too challenging
-for me, brooken syntax highlighting, title are not styled as expected, so I didn't
-use it in the end, which simplify the setup.
-
-
-
-=== Tweak `.gitignore`
-
-It mostly asciidoctor-diagram that generates temporary files, or cache files
-here in a `.asciidoctor` directory, let's not use commit it.
-
-[source]
-----
-### Asciidoctor
-**/.asciidoctor
-----
+for me, broken syntax highlighting, titles are not styled as expected, etc., so I didn't
+use it in the end. At least this decision didn't increase the complexity of the setup.
 
 
 === Using diagrams
 
-[source]
+Asciidoctor has a useful extension `asciidoctor-diagram` that allows the generation of
+diagrams from simple text listing, this may not be necessary for everyone, but it was
+a mandatory thing for me.
+
+It's necessary to install the extension `gem install asciidoctor-diagram`
+and to adapt the `./bin/asciidoctor` script to
+
+../bin/asciidoctor
+[source,diff]
 ----
-static/assets/diagram/object-diagram-example.svg
-static/assets/diagram/sequence-diagram-example.svg
-static/assets/diagram/sprite-example.svg
-static/assets/diagram/state-diagram-example.svg
-----
-
-https://github.com/asciidoctor/asciidoctor-diagram/issues/247
-https://github.com/asciidoctor/asciidoctor-diagram/commit/2bf075fe07dde384326e47282970832b6f7aeb1d
-
-https://dburet.gitlab.io/blog/2020-01-22-adoc-chart/
-
-
-=== Leftovers
-
-* [ ] Some color codes are not ported, see #_text[this section] of the smoke test
-* [ ] Table of content
-* [ ] Extract colors in Sass variables
-* [ ] Investigate `-a data-uri` or `-a diagram-svg-type=inline`
-
-
-== With the Github Actions
-
-
-=== Make a docker image with `hugo` and `aciidoctor`
-
-*TODO* investigate https://github.com/asciidoctor/docker-asciidoctor
-https://github.com/asciidoctor/docker-asciidoctor/blob/master/Dockerfile
-
-Gunnar morling article
-
-Or make your own docker image
-create https://medium.com/better-programming/build-your-docker-images-automatically-when-you-push-on-github-18e80ece76af
-
-[source]
-----
-ERROR 2020/04/20 22:00:39 posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/index.adoc: asciidoctor: ERROR: <stdin>: line 284: Failed to generate image: Could not find Java executable
+  $ad --trace --verbose \
+    --base-dir ./content \
++   --require asciidoctor-diagram \
+    --no-header-footer \
+    --attribute nofooter \
+    --attribute docinfo=shared \
 ----
 
+This wasn't enough as `asciidoctor-diagram` outputs the generated SVG
+in the wrong directory to be served by Hugo. I got a tip by reading this
+https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/[blog entry], which
+consists in modifying the URI of the diagrams in the rendered HTML, and moving
+the generated files.
+
+
+../bin/asciidoctor
+[source,diff]
+----
+    --attribute sectanchors \
+    --attribute figure-caption! \
+    --attribute toc-title! \
+-   -
++   - | sed -E -e "s/img src=\"([^/]+)\"/img src=\"\/diagram\/\1\"/"
++
++ mkdir -p static/diagram
++
++ if ls *.svg >/dev/null 2>&1; then
++ mv -f *.svg static/diagram
++ fi
++
++ if ls *.png >/dev/null 2>&1; then
++ mv -f *.png static/diagram
++ fi
+----
+
+In practice, I wasn't satisfied by this setup for several reasons:
+
+. The `sed` targets all `img` elements.
+. The files are moved in `static/diagram`, this is the most annoying point,
+because
+.. This move operation is not performed atomically with the content rendering, thus
+when served locally it triggers another refresh, which also triggers the rendering of
+the original document and then regenerate the diagram images which are again moved
+to `static/diagram`, triggering another refresh cycle.
+.. The generated files are moved in the `static` folder but are not supposed to be
+put in _git_, this can create unnecessary noise.
+
+To be faire the orignal blog post runs `hugo serve` with these options
+`--disableFastRender --disableLiveReload --renderToDisk`.
+
+I couldn't get a satisfying solution, so I decided to inline the generated SVG,
+by declaring the `opts="inline"` in the descriptor.
+
+[source, asciidoc]
+------
+[plantuml,"sequence-diagram-example",format="svg",opts="inline"]
+.Sequence diagram
+----
+// plantuml
+----
+------
+
+This doesn't require to pipe the output to `sed` and `mv` SVGs afterwards,
+but the `asciidoctor-diagram` outputs the images in the basedir. This
+can be changed by modifying the `./bin/asciidoctor` with this attribute
+(https://asciidoctor.org/docs/asciidoctor-diagram/#image-output-location[doc]):
+
+
+../bin/asciidoctor
+[source,diff]
+----
++   --attribute out_dir=resources/_gen/diagram \
+    --attribute sectanchors \
+    --attribute figure-caption! \
+    --attribute toc-title! \
+    -
+----
+
+Diagrams will be put in the _gen folder which is used for generated content and as such
+won't be suggested by a `git status`.
+
+Also I have tried to make SVG inlining as default for diagrams using this
+https://github.com/asciidoctor/asciidoctor-diagram/commit/2bf075fe07dde384326e47282970832b6f7aeb1d[change]
+that appeared in Asciidoctor 2, but it didn't quite work as expected, as explained in
+https://github.com/asciidoctor/asciidoctor-diagram/issues/247#issuecomment-617469310[asciidoctor/asciidoctor-diagram#247 comment].
+
+In the future it may be interesting to look at using
+https://github.com/asciidoctor/asciidoctor-extensions-lab/tree/master/lib/chart-block-macro[charts macro],
+like suggested by https://dburet.gitlab.io/blog/2020-01-22-adoc-chart/[this blog post].
+
+
+=== Tweaking `.gitignore`
+
+For me this ws due to `asciidoctor-diagram` that generates files
+here in a `.asciidoctor` directory which is located in the configured base directory.
+Let's ignore it.
+
+..gitignore
+[source,diff]
+----
++ ### Asciidoctor
++ **/.asciidoctor
+----
+
+
+== Adapting Github Actions
+
+As seen in the previous entry, the site is rendered by a Github Action job,
+this job needs to be updated to run asciidoctor the way I want it.
+Fortunately I read few
+https://www.morling.dev/blog/automatically-deploying-hugo-website-via-github-actions/[blog]
+https://rgielen.net/posts/2019/creating-a-dockerized-hugo-asciidoctor-toolchain/[entries]
+on the topic.
+
+I mostly got inspired by https://github.com/gunnarmorling[Gunnar Morling] in this matter,
+and looked on his https://github.com/gunnarmorling/morling.dev[github repository] to see
+on it was done. And went the same way.
+
+
+=== Make a docker image with `hugo` and `asciidoctor`
+
+His workflow is now based on running a docker image that has
+asciidoctor and hugo.
+
+Since I wanted a full featured asciidoctor experience I needed something more
+that was in his https://github.com/gunnarmorling/hugo-builder[image].
+
+==== Trying to use docker-asciidoctor
+
+I tried to use https://github.com/asciidoctor/docker-asciidoctor[asciidoctor/docker-asciidoctor]
+as a base image since it offers the whole https://github.com/asciidoctor/docker-asciidoctor/blob/master/Dockerfile[experience].
+And it easy to just download and install a single executable.
+
+However, I experienced issues to execute `hugo`, I suspect this is due to `alpine` base
+but I wasn't able to pin point the issue:
 
 [source]
 ----
@@ -467,7 +567,6 @@ bash-5.0# ldd /usr/local/bin/hugo
         libgcc_s.so.1 => /usr/lib/libgcc_s.so.1 (0x7fcf85d07000)
         libc.so.6 => /lib64/ld-linux-x86-64.so.2 (0x7fcf85eb4000)
 
-
 ...
 
 bash-5.0# ldd /usr/local/hugo/hugo
@@ -478,15 +577,93 @@ Error loading shared library libstdc++.so.6: No such file or directory (needed b
         libm.so.6 => /lib64/ld-linux-x86-64.so.2 (0x7f339a631000)
 Error loading shared library libgcc_s.so.1: No such file or directory (needed by /usr/local/hugo/hugo)
         libc.so.6 => /lib64/ld-linux-x86-64.so.2 (0x7f339a631000)
-
-
 ----
 
+==== Create my own image
+
+I ended up forking https://github.com/gunnarmorling/hugo-builder[gunnarmorling/hugo-builder]
+to adapt it to my needs, installing a more recent version of hugo, asciidoctor-diagrams,
+make hugo use of the `asciidoctor` script hack.
+
+TIP: I found this https://medium.com/better-programming/build-your-docker-images-automatically-when-you-push-on-github-18e80ece76af[blog]
+instructions easy to follow in order to publish my own image on docker hub.
+
+THe only issue I've encountered is that I forgot that a JDK is necessary to run
+`asciidoctor-diagram`.
+
+[source]
+----
+ERROR 2020/04/20 22:00:39 posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/index.adoc: asciidoctor: ERROR: <stdin>: line 284: Failed to generate image: Could not find Java executable
+----
+
+At this time here's what my https://hub.docker.com/r/bric3/hugo-builder[bric3/hugo-builder] `Dockerfile looks like:
+
+.Dockerfile
+[source,dockerfile]
+----
+FROM registry.fedoraproject.org/fedora-minimal
+
+EXPOSE 1313
+WORKDIR /src
+VOLUME /src
+
+RUN microdnf -y install curl ruby tar java-11-openjdk && microdnf clean all
+
+ARG HUGO_VERSION=0.69.0
+ARG ASCIIDOCTOR_VERSION=2.0.10
+ARG ASCIIDOCTOR_DIAGRAM_VERSION=2.0.2
+
+RUN gem install --no-document \
+  "asciidoctor:${ASCIIDOCTOR_VERSION}" \
+  "asciidoctor-diagram:${ASCIIDOCTOR_DIAGRAM_VERSION}"
+
+
+# Downloading latest manually as packages are a bit dated
+RUN mkdir -p /usr/local/hugo \
+  && curl -LO https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_Linux-64bit.tar.gz \
+  && tar xzvf hugo_extended_${HUGO_VERSION}_Linux-64bit.tar.gz -C /usr/local/hugo/ \
+  && ln -s /usr/local/hugo/hugo /usr/local/bin/hugo \
+  && rm hugo_extended_${HUGO_VERSION}_Linux-64bit.tar.gz
+
+ENV PATH="/src/bin:${PATH}"
+----
+
+
+=== Modifying the GA workflow
+
+Then using this docker image I change the Github Action workflow to this.
+
+[source,yaml]
+----
+# ...
+jobs:
+  build-deploy:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Build
+        run: docker run --rm --volume $PWD:/src bric3/hugo-builder hugo
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          publish_branch: master
+          publish_dir: ./public
+          cname: blog.arkey.fr
+----
 
 
 === A note about speed
 
-.speed
+Using asciidoctor the rendering speed certainly took a hit, let's compare some numbers.
+(*It's not reasonable benchmark though*, but the magnitude of the hit certainly gives an indication).
+
+.dumb speed test numbers
 [source]
 ----
 ❯ docker run --rm --volume $PWD:/src --publish "0.0.0.0:1313:1313" bric3/hugo-builder hugo serve --bind=0.0.0.0 --baseUrl=blog.local --buildDrafts
@@ -562,8 +739,8 @@ articles and around ten diagrams.
 articles and around ten diagrams.
 <3> 145ms to build the whole website, but the two asciidoctor articles (those were drafts)
 
-The docker hugo serve takes quite a long time, even when the site is rebuilt watching
-the changes so it may be use with care. Fortunately the local `hugo serve`
+The docker `hugo serve` takes quite a long time, even when the site is rebuilt watching
+the changes, so docker based may have to be used with care. Fortunately the local `hugo serve`
 is much more fast to respond to change.
 
 [NOTE]
@@ -577,17 +754,16 @@ Hardware :
 ====
 
 
-=== Trying with Asciidoctorj
+==== Trying with Asciidoctorj
+
+In order to see if speed improved, I tried to use `asciidoctorj` instead,
+it comes packed with asciidoctor-diagram by default, that's useful.
 
 [source,diff]
 ----
   #!/bin/sh
 
-- if [ -f /usr/local/bin/asciidoctor ]; then
--   ad="/usr/local/bin/asciidoctor"
-- else
--   ad="/usr/bin/asciidoctor"
-- fi
+- ad="/usr/local/bin/asciidoctor"
 + ad="/usr/local/bin/asciidoctorj"       # <1>
 
   basedir=./content
@@ -606,35 +782,52 @@ Hardware :
   --attribute source-highlighter=highlightjs \
   --attribute toc-title! \
 - - \
-+ - 2> /dev/null \                       # <3>
-    | sed -E -e "s,img src=\"([^/]+)\",img src=\"${diagram_target}/\1\","
-
-
-  mv_diagram_target=static${diagram_target}
-  mkdir -p static/assets/diagram
-  if ls ${basedir}/*.svg >/dev/null 2>&1; then
-  mv -f ${basedir}/*.svg ${mv_diagram_target}
-  fi
-
-  if ls *.png >/dev/null 2>&1; then
-  mv -f ${basedir}/*.png ${mv_diagram_target}
-  fi
++ - 2> /dev/null                         # <3>
 ----
 <1> Use `asciidoctorj`, that bath is usually the one from Homebrew,
 maybe Linuxbrew and others
-<2> Asciidoctorj 2.x is packed with asciidoctorj-diagram, and it's not necessary
+<2> Asciidoctorj 2.x is packed with `asciidoctorj-diagram`, and it's not necessary
 to install the gem, but it's necessary to add the `--require` option.
 <3> I'm not yet sure why but any message appearing there are treated as errors
 by Hugo, which terminates the process, so this simply tell to ignore them.
 
+But in the end the speed is not quite that either, but this may be because
+I only have two Asciidoc articles at this time, so the JVM bootstrap doesn't
+quite worth it. I'll revisit this later if needed. Especially for the diagram part.
 
 
 == Wrap up
 
+I went to Hugo because it supports Asciidoctor, however I didn't expect so much work
+to benefit from a near complete Asciidoctor experience. And the current work
+isn't even over.
+
+I wasn't looking for such _asciidoctor_ or _asciidoc_ tag when bootstrapping the site,
+but looking now I wish there was theme with asciidoctor support right out of the box,
+yet no theme have the https://themes.gohugo.io/tags/asciidoctor/[asciidoctor tag] at this time.
+
+I really must thank all the people that blogged about this before, they really helped
+to make this happen.
+
+
+Over the time I need to tackle some remaining topic
+
+. [ ] Some color codes are missing, see #_text[this section] of the smoke test
+. [ ] Table of content
+. [ ] Extract colors in Sass variables
+. [ ] Investigate custom macros, also see the https://github.com/asciidoctor/asciidoctor-extensions-lab[extension lab]
+. [ ] Investigate `-a data-uri` or `-a diagram-svg-type=inline`
+. [ ] Charts macro
+. [ ] MathJax (stem)
+
+_The last two point could certainly be made optional by adding a toggle in the front matter that can activate something in the theme._
 
 '''
 
-You need a smoke test content to check what feature works or not:
+What really helped me was the help of a _smoke test_ content to check what feature works or not,
+I adapted this https://gist.github.com/mojavelinux/4402636[gist] from
+https://gist.github.com/mojavelinux[Dan Allen] who is the project lead of
+https://github.com/asciidoctor[asciidoctor]:
 
 .Smoke test example
 [%collapsible]
@@ -643,7 +836,7 @@ You need a smoke test content to check what feature works or not:
 
 _Not everything is rendered in a example block, like titles_
 
-include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/smoketest.adoc[]
+include::content/posts/2020-04-23-tackling-hugo-integration-of-asciidoctor/smoketest.adoc[]
 ====
 
 
@@ -654,5 +847,27 @@ include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/smoke
 
 _Not everything is rendered in a example block, like titles_
 
-include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/plantuml.smoketest.adoc[leveloffset=3]
+include::content/posts/2020-04-23-tackling-hugo-integration-of-asciidoctor/plantuml.smoketest.adoc[leveloffset=3]
+====
+
+
+
+.Macros
+[%collapsible]
+====
+// You must set the `experimental` attribute to enable the UI macros.
+
+[%hardbreaks]
+kbd:[Ctrl+Shift+N]
+menu:View[Zoom > Reset]
+btn:[OK]
+icon:tags[] ruby, asciidoctor
+icon:tags[role="blue"] ruby, asciidoctor
+icon:shield[rotate=90, flip=vertical]
+stem:[sqrt(4) = 2]
+stem:[H_2O]
+stem:[[[a,b\],[c,d\]\]((n),(k))]
+latexmath:[C = \alpha + \beta Y^{\gamma} + \epsilon]
+footnote:disclaimer[Optinions are my own.]
+
 ====
