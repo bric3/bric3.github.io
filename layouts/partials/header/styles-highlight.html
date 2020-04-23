@@ -1,10 +1,14 @@
-{{ if .Site.Params.highlightjs }}
-{{ if or (not (isset .Params "highlight")) (.Params.highlight) }}
+{{- if .Site.Params.highlightjs -}}
+{{- if or (not (isset .Params "highlight")) (.Params.highlight) -}}
 <!-- highlightjs -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/{{ .Site.Params.highlightjsstyle | default "default" }}.min.css">
-{{ end }}
-{{ end }}
-{{ if .Site.Params.PygmentsUseClasses }}
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/{{ .Site.Params.highlightjsstyle | default "default" }}.min.css">
+
+{{- if isset .Site.Params "highlightjsdarkstyle" -}}
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/{{ .Site.Params.highlightjsdarkstyle }}.min.css" media="(prefers-color-scheme: dark)">
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if .Site.Params.PygmentsUseClasses -}}
 <!-- Pygments Syntax -->
 <link rel="stylesheet" href="{{ "css/syntax.min.css" | relURL }}">
-{{ end }}
+{{- end -}}
