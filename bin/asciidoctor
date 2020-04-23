@@ -7,7 +7,6 @@ else
 fi
 
 basedir=.
-diagram_target=/assets/diagram
 
 $ad --trace \
   --base-dir ${basedir} \
@@ -23,19 +22,7 @@ $ad --trace \
   --attribute figure-caption! \
   --attribute source-highlighter=highlightjs \
   --attribute experimental=true \
-  --attribute out_dir=resources/_gen/diagram \
+  --attribute out_dir=./resources/_gen/diagram \
   --attribute toc-title! \
   --attribute diagram-svg-type=inline \
-  - \
-  | sed -E -e "s,img src=\"([^/]+)\",img src=\"${diagram_target}/\1\","
-
-# mv_diagram_target=static${diagram_target}
-# mkdir -p ${mv_diagram_target}
-# if ls ${basedir}/*.svg >/dev/null 2>&1; then
-#   mv -f ${basedir}/*.svg ${mv_diagram_target}
-# fi
-# 
-# if ls *.png >/dev/null 2>&1; then
-#   mv -f ${basedir}/*.png ${mv_diagram_target}
-# fi
-
+  -

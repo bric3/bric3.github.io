@@ -481,23 +481,12 @@ by declaring the `opts="inline"` in the descriptor.
 ------
 
 This doesn't require to pipe the output to `sed` and `mv` SVGs afterwards,
-but the `asciidoctor-diagram` outputs the images in the basedir. This
-can be changed by modifying the `./bin/asciidoctor` with this attribute
-(https://asciidoctor.org/docs/asciidoctor-diagram/#image-output-location[doc]):
+but the `asciidoctor-diagram` outputs the images in the basedir.
 
-
-../bin/asciidoctor
-[source,diff]
-----
-+   --attribute out_dir=resources/_gen/diagram \
-    --attribute sectanchors \
-    --attribute figure-caption! \
-    --attribute toc-title! \
-    -
-----
-
-Diagrams will be put in the _gen folder which is used for generated content and as such
-won't be suggested by a `git status`.
+While I've tried to set `imagesoutdir` or `out_dir` attributes in `./bin/asciidoctor`
+as documented (https://asciidoctor.org/docs/asciidoctor-diagram/#image-output-location[her]):
+Diagrams will be put in the mentioned folder like `resources/_gen` yet somehow there still
+stored on basedir as well.
 
 Also I have tried to make SVG inlining as default for diagrams using this
 https://github.com/asciidoctor/asciidoctor-diagram/commit/2bf075fe07dde384326e47282970832b6f7aeb1d[change]
