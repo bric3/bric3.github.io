@@ -12,24 +12,118 @@ series: ["Jekyll to Hugo with Asciidoctor"]
 == Integrate Asciidoctor as everyone should expect
 
 While Hugo comes with Asciidoctor support, they are in reality several issues
-to account for at this time: 
+to account for at this time:
+
+While basic rendering of asciidoc files works, we soon encounter problems ;
+the very first 
+
+* [x] Source listings are not _syntax-highlighted_.
+* [x] Include directives don't work
+* [x] There's no icons with admonition blocks
+* [x] Source listing callouts are way off
+
+So reading a few blogs posts to tackle these issues, and learn :
+
+* https://jshingler.github.io/blog/2019/12/07/creating-this-site/
+* https://rgielen.net/posts/2019/creating-a-blog-with-hugo-and-asciidoctor/
+* https://blog.anoff.io/2019-02-17-hugo-render-asciidoc/
+* https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/
+* https://ratfactor.com/hugo-adoc-html5s/
 
 
+=== The first useful hack
 
-While basic rendering of asciidoc files works, we soon encounter problems
 
-* HTML structure is not modern by default
-+
-[source,html]
+TIP: First we need to be able to override how `hugo` invoke `asciidoctor`.
+Hugo expects an executable name `asciidoctor`, we can trick it to run a
+shell script instead, by creating in the repository a file named
+`./bin/asciidoctor`. Then run hugo with the following environment :
+`env PATH=$PWD/bin:$PATH hugo serve`.
+
+Hugo uses : `--no-header-footer --safe --trace -`
+
+.from the https://asciidoctor.org/man/asciidoctor/[man page]
+|===
+| `--safe`
+| Set safe mode level to safe. Enables include directives, but prevents access to ancestor paths of source file. Provided for compatibility with the asciidoc command. If not set, the safe mode level defaults to unsafe when Asciidoctor is invoked using this script.
+
+| `-s`, `--no-header-footer`
+| Output an embeddable document, which excludes the header, the footer, and everything outside the body of the document. This option is useful for producing documents that can be inserted into an external template.
+
+| `-`
+| If FILE is - then the AsciiDoc source is read from standard input.
+|===
+
+So using the trick learned in the above blog posts, and with quite a bit of
+trial and error I got up the following script:
+
+../bin/asciidoctor
+[source,bash]
 ----
-<div class="paragraph">
-<p>I’ve crafted my own simple shortcode for Amazon <code>{{&lt; amzn "B07XW76VHZ" &gt;}}</code> :</p>
-</div>
+#!/bin/sh
+
+if [ -f /usr/local/bin/asciidoctor ]; then
+  ad="/usr/local/bin/asciidoctor"
+else
+  ad="/usr/bin/asciidoctor"
+fi
+
+$ad --trace --verbose \
+  --base-dir ./content \                        #  <1>
+  --no-header-footer \                          #  <2>
+  --attribute nofooter \
+  --attribute docinfo=shared \
+  --attribute icons=font \                      #  <3>
+  --attribute source-highlighter=highlightjs \  #  <4>
+  --attribute sectlinks \                       #  <5>
+  --attribute sectanchors \
+  --attribute figure-caption! \
+  --attribute toc-title! \
+  -                                             #  <6>
+
+----
+<1> The dot `.` is where hugo has been started, usually it's the Hugo
+site root, and `content` is where website content is located by default,
+so the content folder is the base directory of asciidoc, this is important
+for `include:` directives where the path will be relative to the `./content`
+folder. This option is useful because asciidoctor is invoked to use
+stdin/stdout via `-`
+<2> The *most important settings*, tell asciidoctor to not
+generate the header and footer as those are part of the Hugo theme,
+in addition, this command also tells to not generate content footer
+and trick asciidoctor to believe header and footer are part of
+https://github.com/asciidoctor/asciidoctor.org/blob/master/docs/_includes/docinfo.adoc#naming-docinfo-files[docinfo]
+by using the value `shared`. This helps in case of some external
+script that are being injected like FontAwesome, Highlight.JS,
+or MathJax for example.
+<3> Use Font Awesome, however Asciidoctor uses Font Awesome 4 which can be
+tricky to integrate in a theme that rely on Font Awesome 5.
+<4> This tells Asciidoctor to render `pre code` elements with
+highlight.js information for them. This require that the theme correctly
+set-up Highlight.JS.
+<5> `sectlinks`, `sectanchors`, `figure-caption`, or `toc-title` are attributes
+to tweak the rendering, usually they are part of the document, but since I prefer to
+have this setting global they are here in the command line.
+<6> Read the source from stdin
+
+Then run `hugo` by overriding the `PATH` environment variable.
+
+.locally with `./bin/asciidoctor` script
+[source,bash]
+----
+exec env PATH=$PWD/bin:$PATH hugo # the hugo options
 ----
 
-But diving in the HTML soon reveal other issues
 
-.div post
+By the way if you forgot the `--no-header-footer` option the whole HTML document
+produced by asciidoctor is inserted by Hugo (as expected in fact) in the generated page.
+Inline CSS and scripts import emitted by Asciidoctor are then competing with
+the one of the Hugo theme.
+
+.See the `<div class="post">`
+[%collapsible]
+====
+
 [source, html]
 ----
 <div class="post">
@@ -88,120 +182,147 @@ But diving in the HTML soon reveal other issues
     </html>
 </div>
 ----
+====
 
-The whole HTML document is here along with other script and css competing with the one of Hugo.
+
+=== Porting the asciidoctor CSS
+
+So now that we have the content HTML structure, the rendering of the article
+is still way off.
 
 * [x] source listings are not _syntax-highlighted_.
-* [ ] CSS is a bit off for some elements, and _corrupts_ other elements like the sidebar
-* [ ] inline css
-* [ ] Some color codes are not ported, see #_text[this section] of the smoke test
-* [ ] Table of content
-* [ ] Extract colors in Sass variables
-* [ ] investigate `-a data-uri`
+* [x] Font Awesome icons are missing, incompatibility between FA4 and FA5
+* [x] CSS is off or way off for almost all elements of Asciidoctor's particular features,
 
 
-tweak css to integrate with scss of the theme : https://css2sass.herokuapp.com/
+The process was tedious, just copying the default asciidoctor css isn't
+quite the right thing as stylesheet from the theme and the stylesheet from asciidoctor
+interfere, (_corrupting_ other elements of the theme like the sidebar).
 
+For example the theme alternate the background color table's rows, and asciidoctor
+rely on lot on tables to layout some features, be it callout, admonition blocks,
+some lists, etc. in order to fix that the CSS has t be patched with rules like these:
 
-TIP: First we need to be able to override how hugo invoke asciidoctor. Hugo expects an
-executable name `asciidoctor`, we can trick it to run a shell script instead, by creating
-in the repository a file named `./bin/asciidoctor`. Then run hugo with the following
-environment : `env PATH=$PWD/bin:$PATH hugo serve`.
-
-
-The Semantic HTML5 converter from https://github.com/jirutka/asciidoctor-html5s
-outputs semantic HTML, but doesn't support all features of asciidoctor like
-icons for admonition blocks, also it uses the default CSS which is not suited
-for this HTML tree path to elements differ, class names differ as well.
-
-
-Then to fix how asciidoc renders the doc, by using the *semantic*
-HTML5 backend as suggested in this https://ratfactor.com/hugo-adoc-html5s/[blog post].
-`gem install asciidoctor-html5s`. And pass this option in the script `--backend html5s`.
-While this slightly improves the HTML, this broke the syntax highlighting, so I didn't
-use it.
-
-Inspired by https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/
-
-hugo uses : `--no-header-footer --safe --trace -`
-
-.from the https://asciidoctor.org/man/asciidoctor/[man page]
-|===
-| `--safe`
-| Set safe mode level to safe. Enables include directives, but prevents access to ancestor paths of source file. Provided for compatibility with the asciidoc command. If not set, the safe mode level defaults to unsafe when Asciidoctor is invoked using this script.
-
-| `-s`, `--no-header-footer`
-| Output an embeddable document, which excludes the header, the footer, and everything outside the body of the document. This option is useful for producing documents that can be inserted into an external template.
-
-| `-`
-| If FILE is - then the AsciiDoc source is read from standard input.
-|===
-
-
-
-../bin/asciidoctor
-[source,bash]
+[source,css]
 ----
-#!/bin/sh
-
-if [ -f /usr/local/bin/asciidoctor ]; then
-  ad="/usr/local/bin/asciidoctor"
-else
-  ad="/usr/bin/asciidoctor"
-fi
-
-$ad --trace --verbose \
-  --base-dir ./content \                        #  <1>
-  --no-header-footer \                          #  <2>
-  --attribute nofooter \
-  --attribute docinfo=shared \
-  --attribute icons=font \                      #  <3>
-  --attribute source-highlighter=highlightjs \  #  <4>
-  --attribute sectlinks \                       #  <5>
-  --attribute sectanchors \
-  --attribute figure-caption! \
-  --attribute toc-title! \
-  -                                             #  <6>
-
+tbody tr:nth-child(2n+1) td, tbody tr:nth-child(2n+1) th {
+  background-color: inherit;
+}
 ----
-<1> The dot `.` is where hugo has been started, usually it's the Hugo
-site root, and `content` is where website content is located by default,
-so the content folder is the base directory of asciidoc, this is important
-for `include:` directives where the path will be relative to the `./content`
-folder. This option is useful because asciidoctor is invoked to use
-stdin/stdout via `-`
-<2> The *most important settings*, tell asciidoctor to not
-generate the header and footer as those are part of the Hugo theme,
-in addition, this command also tells to not generate content footer
-and trick asciidoctor to believe header and footer are part of
-https://github.com/asciidoctor/asciidoctor.org/blob/master/docs/_includes/docinfo.adoc#naming-docinfo-files[docinfo]
-by using the value `shared`. This helps in case of some external
-script that are being injected like FontAwesome, Highlight.JS,
-or MathJax for example.
-<3> Use Font Awesome, however Asciidoctor uses Font Awesome 4 which can be
-tricky to integrate in a theme that rely on Font Awesome 5.
-<4> This tells Asciidoctor to render `pre code` elements with
-highlight.js information for them. This require that the theme correctly
-set-up Highlight.JS.
-<5> `sectlinks`, `sectanchors`, `figure-caption`, or `toc-title` are attributes
-to tweak the rendering, usually they are part of the document, but since I prefer to
-have this setting global they are here in the command line.
-<6> Read the source from stdin
+
+.Using the web tools inspector to debug CSS issues
+image:/assets/tackling-hugo-asciidoctor/asciidoctor-css-debug.png[width="50%"]
+
+Actually this work took significantly more time that I was prepared for,
+fortunately the Asciidoctor default CSS helped, and the way the theme of my
+choosing was using _Sass_ (many other thems use it as it's part of Hugo).
+
+I ported and tweaked necessary Asciidoctor CSS rules to my `scss` files using
+an online https://css2sass.herokuapp.com/[CSS to SASS/SCSS converter]. I'm
+not a web developer so the result is probably incorrect, inefficient in some part
+but it works for the feature I'm using.
+
+Like thme layout overrides, hugo let's you override scss files in the respective
+directories like `./assets/scss`.
+
+../assets/scss/hyde-hyde.css
+[source,scss]
+----
+@import "hyde-hyde/variables";
+// poole
+@import "poole/base";
+@import "poole/layout";
+@import "poole/posts";
+// hyde-hyde
+@import 'hyde-hyde/mixins';
+@import 'hyde-hyde/base';
+@import 'hyde-hyde/sidebar';
+@import 'hyde-hyde/list';
+@import 'hyde-hyde/post';
+@import 'hyde-hyde/code';
+@import 'hyde-hyde/gist';
+@import 'hyde-hyde/navigation';
+@import 'hyde-hyde/taxonomies';
+@import 'hyde-hyde/project';
+@import 'hyde-hyde/responsive';
+@import 'hyde-hyde/misc';
+@import 'hyde-hyde/theme';
+@import 'hyde-hyde/asciidoctor';  // <1>
+----
+<1> Imports asciidoctor last.
 
 
-https://dburet.gitlab.io/blog/2020-01-22-adoc-chart/
+../assets/scss/hyde-hyde/asciidoctor.scss
+[source,scss]
+----
+.post { // <1>
+  // asciidoctor style
+}
+----
+<1> Make asciidoctor rule applied within the first `.post` class
+this is necessary otherwise asciidoctor rules may interfere with
+theme elements that are name the same, such as `.sidebar`, or `.title`
+
+The current https://github.com/bric3/bric3.github.io/blob/48a572d2c7778219984e2678664cb435788a2915/assets/scss/hyde-hyde/_asciidoctor.scss[state of this file]
+covers most features of Asciidoctor but a few leftover like colors.
 
 
+=== Resolving Font Awesome 4/5 issues
 
-When using defining the attribute `:fonts: icons` asciidoctor will use Font Awesome 4.7 names
-for example with the admonition block like `TIP:` it will generate HTML asking for `icon-tip`,
-which is named differently is FA5 :
+One of the neat thing about Asciidoctor is their use of Font Awesome is
+various parts like admonition icons. This is activated whith this attribute
+definition `:fonts: icons`.
 
-There are two issues https://github.com/asciidoctor/asciidoctor/issues/2535[asciidoctor/asciidoctor#2535]
-and https://github.com/asciidoctor/asciidoctor-reveal.js/issues/304[asciidoctor/asciidoctor-reveal.js#304]
-that indicated this is not something supported at the moment, adding the FA4 _shim_
-doews not help, as FA4 conflicts with other solid icons
+But, Asciidoctor 2.0.10 uses Font Awesome 4.7, which is incompatible
+with my theme as it is using FOnt Awesome 5. This took me quite a while
+to figure out a solution, and _it's not perfect either_.
 
+To be more specific let's dive into the admonition block `TIP:`, Asciidoctor
+will generate HTML with the `icon-tip` class.
+
+[source,html]
+----
+<td class="icon">
+    <i class="fa icon-tip" title="Tip"></i>
+</td>
+----
+
+Asciidoctor uses the _pseudo-element_ `::before` in order to display
+the right icon. So only using unicode character code, and the right font family
+should do it.
+
+[source,scss]
+----
+td.icon {
+  [class^="fa icon-"] {
+    font-size: 2rem;
+    font-family: 'Font Awesome 5 Free'; // <1>
+    cursor: default;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+  }
+  .icon-tip::before {
+    content: "\f0eb"; // <2>
+    font-weight: 400; // <3>
+    text-shadow: 1px 1px 2px rgba(155, 155, 0, 0.8);
+  }
+}
+----
+<1> Use the FA5 font family that has the icons
+<2> Equivalent to `<i class="far fa-lightbulb"></i>`, but use the right
+`font-weight` to access the free icons in the _Regular_ set
+<3> `400` allows access to the Regular set, however only icons present in
+the font family are present, in the Free family only a few Regular icons are
+available.
+
+.The fail
+However, this didn't work quite well. As I dicovered that the SVG framework
+that is used when the JS scripts are loaded at the end of the page don't quite
+like the `fa icon-tip` class. The script always replace this element
+by the missing icon (a dotted circle with an exclamation mark alterning with a
+question mark). I tried may variations, adding script in the `head`, at the end,
+playing with `defer`, etc.
 
 .does not work
 [source, diff]
@@ -210,16 +331,72 @@ doews not help, as FA4 conflicts with other solid icons
 + <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/v4-shims.min.js" integrity="sha256-prFmieX9aRVhOV/ldXGklUUhS7NRBQUijQU4HcdnO8Q=" crossorigin="anonymous"></script>
 ----
 
-So icons remain disabled for now
+It took me a while but I ultimately decided to remove the usage of the SVG framework
+and as such loading these scripts as I never got them to work.
+Leaving only the FA5 CSS imports.
 
 
-https://github.com/FortAwesome/Font-Awesome/issues/16477
+[source,html]
+----
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+----
+
+And now tada, even with the asciidoctor macro `icon:<fa4 icon name>[]` :
+
+====
+icon:tags[] icon:pepper-hot[] icon:fort-awesome[] icon:git[]
+====
+
+But be sure to use https://fontawesome.com/v4.7.0/icons/[FA4 icons], otherwise
+the icon won't be found :
+
+====
+icon:java[]
+====
+
+Yet it is still possible to use asciidoctor'spassthrough block with the HTML
+right class from FA5 `<i class="fab fa-java"></i>`
+
+====
++++ <i class="fab fa-java"></i> +++
+====
+
+
+.Github issues that helped me
+* https://github.com/FortAwesome/Font-Awesome/issues/16477[FortAwesome/Font-Awesome#16477]
+* https://github.com/asciidoctor/asciidoctor/issues/2535[asciidoctor/asciidoctor#2535]
+* https://github.com/asciidoctor/asciidoctor-reveal.js/issues/304[asciidoctor/asciidoctor-reveal.js#304]
+indicated FA5 is not something supported at the moment
 
 
 
-https://www.zipproth.com/cheat-sheets/hugo-asciidoctor/
 
-icon:tags[] ruby, asciidoctor
+=== Trying the semantic HTML5 backend
+
+Also some of the blog post are sufggesting to switch to semantic HTML5, because the
+asciidoctor HTML5 structure is not modern enough, e.g.
+
+[source,html]
+----
+<div class="paragraph">
+<p>I’ve crafted my own simple shortcode for Amazon <code>{{&lt; amzn "B07XW76VHZ" &gt;}}</code> :</p>
+</div>
+----
+
+Using the *semantic* HTML5 backend as suggested in this https://ratfactor.com/hugo-adoc-html5s/[blog post]
+require to `gem install asciidoctor-html5s`. And pass this option in the
+script `--backend html5s`.
+
+In practice the Semantic HTML5 converter from https://github.com/jirutka/asciidoctor-html5s
+outputs semantic HTML, but doesn't support all features of asciidoctor like
+icons for admonition blocks, also it uses the asciidoctor default CSS which
+is not suited for this semantic HTML5 tree: elements differ, CSS class names differ as well.
+
+So while this slightly improves the HTML structure, this made CSS port too challenging
+for me, brooken syntax highlighting, title are not styled as expected, so I didn't
+use it in the end, which simplify the setup.
+
 
 
 === Tweak `.gitignore`
@@ -233,6 +410,9 @@ here in a `.asciidoctor` directory, let's not use commit it.
 **/.asciidoctor
 ----
 
+
+=== Using diagrams
+
 [source]
 ----
 static/assets/diagram/object-diagram-example.svg
@@ -240,6 +420,19 @@ static/assets/diagram/sequence-diagram-example.svg
 static/assets/diagram/sprite-example.svg
 static/assets/diagram/state-diagram-example.svg
 ----
+
+https://github.com/asciidoctor/asciidoctor-diagram/issues/247
+https://github.com/asciidoctor/asciidoctor-diagram/commit/2bf075fe07dde384326e47282970832b6f7aeb1d
+
+https://dburet.gitlab.io/blog/2020-01-22-adoc-chart/
+
+
+=== Leftovers
+
+* [ ] Some color codes are not ported, see #_text[this section] of the smoke test
+* [ ] Table of content
+* [ ] Extract colors in Sass variables
+* [ ] Investigate `-a data-uri` or `-a diagram-svg-type=inline`
 
 
 == With the Github Actions
@@ -384,7 +577,7 @@ Hardware :
 ====
 
 
-
+=== Trying with Asciidoctorj
 
 [source,diff]
 ----
@@ -435,31 +628,31 @@ to install the gem, but it's necessary to add the `--require` option.
 by Hugo, which terminates the process, so this simply tell to ignore them.
 
 
-You need a smoke test content to check what feature works or not:
+
+== Wrap up
+
 
 '''
 
-+++
-<details><summary class="title">Smoke test example</summary>
-<div class="content">
-+++
-=> [asciidoc file]
+You need a smoke test content to check what feature works or not:
 
-_Not everything is rendered in a collapsible block, like titles_
+.Smoke test example
+[%collapsible]
+====
+=> https://github.com/bric3/bric3.github.io/blob/82f37989070f119f396399734befcca0cc2deef7/content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/smoketest.adoc[smoketest.adoc]
 
-include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/smoketest.adoc[leveloffset=+2]
+_Not everything is rendered in a example block, like titles_
 
-+++
-</div></details>
-+++
+include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/smoketest.adoc[]
+====
 
 
 .PlantUML smoke test example
 [%collapsible]
 ====
-=> [asciidoc file]
+=> https://github.com/bric3/bric3.github.io/blob/54bfb6aff83176cb37561c1051919f58b7d87210/content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/plantuml.smoketest.adoc[plantuml.smoketest.adoc]
 
-_Not everything is rendered in a collapsible block, like titles_
+_Not everything is rendered in a example block, like titles_
 
-include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/plantuml.smoketest.adoc[leveloffset=+2]
+include::content/posts/2020-04-20-tackling-hugo-integration-of-asciidoctor/plantuml.smoketest.adoc[leveloffset=3]
 ====
