@@ -20,6 +20,7 @@ tags:
 slug: sexprimer-regulierement-partie-2
 title: Expressions régulières (Partie 2)
 type: post
+series: "Expressions Régulières"
 ---
 La première partie de cette mini-série s'est focalisée sur une petite intro, je n'ai pas vraiment insisté sur
 les bases des expressions régulières, j'ai juste abordé les ancres et les options, et j'ai parlé de certaines astuces

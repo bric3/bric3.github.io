@@ -21,6 +21,7 @@ tags:
 slug: sexprimer-regulierement-partie-3
 title: Expressions régulières (Partie 3)
 type: post
+series: "Expressions Régulières"
 ---
 Dans cette troisième et dernière partie sur les expressions régulières en Java. Je vais aborder deux thèmes assez
 peu utilisés et pourtant très utiles.
