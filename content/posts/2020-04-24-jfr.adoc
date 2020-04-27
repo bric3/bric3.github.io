@@ -1,0 +1,366 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-04-24T11:54:58+02:00"
+language: en
+draft: true
+tags: ["jfr","profiling","java flight recorder", "java"]
+slug: "using-java-flight-recorder"
+title: "Using Java FlightRecorder"
+---
+
+
+
+
+////
+https://blogs.oracle.com/javamagazine/java-flight-recorder-and-jfr-event-streaming-in-java-14
+
+
+https://daniel.mitterdorfer.name/talks/2017/Java%20Flight%20Recorder.pdf
+https://www.dariawan.com/tutorials/java/java-11-flight-recorder-jep-328/
+
+https://github.com/lhotari/jfr-report-tool
+
+https://github.com/thegreystone/jmc-tutorial
+
+https://www.youtube.com/watch?v=E9K5m1HXMSc&list=WL&index=21&t=0s
+
+https://www.youtube.com/watch?v=_69wTZR6lis&list=WL&index=22&t=0s
+////
+
+
+
+
+
+
+Before in Java 8 we needed to set specific commercial VM flags to unlock
+FlightRecorder, this is not anymore necessary with Java 11.
+
+Even if the flag is false it's possible to _start_ a JFR session.
+
+So just checking the actual VM flags to make sure it's possible with the current VM
+is not anymore necessary with Java 11.
+
+[source, bash]
+----
+$ unset --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
+     bool FlightRecorder                           = true                                      {product} {management}
+    ccstr FlightRecorderOptions                    =                                           {product} {default}
+
+----
+
+
+To explore possible arguments, use the `help` command.
+
+[source, bash]
+----
+$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.start
+6:
+JFR.start
+Starts a new JFR recording
+
+Impact: Medium: Depending on the settings for a recording, the impact can range from low to high.
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.start [options]
+
+Options: (options must be specified using the <key> or <key>=<value> syntax)
+	name : [optional] Name that can be used to identify recording, e.g. \"My Recording\" (STRING, no default value)
+	settings : [optional] Settings file(s), e.g. profile or default. See JRE_HOME/lib/jfr (STRING SET, no default value)
+	delay : [optional] Delay recording start with (s)econds, (m)inutes), (h)ours), or (d)ays, e.g. 5h. (NANOTIME, 0)
+	duration : [optional] Duration of recording in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 300s. (NANOTIME, 0)
+	disk : [optional] Recording should be persisted to disk (BOOLEAN, no default value)
+	filename : [optional] Resulting recording filename, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
+	maxage : [optional] Maximum time to keep recorded data (on disk) in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
+	maxsize : [optional] Maximum amount of bytes to keep (on disk) in (k)B, (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
+	dumponexit : [optional] Dump running recording when JVM shuts down (BOOLEAN, no default value)
+	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)
+----
+
+./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -> Flight Recorder Template Manager.
+-->
+
+<configuration version="2.0" label="Continuous" description="Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead." provider="Oracle">
+
+    <event name="jdk.ThreadAllocationStatistics">
+      <setting name="enabled">true</setting>
+      <setting name="period">everyChunk</setting>
+    </event>
+
+    <!-- a lot more event -->
+</configuration>
+----
+
+With the `default` settings, the dumped file takes around 15mb for a 5min duration. With
+this profile you'll get basic information on IO, GC events, simple method
+
+
+./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc
+[source, xml]
+----
+<!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -> Flight Recorder Template Manager.
+-->
+
+<configuration version="2.0" label="Profiling" description="Low overhead configuration for profiling, typically around 2 % overhead." provider="Oracle">
+
+    <event name="jdk.ThreadAllocationStatistics">
+      <setting name="enabled">true</setting>
+      <setting name="period">everyChunk</setting>
+    </event>
+
+    <!-- a lot more event -->
+</configuration>
+----
+
+With the `profile` settings, the dumped file takes around 35mb for a 5min duration.
+
+It's also possible to create our own settings file and pass the absolute file path to the `settings` option.
+
+
+[source, bash]
+----
+$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.dump
+6:
+JFR.dump
+Copies contents of a JFR recording to file. Either the name or the recording id must be specified.
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.dump [options]
+
+Options: (options must be specified using the <key> or <key>=<value> syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" (STRING, no default value)
+	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
+	maxage : [optional] Maximum duration to dump, in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
+	maxsize : [optional] Maximum amount of bytes to dump, in (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
+	begin : [optional] Point in time to dump data from, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	end : [optional] Point in time to dump data to, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)
+----
+
+[source, bash]
+----
+env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.check
+6:
+JFR.check
+Checks running JFR recording(s)
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.check [options]
+
+Options: (options must be specified using the <key> or <key>=<value> syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" or omit to see all recordings (STRING, no default value)
+	verbose : [optional] Print event settings for the recording(s) (BOOLEAN, false)
+----
+
+So what we would like to do is
+
+[source, bash]
+----
+$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.start name=app-profile duration=300s filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr settings=profile
+6:
+Started recording 2. The result will be written to:
+
+/tmp/app-profile-2020-03-26T16-41-48.jfr
+----
+
+Check if there's any recording at this time, they can be several.
+
+[source, bash]
+----
+$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+Recording 2: name=app-profile duration=5m (running)
+----
+
+Also it's possible to stop manually any recording
+
+[source, bash]
+----
+$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.stop name=app-profile filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
+----
+
+
+Then get the file locally for analysis
+
+[source, bash]
+----
+kubectl cp app-pod-579664d4f7-7dxsq:/tmp/app-profile-2020-03-26T16-57-14.jfr ./app-profile-2020-03-26T16-57-14.jfr --container=app-container
+----
+
+== JDK Mission Control
+Then analyze the file in JDK Mission Control, (e.g. the one from `brew cask install jdk-mission-control`)
+
+
+It's also possible to get very qui information using the `jfr` command line tool
+(which is not always exported a symlink)
+
+== Analyze with `jfr`
+
+.events type histogram (summary)
+[source, bash]
+----
+$ /usr/lib/jvm/java-11-amazon-corretto/bin/jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
+
+ Version: 2.0
+ Chunks: 1
+ Start: 2020-03-26 16:57:14 (UTC)
+ Duration: 303 s
+
+ Event Type                            Count  Size (bytes)
+===========================================================
+ jdk.ThreadPark                       130278       5868710
+ jdk.SocketRead                        38804       1934842
+ jdk.JavaMonitorWait                   38722       1378513
+ jdk.NativeMethodSample                14702        263403
+ jdk.ThreadCPULoad                     11821        271763
+ jdk.ExecutionSample                    3010         54177
+ jdk.ModuleExport                       2505         40187
+ jdk.ClassLoaderStatistics              2344         72694
+ jdk.ThreadAllocationStatistics          878         16962
+ jdk.ModuleRequire                       754         11964
+ jdk.BooleanFlag                         648         23106
+ jdk.CPULoad                             298          7450
+ jdk.JavaThreadStatistics                298          6258
+ jdk.ClassLoadingStatistics              298          5066
+ jdk.CompilerStatistics                  298         11324
+ jdk.ExceptionStatistics                 298          6258
+ jdk.ActiveSetting                       285         10497
+ jdk.BiasedLockRevocation                275          7831
+ jdk.NativeLibrary                       252         18564
+ jdk.LongFlag                            229          8875
+ jdk.UnsignedLongFlag                    182          7168
+ jdk.InitialEnvironmentVariable          167         10243
+ jdk.NetworkUtilization                  120          2640
+ jdk.TenuringDistribution                 75          1437
+ jdk.ThreadContextSwitchRate              30           510
+ jdk.ThreadSleep                          29           696
+ jdk.StringFlag                           26           880
+ jdk.GCPhasePauseLevel2                   25          1080
+ jdk.InitialSystemProperty                23          1316
+ jdk.MetaspaceChunkFreeListSummary        20           520
+ jdk.GCReferenceStatistics                20           350
+ jdk.GCPhasePauseLevel1                   20           965
+ jdk.CheckPoint                           17       1631868
+ jdk.ExecuteVMOperation                   15           391
+ jdk.DoubleFlag                           13           618
+ jdk.BiasedLockClassRevocation            10           275
+ jdk.GCHeapSummary                        10           475
+ jdk.MetaspaceSummary                     10           580
+ jdk.G1HeapSummary                        10           300
+ jdk.OldObjectSample                      10           367
+ jdk.UnsignedIntFlag                       8           300
+ jdk.CodeCacheStatistics                   6           232
+ jdk.ThreadStart                           6           102
+ jdk.GarbageCollection                     5           145
+ jdk.YoungGarbageCollection                5           100
+ jdk.G1GarbageCollection                   5           100
+ jdk.G1MMU                                 5           100
+ jdk.EvacuationInformation                 5           185
+ jdk.G1EvacuationYoungStatistics           5           160
+ jdk.G1EvacuationOldStatistics             5           152
+ jdk.G1BasicIHOP                           5           243
+ jdk.G1AdaptiveIHOP                        5           240
+ jdk.GCPhasePause                          5           150
+ jdk.IntFlag                               3           107
+ jdk.BiasedLockSelfRevocation              2            45
+ jdk.PhysicalMemory                        2            46
+ jdk.ThreadDump                            2       1389568
+ jdk.CodeSweeperStatistics                 2            64
+ jdk.GCConfiguration                       2            60
+ jdk.ThreadEnd                             1            17
+ jdk.Metadata                              1         74738
+ jdk.JavaMonitorEnter                      1            33
+ jdk.SafepointBegin                        1            24
+ jdk.JVMInformation                        1           898
+ jdk.OSInformation                         1           367
+ jdk.VirtualizationInformation             1            33
+ jdk.CPUInformation                        1          1432
+ jdk.CPUTimeStampCounter                   1            25
+ jdk.CompilerConfiguration                 1            15
+ jdk.CodeCacheConfiguration                1            51
+ jdk.CodeSweeperConfiguration              1            15
+ jdk.GCSurvivorConfiguration               1            15
+ jdk.GCTLABConfiguration                   1            17
+ jdk.GCHeapConfiguration                   1            31
+ jdk.YoungGenerationConfiguration          1            22
+ jdk.ActiveRecording                       1            87
+ jdk.JavaMonitorInflate                    0             0
+ jdk.ReservedStackActivation               0             0
+ jdk.ClassLoad                             0             0
+ jdk.ClassDefine                           0             0
+ jdk.ClassUnload                           0             0
+ jdk.IntFlagChanged                        0             0
+ jdk.UnsignedIntFlagChanged                0             0
+ jdk.LongFlagChanged                       0             0
+ jdk.UnsignedLongFlagChanged               0             0
+ jdk.DoubleFlagChanged                     0             0
+ jdk.BooleanFlagChanged                    0             0
+ jdk.StringFlagChanged                     0             0
+ jdk.MetaspaceGCThreshold                  0             0
+ jdk.MetaspaceAllocationFailure            0             0
+ jdk.MetaspaceOOM                          0             0
+ jdk.PSHeapSummary                         0             0
+ jdk.ParallelOldGarbageCollection          0             0
+ jdk.OldGarbageCollection                  0             0
+ jdk.ObjectCountAfterGC                    0             0
+ jdk.PromoteObjectInNewPLAB                0             0
+ jdk.PromoteObjectOutsidePLAB              0             0
+ jdk.PromotionFailed                       0             0
+ jdk.EvacuationFailed                      0             0
+ jdk.ConcurrentModeFailure                 0             0
+ jdk.GCPhasePauseLevel3                    0             0
+ jdk.GCPhasePauseLevel4                    0             0
+ jdk.GCPhaseConcurrent                     0             0
+ jdk.AllocationRequiringGC                 0             0
+ jdk.G1HeapRegionTypeChange                0             0
+ jdk.Compilation                           0             0
+ jdk.CompilerPhase                         0             0
+ jdk.CompilationFailure                    0             0
+ jdk.CompilerInlining                      0             0
+ jdk.SweepCodeCache                        0             0
+ jdk.CodeCacheFull                         0             0
+ jdk.SafepointStateSynchronization         0             0
+ jdk.SafepointWaitBlocked                  0             0
+ jdk.SafepointCleanup                      0             0
+ jdk.SafepointCleanupTask                  0             0
+ jdk.SafepointEnd                          0             0
+ jdk.Shutdown                              0             0
+ jdk.ObjectAllocationInNewTLAB             0             0
+ jdk.ObjectAllocationOutsideTLAB           0             0
+ jdk.DumpReason                            0             0
+ jdk.DataLoss                              0             0
+ jdk.SystemProcess                         0             0
+ jdk.X509Validation                        0             0
+ jdk.ObjectCount                           0             0
+ jdk.G1HeapRegionInformation               0             0
+ jdk.ZPageAllocation                       0             0
+ jdk.ZThreadPhase                          0             0
+ jdk.ZStatisticsCounter                    0             0
+ jdk.ZStatisticsSampler                    0             0
+ jdk.FileForce                             0             0
+ jdk.FileRead                              0             0
+ jdk.FileWrite                             0             0
+ jdk.SocketWrite                           0             0
+ jdk.JavaExceptionThrow                    0             0
+ jdk.JavaErrorThrow                        0             0
+ jdk.SecurityPropertyModification          0             0
+ jdk.X509Certificate                       0             0
+ jdk.TLSHandshake                          0             0
+----
+
+
