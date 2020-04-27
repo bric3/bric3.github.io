@@ -1,6 +1,46 @@
 <span class="section__title">{{ .Title }}</span>
 <ul class="taxonomies">
-    {{ with .Data.Pages }}
-        {{ partial "posts-list.html" . }}
+    <!-- Adapted from : https://discourse.gohugo.io/t/lists-of-content-divided-by-posts-first-letter/8534/2?u=bric3-->
+
+    <!-- create a list with all uppercase letters -->
+    {{ $letters := split "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" "" }}
+    {{ $itemCount := (len .Data.Pages) }}
+
+    <!-- range all pages sorted by their title -->
+    {{ range .Data.Pages.ByTitle }}
+
+        <!-- get the first character of each title. Assumes that the title is never empty! -->
+        {{ $firstChar := substr .Title 0 1 | upper }}
+
+        <!-- in case $firstChar is a letter -->
+        {{ if $firstChar | in $letters }}
+
+            {{- if not .PublishDate.IsZero -}}{{/* taxonomies don't have a publish date */}}
+            <li>
+                <span class="list__title--small">
+                    <time class="hidden-tablet">{{ .PublishDate.Format (.Site.Params.dateformat | default "Jan 02 '06") }}</time>
+                    <a href="{{ .RelPermalink }}" {{if .Draft}}class="draft" {{end}}>{{ .Title }}</a>
+                </span>
+            </li>
+            {{- else -}}
+                <!-- Taxonomies -->
+                {{- if gt $itemCount 20 -}}
+                    <!-- get the current letter -->
+                    {{ $curLetter := $.Scratch.Get "curLetter" }}
+                    <!-- if $curLetter isn't set or the letter has changed -->
+                    {{ if ne $firstChar $curLetter }}
+                        <!-- update the current letter and print it -->
+                        {{ $.Scratch.Set "curLetter" $firstChar }}
+                        <h3>{{ $firstChar }}</h3>
+                    {{ end }}
+                {{ end }}
+                <li>
+                    <span class="list__title--small">
+                        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+                    </span>
+                </li>
+            {{- end -}}
+        {{ end }}
     {{ end }}
+
 </ul>
