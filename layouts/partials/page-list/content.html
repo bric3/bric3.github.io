@@ -1,4 +1,37 @@
 <span class="section__title">{{ .Title }}</span>
+<div id="taxonomy-nav" class="character-container">
+
+    {{ $letters := split "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" "" }}
+
+    <!-- range all pages sorted by their title -->
+    {{ range .Data.Pages.ByTitle }}
+
+    <!-- get the first character of each title. Assumes that the title is never empty! -->
+    {{ $firstChar := substr .Title 0 1 | upper }}
+
+    <!-- in case $firstChar is a letter -->
+    
+    <!-- Taxonomies -->
+    <!-- get the current letter -->
+    {{ $curLetter := $.Scratch.Get "curLetter" }}
+    <!-- if $curLetter isn't set or the letter has changed -->
+    {{ if ne $firstChar $curLetter }}
+    <!-- update the current letter and print it -->
+    {{ $.Scratch.Set "curLetter" $firstChar }}
+
+    <div class='character-element'>
+        {{ if $firstChar | in $letters }}
+        <a href="#__{{ $firstChar }}">{{ $firstChar }}</a>
+        {{ else }}
+        <span class="inactive">{{ $firstChar }}</span>
+        {{end}}
+    </div>
+    {{ end }}
+    {{ end }}
+
+
+</div>
+
 <ul class="taxonomies">
     <!-- Adapted from : https://discourse.gohugo.io/t/lists-of-content-divided-by-posts-first-letter/8534/2?u=bric3-->
 
@@ -31,7 +64,7 @@
                     {{ if ne $firstChar $curLetter }}
                         <!-- update the current letter and print it -->
                         {{ $.Scratch.Set "curLetter" $firstChar }}
-                        <h3>{{ $firstChar }}</h3>
+                        <h3 id="__{{ $firstChar }}">{{ $firstChar }}</h3>
                     {{ end }}
                 {{ end }}
                 <li>
