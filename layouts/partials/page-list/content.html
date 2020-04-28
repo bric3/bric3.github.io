@@ -1,44 +1,44 @@
 <span class="section__title">{{ .Title }}</span>
 <div id="taxonomy-nav" class="character-container">
+    <!-- Adapted from : https://discourse.gohugo.io/t/lists-of-content-divided-by-posts-first-letter/8534/2?u=bric3-->
+    <!-- Adds a navigation bar -->
 
+    <!-- Global variables -->
+    <!-- create a list with all uppercase letters, sections -->
     {{ $letters := split "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" "" }}
+    <!-- Count of items, to avoid index for too small numbers -->
+    {{ $itemCount := (len .Data.Pages) }}
 
-    <!-- range all pages sorted by their title -->
-    {{ range .Data.Pages.ByTitle }}
+    {{- if gt $itemCount .Site.Params.taxonomyIndexThreshold -}}
+        <!-- range all pages sorted by their title -->
+        {{ range .Data.Pages.ByTitle }}
 
-    <!-- get the first character of each title. Assumes that the title is never empty! -->
-    {{ $firstChar := substr .Title 0 1 | upper }}
+        <!-- get the first character of each title. Assumes that the title is never empty! -->
+        {{ $firstChar := substr .Title 0 1 | upper }}
 
-    <!-- in case $firstChar is a letter -->
-    
-    <!-- Taxonomies -->
-    <!-- get the current letter -->
-    {{ $curLetter := $.Scratch.Get "curLetter" }}
-    <!-- if $curLetter isn't set or the letter has changed -->
-    {{ if ne $firstChar $curLetter }}
-    <!-- update the current letter and print it -->
-    {{ $.Scratch.Set "curLetter" $firstChar }}
+        <!-- in case $firstChar is a letter -->
 
-    <div class='character-element'>
-        {{ if $firstChar | in $letters }}
-        <a href="#__{{ $firstChar }}">{{ $firstChar }}</a>
-        {{ else }}
-        <span class="inactive">{{ $firstChar }}</span>
-        {{end}}
-    </div>
+        <!-- Taxonomies -->
+        <!-- get the current letter -->
+        {{ $curLetter := $.Scratch.Get "curLetter" }}
+        <!-- if $curLetter isn't set or the letter has changed -->
+        {{ if ne $firstChar $curLetter }}
+        <!-- update the current letter and print it -->
+        {{ $.Scratch.Set "curLetter" $firstChar }}
+
+        <div class='character-element'>
+            {{ if $firstChar | in $letters }}
+            <a href="#__{{ $firstChar }}">{{ $firstChar }}</a>
+            {{ else }}
+            <span class="inactive">{{ $firstChar }}</span>
+            {{end}}
+        </div>
+        {{ end }}
+        {{ end }}
     {{ end }}
-    {{ end }}
-
-
 </div>
 
 <ul class="taxonomies">
-    <!-- Adapted from : https://discourse.gohugo.io/t/lists-of-content-divided-by-posts-first-letter/8534/2?u=bric3-->
-
-    <!-- create a list with all uppercase letters -->
-    {{ $letters := split "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" "" }}
-    {{ $itemCount := (len .Data.Pages) }}
-
     <!-- range all pages sorted by their title -->
     {{ range .Data.Pages.ByTitle }}
 
@@ -57,7 +57,7 @@
             </li>
             {{- else -}}
                 <!-- Taxonomies -->
-                {{- if gt $itemCount 20 -}}
+                {{- if gt $itemCount .Site.Params.taxonomyIndexThreshold -}}
                     <!-- get the current letter -->
                     {{ $curLetter := $.Scratch.Get "curLetter" }}
                     <!-- if $curLetter isn't set or the letter has changed -->
@@ -75,5 +75,4 @@
             {{- end -}}
         {{ end }}
     {{ end }}
-
 </ul>
