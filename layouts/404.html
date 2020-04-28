@@ -1,321 +1,483 @@
 {{ define "header" }}
-  {{ partial "header.html" . }}
+{{ partial "header.html" . }}
 {{ end }}
 
 {{ define "content" }}
+<!-- https://codepen.io/arcs/pen/vOwJBw -->
 <style type="text/css">
-  /*
-   From this codepen
-   https://codepen.io/wwwebneko/pen/KrkyLz
-  */
-  
-  h1 {
-    margin-top: 2rem;
-    text-align: center;
-  }
-
-  h1 + p {
-    text-align: center;
-  }
-
-  .shelf {
-    position: relative;
-    width: 30rem;
-    height: 15rem;
-    margin: 0 auto;
-    border: 0.5rem solid #715944;
-    border-radius: 0.5rem;
-    background-color: rgba(132, 79, 32, 0.73);
-    -webkit-perspective: 130rem;
-    perspective: 130rem;
-    box-shadow: inset 0 0 2rem rgba(0, 0, 0, 0.2);
-  }
-
-  .door {
-    position: absolute;
-    width: 14.8rem;
-    height: 14rem;
-    display: -webkit-box;
-    display: flex;
-    box-sizing: border-box;
-    padding: 1rem;
-    background-color: #715944;
-    -webkit-box-align: center;
-    align-items: center;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
-    outline: 1px solid transparent;
-  }
-  .door::before {
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.1);
-    content: "";
-  }
-  .door.left {
-    border-radius: 0 0.75rem 0.75rem 0;
-    -webkit-box-pack: end;
-    justify-content: flex-end;
-    -webkit-animation: leftDoorOpen 3.5s ease-out forwards 1s, leftDoorFlap 15s linear infinite forwards 9s;
-    animation: leftDoorOpen 3.5s ease-out forwards 1s, leftDoorFlap 15s linear infinite forwards 9s;
-    -webkit-transform-origin: 0 0 0;
-    transform-origin: 0 0 0;
-  }
-  .door.right {
-    right: 0;
-    border-radius: 0.75rem 0 0 0.75rem;
-    -webkit-animation: rightDoorOpen 3s ease-out forwards 1.5s, rightDoorFlap 10s linear infinite forwards 8s;
-    animation: rightDoorOpen 3s ease-out forwards 1.5s, rightDoorFlap 10s linear infinite forwards 8s;
-    -webkit-transform-origin: 100% 0 0;
-    transform-origin: 100% 0 0;
-  }
-
-  .book {
-    position: absolute;
-    box-sizing: border-box;
-    padding: 0.8rem 4rem 0.8rem 2rem;
-    border-radius: 0.25rem;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1rem;
-    cursor: pointer;
-    box-shadow: inset 0 0 0.75rem rgba(255, 255, 255, 0.1);
-  }
-  .book.home-page {
-    -webkit-transform: rotate(-90deg) translate(-12.4rem, 3rem);
-    transform: rotate(-90deg) translate(-12.4rem, 3rem);
-    -webkit-transform-origin: 0;
-    transform-origin: 0;
-  }
-  .book.about-us {
-    -webkit-transform: rotate(-100deg) translate(-13.4rem, 6.1rem);
-    transform: rotate(-100deg) translate(-13.4rem, 6.1rem);
-    -webkit-transform-origin: 0;
-    transform-origin: 0;
-    outline: 1px solid transparent;
-  }
-  .book.contact {
-    right: 2rem;
-    bottom: 0.2rem;
-    border-radius: 0.3rem 0 0 0.3rem;
-  }
-  .book.faq {
-    right: 0.8rem;
-    bottom: 3.3rem;
-    border-radius: 0.3rem 0 0 0.3rem;
-  }
-  .book.not-found {
-    width: 12rem;
-    height: 3.5rem;
-    border: 1px dashed rgba(255, 255, 255, 0.3);
-    background-color: transparent;
-    -webkit-transform: rotate(-90deg) translate(-12rem, 13rem) scale(1);
-    transform: rotate(-90deg) translate(-12rem, 13rem) scale(1);
-    -webkit-transform-origin: 0;
-    transform-origin: 0;
-    cursor: default;
-    -webkit-animation: bookFadeOut 1s 3s infinite forwards;
-    animation: bookFadeOut 1s 3s infinite forwards;
-  }
-  .book.not-found::after {
-    display: block;
-    width: 10rem;
-    padding-left: 5rem;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='30'><path fill='rgb(255, 255, 255)' d='M7.688,3.737C6.1,10.409,4.624,16.982,2.475,23.517c-0.424,1.29,0.724,2.338,1.957,1.916 c5.879-2.021,11.743-4.107,17.409-6.696c1.246-0.572,0.443-2.366-0.815-1.932c-3.856,1.333-7.695,2.69-11.565,3.959 c2.879-2.526,5.485-5.215,9.013-7.17c4.441-2.459,9.299-4.109,14.281-4.915c10.903-1.772,22.052,0.562,31.979,5.04 c9.241,4.162,12.895,8.725,13.164,4.942c0.121-1.69-5.57-4.953-14.125-8.714C53.19,5.292,41.094,3.539,29.636,6.058 c-7.122,1.567-16.708,5.374-22.064,11.544c1.359-4.455,2.461-9.028,3.032-13.563C10.852,2.091,8.12,1.927,7.688,3.737z'/></svg>");
-    background-repeat: no-repeat;
-    background-size: 4rem;
-    background-position: left center;
-    text-transform: lowercase;
-    content: "this page can't be found";
-    -webkit-transform: rotate(90deg) translate(6rem, -1rem);
-    transform: rotate(90deg) translate(6rem, -1rem);
-    opacity: 0.3;
-  }
-  .book:hover:not(.not-found) {
-    background-color: rgba(255, 255, 255, 0.2);
-  }
-
-  @-webkit-keyframes leftDoorOpen {
-    60% {
-      -webkit-transform: rotateY(-115deg);
-      transform: rotateY(-115deg);
+    #space-invaders {
+        margin: 0 auto;
+        display: block;
+        background: white
     }
-    100% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-  }
-
-  @keyframes leftDoorOpen {
-    60% {
-      -webkit-transform: rotateY(-115deg);
-      transform: rotateY(-115deg);
-    }
-    100% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-  }
-  @-webkit-keyframes rightDoorOpen {
-    60% {
-      -webkit-transform: rotateY(125deg);
-      transform: rotateY(125deg);
-    }
-    100% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-  }
-  @keyframes rightDoorOpen {
-    60% {
-      -webkit-transform: rotateY(125deg);
-      transform: rotateY(125deg);
-    }
-    100% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-  }
-  @-webkit-keyframes rightDoorFlap {
-    0% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-    5% {
-      -webkit-transform: rotateY(125deg);
-      transform: rotateY(125deg);
-    }
-    15% {
-      -webkit-transform: rotateY(117deg);
-      transform: rotateY(117deg);
-    }
-    25% {
-      -webkit-transform: rotateY(123deg);
-      transform: rotateY(123deg);
-    }
-    30% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-    100% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-  }
-  @keyframes rightDoorFlap {
-    0% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-    5% {
-      -webkit-transform: rotateY(125deg);
-      transform: rotateY(125deg);
-    }
-    15% {
-      -webkit-transform: rotateY(117deg);
-      transform: rotateY(117deg);
-    }
-    25% {
-      -webkit-transform: rotateY(123deg);
-      transform: rotateY(123deg);
-    }
-    30% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-    100% {
-      -webkit-transform: rotateY(120deg);
-      transform: rotateY(120deg);
-    }
-  }
-  @-webkit-keyframes leftDoorFlap {
-    0% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-    5% {
-      -webkit-transform: rotateY(-115deg);
-      transform: rotateY(-115deg);
-    }
-    15% {
-      -webkit-transform: rotateY(-107deg);
-      transform: rotateY(-107deg);
-    }
-    25% {
-      -webkit-transform: rotateY(-113deg);
-      transform: rotateY(-113deg);
-    }
-    30% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-    100% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-  }
-  @keyframes leftDoorFlap {
-    0% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-    5% {
-      -webkit-transform: rotateY(-115deg);
-      transform: rotateY(-115deg);
-    }
-    15% {
-      -webkit-transform: rotateY(-107deg);
-      transform: rotateY(-107deg);
-    }
-    25% {
-      -webkit-transform: rotateY(-113deg);
-      transform: rotateY(-113deg);
-    }
-    30% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-    100% {
-      -webkit-transform: rotateY(-110deg);
-      transform: rotateY(-110deg);
-    }
-  }
-  @-webkit-keyframes bookFadeOut {
-    50% {
-      border: 1px dashed rgba(255, 255, 255, 0.1);
-    }
-  }
-  @keyframes bookFadeOut {
-    50% {
-      border: 1px dashed rgba(255, 255, 255, 0.1);
-    }
-  }
-
 </style>
 
-<div>
+<h1>404</h1>
+<p>Sorry, we've misplaced that URL or it's pointing to something that doesn't exist.
+    <a href="{{ .Site.BaseURL }}">Head back home</a> to try finding it again.
+</p>
 
-  <nav class="shelf">
-    <a class="book home-page">Home page</a>
-    <a class="book about-us">About us</a>
-    <a class="book contact">Contact</a>
-    <a class="book faq">F.A.Q.</a>
-
-    <span class="book not-found"></span>
-
-    <span class="door left"></span>
-    <span class="door right"></span>
-  </nav>
-  
-  <h1>404</h1>
-  <p>Sorry, we've misplaced that URL or it's pointing to something that doesn't exist. <a href="{{ .Site.BaseURL }}">Head back home</a> to try finding it again.</p>
-</div>
+<canvas id="space-invaders"></canvas>
+<p>
+<span>Space Invadors destroyed this page! Take revenge on them!
+  <br/> Use <span class="label label-danger">Space</span> to shoot and <span
+            class="label label-danger">←</span>&#160;<span class="label label-danger">→</span> to move!&#160;&#160;&#160;<button
+            class="btn btn-default btn-xs" id="restart">Restart
+  </button>
+</span>
+</p>
+<p class="pull-right"><em><a href="https://codepen.io/arcs/pen/vOwJBw">Adapted from this codepen</a></em></p>
 
 
+<script type="application/javascript">
+    ;(function () {
+        "use strict";
 
+        // General
+        var canvas,
+            screen,
+            gameSize,
+            game;
 
+        // Assets
+        var invaderCanvas,
+            invaderMultiplier,
+            invaderSize = 20,
+            initialOffsetInvader,
+            invaderAttackRate,
+            invaderSpeed,
+            invaderSpawnDelay = 250;
+
+        // Counter
+        var i = 0,
+            kills = 0,
+            spawnDelayCounter = invaderSpawnDelay;
+
+        var invaderDownTimer;
+
+        // Text
+        var blocks = [
+            [3, 4, 8, 9, 10, 15, 16],
+            [2, 4, 7, 11, 14, 16],
+            [1, 4, 7, 11, 13, 16],
+            [1, 2, 3, 4, 5, 7, 11, 13, 14, 15, 16, 17],
+            [4, 7, 11, 16],
+            [4, 8, 9, 10, 16]
+        ];
+
+        // Game Controller
+        // ---------------
+        var Game = function () {
+
+            this.level = -1;
+            this.lost = false;
+
+            this.player = new Player();
+            this.invaders = [];
+            this.invaderShots = [];
+
+            if (invaderDownTimer === undefined) {
+                invaderDownTimer = setInterval(function () {
+                    for (i = 0; i < game.invaders.length; i++) game.invaders[i].move();
+                }, 1000 - (this.level * 1.8));
+
+            }
+            ;
+        }
+
+        Game.prototype = {
+            update: function () {
+
+                // Next level
+                if (game.invaders.length === 0) {
+
+                    spawnDelayCounter += 1;
+                    if (spawnDelayCounter < invaderSpawnDelay) return;
+
+                    this.level += 1;
+
+                    invaderAttackRate -= 0.002;
+                    invaderSpeed += 10;
+
+                    game.invaders = createInvaders();
+
+                    spawnDelayCounter = 0;
+                }
+
+                if (!this.lost) {
+
+                    // Collision
+                    game.player.projectile.forEach(function (projectile) {
+                        game.invaders.forEach(function (invader) {
+                            if (collides(projectile, invader)) {
+                                invader.destroy();
+                                projectile.active = false;
+                            }
+                        });
+                    });
+
+                    this.invaderShots.forEach(function (invaderShots) {
+                        if (collides(invaderShots, game.player)) {
+                            game.player.destroy();
+                        }
+                    });
+
+                    for (i = 0; i < game.invaders.length; i++) game.invaders[i].update();
+
+                }
+
+                // Don't stop player & projectiles.. they look nice
+                game.player.update();
+                for (i = 0; i < game.invaderShots.length; i++) game.invaderShots[i].update();
+
+                this.invaders = game.invaders.filter(function (invader) {
+                    return invader.active;
+                });
+
+            },
+
+            draw: function () {
+
+                if (this.lost) {
+                    screen.fillStyle = "rgba(0, 0, 0, 0.03)";
+                    screen.fillRect(0, 0, gameSize.width, gameSize.height);
+
+                    screen.font = "55px Lucida Console";
+                    screen.textAlign = "center";
+                    screen.fillStyle = "white";
+                    screen.fillText("You lost", gameSize.width / 2, gameSize.height / 2);
+                    screen.font = "20px Lucida Console";
+                    screen.fillText("Points: " + kills, gameSize.width / 2, gameSize.height / 2 + 30);
+
+                } else {
+                    screen.clearRect(0, 0, gameSize.width, gameSize.height);
+
+                    screen.font = "10px Lucida Console";
+                    screen.textAlign = "right";
+                    screen.fillText("Points: " + kills, gameSize.width, gameSize.height - 12);
+                }
+
+                screen.beginPath();
+
+                var i;
+                this.player.draw();
+                if (!this.lost)
+                    for (i = 0; i < this.invaders.length; i++) this.invaders[i].draw();
+                for (i = 0; i < this.invaderShots.length; i++) this.invaderShots[i].draw();
+
+                screen.fill();
+
+            },
+
+            invadersBelow: function (invader) {
+                return this.invaders.filter(function (b) {
+                    return Math.abs(invader.coordinates.x - b.coordinates.x) === 0 &&
+                        b.coordinates.y > invader.coordinates.y;
+                }).length > 0;
+            }
+
+        };
+
+        // Invaders
+        // --------
+        var Invader = function (coordinates) {
+            this.active = true;
+            this.coordinates = coordinates;
+            this.size = {
+                width: invaderSize,
+                height: invaderSize
+            };
+
+            this.patrolX = 0;
+            this.speedX = invaderSpeed;
+
+        };
+
+        Invader.prototype = {
+            update: function () {
+
+                if (Math.random() > invaderAttackRate && !game.invadersBelow(this)) {
+                    var projectile = new Projectile({
+                        x: this.coordinates.x + this.size.width / 2,
+                        y: this.coordinates.y + this.size.height - 5
+                    }, {
+                        x: 0,
+                        y: 2
+                    });
+                    game.invaderShots.push(projectile);
+                }
+
+            },
+            draw: function () {
+                if (this.active) screen.drawImage(invaderCanvas, this.coordinates.x, this.coordinates.y);
+
+            },
+            move: function () {
+                if (this.patrolX < 0 || this.patrolX > 100) {
+                    this.speedX = -this.speedX;
+                    this.patrolX += this.speedX;
+                    this.coordinates.y += this.size.height;
+
+                    if (this.coordinates.y + this.size.height * 2 > gameSize.height) game.lost = true;
+
+                } else {
+                    this.coordinates.x += this.speedX;
+                    this.patrolX += this.speedX;
+                }
+
+            },
+            destroy: function () {
+                this.active = false;
+                kills += 1;
+
+            }
+        };
+
+        // Player
+        // ------
+        var Player = function () {
+            this.active = true;
+            this.size = {
+                width: 16,
+                height: 8
+            };
+            this.shooterHeat = -3;
+            this.coordinates = {
+                x: gameSize.width / 2 - (this.size.width / 2) | 0,
+                y: gameSize.height - this.size.height * 2
+            };
+
+            this.projectile = [];
+            this.keyboarder = new KeyController();
+        };
+
+        Player.prototype = {
+            update: function () {
+
+                for (var i = 0; i < this.projectile.length; i++) this.projectile[i].update();
+
+                this.projectile = this.projectile.filter(function (projectile) {
+                    return projectile.active;
+                });
+
+                if (!this.active) return;
+
+                if (this.keyboarder.isDown(this.keyboarder.KEYS.LEFT) && this.coordinates.x > 0) this.coordinates.x -= 2;
+                else if (this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT) && this.coordinates.x < gameSize.width - this.size.width) this.coordinates.x += 2;
+
+                if (this.keyboarder.isDown(this.keyboarder.KEYS.Space)) {
+                    this.shooterHeat += 1;
+                    if (this.shooterHeat < 0) {
+                        var projectile = new Projectile({
+                            x: this.coordinates.x + this.size.width / 2 - 1,
+                            y: this.coordinates.y - 1
+                        }, {
+                            x: 0,
+                            y: -7
+                        });
+                        this.projectile.push(projectile);
+                    } else if (this.shooterHeat > 12) this.shooterHeat = -3;
+                } else {
+                    this.shooterHeat = -3;
+                }
+
+            },
+            draw: function () {
+                if (this.active) {
+                    screen.rect(this.coordinates.x, this.coordinates.y, this.size.width, this.size.height);
+                    screen.rect(this.coordinates.x - 2, this.coordinates.y + 2, 20, 6);
+                    screen.rect(this.coordinates.x + 6, this.coordinates.y - 4, 4, 4);
+                }
+
+                for (var i = 0; i < this.projectile.length; i++) this.projectile[i].draw();
+
+            },
+            destroy: function () {
+                this.active = false;
+                game.lost = true;
+            }
+        };
+
+        // Projectile
+        // ------
+        var Projectile = function (coordinates, velocity) {
+            this.active = true;
+            this.coordinates = coordinates;
+            this.size = {
+                width: 3,
+                height: 3
+            };
+            this.velocity = velocity;
+        };
+
+        Projectile.prototype = {
+            update: function () {
+                this.coordinates.x += this.velocity.x;
+                this.coordinates.y += this.velocity.y;
+
+                if (this.coordinates.y > gameSize.height || this.coordinates.y < 0) this.active = false;
+
+            },
+            draw: function () {
+                if (this.active) screen.rect(this.coordinates.x, this.coordinates.y, this.size.width, this.size.height);
+
+            }
+        };
+
+        // Keyboard input tracking
+        // -----------------------
+        var KeyController = function () {
+            this.KEYS = {
+                LEFT: 37,
+                RIGHT: 39,
+                Space: 32
+            };
+            var keyCode = [37, 39, 32];
+            var keyState = {};
+
+            var counter;
+            window.addEventListener('keydown', function (e) {
+                for (counter = 0; counter < keyCode.length; counter++)
+                    if (keyCode[counter] == e.keyCode) {
+                        keyState[e.keyCode] = true;
+                        e.preventDefault();
+                    }
+
+            });
+
+            window.addEventListener('keyup', function (e) {
+                for (counter = 0; counter < keyCode.length; counter++)
+                    if (keyCode[counter] == e.keyCode) {
+                        keyState[e.keyCode] = false;
+                        e.preventDefault();
+                    }
+            });
+
+            this.isDown = function (keyCode) {
+                return keyState[keyCode] === true;
+            };
+
+        };
+
+        // Other functions
+        // ---------------
+        function collides(a, b) {
+            return a.coordinates.x < b.coordinates.x + b.size.width &&
+                a.coordinates.x + a.size.width > b.coordinates.x &&
+                a.coordinates.y < b.coordinates.y + b.size.height &&
+                a.coordinates.y + a.size.height > b.coordinates.y;
+        }
+
+        function getPixelRow(rowRaw) {
+            var textRow = [],
+                placer = 0,
+                row = Math.floor(rowRaw / invaderMultiplier);
+            if (row >= blocks.length) return [];
+            for (var i = 0; i < blocks[row].length; i++) {
+                var tmpContent = blocks[row][i] * invaderMultiplier;
+                for (var j = 0; j < invaderMultiplier; j++) textRow[placer + j] = tmpContent + j;
+                placer += invaderMultiplier;
+            }
+            return textRow;
+        }
+
+        // Write Text
+        // -----------
+        function createInvaders() {
+            var invaders = [];
+
+            var i = blocks.length * invaderMultiplier;
+            while (i--) {
+                var j = getPixelRow(i);
+                for (var k = 0; k < j.length; k++) {
+                    invaders.push(new Invader({
+                        x: j[k] * invaderSize,
+                        y: i * invaderSize
+                    }));
+                }
+            }
+            return invaders;
+        }
+
+        // Start game
+        // ----------
+        window.addEventListener('load', function () {
+            var invaderAsset = new Image;
+            invaderAsset.onload = function () {
+
+                invaderCanvas = document.createElement('canvas');
+                invaderCanvas.width = invaderSize;
+                invaderCanvas.height = invaderSize;
+                invaderCanvas.getContext("2d").drawImage(invaderAsset, 0, 0);
+
+                // Game Creation
+                canvas = document.getElementById("space-invaders");
+                screen = canvas.getContext('2d');
+
+                initGameStart();
+                loop();
+
+            };
+            invaderAsset.src = "//stillh.art/project/spaceInvaders/invader.gif";
+
+        });
+
+        window.addEventListener('resize', function () {
+            initGameStart();
+        });
+        document.getElementById('restart').addEventListener('click', function () {
+            initGameStart();
+        });
+
+        function initGameStart() {
+            let innerWidth = window.innerWidth;
+            innerWidth -= 320;
+            if (innerWidth > 1200) {
+                screen.canvas.width = 1200;
+                screen.canvas.height = 500;
+                gameSize = {
+                    width: 1200,
+                    height: 500
+                };
+                invaderMultiplier = 3;
+                initialOffsetInvader = 420;
+            } else if (innerWidth > 800) {
+                screen.canvas.width = 900;
+                screen.canvas.height = 600;
+                gameSize = {
+                    width: 900,
+                    height: 600
+                };
+                invaderMultiplier = 2;
+                initialOffsetInvader = 280;
+            } else {
+                screen.canvas.width = 600;
+                screen.canvas.height = 300;
+                gameSize = {
+                    width: 600,
+                    height: 300
+                };
+                invaderMultiplier = 1;
+                initialOffsetInvader = 140;
+            }
+
+            kills = 0;
+            invaderAttackRate = 0.999;
+            invaderSpeed = 20;
+            spawnDelayCounter = invaderSpawnDelay;
+
+            game = new Game();
+        }
+
+        function loop() {
+            game.update();
+            game.draw();
+
+            requestAnimationFrame(loop);
+        }
+
+    })();
+</script>
 {{ end }}
 
 {{ define "footer" }}
