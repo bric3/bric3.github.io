@@ -1,0 +1,76 @@
+<span class="section__title">{{ .Title }}</span>
+<div id="taxonomy-nav" class="character-container">
+    <!-- Adapted from : https://discourse.gohugo.io/t/lists-of-content-divided-by-posts-first-letter/8534/2?u=bric3-->
+    <!-- Adds a navigation bar -->
+
+    <!-- Global variables -->
+    <!-- create a list with all uppercase letters, sections -->
+    {{ $letters := split "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" "" }}
+    <!-- Count of items, to avoid index for too small numbers -->
+    {{ $itemCount := (len .Data.Pages) }}
+
+    {{- if gt $itemCount .Site.Params.taxonomyIndexThreshold -}}
+        <!-- range all pages sorted by their title -->
+        {{ range .Data.Pages.ByTitle }}
+
+        <!-- get the first character of each title. Assumes that the title is never empty! -->
+        {{ $firstChar := substr .Title 0 1 | upper }}
+
+        <!-- in case $firstChar is a letter -->
+
+        <!-- Taxonomies -->
+        <!-- get the current letter -->
+        {{ $curLetter := $.Scratch.Get "curLetter" }}
+        <!-- if $curLetter isn't set or the letter has changed -->
+        {{ if ne $firstChar $curLetter }}
+        <!-- update the current letter and print it -->
+        {{ $.Scratch.Set "curLetter" $firstChar }}
+
+        <div class='character-element'>
+            {{ if $firstChar | in $letters }}
+            <a href="#__{{ $firstChar }}">{{ $firstChar }}</a>
+            {{ else }}
+            <span class="inactive">{{ $firstChar }}</span>
+            {{end}}
+        </div>
+        {{ end }}
+        {{ end }}
+    {{ end }}
+</div>
+
+<ul class="tags">
+    <!-- range all pages sorted by their title -->
+    {{ range .Data.Pages.ByTitle }}
+
+        <!-- get the first character of each title. Assumes that the title is never empty! -->
+        {{ $firstChar := substr .Title 0 1 | upper }}
+
+        <!-- in case $firstChar is a letter -->
+        {{ if $firstChar | in $letters }}
+
+            {{- if not .PublishDate.IsZero -}}{{/* taxonomies don't have a publish date */}}
+            <li class="blog-item">
+                <span class="list__title--small">
+                    <time class="hidden-tablet">{{ .PublishDate.Format (.Site.Params.dateformat | default "Jan 02 '06") }}</time>
+                    <a href="{{ .RelPermalink }}" {{if .Draft}}class="draft" {{end}}>{{ .Title }}</a>
+                </span>
+            </li>
+            {{- else -}}
+                <!-- Taxonomies -->
+                {{- if gt $itemCount .Site.Params.taxonomyIndexThreshold -}}
+                    <!-- get the current letter -->
+                    {{ $curLetter := $.Scratch.Get "curLetter" }}
+                    <!-- if $curLetter isn't set or the letter has changed -->
+                    {{ if ne $firstChar $curLetter }}
+                        <!-- update the current letter and print it -->
+                        {{ $.Scratch.Set "curLetter" $firstChar }}
+                        <h3 id="__{{ $firstChar }}">{{ $firstChar }}</h3>
+                    {{ end }}
+                {{ end }}
+                <li class="tag-item">
+                    <a class="badge badge-tag"  href="{{ .RelPermalink }}">{{ .Title }}</a>
+                </li>
+            {{- end -}}
+        {{ end }}
+    {{ end }}
+</ul>
