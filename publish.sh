@@ -21,8 +21,7 @@ cp CNAME ./public
 
 
 echo "Generating site"
-hugo
-# docker run --rm -v $PWD:/src gunnarmorling/hugo-builder bash -c "cd /src && /hugo/hugo -F"
+env PATH=$PWD/bin:$PATH hugo
 
 echo "Updating 'master' branch"
 cd ./public && git add --all && git commit -m "Publishing to 'master' (publish.sh)"
