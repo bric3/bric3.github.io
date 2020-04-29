@@ -338,7 +338,7 @@
             var counter;
             window.addEventListener('keydown', function (e) {
                 for (counter = 0; counter < keyCode.length; counter++)
-                    if (keyCode[counter] == e.keyCode) {
+                    if (keyCode[counter] === e.keyCode) {
                         keyState[e.keyCode] = true;
                         e.preventDefault();
                     }
@@ -347,7 +347,7 @@
 
             window.addEventListener('keyup', function (e) {
                 for (counter = 0; counter < keyCode.length; counter++)
-                    if (keyCode[counter] == e.keyCode) {
+                    if (keyCode[counter] === e.keyCode) {
                         keyState[e.keyCode] = false;
                         e.preventDefault();
                     }
@@ -430,8 +430,12 @@
         });
 
         function initGameStart() {
-            let innerWidth = window.innerWidth;
-            innerWidth *= 0.5;
+            let contentEl = document.getElementsByClassName('content')[0];
+            let contentElWidth = contentEl.offsetWidth;
+            let contentDivStyle = window.getComputedStyle(contentEl);
+            let paddingLeftRight = parseFloat(contentDivStyle.getPropertyValue('padding-left'))
+                + parseFloat(contentDivStyle.getPropertyValue('padding-right'));
+            let innerWidth = contentElWidth - paddingLeftRight;
             if (innerWidth > 1200) {
                 screen.canvas.width = 1200;
                 screen.canvas.height = 500;
@@ -450,15 +454,24 @@
                 };
                 invaderMultiplier = 2;
                 initialOffsetInvader = 280;
-            } else {
+            } else if (innerWidth > 400) {
                 screen.canvas.width = 600;
                 screen.canvas.height = 300;
                 gameSize = {
-                    width: 600,
+                    width: 500,
                     height: 300
                 };
                 invaderMultiplier = 1;
                 initialOffsetInvader = 140;
+            } else {
+                screen.canvas.width = 300;
+                screen.canvas.height = 200;
+                gameSize = {
+                    width: 300,
+                    height: 300
+                };
+                invaderMultiplier = 1;
+                initialOffsetInvader = 70;
             }
 
             kills = 0;
