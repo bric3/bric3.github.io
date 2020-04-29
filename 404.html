@@ -62,7 +62,7 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.3e376ced91add18f6049ee3b08829bbb28da6d67580baee8c7556f8e5b105606.css" integrity="sha256-Pjds7ZGt0Y9gSe47CIKbuyjabWdYC67ox1VvjlsQVgY=">
+<link rel="stylesheet" href="/scss/hyde-hyde.af8ebeb606f2aa052caa90f706e57cf83a725a3c94c6a522c8e0a6e18492d0bb.css" integrity="sha256-r46&#43;tgbyqgUsqpD3BuV8&#43;DpyWjyUxqUiyOCm4YSS0Ls=">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -556,7 +556,7 @@
             var counter;
             window.addEventListener('keydown', function (e) {
                 for (counter = 0; counter < keyCode.length; counter++)
-                    if (keyCode[counter] == e.keyCode) {
+                    if (keyCode[counter] === e.keyCode) {
                         keyState[e.keyCode] = true;
                         e.preventDefault();
                     }
@@ -565,7 +565,7 @@
 
             window.addEventListener('keyup', function (e) {
                 for (counter = 0; counter < keyCode.length; counter++)
-                    if (keyCode[counter] == e.keyCode) {
+                    if (keyCode[counter] === e.keyCode) {
                         keyState[e.keyCode] = false;
                         e.preventDefault();
                     }
@@ -636,7 +636,7 @@
                 loop();
 
             };
-            invaderAsset.src = "//stillh.art/project/spaceInvaders/invader.gif";
+            invaderAsset.src = "/404/invader.gif";
 
         });
 
@@ -648,8 +648,12 @@
         });
 
         function initGameStart() {
-            let innerWidth = window.innerWidth;
-            innerWidth -= 320;
+            let contentEl = document.getElementsByClassName('content')[0];
+            let contentElWidth = contentEl.offsetWidth;
+            let contentDivStyle = window.getComputedStyle(contentEl);
+            let paddingLeftRight = parseFloat(contentDivStyle.getPropertyValue('padding-left'))
+                + parseFloat(contentDivStyle.getPropertyValue('padding-right'));
+            let innerWidth = contentElWidth - paddingLeftRight;
             if (innerWidth > 1200) {
                 screen.canvas.width = 1200;
                 screen.canvas.height = 500;
@@ -668,15 +672,24 @@
                 };
                 invaderMultiplier = 2;
                 initialOffsetInvader = 280;
-            } else {
+            } else if (innerWidth > 400) {
                 screen.canvas.width = 600;
                 screen.canvas.height = 300;
                 gameSize = {
-                    width: 600,
+                    width: 500,
                     height: 300
                 };
                 invaderMultiplier = 1;
                 initialOffsetInvader = 140;
+            } else {
+                screen.canvas.width = 300;
+                screen.canvas.height = 200;
+                gameSize = {
+                    width: 300,
+                    height: 300
+                };
+                invaderMultiplier = 1;
+                initialOffsetInvader = 70;
             }
 
             kills = 0;
