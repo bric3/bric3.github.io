@@ -1,0 +1,575 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-04-27T11:45:29+02:00"
+language: en
+draft: true
+tags: ["cgroup", "java", "kubernetes", "docker"]
+slug: "maxrampercentage-isnt-enough"
+title: "MaxRamPercentage isn't enough"
+---
+
+== App Docker image
+
+=== Building and running locally
+
+[source, bash]
+----
+❯ DOCKER_BUILDKIT=1 docker build -t test-edge-api --build-arg REGISTRY=eu.gcr.io/bbc-registry --no-cache -f _infra/Dockerfile .
+[+] Building 1.4s (9/9) FINISHED
+ => [internal] load build definition from Dockerfile                                                                                                                                                                                                                                                               0.0s
+ => => transferring dockerfile: 1.34kB                                                                                                                                                                                                                                                                             0.0s
+ => [internal] load .dockerignore                                                                                                                                                                                                                                                                                  0.0s
+ => => transferring context: 35B                                                                                                                                                                                                                                                                                   0.0s
+ => [internal] load metadata for eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                                                                                                                  0.0s
+ => CACHED [1/4] FROM eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                                                                                                                             0.0s
+ => [internal] load build context                                                                                                                                                                                                                                                                                  0.0s
+ => => transferring context: 1.32kB                                                                                                                                                                                                                                                                                0.0s
+ => [2/4] RUN mkdir -p /gclogs /etc/edge-api                                                                                                                                                                                                                                                                       0.3s
+ => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                                                                                                                                                                                    0.0s
+ => [4/4] COPY ./build/libs/edge-api-boot.jar   ./build/java-agents/newrelic-agent.jar   ./build/java-agents/sqreen-agent.jar   ./build/java-agents/file-leak-detector.jar   ./src/serviceability/*.sh   /                                                                                                         0.6s
+ => exporting to image                                                                                                                                                                                                                                                                                             0.4s
+ => => exporting layers                                                                                                                                                                                                                                                                                            0.4s
+ => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                                                                                                                                                                                       0.0s
+ => => naming to docker.io/library/test-edge-api
+----
+
+
+[source,bash]
+----
+❯ docker run test-edge-api
+Picked up JAVA_TOOL_OPTIONS:
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Configuration file not found. The agent will attempt to read required values from environment variables.
+Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Using default collector host: collector.newrelic.com
+Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic ERROR: Unable to start the New Relic Agent. Your application will continue to run but it will not be monitored.
+com.newrelic.agent.config.ConfigurationException: The agent requires an application name. Check the app_name setting in newrelic.yml
+        at com.newrelic.agent.config.ConfigServiceFactory.validateConfig(ConfigServiceFactory.java:64) ~[newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.config.ConfigServiceFactory.createConfigService(ConfigServiceFactory.java:27) ~[newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.service.ServiceManagerImpl.<init>(ServiceManagerImpl.java:121) ~[newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.Agent.tryToInitializeServiceManager(Agent.java:194) [newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.Agent.continuePremain(Agent.java:137) [newrelic-agent.jar:5.8.0]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
+        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
+        at com.newrelic.bootstrap.BootstrapAgent.startAgent(BootstrapAgent.java:140) [newrelic-agent.jar:5.8.0]
+        at com.newrelic.bootstrap.BootstrapAgent.premain(BootstrapAgent.java:77) [newrelic-agent.jar:5.8.0]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
+        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
+        at sun.instrument.InstrumentationImpl.loadClassAndStartAgent(InstrumentationImpl.java:513) [?:?]
+        at sun.instrument.InstrumentationImpl.loadClassAndCallPremain(InstrumentationImpl.java:525) [?:?]
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...
+----
+
+
+=== Getting the JVM flags after bootstrap
+
+.VM.flags local docker
+[source, bash]
+----
+❯ docker exec -it unruffled_rubin bash -c "JAVA_TOOL_OPTIONS='' jcmd \$(pgrep java) VM.flags"
+Picked up JAVA_TOOL_OPTIONS:
+6:
+-XX:CICompilerCount=3 -XX:ConcGCThreads=1 -XX:G1ConcRefinementThreads=4 -XX:G1HeapRegionSize=1048576
+-XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=1774190592 -XX:InitialRAMPercentage=85.000000
+-XX:+ManagementServer -XX:MarkStackSize=4194304 -XX:MaxHeapSize=1774190592 -XX:MaxNewSize=1064304640
+-XX:MaxRAMPercentage=85.000000 -XX:MinHeapDeltaBytes=1048576 -XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5830732 -XX:NonProfiledCodeHeapSize=122913754 -XX:ProfiledCodeHeapSize=122913754
+-XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps -XX:+UseG1GC
+----
+
+
+=== Calculating the memory footprint of the java process in the container
+
+.RSS
+[source, bash]
+----
+$ cat /proc/$(pgrep java)/status | grep VmRSS
+VmRSS:	 4701120 kB
+----
+
+.VM.flags in k8s
+[source, bash]
+----
+$ env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags
+6:
+-XX:CICompilerCount=4
+-XX:ConcGCThreads=2
+-XX:G1ConcRefinementThreads=8
+-XX:G1HeapRegionSize=2097152
+-XX:GCDrainStackTargetSize=64
+-XX:InitialHeapSize=4563402752
+-XX:InitialRAMPercentage=85.000000
+-XX:+ManagementServer
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=4563402752
+-XX:MaxNewSize=2736783360
+-XX:MaxRAMPercentage=85.000000
+-XX:MinHeapDeltaBytes=2097152
+-XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5836300
+-XX:NonProfiledCodeHeapSize=122910970
+-XX:ProfiledCodeHeapSize=122910970
+-XX:ReservedCodeCacheSize=251658240
+-XX:+SegmentedCodeCache
+-XX:+UseCompressedClassPointers
+-XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps
+-XX:+UseG1GC
+----
+
+As the container runs `java` with native memory tracking (`-XX:NativeMemoryTracking=summary`),
+it's possible to ask the JVM some information about JVM memory zones other than heap.
+
+NOTE: Enabling native memory tracking (NMT) causes a 5% -10% performance overhead.
+
+.VM.native_memory instant snapshot
+[source, bash]
+----
+❯ docker exec -it unruffled_rubin bash -c "env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.native_memory scale=KB"
+6:
+
+Native Memory Tracking:
+
+Total: reserved=7168324KB, committed=5380868KB                               <1>
+-                 Java Heap (reserved=4456448KB, committed=4456448KB)        <2>
+                            (mmap: reserved=4456448KB, committed=4456448KB)
+
+-                     Class (reserved=1195628KB, committed=165788KB)         <3>
+                            (classes #28431)                                 <4>
+                            (  instance classes #26792, array classes #1639)
+                            (malloc=5740KB #87822)
+                            (mmap: reserved=1189888KB, committed=160048KB)
+                            (  Metadata:   )
+                            (    reserved=141312KB, committed=139876KB)
+                            (    used=135945KB)
+                            (    free=3931KB)
+                            (    waste=0KB =0.00%)
+                            (  Class space:)
+                            (    reserved=1048576KB, committed=20172KB)
+                            (    used=17864KB)
+                            (    free=2308KB)
+                            (    waste=0KB =0.00%)
+
+-                    Thread (reserved=696395KB, committed=85455KB)           <5>
+                            (thread #674)
+                            (stack: reserved=692812KB, committed=81872KB)
+                            (malloc=2432KB #4046)
+                            (arena=1150KB #1347)
+
+-                      Code (reserved=251877KB, committed=105201KB)          <6>
+                            (malloc=4189KB #11718)
+                            (mmap: reserved=247688KB, committed=101012KB)
+
+-                        GC (reserved=230739KB, committed=230739KB)          <7>
+                            (malloc=32031KB #63631)
+                            (mmap: reserved=198708KB, committed=198708KB)
+
+-                  Compiler (reserved=5914KB, committed=5914KB)              <8>
+                            (malloc=6143KB #3281)
+                            (arena=18014398509481755KB #5)
+
+-                  Internal (reserved=24460KB, committed=24460KB)           <10>
+                            (malloc=24460KB #13140)
+
+-                     Other (reserved=267034KB, committed=267034KB)         <11>
+                            (malloc=267034KB #631)
+
+-                    Symbol (reserved=28915KB, committed=28915KB)            <9>
+                            (malloc=25423KB #330973)
+                            (arena=3492KB #1)
+
+-    Native Memory Tracking (reserved=8433KB, committed=8433KB)
+                            (malloc=117KB #1498)
+                            (tracking overhead=8316KB)
+
+-               Arena Chunk (reserved=217KB, committed=217KB)
+                            (malloc=217KB)
+
+-                   Logging (reserved=7KB, committed=7KB)
+                            (malloc=7KB #266)
+
+-                 Arguments (reserved=19KB, committed=19KB)
+                            (malloc=19KB #521)
+
+-                    Module (reserved=1362KB, committed=1362KB)
+                            (malloc=1362KB #6320)
+
+-              Synchronizer (reserved=837KB, committed=837KB)
+                            (malloc=837KB #6877)
+
+-                 Safepoint (reserved=8KB, committed=8KB)
+                            (mmap: reserved=8KB, committed=8KB)
+
+-                   Unknown (reserved=32KB, committed=32KB)
+                            (mmap: reserved=32KB, committed=32KB)
+----
+<1> This shows what the JVM reserved for memory 7168324 KB (~7.1 GB) and what is actually used
+by the jvm process 4456448 KB (~4.45 GB).
+<2> heap arena, note reserved and committed values are the same 4456448 KB, I'm not sure why this
+number is different from the VM flags `-XX:MaxHeapSize=4563402752`
+<3> ~165 MB of class metadata
+<4> how many classes have been loaded : 28431
+<5> 674 threads are using ~81 MB out of 696 MB reserved
+<6> Code cache area (assembly of the used methods) ~105 MB out of 251 MB which matches with `-XX:ReservedCodeCacheSize=251658240`
+<7> G1GC internal data structures take ~230 MB
+<8> C1 / C2 compilers (which compile bytecodes to assembly) uses ~6 MB
+<9> The symbols contains many things lik interned strings and other internal constants ~29 MB
+<10> Internal (included DirectByteBuffers before Java 11), maybe others objects, here takes ~24 MB
+<11> Other section after Java 11 includes DirectByteBuffers ~267 MB
+
+Other areas are much smaller in scale, NMT takes ~8 MB itself, module system ~1.3 MB,
+etc.
+Also, note that enabling other part may show up if some JVM features are activated.
+
+
+For more information read the
+https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80[official documentation about NMT]
+and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77[How to Monitor VM Internal Memory].
+
+
+For a lot more details read this article by http://twitter.com/shipilev[Aleksey Shipilёv] on
+https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
+
+There's also the MappedByteBuffers, these are the files mapped to virtual memory of a process.
+NMT does not track them, however, MappedByteBuffers can also take physical memory. And there is
+no a simple way to limit how much they can take. However, it's possible to see the actual usage
+of a process memory map: `pmap -x <pid>`
+
+
+.process memory mappings
+[source, bash]
+----
+$ pmap -x $(pgrep java)
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Djava.security.egd=file:/dev/.
+/urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary -Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- java
+0000000000600000       4       4       4 r---- java
+0000000000601000       4       4       4 rw--- java
+000000000216f000     404     272     272 rw---   [ anon ]
+00000006f0000000 4476620 3128252 3128252 rw---   [ anon ]
+00000008013b3000 1028404       0       0 -----   [ anon ]
+00007fc5de9ea000      16       0       0 -----   [ anon ]
+00007fc5de9ee000    1012     104     104 rw---   [ anon ]
+00007fc5deaeb000      16       0       0 -----   [ anon ]
+00007fc5deaef000    1012      24      24 rw---   [ anon ]
+00007fc5debec000      16       0       0 -----   [ anon ]
+00007fc5debf0000    1012      92      92 rw---   [ anon ]
+00007fc5deced000      16       0       0 -----   [ anon ]
+00007fc5decf1000    1012     100     100 rw---   [ anon ]
+00007fc5dedee000      16       0       0 -----   [ anon ]
+00007fc5dedf2000    1012     100     100 rw---   [ anon ]
+00007fc5deeef000      16       0       0 -----   [ anon ]
+00007fc5deef3000    1012     100     100 rw---   [ anon ]
+00007fc5deff0000      16       0       0 -----   [ anon ]
+00007fc5deff4000    1012     100     100 rw---   [ anon ]
+00007fc5df0f1000      16       0       0 -----   [ anon ]
+00007fc5df0f5000    1012     100     100 rw---   [ anon ]
+00007fc5df1f2000      16       0       0 -----   [ anon ]
+00007fc5df1f6000    1012     100     100 rw---   [ anon ]
+00007fc5df2f3000      16       0       0 -----   [ anon ]
+00007fc5df2f7000    1012     100     100 rw---   [ anon ]
+00007fc5df3f4000      16       0       0 -----   [ anon ]
+00007fc5df3f8000    1012     100     100 rw---   [ anon ]
+00007fc5df4f5000      16       0       0 -----   [ anon ]
+00007fc5df4f9000    1012     100     100 rw---   [ anon ]
+00007fc5df5f6000      16       0       0 -----   [ anon ]
+00007fc5df5fa000    1012     100     100 rw---   [ anon ]
+
+...
+
+00007fca48ba9000   17696   14876       0 r-x-- libjvm.so
+00007fca49cf1000    2044       0       0 ----- libjvm.so
+00007fca49ef0000     764     764     764 r---- libjvm.so
+00007fca49faf000     232     232     208 rw--- libjvm.so
+00007fca49fe9000     352     320     320 rw---   [ anon ]
+00007fca4a041000     136     136       0 r---- libc-2.28.so
+00007fca4a063000    1312    1140       0 r-x-- libc-2.28.so
+00007fca4a1ab000     304     148       0 r---- libc-2.28.so
+00007fca4a1f7000       4       0       0 ----- libc-2.28.so
+00007fca4a1f8000      16      16      16 r---- libc-2.28.so
+00007fca4a1fc000       8       8       8 rw--- libc-2.28.so
+00007fca4a1fe000      16      16      16 rw---   [ anon ]
+00007fca4a202000       4       4       0 r---- libdl-2.28.so
+00007fca4a203000       4       4       0 r-x-- libdl-2.28.so
+00007fca4a204000       4       4       0 r---- libdl-2.28.so
+00007fca4a205000       4       4       4 r---- libdl-2.28.so
+00007fca4a206000       4       4       4 rw--- libdl-2.28.so
+00007fca4a207000     100     100       0 r-x-- libjli.so
+00007fca4a220000    2048       0       0 ----- libjli.so
+00007fca4a420000       4       4       4 r---- libjli.so
+00007fca4a421000       4       4       4 rw--- libjli.so
+00007fca4a422000      24      24       0 r---- libpthread-2.28.so
+00007fca4a428000      60      60       0 r-x-- libpthread-2.28.so
+00007fca4a437000      24       0       0 r---- libpthread-2.28.so
+00007fca4a43d000       4       4       4 r---- libpthread-2.28.so
+00007fca4a43e000       4       4       4 rw--- libpthread-2.28.so
+00007fca4a43f000      16       4       4 rw---   [ anon ]
+00007fca4a443000       4       4       0 r---- LC_IDENTIFICATION
+00007fca4a444000       4       0       0 -----   [ anon ]
+00007fca4a445000       4       0       0 r----   [ anon ]
+00007fca4a446000       8       8       8 rw---   [ anon ]
+00007fca4a448000       4       4       0 r---- ld-2.28.so
+00007fca4a449000     120     120       0 r-x-- ld-2.28.so
+00007fca4a467000      32      32       0 r---- ld-2.28.so
+00007fca4a46f000       4       4       4 r---- ld-2.28.so
+00007fca4a470000       4       4       4 rw--- ld-2.28.so
+00007fca4a471000       4       4       4 rw---   [ anon ]
+00007ffe28536000     140      40      40 rw---   [ stack ]
+00007ffe28582000      12       0       0 r----   [ anon ]
+00007ffe28585000       8       4       0 r-x--   [ anon ]
+ffffffffff600000       4       0       0 r-x--   [ anon ]
+---------------- ------- ------- -------
+total kB         24035820 4776860 4720796
+----
+
+That's a lot of information, let's refine that with more
+https://www.kernel.org/doc/Documentation/filesystems/proc.txt[knowledge about `/proc/<pid>/maps`],
+it indicates that a _map_ has a set of modes:
+
+* `r-`: readable memory mapping
+* `w`: writable memory mapping
+* `x`: executable memory mapping
+* `s` or `p` : shared memory mapping or private mapping. `/proc/<pid>/maps` shows both
+but `pmap` only show the `s` flag.
+
+Also, `pmap` has another mapping mode which I barely found any reference of,
+here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html[one] and https://linux.die.net/man/2/mmap[here]
+
+* `R`: if set, the map has no swap space reserved (`MAP_NORESERVE` flag of `mmap`).
+This means that we can get a segmentation fault by accessing that memory if it has not
+already been mapped to physical memory, and the system is out of physical memory.
+
+So what's interesting us at this time are the process's memory mapped (shared) files
+
+.process memory mapped files
+[source, bash]
+----
+$ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
+00007f5fdc02f000       4       4       0 r--s- instrumentation1647616515145161084.jar
+00007f5fdc030000       4       4       0 r--s- instrumentation11262564974060761935.jar
+00007f5fdc053000       8       8       0 r--s- java-agent-bs-cl.jar
+00007f5fdc055000       4       4       0 r--s- instrumentation249633448216144460.jar
+00007f5fdc056000       4       4       0 r--s- newrelic-bootstrap10447345921091566771.jar
+00007f5fdc057000      12      12       0 r--s- newrelic-api6038277081136135384.jar
+00007f5fec000000       8       8       0 r--s- newrelic-weaver-api16247655721253674284.jar
+00007f5fec002000       4       4       0 r--s- newrelic-opentracing-bridge12060425782296980104.jar
+00007f5fec003000      12      12       0 r--s- agent-bridge3261511391751138774.jar
+00007f5ffb910000  138176   36060       0 r--s- modules
+00007f6008006000      28      28       0 r--s- gconv-modules.cache
+                           ^^^^^               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----
+
+Which means there's around 36 MB of memory mapped files.
+
+_Another read on process memory https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[here]_.
+
+That leaves us with this _equation_ :
+
+....
+Total memory = Heap + Code Cache + Metaspace + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files +
+               + Native Libraries + Malloc overhead + ...
+....
+
+|===
+
+| Heap                            | 4456448
+| Code Cache                      |  105201
+| Metaspace                       |  165788
+| Symbol tables                   |   28915
+| Compiler                        |    5914
+| Other JVM structures
+(Internal + NMT + smaller area)   |   24460 + 8433 + 217 + 7 + 19 + 1362 + 837 + 8 + 32
+| Thread stacks                   |   85455
+| Direct buffers (Other)          |  267034
+| Mapped files                    |   36060 + 4 + 4 + 8 + 4 + 4 + 12 + 8 + 4 + 12 + 28
+| Native Libraries                | unaccounted at this time
+| Malloc overhead                 | accounted in NMT
+| ...                             |
+| Total                           | 5186278 KB
+
+|===
+
+5186278 KB is just tad under 5 GB (5242880 KB).
+But really the number we should look at is the actual non heap usage :
+
+....
+5186278 - 4456448 = 729830 KB
+....
+
+|===
+
+| Non heap | 5186278 - 4456448 = 729830 | ~14 %
+| Heap     | 4456448                    | ~85 %
+| Total    | 5186278                    | 100 %
+
+|===
+
+This means the application needs at least 730 MB plus the heap to run.
+
+The heap committed memory is 4563402752 B (set via `-XX:MaxRAMPercentage=85.000000`),
+but the heap usage may have a different figure :
+
+[source, bash]
+----
+$ jcmd $(pgrep java) GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 925702K [0x00000006f0000000, 0x0000000800000000)
+  region size 2048K, 387 young (792576K), 12 survivors (24576K)
+ Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
+  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
+----
+
+Successive execution may give different results about the used memory
+
+[source, bash]
+----
+$ jcmd 6 GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 1245902K [0x00000006f0000000, 0x0000000800000000)
+  region size 2048K, 543 young (1112064K), 12 survivors (24576K)
+ Metaspace       used 154163K, capacity 160620K, committed 160976K, reserved 1189888K
+  class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
+
+$ jcmd 6 GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 2421454K [0x00000006f0000000, 0x0000000800000000)
+  region size 2048K, 1117 young (2287616K), 12 survivors (24576K)
+ Metaspace       used 154163K, capacity 160620K, committed 160976K, reserved 1189888K
+  class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
+----
+
+The heap went from 925702 KB to 2421454 KB ! Following the trend of the heap usage
+lead can lead to the actual memory usage for this app (in the given cluster topology).
+
+
+2.5 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.5 GB
+
+Which leads to set `-XX:MaxRAMPercentage=71.0`. if we want a lower memory footprint.
+
+
+
+
+
+
+* RSS => amount of physical memory allocated & used by a process
+* Java MaxHeapSize != Docker stats (“MEM USAGE”)
+** Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + ...)
+
+
+=== Interpreting cgroup's memory
+
+A good start is the actual Linux Kernel documentation on
+https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt[cgroup v1].
+
+
+
+.memory.stat
+[source, bash]
+----
+❯ kubectl exec -it --container=edge-api deployment/edge-api -- cat /sys/fs/cgroup/memory/memory.stat
+cache 57434112 <7>
+rss 4822343680 <1>
+rss_huge 0
+shmem 0
+mapped_file 0
+dirty 0
+writeback 0
+swap 0 <6>
+pgpgin 7918680
+pgpgout 6726903
+pgfault 7682598
+pgmajfault 0
+pgmajfault_s 0
+pgmajfault_a 0
+pgmajfault_f 0
+inactive_anon 0 <2>
+active_anon 4823887872 <3>
+inactive_file 58806272 <4>
+active_file 188416 <5>
+unevictable 0
+hierarchical_memory_limit 5368709120
+hierarchical_memsw_limit 5368709120
+total_cache 57434112
+total_rss 4822343680
+total_rss_huge 0
+total_shmem 0
+total_mapped_file 0
+total_dirty 0
+total_writeback 0
+total_swap 0
+total_pgpgin 7918680
+total_pgpgout 6726903
+total_pgfault 7682598
+total_pgmajfault 0
+total_pgmajfault_s 0
+total_pgmajfault_a 0
+total_pgmajfault_f 0
+total_inactive_anon 0
+total_active_anon 4823887872
+total_inactive_file 58806272
+total_active_file 188416
+total_unevictable 0
+----
+<1> rss of the processes, anonymous memory and swap cache, without `tmpfs` (shmem) (~4.8 GB)
+<2> anonymous memory and swap cache on active LRU list, with `tmpfs` (shmem)
+<3> anonymous memory and swap cache on inactive LRU list, with `tmpfs` (shmem) (~4.8 GB)
+<4> file-backed memory on inactive LRU list, in bytes (~59 MB)
+<5> file-backed memory on active LRU list, in bytes (~190 KB)
+<6> swap usage, `0` is the only good value for java
+<7> page cache memory (~57 MB)
+
+.From the https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/sec-memory[RHEL6 documentation]
+****
+When you interpret the values reported by memory.stat, note how the various statistics inter-relate:
+
+* `active_anon` + `inactive_anon` = anonymous memory + file cache for tmpfs + swap cache
+
+Therefore, `active_anon` + `inactive_anon` ≠ rss, because rss does not include tmpfs.
+
+* `active_file` + `inactive_file` = cache - size of tmpfs
+****
+
+There other memory settings to look at
+
+.memory usage and limits
+[source, bash]
+----
+cat /sys/fs/cgroup/memory/memory.{usage_in_bytes,limit_in_bytes,memsw.usage_in_bytes,memsw.limit_in_bytes}
+4944756736 <1>
+5368709120 <2>
+4944748544 <3>
+5368709120 <4>
+----
+<1> current memory usage ~4.9GB, but it's recommended to read cache+rss+swap values in `memory.stat`
+<2> limit on the memory usage (~5.3GB)
+<3> current memory and swap usage (~4.9 GB)
+<4> limit on memory and swap (~5.3GB)
+
+Note the `memory.limit_in_bytes` and `memory.memsw.limit_in_bytes` values are the same,
+that means that the processes in the cgroup can use all the memory before swaping,
+however it is not impossible for the process to be use the swap before this limit is reached.
+
+In fact due to the swapiness value the kernel may try to reclaim memory.
+
+
+There are other parameters related to the kernel and tcp allocations.
+
+.memory.swapiness
+[source, bash]
+----
+cat /proc/sys/vm/swappiness <1>
+60
+cat /sys/fs/cgroup/memory/memory.swappiness <2>
+60
+----
+<1> OS swapiness
+<2> cgroup swapiness, here the setting is not overridden
