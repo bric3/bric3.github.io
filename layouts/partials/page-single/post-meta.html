@@ -32,16 +32,19 @@
     <i class="fas fa-clock"></i> {{ mul .ReadingTime 2.5 | math.Ceil }} min read
 
     <!-- series -->
-    <div class="page-series">
-        <div class="title">In the same series :</div>
-        <ul>
-            {{ range $value := (.GetTerms "series") }}
-                {{ range $value.Pages }}
-                <li hugo-nav="{{ .RelPermalink}}"><a href="{{ .Permalink}}"> {{ .LinkTitle }} </a> </li>
+    {{ $totalSeries := len (.GetTerms "series") }}
+    {{ if gt $totalSeries 0 }}
+        <div class="page-series">
+            <div class="title">In the same series :</div>
+            <ul>
+                {{ range $value := (.GetTerms "series") }}
+                    {{ range $value.Pages }}
+                    <li hugo-nav="{{ .RelPermalink}}"><a href="{{ .Permalink}}"> {{ .LinkTitle }} </a> </li>
+                    {{ end }}
                 {{ end }}
-            {{ end }}
-        </ul>
-    </div>
+            </ul>
+        </div>
+    {{ end }}
 
 </div>
 {{ end }}
