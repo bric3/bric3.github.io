@@ -22,12 +22,39 @@ https://github.com/lhotari/jfr-report-tool
 
 https://github.com/thegreystone/jmc-tutorial
 
+.Talks
 https://www.youtube.com/watch?v=E9K5m1HXMSc&list=WL&index=21&t=0s
-
 https://www.youtube.com/watch?v=_69wTZR6lis&list=WL&index=22&t=0s
+https://www.infoq.com/presentations/monitoring-jdk-jfr/[Continuous Monitoring with JDK Flight Recorder (JFR)]
+
+
+http://hirt.se/blog/?p=1055[Solving Memory Leaks without Heap Dumps]
+
+https://www.slideshare.net/PoonamBajaj5/jfr-174014342[CodeOne 2019 presentation on JFR]
+https://www.slideshare.net/koduki/performance-monitoring-with-java-flight-recorder-on-openjdk-dev2406[Performance Monitoring with Java Flight Recorder on OpenJDK [DEV2406] ]
+
+
+
+https://psy-lob-saw.blogspot.com/2016/02/why-most-sampling-java-profilers-are.html[Why (Most) Sampling Java Profilers Are Fucking Terrible]
+https://psy-lob-saw.blogspot.com/2015/12/safepoints.html[Safepoints: Meaning, Side Effects and Overheads]
+https://psy-lob-saw.blogspot.com/2016/06/the-pros-and-cons-of-agct.html[The Pros and Cons of AsyncGetCallTrace Profilers]
 ////
 
 
+NOTE: This page assumes JDK 11, not JDK 8, that means there is no need to
+`-XX:+UnlockCommercialFeatures`, `-XX:+FlightRecorder`. Or the use of
+`-XX:+UnlockDiagnosticVMOptions` and `-XX:+DebugNonSafepoints` https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60[source]
+
+////
+Cannot find public access to JDK-8036749, the only reference found by google is
+https://bugs.openjdk.java.net/browse/JMC-6554
+////
+
+== Introduction to Java Flight Recorder
+
+
+.JFR big picture
+image::/assets/jfr/java-flight-recorder-big-picture.svg[align="center"]
 
 
 
@@ -362,5 +389,60 @@ $ /usr/lib/jvm/java-11-amazon-corretto/bin/jfr summary /tmp/app-profile-2020-03-
  jdk.X509Certificate                       0             0
  jdk.TLSHandshake                          0             0
 ----
+
+
+
+
+=== Profile startup
+
+.Time bound profiling at JVM startup (https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65[source])
+[source]
+----
+-XX:StartFlightRecording=settings=profile,delay=20s,duration=60s,name=MyRecording,filename=foo.jfr
+----
+
+
+=== Continuous profiling
+
+
+> Could not find a usable recording running in the JVM! You can get an automatically started
+> continuous flight recording by using the JVM option `-XX:FlightRecorderOptions=defaultrecording=true`
+> (also requires the options `-XX:+UnlockCommercialFeatures` `-XX:+FlightRecorder`).
+
+.JMC Help - § Managing Flight Recording Templates
+====
+1. Right-click a JVM in the JVM Browser and select Start Flight Recording
+2. Click Template Manager in the Start Flight Recording Wizard.
+JFR includes two pre-configured server-side recording templates:
+
+** Continuous: A pre-configured template for continuous use in production environments with less than one percent overhead. This template is used for the default recording
+** Profiling: A pre-configured template for profiling with around two percent overhead.
+====
+
+menu:JVM Browser>[Select a JVM>Start Flight Recording]
+
+And from the _Start Flight Recording_ window, you can select configurations
+
+menu:Start Flight Recording[Event Settings]
+
+At this time two configurations by defaut should appear
+
+* "Continuous _on server_"
+* "Profiling _on server_"
+
+I'm not sure yet but I believe the _on server_ mention means those are taken from the JVM shipped configurations
+mentioned above, plus the description and label are similar.
+
+* _Continuous_ refer to the `$JAVA_HOME/lib/jfr/default.jfc` (~1% overhead)
+* _Profiling_ refer to the `$JAVA_HOME/lib/jfr/profile.jfc` (~2% overhead)
+
+And anyway if these do not match your need it's possible to use your own configuration (`.jfc` files)
+and manage them with the "_template manager_"
+
+menu:Window[Flight Recoding Template Manager]
+
+
+
+https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java
 
 
