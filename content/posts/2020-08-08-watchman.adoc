@@ -1,0 +1,80 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-04-29T15:15:09+02:00"
+language: en
+draft: true
+tags: ["cool-tag"]
+slug: "watchman" 
+title: "Watchman"
+series: "Watching Files"
+---
+
+**Insert Lead paragraph here.**
+
+
+Alternatives to monitor a folder.
+
+== facebook/watchman
+
+
+A possible alternative to look at [watchman](https://facebook.github.io/watchman).
+This tool is a native process with Java bindings
+
+> Watchman is known to compile and pass its test suite on:
+>
+> * Linux systems with `inotify`
+> * macOS (uses `FSEvents` on 10.7+, `kqueue(2)` on earlier versions)
+> * Windows x64 on Windows 7, Windows Server 2012 R2 and later is currently in **beta** status.
+
+
+
+
+Their https://facebook.github.io/watchman/docs/install[install procedure] is currently a bit messy
+in my opinion, it's hard to actually find an exact version for linux. You currently have to search through
+the https://github.com/facebook/watchman/actions?query=is%3Asuccess+event%3Apush+workflow%3ACI[Github Actions jobs]
+and search for an artifact with a positive size (around 8 MB).
+
+> The following artifacts have expired and are no longer able to be downloaded.
+
+
+CAUTION: `watchman` does not follow semantic versioning! (https://facebook.github.io/watchman/docs/compatibility[Source])
+
+This tool is native however it does have several language bindings, C++ and NodeJS are the one that are documented.
+However the source code shows additional languages including https://github.com/facebook/watchman/tree/master/java[Java].
+
+Usage of this code is not documented at this time. But by looking at the code,
+the Java client (and probalby in other languages as well) uses Unix domain socket (named pipe)
+and Windows Pipes to communicate with the `watchman` process. Like Docker, with Java Client
+example https://github.com/docker-java/docker-java[there].
+
+.Java API usage
+[source,java]
+----
+// Identifiy the actual socket depending on the platform
+WatchmanTransport socket = WatchmanTransportBuilder.discoverTransport(1, SECOND);
+
+WatchmanClient client = new WatchmanClientImpl(WatchmanTransportBuilder.discoverTransport());
+client.start();
+ListenableFuture<SubscriptionDescriptor> sd = client.subscribe(Paths.get("/etc"), null, new Callback() { // <1>
+      @Override
+      public void call(Map<String, Object> event) {
+        // act on event
+      }
+    });
+
+// unsubscribe
+client.unsbscribe(sd.get());
+
+client.close();
+----
+<1> Use the same semantic as the https://facebook.github.io/watchman/docs/subscribe[`subscribe`] command internally.
+
+The `WatchmanClient` exposes almost the same API as the `watchman` cli tool.
+
+
+
+
+
+== watchexec/watchexec
+
+https://github.com/watchexec/watchexec
