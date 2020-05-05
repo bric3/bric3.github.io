@@ -5,6 +5,7 @@ permalink: /whoami/
 date: 2016-06-16 18:48:54.000000000 +01:00
 categories: []
 author: Brice Dutheil
+showcomments: false
 ---
 
 I'm mostly a **Java** guy. I'm still trying to acquire new skills.
