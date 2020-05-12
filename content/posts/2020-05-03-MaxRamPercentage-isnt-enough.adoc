@@ -16,20 +16,20 @@ title: "MaxRamPercentage isn't enough"
 ----
 ❯ DOCKER_BUILDKIT=1 docker build -t test-edge-api --build-arg REGISTRY=eu.gcr.io/bbc-registry --no-cache -f _infra/Dockerfile .
 [+] Building 1.4s (9/9) FINISHED
- => [internal] load build definition from Dockerfile                                                                                                                                                                                                                                                               0.0s
- => => transferring dockerfile: 1.34kB                                                                                                                                                                                                                                                                             0.0s
- => [internal] load .dockerignore                                                                                                                                                                                                                                                                                  0.0s
- => => transferring context: 35B                                                                                                                                                                                                                                                                                   0.0s
- => [internal] load metadata for eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                                                                                                                  0.0s
- => CACHED [1/4] FROM eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                                                                                                                             0.0s
- => [internal] load build context                                                                                                                                                                                                                                                                                  0.0s
- => => transferring context: 1.32kB                                                                                                                                                                                                                                                                                0.0s
- => [2/4] RUN mkdir -p /gclogs /etc/edge-api                                                                                                                                                                                                                                                                       0.3s
- => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                                                                                                                                                                                    0.0s
- => [4/4] COPY ./build/libs/edge-api-boot.jar   ./build/java-agents/newrelic-agent.jar   ./build/java-agents/sqreen-agent.jar   ./build/java-agents/file-leak-detector.jar   ./src/serviceability/*.sh   /                                                                                                         0.6s
- => exporting to image                                                                                                                                                                                                                                                                                             0.4s
- => => exporting layers                                                                                                                                                                                                                                                                                            0.4s
- => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                                                                                                                                                                                       0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                                                        0.0s
+ => => transferring dockerfile: 1.34kB                                                                                                                                                                      0.0s
+ => [internal] load .dockerignore                                                                                                                                                                           0.0s
+ => => transferring context: 35B                                                                                                                                                                            0.0s
+ => [internal] load metadata for eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                           0.0s
+ => CACHED [1/4] FROM eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                      0.0s
+ => [internal] load build context                                                                                                                                                                           0.0s
+ => => transferring context: 1.32kB                                                                                                                                                                         0.0s
+ => [2/4] RUN mkdir -p /gclogs /etc/edge-api                                                                                                                                                                0.3s
+ => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                                                                             0.0s
+ => [4/4] COPY ./build/libs/edge-api-boot.jar   ./build/java-agents/newrelic-agent.jar   ./build/java-agents/sqreen-agent.jar   ./build/java-agents/file-leak-detector.jar   ./src/serviceability/*.sh   /  0.6s
+ => exporting to image                                                                                                                                                                                      0.4s
+ => => exporting layers                                                                                                                                                                                     0.4s
+ => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                                                                                0.0s
  => => naming to docker.io/library/test-edge-api
 ----
 
@@ -226,6 +226,7 @@ number is different from the VM flags `-XX:MaxHeapSize=4563402752`
 Other areas are much smaller in scale, NMT takes ~8 MB itself, module system ~1.3 MB,
 etc.
 Also, note that enabling other part may show up if some JVM features are activated.
+https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
 
 
 For more information read the
