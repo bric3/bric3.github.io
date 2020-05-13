@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Using Java FlightRecorder • The Coffee Workshop</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="The Coffee Workshop">
+<meta property="og:title" content="Using Java FlightRecorder">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/using-java-flight-recorder/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2020-04-24T11:54:58&#43;0200">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Using Java FlightRecorder">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+
+<article>
+  <header>
+    <h1>Using Java FlightRecorder</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-04-24
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 28 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This page assumes JDK 11, not JDK 8, that means there is no need to
+<code>-XX:+UnlockCommercialFeatures</code>, <code>-XX:+FlightRecorder</code>. Or the use of
+<code>-XX:+UnlockDiagnosticVMOptions</code> and <code>-XX:+DebugNonSafepoints</code> <a href="https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60">source</a>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Also this article uses a lot the <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/environment-variables-and-system-properties.html#GUID-BE6E7B7F-A4BE-45C0-9078-AA8A66754B97"><code>JAVA_TOOL_OPTIONS</code></a>
+environment variable because most scenarios happens in a container.</p>
+</div>
+<div class="sect1">
+<h2 id="_introduction_to_java_flight_recorder"><a class="anchor" href="#_introduction_to_java_flight_recorder"></a><a class="link" href="#_introduction_to_java_flight_recorder">Introduction to Java Flight Recorder</a></h2>
+<div class="sectionbody">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/java-flight-recorder-big-picture.svg" alt="java flight recorder big picture">
+</div>
+<div class="title">JFR big picture</div>
+</div>
+<div class="paragraph">
+<p>Before in Java 8 we needed to set specific commercial VM flags to unlock
+FlightRecorder, this is not anymore necessary with Java 11.</p>
+</div>
+<div class="paragraph">
+<p>Even if the flag is false it&#8217;s possible to <em>start</em> a JFR session.</p>
+</div>
+<div class="paragraph">
+<p>So just checking the actual VM flags to make sure it&#8217;s possible with the current VM
+is not anymore necessary with Java 11.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ unset --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
+     bool FlightRecorder                           = true                                      {product} {management}
+    ccstr FlightRecorderOptions                    =                                           {product} {default}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To explore possible arguments, use the <code>help</code> command.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.start
+6:
+JFR.start
+Starts a new JFR recording
+
+Impact: Medium: Depending on the settings for a recording, the impact can range from low to high.
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.start [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+	name : [optional] Name that can be used to identify recording, e.g. \"My Recording\" (STRING, no default value)
+	settings : [optional] Settings file(s), e.g. profile or default. See JRE_HOME/lib/jfr (STRING SET, no default value)
+	delay : [optional] Delay recording start with (s)econds, (m)inutes), (h)ours), or (d)ays, e.g. 5h. (NANOTIME, 0)
+	duration : [optional] Duration of recording in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 300s. (NANOTIME, 0)
+	disk : [optional] Recording should be persisted to disk (BOOLEAN, no default value)
+	filename : [optional] Resulting recording filename, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
+	maxage : [optional] Maximum time to keep recorded data (on disk) in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
+	maxsize : [optional] Maximum amount of bytes to keep (on disk) in (k)B, (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
+	dumponexit : [optional] Dump running recording when JVM shuts down (BOOLEAN, no default value)
+	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+
+&lt;!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -&gt; Flight Recorder Template Manager.
+--&gt;
+
+&lt;configuration version="2.0" label="Continuous" description="Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead." provider="Oracle"&gt;
+
+    &lt;event name="jdk.ThreadAllocationStatistics"&gt;
+      &lt;setting name="enabled"&gt;true&lt;/setting&gt;
+      &lt;setting name="period"&gt;everyChunk&lt;/setting&gt;
+    &lt;/event&gt;
+
+    &lt;!-- a lot more event --&gt;
+&lt;/configuration&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With the <code>default</code> settings, the dumped file takes around 15mb for a 5min duration. With
+this profile you&#8217;ll get basic information on IO, GC events, simple method</p>
+</div>
+<div class="listingblock">
+<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -&gt; Flight Recorder Template Manager.
+--&gt;
+
+&lt;configuration version="2.0" label="Profiling" description="Low overhead configuration for profiling, typically around 2 % overhead." provider="Oracle"&gt;
+
+    &lt;event name="jdk.ThreadAllocationStatistics"&gt;
+      &lt;setting name="enabled"&gt;true&lt;/setting&gt;
+      &lt;setting name="period"&gt;everyChunk&lt;/setting&gt;
+    &lt;/event&gt;
+
+    &lt;!-- a lot more event --&gt;
+&lt;/configuration&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With the <code>profile</code> settings, the dumped file takes around 35mb for a 5min duration.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s also possible to create our own settings file and pass the absolute file path to the <code>settings</code> option.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.dump
+6:
+JFR.dump
+Copies contents of a JFR recording to file. Either the name or the recording id must be specified.
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.dump [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" (STRING, no default value)
+	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
+	maxage : [optional] Maximum duration to dump, in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
+	maxsize : [optional] Maximum amount of bytes to dump, in (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
+	begin : [optional] Point in time to dump data from, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	end : [optional] Point in time to dump data to, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.check
+6:
+JFR.check
+Checks running JFR recording(s)
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.check [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" or omit to see all recordings (STRING, no default value)
+	verbose : [optional] Print event settings for the recording(s) (BOOLEAN, false)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So what we would like to do is</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.start name=app-profile duration=300s filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr settings=profile
+6:
+Started recording 2. The result will be written to:
+
+/tmp/app-profile-2020-03-26T16-41-48.jfr</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Check if there&#8217;s any recording at this time, they can be several.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+Recording 2: name=app-profile duration=5m (running)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Also it&#8217;s possible to stop manually any recording</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.stop name=app-profile filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then get the file locally for analysis</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">kubectl cp app-pod-579664d4f7-7dxsq:/tmp/app-profile-2020-03-26T16-57-14.jfr ./app-profile-2020-03-26T16-57-14.jfr --container=app-container</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_jdk_mission_control"><a class="anchor" href="#_jdk_mission_control"></a><a class="link" href="#_jdk_mission_control">JDK Mission Control</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Then analyze the file in JDK Mission Control, (e.g. the one from <code>brew cask install jdk-mission-control</code>)</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s also possible to get very qui information using the <code>jfr</code> command line tool
+(which is not always exported a symlink)</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_analyze_with_jfr"><a class="anchor" href="#_analyze_with_jfr"></a><a class="link" href="#_analyze_with_jfr">Analyze with <code>jfr</code></a></h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="title">events type histogram (summary)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ /usr/lib/jvm/java-11-amazon-corretto/bin/jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
+
+ Version: 2.0
+ Chunks: 1
+ Start: 2020-03-26 16:57:14 (UTC)
+ Duration: 303 s
+
+ Event Type                            Count  Size (bytes)
+===========================================================
+ jdk.ThreadPark                       130278       5868710
+ jdk.SocketRead                        38804       1934842
+ jdk.JavaMonitorWait                   38722       1378513
+ jdk.NativeMethodSample                14702        263403
+ jdk.ThreadCPULoad                     11821        271763
+ jdk.ExecutionSample                    3010         54177
+ jdk.ModuleExport                       2505         40187
+ jdk.ClassLoaderStatistics              2344         72694
+ jdk.ThreadAllocationStatistics          878         16962
+ jdk.ModuleRequire                       754         11964
+ jdk.BooleanFlag                         648         23106
+ jdk.CPULoad                             298          7450
+ jdk.JavaThreadStatistics                298          6258
+ jdk.ClassLoadingStatistics              298          5066
+ jdk.CompilerStatistics                  298         11324
+ jdk.ExceptionStatistics                 298          6258
+ jdk.ActiveSetting                       285         10497
+ jdk.BiasedLockRevocation                275          7831
+ jdk.NativeLibrary                       252         18564
+ jdk.LongFlag                            229          8875
+ jdk.UnsignedLongFlag                    182          7168
+ jdk.InitialEnvironmentVariable          167         10243
+ jdk.NetworkUtilization                  120          2640
+ jdk.TenuringDistribution                 75          1437
+ jdk.ThreadContextSwitchRate              30           510
+ jdk.ThreadSleep                          29           696
+ jdk.StringFlag                           26           880
+ jdk.GCPhasePauseLevel2                   25          1080
+ jdk.InitialSystemProperty                23          1316
+ jdk.MetaspaceChunkFreeListSummary        20           520
+ jdk.GCReferenceStatistics                20           350
+ jdk.GCPhasePauseLevel1                   20           965
+ jdk.CheckPoint                           17       1631868
+ jdk.ExecuteVMOperation                   15           391
+ jdk.DoubleFlag                           13           618
+ jdk.BiasedLockClassRevocation            10           275
+ jdk.GCHeapSummary                        10           475
+ jdk.MetaspaceSummary                     10           580
+ jdk.G1HeapSummary                        10           300
+ jdk.OldObjectSample                      10           367
+ jdk.UnsignedIntFlag                       8           300
+ jdk.CodeCacheStatistics                   6           232
+ jdk.ThreadStart                           6           102
+ jdk.GarbageCollection                     5           145
+ jdk.YoungGarbageCollection                5           100
+ jdk.G1GarbageCollection                   5           100
+ jdk.G1MMU                                 5           100
+ jdk.EvacuationInformation                 5           185
+ jdk.G1EvacuationYoungStatistics           5           160
+ jdk.G1EvacuationOldStatistics             5           152
+ jdk.G1BasicIHOP                           5           243
+ jdk.G1AdaptiveIHOP                        5           240
+ jdk.GCPhasePause                          5           150
+ jdk.IntFlag                               3           107
+ jdk.BiasedLockSelfRevocation              2            45
+ jdk.PhysicalMemory                        2            46
+ jdk.ThreadDump                            2       1389568
+ jdk.CodeSweeperStatistics                 2            64
+ jdk.GCConfiguration                       2            60
+ jdk.ThreadEnd                             1            17
+ jdk.Metadata                              1         74738
+ jdk.JavaMonitorEnter                      1            33
+ jdk.SafepointBegin                        1            24
+ jdk.JVMInformation                        1           898
+ jdk.OSInformation                         1           367
+ jdk.VirtualizationInformation             1            33
+ jdk.CPUInformation                        1          1432
+ jdk.CPUTimeStampCounter                   1            25
+ jdk.CompilerConfiguration                 1            15
+ jdk.CodeCacheConfiguration                1            51
+ jdk.CodeSweeperConfiguration              1            15
+ jdk.GCSurvivorConfiguration               1            15
+ jdk.GCTLABConfiguration                   1            17
+ jdk.GCHeapConfiguration                   1            31
+ jdk.YoungGenerationConfiguration          1            22
+ jdk.ActiveRecording                       1            87
+ jdk.JavaMonitorInflate                    0             0
+ jdk.ReservedStackActivation               0             0
+ jdk.ClassLoad                             0             0
+ jdk.ClassDefine                           0             0
+ jdk.ClassUnload                           0             0
+ jdk.IntFlagChanged                        0             0
+ jdk.UnsignedIntFlagChanged                0             0
+ jdk.LongFlagChanged                       0             0
+ jdk.UnsignedLongFlagChanged               0             0
+ jdk.DoubleFlagChanged                     0             0
+ jdk.BooleanFlagChanged                    0             0
+ jdk.StringFlagChanged                     0             0
+ jdk.MetaspaceGCThreshold                  0             0
+ jdk.MetaspaceAllocationFailure            0             0
+ jdk.MetaspaceOOM                          0             0
+ jdk.PSHeapSummary                         0             0
+ jdk.ParallelOldGarbageCollection          0             0
+ jdk.OldGarbageCollection                  0             0
+ jdk.ObjectCountAfterGC                    0             0
+ jdk.PromoteObjectInNewPLAB                0             0
+ jdk.PromoteObjectOutsidePLAB              0             0
+ jdk.PromotionFailed                       0             0
+ jdk.EvacuationFailed                      0             0
+ jdk.ConcurrentModeFailure                 0             0
+ jdk.GCPhasePauseLevel3                    0             0
+ jdk.GCPhasePauseLevel4                    0             0
+ jdk.GCPhaseConcurrent                     0             0
+ jdk.AllocationRequiringGC                 0             0
+ jdk.G1HeapRegionTypeChange                0             0
+ jdk.Compilation                           0             0
+ jdk.CompilerPhase                         0             0
+ jdk.CompilationFailure                    0             0
+ jdk.CompilerInlining                      0             0
+ jdk.SweepCodeCache                        0             0
+ jdk.CodeCacheFull                         0             0
+ jdk.SafepointStateSynchronization         0             0
+ jdk.SafepointWaitBlocked                  0             0
+ jdk.SafepointCleanup                      0             0
+ jdk.SafepointCleanupTask                  0             0
+ jdk.SafepointEnd                          0             0
+ jdk.Shutdown                              0             0
+ jdk.ObjectAllocationInNewTLAB             0             0
+ jdk.ObjectAllocationOutsideTLAB           0             0
+ jdk.DumpReason                            0             0
+ jdk.DataLoss                              0             0
+ jdk.SystemProcess                         0             0
+ jdk.X509Validation                        0             0
+ jdk.ObjectCount                           0             0
+ jdk.G1HeapRegionInformation               0             0
+ jdk.ZPageAllocation                       0             0
+ jdk.ZThreadPhase                          0             0
+ jdk.ZStatisticsCounter                    0             0
+ jdk.ZStatisticsSampler                    0             0
+ jdk.FileForce                             0             0
+ jdk.FileRead                              0             0
+ jdk.FileWrite                             0             0
+ jdk.SocketWrite                           0             0
+ jdk.JavaExceptionThrow                    0             0
+ jdk.JavaErrorThrow                        0             0
+ jdk.SecurityPropertyModification          0             0
+ jdk.X509Certificate                       0             0
+ jdk.TLSHandshake                          0             0</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_inspect_with_jdk_mission_control"><a class="anchor" href="#_inspect_with_jdk_mission_control"></a><a class="link" href="#_inspect_with_jdk_mission_control">Inspect with JDK Mission Control</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8</a></p>
+</div>
+<div class="sect2">
+<h3 id="_memory_leaks"><a class="anchor" href="#_memory_leaks"></a><a class="link" href="#_memory_leaks">Memory LEaks</a></h3>
+<div class="paragraph">
+<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75</a></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_performance_issues"><a class="anchor" href="#_performance_issues"></a><a class="link" href="#_performance_issues">Performance Issues</a></h3>
+<div class="paragraph">
+<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-performance-issues-using-jfr.html#GUID-0FE29092-18B5-4BEB-8D8D-0CBA7A4FEA1D" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-performance-issues-using-jfr.html#GUID-0FE29092-18B5-4BEB-8D8D-0CBA7A4FEA1D</a></p>
+</div>
+<div class="paragraph">
+<p>Finding the options</p>
+</div>
+<div class="paragraph">
+<p>Un practical to have meaningful help from the usual
+<code>java -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+PrintFlagsFinal -version</code>, I found that
+using <code>jcmd</code> to be quite useful to help me pass arguments to <code>-XX:StartFlightRecording</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd 90091 VM.version
+90091:
+OpenJDK 64-Bit Server VM version 11.0.7+10-LTS
+JDK 11.0.7
+❯ jcmd 90091 help JFR.start
+90091:
+JFR.start
+Starts a new JFR recording
+
+Impact: Medium: Depending on the settings for a recording, the impact can range from low to high.
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.start [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+       name : [optional] Name that can be used to identify recording, e.g. \"My Recording\" (STRING, no default value)
+       settings : [optional] Settings file(s), e.g. profile or default. See JRE_HOME/lib/jfr (STRING SET, no default value)
+       delay : [optional] Delay recording start with (s)econds, (m)inutes), (h)ours), or (d)ays, e.g. 5h. (NANOTIME, 0)
+       duration : [optional] Duration of recording in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 300s. (NANOTIME, 0)
+       disk : [optional] Recording should be persisted to disk (BOOLEAN, no default value)
+       filename : [optional] Resulting recording filename, e.g. \"/Users/user/My Recording.jfr\" (STRING, no default value)
+       maxage : [optional] Maximum time to keep recorded data (on disk) in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
+       maxsize : [optional] Maximum amount of bytes to keep (on disk) in (k)B, (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
+       dumponexit : [optional] Dump running recording when JVM shuts down (BOOLEAN, no default value)
+       path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_profile_startup"><a class="anchor" href="#_profile_startup"></a><a class="link" href="#_profile_startup">Profile startup</a></h3>
+<div class="listingblock">
+<div class="title">Time bound profiling at JVM startup (<a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65">source</a>)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,delay=20s,duration=60s,name=app-startup,filename=/app-startup.jfr</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">In the container, checking JFR</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="1"></i><b>(1)</b>
+❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+No available recordings.
+
+Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="2"></i><b>(2)</b>
+❯ ls -lah
+-rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Indicates the configured 30s recording is ongoing.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>No more recording once the duration is over.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_profile_post_startup"><a class="anchor" href="#_profile_post_startup"></a><a class="link" href="#_profile_post_startup">Profile post-startup</a></h3>
+<div class="listingblock">
+<div class="title">Delayed and time bound profiling at JVM startup (<a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65">source</a>)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,delay=20s,duration=60s,name=post-startup,filename=/post-startup.jfr</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">In the container, checking JFR</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+Recording 1: name=post-startup duration=60s (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
+❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="2"></i><b>(2)</b>
+❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+No available recordings.
+
+Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="3"></i><b>(3)</b>
+❯ ls -lah
+-rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Indicates there&#8217;s a recording that will start at some point in the future.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Indicates the configured 30s recording is ongoing.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>No more recording once the duration is over.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_continuous_profiling"><a class="anchor" href="#_continuous_profiling"></a><a class="link" href="#_continuous_profiling">Continuous profiling</a></h3>
+<div class="paragraph">
+<p>Started recording 1. No limit specified, using maxsize=250MB as default.</p>
+</div>
+<div class="listingblock">
+<div class="title">Delayed and time bound profiling at JVM startup (<a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65">source</a>)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,delay=20s,maxage=30s,name=post-startup,filename=post-startup.jfr</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This would create a rolling buffer of 30 seconds duration. There is no stipulation on how big this file could get,
+unless the maxsize option is set the default is <code>maxsize=250MB</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">In the container, checking JFR</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+Recording 1: name=post-startup duration=60s (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
+❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="2"></i><b>(2)</b>
+❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+6:
+No available recordings.
+
+Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="3"></i><b>(3)</b>
+❯ ls -lah
+-rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Indicates there&#8217;s a recording that will start at some point in the future.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Indicates the configured 30s recording is ongoing.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>No more recording once the duration is over.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_profiling_the_startup_then_profile_continuously"><a class="anchor" href="#_profiling_the_startup_then_profile_continuously"></a><a class="link" href="#_profiling_the_startup_then_profile_continuously">Profiling the startup then profile continuously</a></h3>
+<div class="listingblock">
+<div class="title">Start to recording</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=duration=30s,settings=profile,name=app-startup,filename=app-startup.jfr \
+-XX:StartFlightRecording=delay=31s,maxsize=100mb,settings=profile,name=continuous,filename=continuous.jfr</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_notes_from_jmc"><a class="anchor" href="#_notes_from_jmc"></a><a class="link" href="#_notes_from_jmc">Notes from JMC</a></h3>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Could not find a usable recording running in the JVM! You can get an automatically started
+continuous flight recording by using the JVM option <code>-XX:FlightRecorderOptions=defaultrecording=true</code>
+(also requires the options <code>-XX:+UnlockCommercialFeatures</code> <code>-XX:+FlightRecorder</code>).</p>
+</div>
+</blockquote>
+</div>
+<div class="exampleblock">
+<div class="title">Example 1. JMC Help - § Managing Flight Recording Templates</div>
+<div class="content">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Right-click a JVM in the JVM Browser and select Start Flight Recording</p>
+</li>
+<li>
+<p>Click Template Manager in the Start Flight Recording Wizard.
+JFR includes two pre-configured server-side recording templates:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Continuous: A pre-configured template for continuous use in production environments with less than one percent overhead. This template is used for the default recording</p>
+</li>
+<li>
+<p>Profiling: A pre-configured template for profiling with around two percent overhead.</p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p><span class="menuseq"><b class="menu">JVM Browser&gt;</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="submenu">Select a JVM</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="menuitem">Start Flight Recording</b></span></p>
+</div>
+<div class="paragraph">
+<p>And from the <em>Start Flight Recording</em> window, you can select configurations.</p>
+</div>
+<div class="paragraph">
+<p><span class="menuseq"><b class="menu">Start Flight Recording</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="menuitem">Event Settings</b></span></p>
+</div>
+<div class="paragraph">
+<p>At this time two configurations by default should appear.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>"Continuous <em>on server</em>"</p>
+</li>
+<li>
+<p>"Profiling <em>on server</em>"</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I&#8217;m not sure yet but I believe the <em>on server</em> mention means those are taken from the JVM shipped configurations
+mentioned above, plus the description and label are similar.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Continuous</em> refer to the <code>$JAVA_HOME/lib/jfr/default.jfc</code> (~1% overhead)</p>
+</li>
+<li>
+<p><em>Profiling</em> refer to the <code>$JAVA_HOME/lib/jfr/profile.jfc</code> (~2% overhead)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>And anyway if these do not match your need it&#8217;s possible to use your own configuration (<code>.jfc</code> files)
+and manage them with the "<em>template manager</em>"</p>
+</div>
+<div class="paragraph">
+<p><span class="menuseq"><b class="menu">Window</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="menuitem">Flight Recoding Template Manager</b></span></p>
+</div>
+<div class="paragraph">
+<p><a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java" class="bare">https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_memory_leak"><a class="anchor" href="#_memory_leak"></a><a class="link" href="#_memory_leak">Memory Leak</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Old Object Sample Event added in JDK 10 to profile memory leak, <a href="http://hirt.se/blog/?p=1055">blog from Marcus Hirt</a></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,path-to-gc-roots=true,...</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Difference in stacktrace setting</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ cat ~/.asdf/installs/java/amazon-corretto-11.0.7.10.1/lib/jfr/profile.jfc | grep -A5 OldObjectSample
+    &lt;event name="jdk.OldObjectSample"&gt;
+      &lt;setting name="enabled" control="memory-leak-detection-enabled"&gt;true&lt;/setting&gt;
+      &lt;setting name="stackTrace" control="memory-leak-detection-stack-trace"&gt;true&lt;/setting&gt;
+      &lt;setting name="cutoff" control="memory-leak-detection-cutoff"&gt;0 ns&lt;/setting&gt;
+    &lt;/event&gt;
+
+❯ cat ~/.asdf/installs/java/amazon-corretto-11.0.7.10.1/lib/jfr/default.jfc | grep -A5 OldObjectSample
+    &lt;event name="jdk.OldObjectSample"&gt;
+      &lt;setting name="enabled" control="memory-leak-detection-enabled"&gt;true&lt;/setting&gt;
+      &lt;setting name="stackTrace" control="memory-leak-detection-stack-trace"&gt;false&lt;/setting&gt;
+      &lt;setting name="cutoff" control="memory-leak-detection-cutoff"&gt;0 ns&lt;/setting&gt;
+    &lt;/event&gt;</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_dump_on_exit"><a class="anchor" href="#_dump_on_exit"></a><a class="link" href="#_dump_on_exit">Dump on exit</a></h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>VM Crash &#8658; <code>hs_err&lt;pid&gt;.jfr</code></p>
+</li>
+<li>
+<p>OOM &#8658; <code>hs_oom&lt;pid&gt;.jfr</code></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>add these options <code>dumponexit=true</code>, and override the filename if the above arent suited <code>dumponexitpath=/vm-exit.jfr</code></p>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/hacking-the-jdk/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Hacking the JDK</span>
+    </a>
+    
+    
+    <a href="/drafts/maxrampercentage-isnt-enough/" class="navigation-next">
+      <span class="navigation-tittle">MaxRamPercentage isn&#39;t enough</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/drafts/using-java-flight-recorder/';
+        this.page.title = 'Using Java FlightRecorder';
+        this.page.url = 'https://blog.arkey.fr/drafts/using-java-flight-recorder/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+    
+
+
+
+    </body>
+</html>
+

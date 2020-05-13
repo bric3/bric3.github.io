@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>Hacking the JDK • The Coffee Workshop</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="The Coffee Workshop">
+<meta property="og:title" content="Hacking the JDK">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/hacking-the-jdk/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2020-03-12T00:00:00Z">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Hacking the JDK">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+
+<article>
+  <header>
+    <h1>Hacking the JDK</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-03-12
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 38 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="sect1">
+<h2 id="_how_to_build_your_corretto_jdk"><a class="anchor" href="#_how_to_build_your_corretto_jdk"></a><a class="link" href="#_how_to_build_your_corretto_jdk">How to build your corretto JDK</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Let us <code>git clone</code> the <code>master</code> branch, otherwise the default is <code>develop</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ git clone git@github.com:corretto/corretto-11.git --master</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Giving a quick look at what the repo is made off we see</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">corretto-11❯ tree -L 2
+..
+├── ADDITIONAL_LICENSE_INFO
+├── ASSEMBLY_EXCEPTION
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── LICENSE
+├── README.md
+├── TRADEMARKS.md
+├── amazon-cacerts
+├── build.gradle
+├── gradle
+│   └── wrapper
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── installers
+│   ├── linux
+│   ├── mac
+│   └── windows
+├── settings.gradle
+├── src
+│   ├── ADDITIONAL_LICENSE_INFO
+│   ├── ASSEMBLY_EXCEPTION
+│   ├── LICENSE
+│   ├── Makefile
+│   ├── README
+│   ├── bin
+│   ├── build
+│   ├── configure
+│   ├── doc
+│   ├── make
+│   ├── src
+│   └── test
+└── version.txt</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So interestingly, corretto <em>installers</em> appears to be built with gradle, let&#8217;s
+skip that part for now and directly try to build the OpenJDK sources.</p>
+</div>
+<div class="paragraph">
+<p>For that let&#8217;s go in the <code>src/</code> folder, open the building documentation,
+available either as markdown (<code>doc/building.md</code>) or as an html <code>doc/building.html</code> file.</p>
+</div>
+<div class="paragraph">
+<p><em>The impatient should really read the TLDR of this documentation.</em></p>
+</div>
+<div class="paragraph">
+<p>The first step would be to configure the build. I already have the bare minimum
+requirement : <code>make</code>, <code>autoconf</code>, <code>bash</code> and XCode.</p>
+</div>
+<div class="paragraph">
+<p>However, I encountered this error</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">corretto-11/src❯ bash configure
+
+...
+configure: error: No xcodebuild tool and no system framework headers found, use --with-sysroot or --with-sdk-name to provide a path to a valid SDK
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>All I had to do was to select the current XCode tooling, this command
+wasn&#8217;t properly documented in the building doc.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">corretto-11/src❯ bash configure
+
+...
+configure: Found potential Boot JDK using /usr/libexec/java_home
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+Unable to find any JVMs matching version "1.9".
+configure: Found potential Boot JDK using /usr/libexec/java_home -v 1.9
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+Unable to find any JVMs matching version "1.8".
+configure: Found potential Boot JDK using /usr/libexec/java_home -v 1.8
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+Unable to find any JVMs matching version "1.7".
+configure: Found potential Boot JDK using /usr/libexec/java_home -v 1.7
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+checking for javac... /Users/bric3/.asdf/shims/javac
+checking for java... /Users/bric3/.asdf/shims/java
+configure: Found potential Boot JDK using well-known locations (in /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk)
+configure: Potential Boot JDK found at /Library/Java/JavaVirtualMachines/openjdk-13.0.2.jdk/Contents/Home is incorrect JDK version (openjdk version "13.0.2" 2020-01-14); ignoring
+configure: (Your Boot JDK version must be one of: 10 11)
+configure: Could not find a valid Boot JDK. You might be able to fix this by running 'brew cask install java'.
+configure: This might be fixed by explicitly setting --with-boot-jdk
+configure: error: Cannot continue
+configure exiting with result code 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then another constraint is the need for an N or N-1 jdk to be present to be able
+to build the JDK sources. In my setup I use brew to install the latest java, at this time java 13,
+to run java apps, and I use a distribution manager to manage different JDK versions for development
+purpose, like java 11 or java 8. Currently, I&#8217;m experimenting with <code>asdf-vm</code>.
+From the logs <code>configure</code> sees the asdf <em>shims</em>, but doesn&#8217;t know where this JDK is located.</p>
+</div>
+<div class="paragraph">
+<p>Use your sdk environment mmanagement to get the java home</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>$(jenv javahome)</code></p>
+</li>
+<li>
+<p><code>$(asdf where java amazon-corretto-11.0.6.10.1-2)</code></p>
+</li>
+<li>
+<p>etc.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Finally configure works.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">corretto-11/src❯ bash configure --with-boot-jdk=$(asdf where java amazon-corretto-11.0.6.10.1-2)
+
+...
+checking if build directory is on local disk... yes
+checking JVM features for JVM variant 'server'... "aot cds cmsgc compiler1 compiler2 dtrace epsilongc g1gc graal jfr jni-check jvmci jvmti management nmt parallelgc serialgc services vm-structs"
+configure: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/configure-support/config.status
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/spec.gmk
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/bootcycle-spec.gmk
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/buildjdk-spec.gmk
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/compare.sh
+config.status: creating /Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release/Makefile
+
+====================================================
+A new configuration has been successfully created in
+/Users/bric3/opensource/corretto-11/src/build/macosx-x86_64-normal-server-release
+using configure arguments '--with-boot-jdk=/Users/bric3/.asdf/installs/java/amazon-corretto-11.0.6.10.1-2'.
+
+Configuration summary:
+* Debug level:    release
+* HS debug level: product
+* JVM variants:   server
+* JVM features:   server: 'aot cds cmsgc compiler1 compiler2 dtrace epsilongc g1gc graal jfr jni-check jvmci jvmti management nmt parallelgc serialgc services vm-structs'
+* OpenJDK target: OS: macosx, CPU architecture: x86, address length: 64
+* Version string: 11.0.6-internal+0-adhoc.bric3.src (11.0.6-internal)
+
+Tools summary:
+* Boot JDK:       openjdk version "11.0.6" 2020-01-14 LTS OpenJDK Runtime Environment Corretto-11.0.6.10.1 (build 11.0.6+10-LTS) OpenJDK 64-Bit Server VM Corretto-11.0.6.10.1 (build 11.0.6+10-LTS, mixed mode)  (at /Users/bric3/.asdf/installs/java/amazon-corretto-11.0.6.10.1-2)
+* Toolchain:      clang (clang/LLVM from Xcode 11.3.1)
+* C Compiler:     Version 11.0.0 (at /usr/bin/clang)
+* C++ Compiler:   Version 11.0.0 (at /usr/bin/clang++)
+
+Build performance summary:
+* Cores to use:   8
+* Memory limit:   16384 MB</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s possible to tweak the configuration by looking at the §common configure arguments
+however it may require additional dependencies.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s start spinning the fans</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ make images
+Building target 'images' in configuration 'macosx-x86_64-normal-server-release'
+Compiling 8 files for BUILD_TOOLS_LANGTOOLS
+Warning: No SCM configuration present and no .src-rev
+Parsing 2 properties into enum-like class for jdk.compiler
+Compiling 13 properties into resource bundles for jdk.javadoc
+Compiling 12 properties into resource bundles for jdk.jdeps
+Compiling 7 properties into resource bundles for jdk.jshell
+Compiling 19 properties into resource bundles for jdk.compiler
+Compiling 117 files for BUILD_java.compiler.interim
+Creating hotspot/variant-server/tools/adlc/adlc from 13 file(s)
+Compiling 2 files for BUILD_JVMTI_TOOLS
+Compiling 1 files for BUILD_JFR_TOOLS
+...
+Compiling 224 properties into resource bundles for jdk.localedata
+Compiling 90 properties into resource bundles for java.desktop
+Compiling 2982 files for java.base
+...
+Compiling 1586 files for jdk.internal.vm.compiler
+...
+Creating support/modules_libs/java.base/libverify.dylib from 2 file(s)
+Creating support/modules_libs/java.base/libjava.dylib from 60 file(s)
+...
+Creating images/jmods/jdk.management.agent.jmod
+Creating images/jmods/jdk.management.jfr.jmod
+Creating images/jmods/jdk.naming.dns.jmod
+...
+Creating jdk image
+Stopping sjavac server
+Finished building target 'images' in configuration 'macosx-x86_64-normal-server-release'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The process took ~20 min on my laptop (16GB 2,7 GHz Quad-Core Intel Core i7) with
+2 active browser and many tabs opened, slack, intellij, and other apps running.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s try to see if it worked :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ build/macosx-x86_64-normal-server-release/images/jdk/bin/java --version
+openjdk 11.0.6-internal 2020-01-14
+OpenJDK Runtime Environment (build 11.0.6-internal+0-adhoc.bric3.src)
+OpenJDK 64-Bit Server VM (build 11.0.6-internal+0-adhoc.bric3.src, mixed mode)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Other things are possible, like only building hotspot (the actual JVM).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ make help
+
+OpenJDK Makefile help
+=====================
+
+Common make targets
+ make [default]         # Compile all modules and create a runnable "exploded"
+                        # image (alias for jdk or exploded-image)
+ make all               # Create all images: product, test, docs
+                        # (alias for all-images)
+ make images            # Create a complete jdk image
+                        # (alias for product-images)
+...
+Targets for Hotspot
+ make hotspot           # Build all of hotspot
+ make hotspot-&lt;variant&gt; # Build just the specified jvm variant
+ make hotspot-gensrc    # Only build the gensrc part of hotspot
+ make hotspot-&lt;variant&gt;-&lt;phase&gt; # Build the specified phase for the variant
+...</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_opening_the_jdk_in_intellij"><a class="anchor" href="#_opening_the_jdk_in_intellij"></a><a class="link" href="#_opening_the_jdk_in_intellij">Opening the JDK in IntelliJ.</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now let us navigate the code base using IntelliJ IDEA, for that just run</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ bash bin/idea.sh
+FATAL: cannot find ant. Try setting ANT_HOME.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I finally got rid of ant for it to come back this way. Let&#8217;s <code>brew install ant</code> and rerun <code>idea.sh</code></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ bash bin/idea.sh
+mkdir: /Users/bric3/opensource/corretto-11/src/.idea: File exists</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The tool complains that this folder already exists, it&#8217;s a nice thing to prevent
+this script to overwrite this folder as IntelliJ IDEA may add or modify some of these files.
+In my case I just remote it since they were incorrect. Also, if for some reason
+<code>bin/idea.sh</code> does not pick up ant, you could always set <code>ANT_HOME</code> it this way, that&#8217;s
+what I had to do:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ rm -rf .idea
+coretto-11/src❯ ANT_HOME=/usr/local/opt/ant/libexec/ bash bin/idea.sh</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Open Idea, I&#8217;m using the shell launcher that is installed by the jetbrains toolbox installer.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ idea .</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And voilà</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-in-intellij-idea.png" alt="OpenJDK browsing in IntelliJ IDEA"></span></p>
+</div>
+<div class="paragraph">
+<p>One thing I noticed is that the project has been set for Java 9 language level,
+but some Java code actually have language features from Java 10, like <code>var</code>.
+So I had to increase the project language level.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-project-source-level.png" alt="corretto source project level"></span></p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_lets_play_with_the_jdk"><a class="anchor" href="#_lets_play_with_the_jdk"></a><a class="link" href="#_lets_play_with_the_jdk">Let&#8217;s play with the jdk</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_quickly_hack_something_in_jshell_part_1"><a class="anchor" href="#_quickly_hack_something_in_jshell_part_1"></a><a class="link" href="#_quickly_hack_something_in_jshell_part_1">Quickly hack something in <code>jshell</code> (part 1)</a></h3>
+<div class="paragraph">
+<p>I always have the habit to type <code>/quit</code> within <code>jshell</code>, let&#8217;s see how to add an alias to
+<code>/exit</code></p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s explore the code base by searching a specific text, like the one in the <code>/help intro</code>
+like</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>The jshell tool allows you to execute Java code, getting immediate results.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>This can be found here, in <code>src/jdk.jshell/share/classes/jdk/internal/jshell/tool/resources/l10n.properties</code></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">help.intro =\
+The jshell tool allows you to execute Java code, getting immediate results.\n\
+You can enter a Java definition (variable, method, class, etc), like:  int x = 8\n\
+or a Java expression, like:  x + x\n\
+or a Java statement or import.\n\
+These little chunks of Java code are called 'snippets'.\n</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>following the resource eky we can stumble on <code>src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java</code>
+and this code especially</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">registerCommand(new Command("intro",
+        "help.intro",
+        CommandKind.HELP_SUBJECT));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Quickly hacking a duplicate command of the actual <code>/exit</code> to register the
+additional <code>/quit</code>…</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">diff --git i/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java w/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java
+index 9ccb4e888..73cb61ff6 100644
+--- i/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java
++++ w/src/src/jdk.jshell/share/classes/jdk/internal/jshell/tool/JShellTool.java
+@@ -41,7 +41,6 @@ import java.lang.module.ModuleDescriptor;
+ import java.lang.module.ModuleFinder;
+ import java.lang.module.ModuleReference;
+ import java.net.MalformedURLException;
+-import java.net.URI;
+ import java.net.URISyntaxException;
+ import java.net.URL;
+ import java.nio.charset.Charset;
+@@ -260,6 +259,19 @@ public class JShellTool implements MessageHandler {
+
+     Map&lt;Snippet, SnippetInfo&gt; mapSnippet;
+
++    private List&lt;Suggestion&gt; exitCompletionSuggestions(String sn, int c, int[] a) {
++        if (analysis == null || sn.isEmpty()) {
++// No completions if uninitialized or snippet not started
++            return Collections.emptyList();
++        } else {
++// Give exit code an int context by prefixing the arg
++            List&lt;Suggestion&gt; suggestions = analysis.completionSuggestions(INT_PREFIX + sn,
++                    INT_PREFIX.length() + c, a);
++            a[0] -= INT_PREFIX.length();
++            return suggestions;
++        }
++    }
++
+     // Kinds of compiler/runtime init options
+     private enum OptionKind {
+         CLASS_PATH("--class-path", true),
+@@ -1782,19 +1794,11 @@ public class JShellTool implements MessageHandler {
+                 arg -&gt; cmdImports(),
+                 EMPTY_COMPLETION_PROVIDER));
+         registerCommand(new Command("/exit",
+-                arg -&gt; cmdExit(arg),
+-                (sn, c, a) -&gt; {
+-                    if (analysis == null || sn.isEmpty()) {
+-                        // No completions if uninitialized or snippet not started
+-                        return Collections.emptyList();
+-                    } else {
+-                        // Give exit code an int context by prefixing the arg
+-                        List&lt;Suggestion&gt; suggestions = analysis.completionSuggestions(INT_PREFIX + sn,
+-                                INT_PREFIX.length() + c, a);
+-                        a[0] -= INT_PREFIX.length();
+-                        return suggestions;
+-                    }
+-                }));
++                this::cmdExit,
++                this::exitCompletionSuggestions));
++        registerCommand(new Command("/quit",
++                this::cmdExit,
++                this::exitCompletionSuggestions));
+         registerCommand(new Command("/env",
+                 arg -&gt; cmdEnv(arg),
+                 envCompletion()));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Recompile the images.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ make images
+Building target 'images' in configuration 'macosx-x86_64-normal-server-release'
+Warning: No SCM configuration present and no .src-rev
+Compiling 94 files for jdk.jshell
+Creating images/jmods/jdk.jshell.jmod
+Creating images/jmods/java.base.jmod
+Creating jdk image
+Stopping sjavac server
+Finished building target 'images' in configuration 'macosx-x86_64-normal-server-release'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>and discover the result</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">coretto-11/src❯ build/macosx-x86_64-normal-server-release/images/jdk/bin/jshell
+|  Welcome to JShell -- Version 11.0.6-internal
+|  For an introduction type: /help intro
+
+jshell&gt; /quit
+|  Goodbye</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Jobs done !</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_quickly_hack_something_in_jshell_part_2"><a class="anchor" href="#_quickly_hack_something_in_jshell_part_2"></a><a class="link" href="#_quickly_hack_something_in_jshell_part_2">Quickly hack something in <code>jshell</code> (part 2)</a></h3>
+<div class="paragraph">
+<p>Now I&#8217;d like something easier to work with, creating images makes the feedback
+loop too long, and I cannot debug the program which is cumbersome.
+First we need to set the JDK in the project, which is not another JDK but this JDK
+(otherwise the classes that will be loaded will be from the SDK not from the JDK sources).
+The JDK we want can be found at this location, after the <code>make images</code></p>
+</div>
+<div class="paragraph">
+<p>But we need the <code>jdk</code> target</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>corretto-11/src/build/macosx-x86_64-normal-server-release/jdk</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>which includes <code>java</code></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>corretto-11/src❯ tree -L 1 build/macosx-x86_64-normal-server-release/jdk/bin
+build/macosx-x86_64-normal-server-release/jdk/bin
+...
+├── jarsigner
+├── jarsigner.dSYM
+├── java
+├── javac
+├── javac.dSYM
+├── javadoc
+├── javadoc.dSYM
+...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-feesh-build-jdk-as-sdk.png" alt="Setting freshly built JDK as Project SDK"></span></p>
+</div>
+<div class="paragraph">
+<p><strong>That the JDK we need to add to IntelliJ and to set to the current project.</strong></p>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s find something to run like a main method, hopefully for <code>jshell</code> (&lt;kbd&gt;cmd&lt;/kbd&gt; + &lt;kbd&gt;alt&lt;/kbd&gt; + &lt;kbd&gt;o&lt;/kbd&gt;)</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-looking-for-main.png" alt="Looking for main methods"></span></p>
+</div>
+<div class="paragraph">
+<p>There&#8217;s one, let then run <code>jdk.internal.jshell.tool.JShellToolProvider#main</code></p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-run-JshellToolProvider.main.png" alt="Running JShellToolProvider#main"></span></p>
+</div>
+<div class="paragraph">
+<p>Later in <code>JShellTool</code> we can find this method, let&#8217;s set a break point to see how
+commands are being processed.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">/**
+ * Process a command (as opposed to a snippet) -- things that start with
+ * slash.
+ *
+ * @param input
+ */
+private void processCommand(String input) {
+    if (input.startsWith("/-")) {</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>At boot strap we see a lot of <code>/set</code> commands, so it may be necessary to toggle the breakpoint once
+the init phase is over.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>/set mode verbose -command</code></p>
+</li>
+<li>
+<p><code>/set prompt verbose &#39;\njshell&gt; &#39;   &#39;   &#8230;&#8203;&gt; &#39;</code></p>
+</li>
+<li>
+<p><code>/set format verbose pre &#39;|  &#39;</code></p>
+</li>
+<li>
+<p><code>/set format verbose post &#39;%n&#39;</code></p>
+</li>
+<li>
+<p><code>/set format verbose errorpre &#39;|  &#39;</code></p>
+</li>
+<li>
+<p><code>/set format verbose errorpost &#39;%n&#39;</code></p>
+</li>
+<li>
+<p><code>/set format verbose errorline &#39;{post}{pre}    {err}&#39;</code></p>
+</li>
+<li>
+<p><code>/set format verbose action &#39;created&#39; added-primary</code></p>
+</li>
+<li>
+<p><code>&#8230;&#8203;</code></p>
+</li>
+<li>
+<p><code>/set format verbose typeKind &#39;interface&#39;              interface</code></p>
+</li>
+<li>
+<p><code>&#8230;&#8203;</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I&#8217;m not sure yet how to use the build command within IntelliJ IDEA yet,
+and my modifications were not being compiled to the jdk build at <code>corretto-11/src/build/macosx-x86_64-normal-server-release/jdk</code>.</p>
+</div>
+<div class="paragraph">
+<p>But if we are not generating the images, which is what we want, there&#8217;s this <code>make</code>
+target that is faster.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">corretto/src❯ make jdk
+Building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'
+Warning: No SCM configuration present and no .src-rev
+Compiling 94 files for jdk.jshell
+Stopping sjavac server
+Finished building target 'jdk' in configuration 'macosx-x86_64-normal-server-release'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But there&#8217;s more focuses commands, inspecting the <code>Makefile</code> and other gnu makefiles (<code>make/*gmk</code>)
+there&#8217;s this task that is interesting</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">corretto/src❯ make print-targets | tr " " "\n"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And focusing on <code>jshell</code>, shows even more specific tasks</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">corretto/src❯ make print-targets | tr " " "\n" | grep jshell
+clean-jdk.jshell
+clean-jdk.jshell-gensrc
+clean-jdk.jshell-include
+clean-jdk.jshell-java
+clean-jdk.jshell-native
+jdk.jshell
+jdk.jshell-gensrc
+jdk.jshell-gensrc-moduleinfo
+jdk.jshell-gensrc-moduleinfo-only
+jdk.jshell-gensrc-only
+jdk.jshell-gensrc-src
+jdk.jshell-gensrc-src-only
+jdk.jshell-java
+jdk.jshell-java-only
+jdk.jshell-jmod
+jdk.jshell-jmod-only
+jdk.jshell-launchers
+jdk.jshell-launchers-only
+jdk.jshell-only
+
+corretto/src❯ make jdk.jshell
+Building target 'jdk.jshell' in configuration 'macosx-x86_64-normal-server-release'
+Compiling 396 files for BUILD_jdk.compiler.interim
+Compiling 299 files for BUILD_jdk.javadoc.interim
+Compiling 400 files for jdk.compiler
+Stopping sjavac server
+Finished building target 'jdk.jshell' in configuration 'macosx-x86_64-normal-server-release'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The compilation appear to be incremental, and doesn&#8217;t recompile every JDK modules which is
+somewhat sufficient to shorten significantly the feedback loop.</p>
+</div>
+<div class="paragraph">
+<p>_Also, at the time of writing there&#8217;s a Makefile plugin for IntelliJ IDEA, and it&#8217;s possible to
+create a Run configuration that execute any makefile target, this run configuration can be executed
+before the <code>JShellToolProvider</code>.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-run-JShellToolProvider.main-with-make-jdk.jshell-before.png" alt="Configure make jdk.jshell before running JShellToolProvider"></span></p>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s get something a tad more involved.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_extending_the_jshell_repl_to_support_new_map_syntax_sugar"><a class="anchor" href="#_extending_the_jshell_repl_to_support_new_map_syntax_sugar"></a><a class="link" href="#_extending_the_jshell_repl_to_support_new_map_syntax_sugar">Extending the <code>jshell</code> repl to support <em>new map</em> syntax sugar</a></h3>
+<div class="paragraph">
+<p>Currently, <code>jshell</code> requires writing correct java code as defined for Java 11, e.g.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">jshell&gt; var m = Map.of("k1", "v1", "k2", "v2");
+m ==&gt; {k2=v2, k1=v1}
+jshell&gt; m.get("k2")
+$4 ==&gt; "v2"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What I would like is to be able to write</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">jshell&gt; var m = { "k1", "v1", "k2", "v2" }
+m ==&gt; {k2=v2, k1=v1}
+jshell&gt; m["k2"]
+$4 ==&gt; "v2"</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_discovering_how_the_repl_work"><a class="anchor" href="#_discovering_how_the_repl_work"></a><a class="link" href="#_discovering_how_the_repl_work">Discovering how the repl work</a></h4>
+<div class="paragraph">
+<p>This is likely to happen in some <em>parser</em>, why not inspect <code>jdk.jshell.ReplParser</code>, it has two public methods</p>
+</div>
+<div class="listingblock">
+<div class="title">The constructor</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public ReplParser(ParserFactory fac,
+com.sun.tools.javac.parser.Lexer S,
+boolean keepDocComments,
+boolean keepLineMap,
+boolean keepEndPositions,
+boolean forceExpression)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">The <code>parseCompilationUnit()</code></div>
+<p>This method which happens to be an override of
+<code>com.sun.tools.javac.parser.JavacParser.parseCompilationUnit</code>.</p>
+</div>
+<div class="paragraph">
+<p>I don&#8217;t have any reflexes when it comes to navigate this code base, so let&#8217;s put a breakpoint in this method a start
+the evaluation of a statement like <code>String s = "s"</code> in debug mode.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>IntelliJ IDEA disables step into (<kbd>F7</kbd>) in debug mode for types/methods that are in some packages
+unfortunately this setting is global and not per project, so you may need to toggle this options if switching
+between different projects.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-step-into-ij-setting.png" alt="Step Into setting"></span></p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So here&#8217;s what the break point leads to</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">parseCompilationUnit:94, ReplParser (jdk.jshell)                      <i class="conum" data-value="1"></i><b>(1)</b>
+parse:639, JavaCompiler (com.sun.tools.javac.main)                    <i class="conum" data-value="2"></i><b>(2)</b>
+parse:676, JavaCompiler (com.sun.tools.javac.main)
+parseFiles:1026, JavaCompiler (com.sun.tools.javac.main)
+parseInternal:249, JavacTaskImpl (com.sun.tools.javac.api)            <i class="conum" data-value="3"></i><b>(3)</b>
+call:-1, 1278254413 (com.sun.tools.javac.api.JavacTaskImpl$$Lambda$214)
+handleExceptions:147, JavacTaskImpl (com.sun.tools.javac.api)
+parse:243, JavacTaskImpl (com.sun.tools.javac.api)
+parse:356, TaskFactory$ParseTask (jdk.jshell)
+&lt;init&gt;:345, TaskFactory$ParseTask (jdk.jshell)
+lambda$parse$0:144, TaskFactory (jdk.jshell)
+apply:-1, 1359953204 (jdk.jshell.TaskFactory$$Lambda$203)
+lambda$runTask$4:213, TaskFactory (jdk.jshell)
+withTask:-1, 770947228 (jdk.jshell.TaskFactory$$Lambda$205)
+getTask:182, JavacTaskPool (com.sun.tools.javac.api)
+runTask:206, TaskFactory (jdk.jshell)
+parse:140, TaskFactory (jdk.jshell)
+parse:238, TaskFactory (jdk.jshell)
+lambda$scan$1:90, CompletenessAnalyzer (jdk.jshell)
+apply:-1, 428566321 (jdk.jshell.CompletenessAnalyzer$$Lambda$193)
+disambiguateDeclarationVsExpression:688, CompletenessAnalyzer$Parser (jdk.jshell)
+parseUnit:632, CompletenessAnalyzer$Parser (jdk.jshell)
+scan:91, CompletenessAnalyzer (jdk.jshell)
+analyzeCompletion:183, SourceCodeAnalysisImpl (jdk.jshell)
+isComplete:115, ConsoleIOContext$2 (jdk.internal.jshell.tool)
+add:172, EditingHistory (jdk.internal.jline.extra)
+finishBuffer:738, ConsoleReader (jdk.internal.jline.console)
+accept:2030, ConsoleReader (jdk.internal.jline.console)
+readLine:2756, ConsoleReader (jdk.internal.jline.console)
+readLine:2383, ConsoleReader (jdk.internal.jline.console)
+readLine:2371, ConsoleReader (jdk.internal.jline.console)
+readLine:142, ConsoleIOContext (jdk.internal.jshell.tool)
+getInput:1273, JShellTool (jdk.internal.jshell.tool)
+run:1186, JShellTool (jdk.internal.jshell.tool)                       <i class="conum" data-value="4"></i><b>(4)</b>
+start:987, JShellTool (jdk.internal.jshell.tool)
+start:254, JShellToolBuilder (jdk.internal.jshell.tool)
+main:120, JShellToolProvider (jdk.internal.jshell.tool)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Break point</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Starts the unit parsing</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Starts the whole parsing</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Handles the input</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s some interesting elements executing before, as expected <code>JShellTool</code>
+will handle the input, then at some point jshell configures the java compiler
+to parse the input. Especially <code>parseInternal</code> that is configured with files (FileObject)</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">private Iterable&lt;? extends CompilationUnitTree&gt; parseInternal() {
+    try {
+        prepareCompiler(true);
+        List&lt;JCCompilationUnit&gt; units = compiler.parseFiles(args.getFileObjects());
+        for (JCCompilationUnit unit: units) {
+            JavaFileObject file = unit.getSourceFile();
+            if (notYetEntered.containsKey(file))
+                notYetEntered.put(file, unit);
+        }
+        return units;
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In reality <code>jshell</code> uses an internal memory store to represent these file objects - I&#8217;ve already
+<a href="/2010/02/12/une-fuite-memoire-beaucoup-de-reflection-et-pas-de-outofmemoryerror/">used this API 10 years ago in this blog entry about memory leaks</a>,
+sorry it&#8217;s in french -, here&#8217;s the <code>.toString()</code> of the single file object.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>WrappedJavaFileObject[jdk.jshell.MemoryFileManager$SourceMemoryJavaFileObject[string:///$NeverUsedName$.java]]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then the unit is parsed by the <code>JavaCompiler</code> class.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">protected JCCompilationUnit parse(JavaFileObject filename, CharSequence content) {
+    long msec = now();
+    JCCompilationUnit tree = make.TopLevel(List.nil());
+    if (content != null) {
+        if (verbose) {
+            log.printVerbose("parsing.started", filename);
+        }
+        if (!taskListener.isEmpty()) {
+            TaskEvent e = new TaskEvent(TaskEvent.Kind.PARSE, filename);
+            taskListener.started(e);
+            keepComments = true;
+            genEndPos = true;
+        }
+        Parser parser = parserFactory.newParser(content, keepComments(), genEndPos,
+                            lineDebugInfo, filename.isNameCompatible("module-info", Kind.SOURCE));
+        tree = parser.parseCompilationUnit();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>Parser</code> object is a <code>ReplParser</code> that extends <code>com.sun.tools.javac.parser.JavacParser</code>, on which
+the <code>parseCompilationUnit</code> is invoked. the javadoc of this method indicates this method mimic the one
+from the actual Java compiler to allow the compilation of stand-alone snippets.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">/**
+ * As faithful a clone of the overridden method as possible while still
+ * achieving the goal of allowing the parse of a stand-alone snippet.
+ * As a result, some variables are assigned and never used, tests are
+ * always true, loops don't, etc.  This is to allow easy transition as the
+ * underlying method changes.
+ * @return a snippet wrapped in a compilation unit
+ */
+@Override
+public JCCompilationUnit parseCompilationUnit() {</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now let&#8217;s debug a bit. The parser <em>eat</em> tokens until <code>TokenKind.EOF</code>, then form
+a <code>ReplUnit</code> from the snippet, and during this phase the String variable declaration
+goes through an interesting method <code>variableInitializer</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">variableInitializer:2323, JavacParser (com.sun.tools.javac.parser)
+variableDeclaratorRest:3054, JavacParser (com.sun.tools.javac.parser)
+variableDeclaratorsRest:3024, JavacParser (com.sun.tools.javac.parser)
+replUnit:237, ReplParser (jdk.jshell)
+parseCompilationUnit:120, ReplParser (jdk.jshell)
+...
+main:120, JShellToolProvider (jdk.internal.jshell.tool)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">/** VariableInitializer = ArrayInitializer | Expression
+ */
+public JCExpression variableInitializer() {
+    return token.kind == LBRACE ? arrayInitializer(token.pos, null) : parseExpression();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What is interesting there, is that this method explicitly checks for a left brace to perform
+specific initialization, actually the one we now for arrays. In the current debugging it&#8217;s a
+string literal, so this method will evaluate the <code>parseExpression</code> method.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_hacking_the_javac_parser"><a class="anchor" href="#_hacking_the_javac_parser"></a><a class="link" href="#_hacking_the_javac_parser">Hacking the javac parser</a></h4>
+<div class="paragraph">
+<p>Inspecting how the parser is doing for the array, we notice that for the token king <code>LBRACE</code>
+the parser creates a specific <code>JCExpression</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">/** ArrayInitializer = "{" [VariableInitializer {"," VariableInitializer}] [","] "}"
+ */
+JCExpression arrayInitializer(int newpos, JCExpression t) {
+    List&lt;JCExpression&gt; elems = arrayInitializerElements(newpos, t);
+    return toP(F.at(newpos).NewArray(t, List.nil(), elems));
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Notice the <code>NewArray(&#8230;&#8203;)</code> method, this method creates a new <em>tree</em>, <code>new JCNewArray(elemtype, dims, elems)</code>
+for this expression. <code>JCNewArray</code> implements the tree interface <code>NewArrayTree</code> that has the <code>Tree.Kind.NEW_ARRAY</code>.</p>
+</div>
+<div class="paragraph">
+<p>This immediately suggests we can plug our own language representation, such as a <code>NewMapTree</code>.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/hacking-corretto-11/corretto-11-map-ofentries-tree.png" alt="Map.ofEntries tree"></span></p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_extending_the_syntax_to_homebrewed_data_classes"><a class="anchor" href="#_extending_the_syntax_to_homebrewed_data_classes"></a><a class="link" href="#_extending_the_syntax_to_homebrewed_data_classes">Extending the syntax to homebrewed data classes</a></h3>
+<div class="paragraph">
+<p>record()</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_allow_to_omit_the_new_keyword"><a class="anchor" href="#_allow_to_omit_the_new_keyword"></a><a class="link" href="#_allow_to_omit_the_new_keyword">Allow to omit the <code>new</code> keyword</a></h3>
+<div class="listingblock">
+<div class="content">
+<pre>Object a = Object()</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/watchservice-and-bind-mount.fr/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Lorsque le WatchService de Java n&#39;est pas le bon outil dans un conteneur</span>
+    </a>
+    
+    
+    <a href="/drafts/using-java-flight-recorder/" class="navigation-next">
+      <span class="navigation-tittle">Using Java FlightRecorder</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/drafts/hacking-the-jdk/';
+        this.page.title = 'Hacking the JDK';
+        this.page.url = 'https://blog.arkey.fr/drafts/hacking-the-jdk/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+    
+
+
+
+    </body>
+</html>
+

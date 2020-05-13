@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.69.0" />
+
+    
+    
+    
+
+<title>MaxRamPercentage isn&#39;t enough • The Coffee Workshop</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="The Coffee Workshop">
+<meta property="og:title" content="MaxRamPercentage isn&amp;rsquo;t enough">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/maxrampercentage-isnt-enough/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2020-04-27T11:45:29&#43;0200">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="MaxRamPercentage isn&amp;rsquo;t enough">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">The Coffee Workshop</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">The Coffee Workshop</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+
+<article>
+  <header>
+    <h1>MaxRamPercentage isn&#39;t enough</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-04-27
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 30 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="sect1">
+<h2 id="_app_docker_image"><a class="anchor" href="#_app_docker_image"></a><a class="link" href="#_app_docker_image">App Docker image</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_building_and_running_locally"><a class="anchor" href="#_building_and_running_locally"></a><a class="link" href="#_building_and_running_locally">Building and running locally</a></h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ DOCKER_BUILDKIT=1 docker build -t test-edge-api --build-arg REGISTRY=eu.gcr.io/bbc-registry --no-cache -f _infra/Dockerfile .
+[+] Building 1.4s (9/9) FINISHED
+ =&gt; [internal] load build definition from Dockerfile                                                                                                                                                        0.0s
+ =&gt; =&gt; transferring dockerfile: 1.34kB                                                                                                                                                                      0.0s
+ =&gt; [internal] load .dockerignore                                                                                                                                                                           0.0s
+ =&gt; =&gt; transferring context: 35B                                                                                                                                                                            0.0s
+ =&gt; [internal] load metadata for eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                           0.0s
+ =&gt; CACHED [1/4] FROM eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                      0.0s
+ =&gt; [internal] load build context                                                                                                                                                                           0.0s
+ =&gt; =&gt; transferring context: 1.32kB                                                                                                                                                                         0.0s
+ =&gt; [2/4] RUN mkdir -p /gclogs /etc/edge-api                                                                                                                                                                0.3s
+ =&gt; [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                                                                             0.0s
+ =&gt; [4/4] COPY ./build/libs/edge-api-boot.jar   ./build/java-agents/newrelic-agent.jar   ./build/java-agents/sqreen-agent.jar   ./build/java-agents/file-leak-detector.jar   ./src/serviceability/*.sh   /  0.6s
+ =&gt; exporting to image                                                                                                                                                                                      0.4s
+ =&gt; =&gt; exporting layers                                                                                                                                                                                     0.4s
+ =&gt; =&gt; writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                                                                                0.0s
+ =&gt; =&gt; naming to docker.io/library/test-edge-api</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ docker run test-edge-api
+Picked up JAVA_TOOL_OPTIONS:
+WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
+Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Configuration file not found. The agent will attempt to read required values from environment variables.
+Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Using default collector host: collector.newrelic.com
+Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic ERROR: Unable to start the New Relic Agent. Your application will continue to run but it will not be monitored.
+com.newrelic.agent.config.ConfigurationException: The agent requires an application name. Check the app_name setting in newrelic.yml
+        at com.newrelic.agent.config.ConfigServiceFactory.validateConfig(ConfigServiceFactory.java:64) ~[newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.config.ConfigServiceFactory.createConfigService(ConfigServiceFactory.java:27) ~[newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.service.ServiceManagerImpl.&lt;init&gt;(ServiceManagerImpl.java:121) ~[newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.Agent.tryToInitializeServiceManager(Agent.java:194) [newrelic-agent.jar:5.8.0]
+        at com.newrelic.agent.Agent.continuePremain(Agent.java:137) [newrelic-agent.jar:5.8.0]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
+        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
+        at com.newrelic.bootstrap.BootstrapAgent.startAgent(BootstrapAgent.java:140) [newrelic-agent.jar:5.8.0]
+        at com.newrelic.bootstrap.BootstrapAgent.premain(BootstrapAgent.java:77) [newrelic-agent.jar:5.8.0]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
+        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
+        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
+        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
+        at sun.instrument.InstrumentationImpl.loadClassAndStartAgent(InstrumentationImpl.java:513) [?:?]
+        at sun.instrument.InstrumentationImpl.loadClassAndCallPremain(InstrumentationImpl.java:525) [?:?]
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_getting_the_jvm_flags_after_bootstrap"><a class="anchor" href="#_getting_the_jvm_flags_after_bootstrap"></a><a class="link" href="#_getting_the_jvm_flags_after_bootstrap">Getting the JVM flags after bootstrap</a></h3>
+<div class="listingblock">
+<div class="title">VM.flags local docker</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ docker exec -it unruffled_rubin bash -c "JAVA_TOOL_OPTIONS='' jcmd \$(pgrep java) VM.flags"
+Picked up JAVA_TOOL_OPTIONS:
+6:
+-XX:CICompilerCount=3 -XX:ConcGCThreads=1 -XX:G1ConcRefinementThreads=4 -XX:G1HeapRegionSize=1048576
+-XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=1774190592 -XX:InitialRAMPercentage=85.000000
+-XX:+ManagementServer -XX:MarkStackSize=4194304 -XX:MaxHeapSize=1774190592 -XX:MaxNewSize=1064304640
+-XX:MaxRAMPercentage=85.000000 -XX:MinHeapDeltaBytes=1048576 -XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5830732 -XX:NonProfiledCodeHeapSize=122913754 -XX:ProfiledCodeHeapSize=122913754
+-XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps -XX:+UseG1GC</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_calculating_the_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_calculating_the_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_calculating_the_memory_footprint_of_the_java_process_in_the_container">Calculating the memory footprint of the java process in the container</a></h3>
+<div class="listingblock">
+<div class="title">RSS</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ cat /proc/$(pgrep java)/status | grep VmRSS
+VmRSS:	 4701120 kB</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">VM.flags in k8s</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags
+6:
+-XX:CICompilerCount=4
+-XX:ConcGCThreads=2
+-XX:G1ConcRefinementThreads=8
+-XX:G1HeapRegionSize=2097152
+-XX:GCDrainStackTargetSize=64
+-XX:InitialHeapSize=4563402752
+-XX:InitialRAMPercentage=85.000000
+-XX:+ManagementServer
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=4563402752
+-XX:MaxNewSize=2736783360
+-XX:MaxRAMPercentage=85.000000
+-XX:MinHeapDeltaBytes=2097152
+-XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5836300
+-XX:NonProfiledCodeHeapSize=122910970
+-XX:ProfiledCodeHeapSize=122910970
+-XX:ReservedCodeCacheSize=251658240
+-XX:+SegmentedCodeCache
+-XX:+UseCompressedClassPointers
+-XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps
+-XX:+UseG1GC</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As the container runs <code>java</code> with native memory tracking (<code>-XX:NativeMemoryTracking=summary</code>),
+it&#8217;s possible to ask the JVM some information about JVM memory zones other than heap.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Enabling native memory tracking (NMT) causes a 5% -10% performance overhead.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">VM.native_memory instant snapshot</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ docker exec -it unruffled_rubin bash -c "env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.native_memory scale=KB"
+6:
+
+Native Memory Tracking:
+
+Total: reserved=7168324KB, committed=5380868KB                               <i class="conum" data-value="1"></i><b>(1)</b>
+-                 Java Heap (reserved=4456448KB, committed=4456448KB)        <i class="conum" data-value="2"></i><b>(2)</b>
+                            (mmap: reserved=4456448KB, committed=4456448KB)
+
+-                     Class (reserved=1195628KB, committed=165788KB)         <i class="conum" data-value="3"></i><b>(3)</b>
+                            (classes #28431)                                 <i class="conum" data-value="4"></i><b>(4)</b>
+                            (  instance classes #26792, array classes #1639)
+                            (malloc=5740KB #87822)
+                            (mmap: reserved=1189888KB, committed=160048KB)
+                            (  Metadata:   )
+                            (    reserved=141312KB, committed=139876KB)
+                            (    used=135945KB)
+                            (    free=3931KB)
+                            (    waste=0KB =0.00%)
+                            (  Class space:)
+                            (    reserved=1048576KB, committed=20172KB)
+                            (    used=17864KB)
+                            (    free=2308KB)
+                            (    waste=0KB =0.00%)
+
+-                    Thread (reserved=696395KB, committed=85455KB)           <i class="conum" data-value="5"></i><b>(5)</b>
+                            (thread #674)
+                            (stack: reserved=692812KB, committed=81872KB)
+                            (malloc=2432KB #4046)
+                            (arena=1150KB #1347)
+
+-                      Code (reserved=251877KB, committed=105201KB)          <i class="conum" data-value="6"></i><b>(6)</b>
+                            (malloc=4189KB #11718)
+                            (mmap: reserved=247688KB, committed=101012KB)
+
+-                        GC (reserved=230739KB, committed=230739KB)          <i class="conum" data-value="7"></i><b>(7)</b>
+                            (malloc=32031KB #63631)
+                            (mmap: reserved=198708KB, committed=198708KB)
+
+-                  Compiler (reserved=5914KB, committed=5914KB)              <i class="conum" data-value="8"></i><b>(8)</b>
+                            (malloc=6143KB #3281)
+                            (arena=18014398509481755KB #5)
+
+-                  Internal (reserved=24460KB, committed=24460KB)           <i class="conum" data-value="10"></i><b>(10)</b>
+                            (malloc=24460KB #13140)
+
+-                     Other (reserved=267034KB, committed=267034KB)         <i class="conum" data-value="11"></i><b>(11)</b>
+                            (malloc=267034KB #631)
+
+-                    Symbol (reserved=28915KB, committed=28915KB)            <i class="conum" data-value="9"></i><b>(9)</b>
+                            (malloc=25423KB #330973)
+                            (arena=3492KB #1)
+
+-    Native Memory Tracking (reserved=8433KB, committed=8433KB)
+                            (malloc=117KB #1498)
+                            (tracking overhead=8316KB)
+
+-               Arena Chunk (reserved=217KB, committed=217KB)
+                            (malloc=217KB)
+
+-                   Logging (reserved=7KB, committed=7KB)
+                            (malloc=7KB #266)
+
+-                 Arguments (reserved=19KB, committed=19KB)
+                            (malloc=19KB #521)
+
+-                    Module (reserved=1362KB, committed=1362KB)
+                            (malloc=1362KB #6320)
+
+-              Synchronizer (reserved=837KB, committed=837KB)
+                            (malloc=837KB #6877)
+
+-                 Safepoint (reserved=8KB, committed=8KB)
+                            (mmap: reserved=8KB, committed=8KB)
+
+-                   Unknown (reserved=32KB, committed=32KB)
+                            (mmap: reserved=32KB, committed=32KB)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This shows what the JVM reserved for memory 7168324 KB (~7.1 GB) and what is actually used
+by the jvm process 4456448 KB (~4.45 GB).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>heap arena, note reserved and committed values are the same 4456448 KB, I&#8217;m not sure why this
+number is different from the VM flags <code>-XX:MaxHeapSize=4563402752</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>~165 MB of class metadata</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>how many classes have been loaded : 28431</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>674 threads are using ~81 MB out of 696 MB reserved</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Code cache area (assembly of the used methods) ~105 MB out of 251 MB which matches with <code>-XX:ReservedCodeCacheSize=251658240</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>G1GC internal data structures take ~230 MB</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="8"></i><b>8</b></td>
+<td>C1 / C2 compilers (which compile bytecodes to assembly) uses ~6 MB</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="9"></i><b>9</b></td>
+<td>The symbols contains many things lik interned strings and other internal constants ~29 MB</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="10"></i><b>10</b></td>
+<td>Internal (included DirectByteBuffers before Java 11), maybe others objects, here takes ~24 MB</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="11"></i><b>11</b></td>
+<td>Other section after Java 11 includes DirectByteBuffers ~267 MB</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Other areas are much smaller in scale, NMT takes ~8 MB itself, module system ~1.3 MB,
+etc.
+Also, note that enabling other part may show up if some JVM features are activated.
+<a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
+</div>
+<div class="paragraph">
+<p>For more information read the
+<a href="https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80">official documentation about NMT</a>
+and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">How to Monitor VM Internal Memory</a>.</p>
+</div>
+<div class="paragraph">
+<p>For a lot more details read this article by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a> on
+<a href="https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/">native memory tracking</a></p>
+</div>
+<div class="paragraph">
+<p>There&#8217;s also the MappedByteBuffers, these are the files mapped to virtual memory of a process.
+NMT does not track them, however, MappedByteBuffers can also take physical memory. And there is
+no a simple way to limit how much they can take. However, it&#8217;s possible to see the actual usage
+of a process memory map: <code>pmap -x &lt;pid&gt;</code></p>
+</div>
+<div class="listingblock">
+<div class="title">process memory mappings</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x $(pgrep java)
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Djava.security.egd=file:/dev/.
+/urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary -Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- java
+0000000000600000       4       4       4 r---- java
+0000000000601000       4       4       4 rw--- java
+000000000216f000     404     272     272 rw---   [ anon ]
+00000006f0000000 4476620 3128252 3128252 rw---   [ anon ]
+00000008013b3000 1028404       0       0 -----   [ anon ]
+00007fc5de9ea000      16       0       0 -----   [ anon ]
+00007fc5de9ee000    1012     104     104 rw---   [ anon ]
+00007fc5deaeb000      16       0       0 -----   [ anon ]
+00007fc5deaef000    1012      24      24 rw---   [ anon ]
+00007fc5debec000      16       0       0 -----   [ anon ]
+00007fc5debf0000    1012      92      92 rw---   [ anon ]
+00007fc5deced000      16       0       0 -----   [ anon ]
+00007fc5decf1000    1012     100     100 rw---   [ anon ]
+00007fc5dedee000      16       0       0 -----   [ anon ]
+00007fc5dedf2000    1012     100     100 rw---   [ anon ]
+00007fc5deeef000      16       0       0 -----   [ anon ]
+00007fc5deef3000    1012     100     100 rw---   [ anon ]
+00007fc5deff0000      16       0       0 -----   [ anon ]
+00007fc5deff4000    1012     100     100 rw---   [ anon ]
+00007fc5df0f1000      16       0       0 -----   [ anon ]
+00007fc5df0f5000    1012     100     100 rw---   [ anon ]
+00007fc5df1f2000      16       0       0 -----   [ anon ]
+00007fc5df1f6000    1012     100     100 rw---   [ anon ]
+00007fc5df2f3000      16       0       0 -----   [ anon ]
+00007fc5df2f7000    1012     100     100 rw---   [ anon ]
+00007fc5df3f4000      16       0       0 -----   [ anon ]
+00007fc5df3f8000    1012     100     100 rw---   [ anon ]
+00007fc5df4f5000      16       0       0 -----   [ anon ]
+00007fc5df4f9000    1012     100     100 rw---   [ anon ]
+00007fc5df5f6000      16       0       0 -----   [ anon ]
+00007fc5df5fa000    1012     100     100 rw---   [ anon ]
+
+...
+
+00007fca48ba9000   17696   14876       0 r-x-- libjvm.so
+00007fca49cf1000    2044       0       0 ----- libjvm.so
+00007fca49ef0000     764     764     764 r---- libjvm.so
+00007fca49faf000     232     232     208 rw--- libjvm.so
+00007fca49fe9000     352     320     320 rw---   [ anon ]
+00007fca4a041000     136     136       0 r---- libc-2.28.so
+00007fca4a063000    1312    1140       0 r-x-- libc-2.28.so
+00007fca4a1ab000     304     148       0 r---- libc-2.28.so
+00007fca4a1f7000       4       0       0 ----- libc-2.28.so
+00007fca4a1f8000      16      16      16 r---- libc-2.28.so
+00007fca4a1fc000       8       8       8 rw--- libc-2.28.so
+00007fca4a1fe000      16      16      16 rw---   [ anon ]
+00007fca4a202000       4       4       0 r---- libdl-2.28.so
+00007fca4a203000       4       4       0 r-x-- libdl-2.28.so
+00007fca4a204000       4       4       0 r---- libdl-2.28.so
+00007fca4a205000       4       4       4 r---- libdl-2.28.so
+00007fca4a206000       4       4       4 rw--- libdl-2.28.so
+00007fca4a207000     100     100       0 r-x-- libjli.so
+00007fca4a220000    2048       0       0 ----- libjli.so
+00007fca4a420000       4       4       4 r---- libjli.so
+00007fca4a421000       4       4       4 rw--- libjli.so
+00007fca4a422000      24      24       0 r---- libpthread-2.28.so
+00007fca4a428000      60      60       0 r-x-- libpthread-2.28.so
+00007fca4a437000      24       0       0 r---- libpthread-2.28.so
+00007fca4a43d000       4       4       4 r---- libpthread-2.28.so
+00007fca4a43e000       4       4       4 rw--- libpthread-2.28.so
+00007fca4a43f000      16       4       4 rw---   [ anon ]
+00007fca4a443000       4       4       0 r---- LC_IDENTIFICATION
+00007fca4a444000       4       0       0 -----   [ anon ]
+00007fca4a445000       4       0       0 r----   [ anon ]
+00007fca4a446000       8       8       8 rw---   [ anon ]
+00007fca4a448000       4       4       0 r---- ld-2.28.so
+00007fca4a449000     120     120       0 r-x-- ld-2.28.so
+00007fca4a467000      32      32       0 r---- ld-2.28.so
+00007fca4a46f000       4       4       4 r---- ld-2.28.so
+00007fca4a470000       4       4       4 rw--- ld-2.28.so
+00007fca4a471000       4       4       4 rw---   [ anon ]
+00007ffe28536000     140      40      40 rw---   [ stack ]
+00007ffe28582000      12       0       0 r----   [ anon ]
+00007ffe28585000       8       4       0 r-x--   [ anon ]
+ffffffffff600000       4       0       0 r-x--   [ anon ]
+---------------- ------- ------- -------
+total kB         24035820 4776860 4720796</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That&#8217;s a lot of information, let&#8217;s refine that with more
+<a href="https://www.kernel.org/doc/Documentation/filesystems/proc.txt">knowledge about <code>/proc/&lt;pid&gt;/maps</code></a>,
+it indicates that a <em>map</em> has a set of modes:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>r-</code>: readable memory mapping</p>
+</li>
+<li>
+<p><code>w</code>: writable memory mapping</p>
+</li>
+<li>
+<p><code>x</code>: executable memory mapping</p>
+</li>
+<li>
+<p><code>s</code> or <code>p</code> : shared memory mapping or private mapping. <code>/proc/&lt;pid&gt;/maps</code> shows both
+but <code>pmap</code> only show the <code>s</code> flag.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Also, <code>pmap</code> has another mapping mode which I barely found any reference of,
+here&#8217;s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a> and <a href="https://linux.die.net/man/2/mmap">here</a></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>R</code>: if set, the map has no swap space reserved (<code>MAP_NORESERVE</code> flag of <code>mmap</code>).
+This means that we can get a segmentation fault by accessing that memory if it has not
+already been mapped to physical memory, and the system is out of physical memory.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>So what&#8217;s interesting us at this time are the process&#8217;s memory mapped (shared) files</p>
+</div>
+<div class="listingblock">
+<div class="title">process memory mapped files</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
+00007f5fdc02f000       4       4       0 r--s- instrumentation1647616515145161084.jar
+00007f5fdc030000       4       4       0 r--s- instrumentation11262564974060761935.jar
+00007f5fdc053000       8       8       0 r--s- java-agent-bs-cl.jar
+00007f5fdc055000       4       4       0 r--s- instrumentation249633448216144460.jar
+00007f5fdc056000       4       4       0 r--s- newrelic-bootstrap10447345921091566771.jar
+00007f5fdc057000      12      12       0 r--s- newrelic-api6038277081136135384.jar
+00007f5fec000000       8       8       0 r--s- newrelic-weaver-api16247655721253674284.jar
+00007f5fec002000       4       4       0 r--s- newrelic-opentracing-bridge12060425782296980104.jar
+00007f5fec003000      12      12       0 r--s- agent-bridge3261511391751138774.jar
+00007f5ffb910000  138176   36060       0 r--s- modules
+00007f6008006000      28      28       0 r--s- gconv-modules.cache
+                           ^^^^^               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Which means there&#8217;s around 36 MB of memory mapped files.</p>
+</div>
+<div class="paragraph">
+<p><em>Another read on process memory <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">here</a></em>.</p>
+</div>
+<div class="paragraph">
+<p>That leaves us with this <em>equation</em> :</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Total memory = Heap + Code Cache + Metaspace + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files +
+               + Native Libraries + Malloc overhead + ...</pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code Cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">105201</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Metaspace</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">165788</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Symbol tables</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">28915</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compiler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5914</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Other JVM structures
+(Internal + NMT + smaller area)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">24460 + 8433 + 217 + 7 + 19 + 1362 + 837 + 8 + 32</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread stacks</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">85455</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Direct buffers (Other)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">267034</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mapped files</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">36060 + 4 + 4 + 8 + 4 + 4 + 12 + 8 + 4 + 12 + 28</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Native Libraries</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">unaccounted at this time</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Malloc overhead</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">accounted in NMT</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&#8230;&#8203;</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5186278 KB</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>5186278 KB is just tad under 5 GB (5242880 KB).
+But really the number we should look at is the actual non heap usage :</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>5186278 - 4456448 = 729830 KB</pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Non heap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5186278 - 4456448 = 729830</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~14 %</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~85 %</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5186278</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">100 %</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>This means the application needs at least 730 MB plus the heap to run.</p>
+</div>
+<div class="paragraph">
+<p>The heap committed memory is 4563402752 B (set via <code>-XX:MaxRAMPercentage=85.000000</code>),
+but the heap usage may have a different figure :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 925702K [0x00000006f0000000, 0x0000000800000000)
+  region size 2048K, 387 young (792576K), 12 survivors (24576K)
+ Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
+  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Successive execution may give different results about the used memory</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd 6 GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 1245902K [0x00000006f0000000, 0x0000000800000000)
+  region size 2048K, 543 young (1112064K), 12 survivors (24576K)
+ Metaspace       used 154163K, capacity 160620K, committed 160976K, reserved 1189888K
+  class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
+
+$ jcmd 6 GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 2421454K [0x00000006f0000000, 0x0000000800000000)
+  region size 2048K, 1117 young (2287616K), 12 survivors (24576K)
+ Metaspace       used 154163K, capacity 160620K, committed 160976K, reserved 1189888K
+  class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The heap went from 925702 KB to 2421454 KB ! Following the trend of the heap usage
+lead can lead to the actual memory usage for this app (in the given cluster topology).</p>
+</div>
+<div class="paragraph">
+<p>2.5 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.5 GB</p>
+</div>
+<div class="paragraph">
+<p>Which leads to set <code>-XX:MaxRAMPercentage=71.0</code>. if we want a lower memory footprint.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>RSS &#8658; amount of physical memory allocated &amp; used by a process</p>
+</li>
+<li>
+<p>Java MaxHeapSize != Docker stats (“MEM USAGE”)</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + &#8230;&#8203;)</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_interpreting_cgroups_memory"><a class="anchor" href="#_interpreting_cgroups_memory"></a><a class="link" href="#_interpreting_cgroups_memory">Interpreting cgroup&#8217;s memory</a></h3>
+<div class="paragraph">
+<p>A good start is the actual Linux Kernel documentation on
+<a href="https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt">cgroup v1</a>.</p>
+</div>
+<div class="listingblock">
+<div class="title">memory.stat</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ kubectl exec -it --container=edge-api deployment/edge-api -- cat /sys/fs/cgroup/memory/memory.stat
+cache 57434112 <i class="conum" data-value="7"></i><b>(7)</b>
+rss 4822343680 <i class="conum" data-value="1"></i><b>(1)</b>
+rss_huge 0
+shmem 0
+mapped_file 0
+dirty 0
+writeback 0
+swap 0 <i class="conum" data-value="6"></i><b>(6)</b>
+pgpgin 7918680
+pgpgout 6726903
+pgfault 7682598
+pgmajfault 0
+pgmajfault_s 0
+pgmajfault_a 0
+pgmajfault_f 0
+inactive_anon 0 <i class="conum" data-value="2"></i><b>(2)</b>
+active_anon 4823887872 <i class="conum" data-value="3"></i><b>(3)</b>
+inactive_file 58806272 <i class="conum" data-value="4"></i><b>(4)</b>
+active_file 188416 <i class="conum" data-value="5"></i><b>(5)</b>
+unevictable 0
+hierarchical_memory_limit 5368709120
+hierarchical_memsw_limit 5368709120
+total_cache 57434112
+total_rss 4822343680
+total_rss_huge 0
+total_shmem 0
+total_mapped_file 0
+total_dirty 0
+total_writeback 0
+total_swap 0
+total_pgpgin 7918680
+total_pgpgout 6726903
+total_pgfault 7682598
+total_pgmajfault 0
+total_pgmajfault_s 0
+total_pgmajfault_a 0
+total_pgmajfault_f 0
+total_inactive_anon 0
+total_active_anon 4823887872
+total_inactive_file 58806272
+total_active_file 188416
+total_unevictable 0</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>rss of the processes, anonymous memory and swap cache, without <code>tmpfs</code> (shmem) (~4.8 GB)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>anonymous memory and swap cache on active LRU list, with <code>tmpfs</code> (shmem)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>anonymous memory and swap cache on inactive LRU list, with <code>tmpfs</code> (shmem) (~4.8 GB)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>file-backed memory on inactive LRU list, in bytes (~59 MB)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>file-backed memory on active LRU list, in bytes (~190 KB)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>swap usage, <code>0</code> is the only good value for java</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>page cache memory (~57 MB)</td>
+</tr>
+</table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">From the <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/sec-memory">RHEL6 documentation</a></div>
+<div class="paragraph">
+<p>When you interpret the values reported by memory.stat, note how the various statistics inter-relate:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>active_anon</code> + <code>inactive_anon</code> = anonymous memory + file cache for tmpfs + swap cache</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Therefore, <code>active_anon</code> + <code>inactive_anon</code> ≠ rss, because rss does not include tmpfs.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>active_file</code> + <code>inactive_file</code> = cache - size of tmpfs</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>There other memory settings to look at</p>
+</div>
+<div class="listingblock">
+<div class="title">memory usage and limits</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">cat /sys/fs/cgroup/memory/memory.{usage_in_bytes,limit_in_bytes,memsw.usage_in_bytes,memsw.limit_in_bytes}
+4944756736 <i class="conum" data-value="1"></i><b>(1)</b>
+5368709120 <i class="conum" data-value="2"></i><b>(2)</b>
+4944748544 <i class="conum" data-value="3"></i><b>(3)</b>
+5368709120 <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>current memory usage ~4.9GB, but it&#8217;s recommended to read cache+rss+swap values in <code>memory.stat</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>limit on the memory usage (~5.3GB)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>current memory and swap usage (~4.9 GB)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>limit on memory and swap (~5.3GB)</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Note the <code>memory.limit_in_bytes</code> and <code>memory.memsw.limit_in_bytes</code> values are the same,
+that means that the processes in the cgroup can use all the memory before swaping,
+however it is not impossible for the process to be use the swap before this limit is reached.</p>
+</div>
+<div class="paragraph">
+<p>In fact due to the swapiness value the kernel may try to reclaim memory.</p>
+</div>
+<div class="paragraph">
+<p>There are other parameters related to the kernel and tcp allocations.</p>
+</div>
+<div class="listingblock">
+<div class="title">memory.swapiness</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">cat /proc/sys/vm/swappiness <i class="conum" data-value="1"></i><b>(1)</b>
+60
+cat /sys/fs/cgroup/memory/memory.swappiness <i class="conum" data-value="2"></i><b>(2)</b>
+60</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>OS swapiness</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>cgroup swapiness, here the setting is not overridden</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/using-java-flight-recorder/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Using Java FlightRecorder</span>
+    </a>
+    
+    
+    <a href="/drafts/watchman/" class="navigation-next">
+      <span class="navigation-tittle">Watchman</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/drafts/maxrampercentage-isnt-enough/';
+        this.page.title = 'MaxRamPercentage isn\x27t enough';
+        this.page.url = 'https://blog.arkey.fr/drafts/maxrampercentage-isnt-enough/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+    
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+    
+
+
+
+    </body>
+</html>
+
