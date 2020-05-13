@@ -2,16 +2,10 @@
 authors: ["brice.dutheil"]
 date: "2019-09-13T00:00:00Z"
 language: fr
-published: false
-tags:
-- Java
-- Linux
-- docker
-- kubernetes
-- inotify
-- WatchService
 slug: watchservice-and-bind-mount.fr
 title: Lorsque le WatchService de Java n'est pas le bon outil dans un conteneur
+#tags: ["Java", "Linux", "docker", "kubernetes", "inotify", "WatchService"]
+published: false
 ---
 
 ## Boring code that should be written once and run everywhere

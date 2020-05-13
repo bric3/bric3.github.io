@@ -3,17 +3,17 @@ authors: ["brice.dutheil"]
 date: "2017-11-20T00:00:00Z"
 language: en
 published: false
-tags:
-- java
-- jaxrs
-- versionning
-- http
-- jersey
-- resteasy
-- vendoring
-- vendor tree
-- mediatype
-- media type
+# tags:
+# - java
+# - jaxrs
+# - versionning
+# - http
+# - jersey
+# - resteasy
+# - vendoring
+# - vendor tree
+# - mediatype
+# - media type
 slug: API-versioning-with-JAX-RS
 title: The Quest to API versioning with JAX-RS
 ---

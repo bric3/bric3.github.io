@@ -2,15 +2,10 @@
 authors: ["brice.dutheil"]
 date: "2019-02-14T00:00:00Z"
 language: en
-published: false
-tags:
-- Java
-- Jackson
-- Json
-- lombok
-- immutable
 slug: immutable-jackson-pojo-with-lombok
 title: Immutable jackson pojo with Lombok
+# tags: ["Java" ,"Jackson" ,"Json" ,"lombok" ,"immutable"]
+published: false
 ---
 
 ## The quest to immutable objects
