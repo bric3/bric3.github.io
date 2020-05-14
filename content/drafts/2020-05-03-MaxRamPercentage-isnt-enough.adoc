@@ -2,7 +2,7 @@
 authors: ["brice.dutheil"]
 date: "2020-04-27T11:45:29+02:00"
 language: en
-#tags: ["cgroup", "java", "kubernetes", "docker"]
+#tags: ["cgroup", "java", "kubernetes", "docker", "memory"]
 slug: "maxrampercentage-isnt-enough"
 title: "MaxRamPercentage isn't enough"
 draft: true
@@ -10,108 +10,77 @@ draft: true
 #  list: never
 ---
 
-== App Docker image
 
-=== Building and running locally
+.Problem
+****
+With RAM percentage parameters of 85% of 3 GB memory tHe container
+still blow off over this limit, which results in killed pods and deployment
+of replicaset failing.
 
-[source, bash]
+Also this issue started to appear with full traffic. (It was working well when
+the traffic weight was 50%).
+****
+
+
+== Actual data from the prod cluster
+
+The application runs on a Kubernetes cluster. And nice the team that handled the issue
+wasn't really prepared, they bumped the memory limits of the application to 5 GB.
+
+
+.deployment object of the app
+[source,yaml]
 ----
-❯ DOCKER_BUILDKIT=1 docker build -t test-edge-api --build-arg REGISTRY=eu.gcr.io/bbc-registry --no-cache -f _infra/Dockerfile .
-[+] Building 1.4s (9/9) FINISHED
- => [internal] load build definition from Dockerfile                                                                                                                                                        0.0s
- => => transferring dockerfile: 1.34kB                                                                                                                                                                      0.0s
- => [internal] load .dockerignore                                                                                                                                                                           0.0s
- => => transferring context: 35B                                                                                                                                                                            0.0s
- => [internal] load metadata for eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                           0.0s
- => CACHED [1/4] FROM eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                      0.0s
- => [internal] load build context                                                                                                                                                                           0.0s
- => => transferring context: 1.32kB                                                                                                                                                                         0.0s
- => [2/4] RUN mkdir -p /gclogs /etc/edge-api                                                                                                                                                                0.3s
- => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                                                                             0.0s
- => [4/4] COPY ./build/libs/edge-api-boot.jar   ./build/java-agents/newrelic-agent.jar   ./build/java-agents/sqreen-agent.jar   ./build/java-agents/file-leak-detector.jar   ./src/serviceability/*.sh   /  0.6s
- => exporting to image                                                                                                                                                                                      0.4s
- => => exporting layers                                                                                                                                                                                     0.4s
- => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                                                                                0.0s
- => => naming to docker.io/library/test-edge-api
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: edge-api
+  # ...
+spec:
+  # ...
+  template:
+    # ...
+    spec:
+      containers:
+      - image: eu.gcr.io/cd-registry/java-app:1.20200513.102101-4c53e9c
+        name: java-app
+        # ...
+        resources:
+          limits:
+            cpu: "8"
+            memory: 5Gi # <1>
+          requests:
+            cpu: "3"
+            memory: 3Gi
+        # ...
 ----
+<1> Actual memory limit.
+
+But to understand our requirement, and to avoid lucky guess number (until it works),
+let's explore the memory of a java process.
 
 
-[source,bash]
-----
-❯ docker run test-edge-api
-Picked up JAVA_TOOL_OPTIONS:
-WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
-Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Configuration file not found. The agent will attempt to read required values from environment variables.
-Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Using default collector host: collector.newrelic.com
-Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic ERROR: Unable to start the New Relic Agent. Your application will continue to run but it will not be monitored.
-com.newrelic.agent.config.ConfigurationException: The agent requires an application name. Check the app_name setting in newrelic.yml
-        at com.newrelic.agent.config.ConfigServiceFactory.validateConfig(ConfigServiceFactory.java:64) ~[newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.config.ConfigServiceFactory.createConfigService(ConfigServiceFactory.java:27) ~[newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.service.ServiceManagerImpl.<init>(ServiceManagerImpl.java:121) ~[newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.Agent.tryToInitializeServiceManager(Agent.java:194) [newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.Agent.continuePremain(Agent.java:137) [newrelic-agent.jar:5.8.0]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
-        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
-        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
-        at com.newrelic.bootstrap.BootstrapAgent.startAgent(BootstrapAgent.java:140) [newrelic-agent.jar:5.8.0]
-        at com.newrelic.bootstrap.BootstrapAgent.premain(BootstrapAgent.java:77) [newrelic-agent.jar:5.8.0]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
-        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
-        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
-        at sun.instrument.InstrumentationImpl.loadClassAndStartAgent(InstrumentationImpl.java:513) [?:?]
-        at sun.instrument.InstrumentationImpl.loadClassAndCallPremain(InstrumentationImpl.java:525) [?:?]
-10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
-2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-...
-----
-
-
-=== Getting the JVM flags after bootstrap
-
-.VM.flags local docker
-[source, bash]
-----
-❯ docker exec -it unruffled_rubin bash -c "JAVA_TOOL_OPTIONS='' jcmd \$(pgrep java) VM.flags"
-Picked up JAVA_TOOL_OPTIONS:
-6:
--XX:CICompilerCount=3 -XX:ConcGCThreads=1 -XX:G1ConcRefinementThreads=4 -XX:G1HeapRegionSize=1048576
--XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=1774190592 -XX:InitialRAMPercentage=85.000000
--XX:+ManagementServer -XX:MarkStackSize=4194304 -XX:MaxHeapSize=1774190592 -XX:MaxNewSize=1064304640
--XX:MaxRAMPercentage=85.000000 -XX:MinHeapDeltaBytes=1048576 -XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5830732 -XX:NonProfiledCodeHeapSize=122913754 -XX:ProfiledCodeHeapSize=122913754
--XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps -XX:+UseG1GC
-----
-
-
-=== Calculating the memory footprint of the java process in the container
-
-.RSS
-[source, bash]
-----
-$ cat /proc/$(pgrep java)/status | grep VmRSS
-VmRSS:	 4701120 kB
-----
+The RAM percentage are calculated at JVM startup from the given percentage, e.g.
+with `-XX:InitialRAMPercentage=85.0` and `-XX:MaxRAMPercentage=85.0`) the JVM
+calculates the following values.
 
 .VM.flags in k8s
 [source, bash]
 ----
-$ env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags
+$ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
 6:
 -XX:CICompilerCount=4
 -XX:ConcGCThreads=2
 -XX:G1ConcRefinementThreads=8
 -XX:G1HeapRegionSize=2097152
 -XX:GCDrainStackTargetSize=64
--XX:InitialHeapSize=4563402752
--XX:InitialRAMPercentage=85.000000
+-XX:InitialHeapSize=4563402752 <3>
+-XX:InitialRAMPercentage=85.000000 <1>
 -XX:+ManagementServer
 -XX:MarkStackSize=4194304
--XX:MaxHeapSize=4563402752
+-XX:MaxHeapSize=4563402752 <4>
 -XX:MaxNewSize=2736783360
--XX:MaxRAMPercentage=85.000000
+-XX:MaxRAMPercentage=85.000000 <2>
 -XX:MinHeapDeltaBytes=2097152
 -XX:NativeMemoryTracking=summary
 -XX:NonNMethodCodeHeapSize=5836300
@@ -124,16 +93,47 @@ $ env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags
 -XX:+UseFastUnorderedTimeStamps
 -XX:+UseG1GC
 ----
+<1> initial ram at 85%
+<2> max ram at 85%
+<3> initial heap size ~4.5GB
+<4> max heap size ~4.5GB
 
-As the container runs `java` with native memory tracking (`-XX:NativeMemoryTracking=summary`),
-it's possible to ask the JVM some information about JVM memory zones other than heap.
+
+=== Reading the memory footprint of the java process in the container
+
+The first thing to look at is the resident set size, it can be obtained in
+various way, e.g. using `ps` or reading the `/proc` should give the same number
+if done at the same time.
+
+.Via `ps`
+[source, bash, role="primary"]
+----
+$ ps o pid,rss -p $(pidof java)
+PID   RSS
+  6 4701120
+----
+
+.Via `/proc/<pid>/status`
+[source, bash, role="secondary"]
+----
+$ cat /proc/$(pgrep java)/status | grep VmRSS
+VmRSS:	 4701120 kB
+----
+
+4.7GB !!! Not quite within the 4.25 GB (85% of 5 GB) limit. So let's dig a bit to understand
+this number (4701120 KB).
+
+==== Digging in the java memory arenas
+
+Fortunately the application started with `-XX:NativeMemoryTracking=summary` which
+enables to have an overview of the different memory zones of a Java process.
 
 NOTE: Enabling native memory tracking (NMT) causes a 5% -10% performance overhead.
 
-.VM.native_memory instant snapshot
+.`VM.native_memory` instant snapshot
 [source, bash]
 ----
-❯ docker exec -it unruffled_rubin bash -c "env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.native_memory scale=KB"
+$ jcmd $(pgrep java) VM.native_memory scale=KB
 6:
 
 Native Memory Tracking:
@@ -231,15 +231,51 @@ Also, note that enabling other part may show up if some JVM features are activat
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
 
 
-For more information read the
+[NOTE]
+====
+At the present moment NMT reports a committed memory of 5380868 KB while process RSS is 4701120 KB.
+The difference relates to how `mmap` works (on Linux), memory pages are only backed by physical memory
+once they're written to.
+
+The hotspot JVM option `-XX:+AlwaysPreTouch` can tell to always write memory pages (to avoid the memory
+commit latencies) used for the heap. But other zones like thread stack works in a different manner.
+
+.vocabulary breakdown
+|===
+
+| *Used Heap* | the amount of memory occupied by live objects according to the last GC
+
+| *Committed* | Address ranges that have been mapped with something other than `PROT_NONE`.
+They may or may not be backed by physical or swap due to lazy allocation and paging.
+
+| *Reserved* | The total address range that has been pre-mapped via `mmap` for a particular memory pool.
+The _reserved_ / _committed_ difference consists of `PROT_NONE` mappings, which are guaranteed to not be backed
+by physical memory
+
+| *Resident* | Pages which are currently in physical ram. This means code, stacks, part of the committed memory
+pools but also portions of mmaped files which have recently been accessed and allocations outside the control
+of the JVM.
+
+| *Virtual* | The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
+files or shared memory. This number is rarely informative since the JVM can reserve very large address
+ranges in advance or mmap large files.
+
+|===
+
+https://stackoverflow.com/a/31178912/48136[source]
+====
+
+There's a lot more to read on the
 https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80[official documentation about NMT]
 and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77[How to Monitor VM Internal Memory].
 
-
-For a lot more details read this article by http://twitter.com/shipilev[Aleksey Shipilёv] on
+For a full blow deep dive read this article by http://twitter.com/shipilev[Aleksey Shipilёv] on
 https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
 
-There's also the MappedByteBuffers, these are the files mapped to virtual memory of a process.
+
+==== Explore NMT does not show
+
+There's also the `MappedByteBuffers`, these are the files mapped to virtual memory of a process.
 NMT does not track them, however, MappedByteBuffers can also take physical memory. And there is
 no a simple way to limit how much they can take. However, it's possible to see the actual usage
 of a process memory map: `pmap -x <pid>`
@@ -478,7 +514,7 @@ https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt[cgroup v1].
 .memory.stat
 [source, bash]
 ----
-❯ kubectl exec -it --container=edge-api deployment/edge-api -- cat /sys/fs/cgroup/memory/memory.stat
+❯ kubectl exec -it --container=java-app deployment/java-app -- cat /sys/fs/cgroup/memory/memory.stat
 cache 57434112 <7>
 rss 4822343680 <1>
 rss_huge 0
@@ -576,3 +612,128 @@ cat /sys/fs/cgroup/memory/memory.swappiness <2>
 ----
 <1> OS swapiness
 <2> cgroup swapiness, here the setting is not overridden
+
+
+== Make the docker image memory settings tweakable per environment
+
+RAM settings are part of the command, let's make that part configurable by environment,
+for that let's use https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JAVA_TOOL_OPTIONS`]
+to have more flexibility and remove the RAM percentage.
+
+.Application dockerfile
+[source,diff]
+----
+  ARG REGISTRY
+  FROM $REGISTRY/corretto-java:11.0.6.10.1
++ ENV JAVA_TOOL_OPTIONS="" <1>
+
+  RUN mkdir -p /gclogs /etc/java-app
+
+  COPY ./build/libs/java-app-boot.jar \
+    ./build/java-agents/agent-1.jar \
+    ./build/java-agents/agent-2.jar \
+    ./src/serviceability/*.sh \
+    /
+
+  CMD [ "/usr/bin/java", \
+        "-Dfile.encoding=UTF-8", \
+        "-Duser.timezone=UTC", \
+        "-Dcom.sun.management.jmxremote.port=7199", \
+        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
+        "-Dcom.sun.management.jmxremote.ssl=false", \
+        "-Dcom.sun.management.jmxremote.authenticate=false", \
+        "-Djava.security.egd=file:/dev/./urandom", \
+-       "-XX:InitialRAMPercentage=85.0", \ <2>
+-       "-XX:MaxRAMPercentage=85.0", \
+        "-XX:NativeMemoryTracking=summary", \
+        "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
+        "-javaagent:/agent-1.jar", \
+        "-javaagent:/agent-2.jar", \
+        "-Dsqreen.config_file=/sqreen.properties", \
+        "-jar", \
+        "/java-app-boot.jar", \
+        "--spring.config.additional-location=/etc/java-app/config.yaml", \
+        "--server.port=8080" ]
+
+  LABEL name="java-app"
+  LABEL build_path="../"
+  LABEL version_auto_semver="true"
+----
+<1> Defines the https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JAVA_TOOL_OPTIONS`]
+<2> Removes the RAM percentage settings to get _default_ values.
+
+=== Usual Docker prequel
+
+.Build the container
+[source]
+----
+❯ DOCKER_BUILDKIT=1 docker build \
+  --tag test-java-app \ <1>
+  --build-arg REGISTRY=eu.gcr.io/cd-registry \
+  --file _infra/Dockerfile \
+  .
+[+] Building 1.4s (9/9) FINISHED
+ => [internal] load build definition from Dockerfile                                                                                              0.0s
+ => => transferring dockerfile: 1.34kB                                                                                                            0.0s
+ => [internal] load .dockerignore                                                                                                                 0.0s
+ => => transferring context: 35B                                                                                                                  0.0s
+ => [internal] load metadata for eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                  0.0s
+ => CACHED [1/4] FROM eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                             0.0s
+ => [internal] load build context                                                                                                                 0.0s
+ => => transferring context: 1.32kB                                                                                                               0.0s
+ => [2/4] RUN mkdir -p /gclogs /etc/java-app                                                                                                      0.3s
+ => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                   0.0s
+ => [4/4] COPY ./build/libs/java-app-boot.jar   ./build/java-agents/agent-1.jar   ./build/java-agents/agent-2.jar   ./src/serviceability/*.sh   / 0.6s
+ => exporting to image                                                                                                                            0.4s
+ => => exporting layers                                                                                                                           0.4s
+ => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                      0.0s
+ => => naming to docker.io/library/test-java-app
+----
+<1> Custom tag to avoid collision with regular images in my cache
+
+.Run the container with the Java app
+[source]
+----
+❯ docker run test-java-app
+Picked up JAVA_TOOL_OPTIONS:
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...
+----
+
+
+=== Getting the JVM flags after bootstrap
+
+.VM.flags local docker
+[source, bash]
+----
+❯ docker exec -it j-mem bash -c "env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags | tr ' ' '\n'" # <1>
+6:
+-XX:CICompilerCount=3
+-XX:ConcGCThreads=1
+-XX:G1ConcRefinementThreads=4
+-XX:G1HeapRegionSize=1048576
+-XX:GCDrainStackTargetSize=64
+-XX:InitialHeapSize=33554432
+-XX:+ManagementServer
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=522190848 <2>
+-XX:MaxNewSize=312475648
+-XX:MinHeapDeltaBytes=1048576
+-XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5830732
+-XX:NonProfiledCodeHeapSize=122913754
+-XX:ProfiledCodeHeapSize=122913754
+-XX:ReservedCodeCacheSize=251658240
+-XX:+SegmentedCodeCache
+-XX:+UseCompressedClassPointers
+-XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps
+-XX:+UseG1GC
+----
+<1> unset `JAVA_TOOL_OPTIONS` otherwise jcmd may also take parameters intended
+for the main java application.
+<2> Max heap is about 500MB
+
+Notice there's no RAM setting in the flags, however the JVM computed the value
+of other flags, like the max heap size at ~25% of my docker settings 2GB.
