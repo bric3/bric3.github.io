@@ -17,7 +17,7 @@
     
     
 
-<title>Programmatic tail call elimination in Java • The Coffee Workshop</title>
+<title>Immutable jackson pojo with Lombok • The Coffee Workshop</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="The Coffee Workshop">
-<meta property="og:title" content="Programmatic tail call elimination in Java">
+<meta property="og:title" content="Immutable jackson pojo with Lombok">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/programmatic-tail-call-elimination-in-java/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2019/02/14/immutable-jackson-pojo-with-lombok/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -47,13 +47,13 @@
 <meta property="og:image:height" content="192">
     
 
-<meta property="og:updated_time" content="2018-05-04T00:00:00Z">
+<meta property="og:updated_time" content="2019-02-14T00:00:00Z">
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Programmatic tail call elimination in Java">
+<meta name="twitter:title" content="Immutable jackson pojo with Lombok">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -65,7 +65,7 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+<link rel="stylesheet" href="/scss/hyde-hyde.9b1b3e6d6205b58c2248b99aa91300ba240c0e96e9c1fe272d9b609ce5903882.css" integrity="sha256-mxs&#43;bWIFtYwiSLmaqRMAuiQMDpbpwf4nLZtgnOWQOII=">
 
 
 <link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
@@ -234,13 +234,13 @@
 
 <article>
   <header>
-    <h1>Programmatic tail call elimination in Java</h1>
+    <h1>Immutable jackson pojo with Lombok</h1>
     
     
 <div class="post__meta">
     
     
-      <i class="fas fa-calendar-alt"></i> 2018-05-04
+      <i class="fas fa-calendar-alt"></i> 2019-02-14
     
     
     
@@ -261,56 +261,50 @@
   
   
   <div class="post md">
-    <ol start="0">
-<li>Describe the problem</li>
-</ol>
-<p>Define :</p>
-<ul>
-<li>
-<p>recursion</p>
-</li>
-<li>
-<p>corecursion</p>
-</li>
-<li>
-<p>thread stack</p>
-</li>
-<li>
-<p>tail call</p>
-</li>
-<li>
-<p>tail call elimination</p>
-<p>Show what is a tail call in a recursive method and what is not.</p>
-</li>
-</ul>
-<ol>
-<li>
-<p>Picture recursion with Java</p>
-<p>Illustrate thread stack for recursive calls</p>
-</li>
-<li>
-<p>Describe programatic approach of tail call elimination using a
-<code>TailCall</code> object.</p>
-<p>Illustrate tail call elimination</p>
-</li>
-</ol>
-
-
-
+    <h2 id="the-quest-to-immutable-objects">The quest to immutable objects</h2>
+<p>It&rsquo;s sometime hard to keep following good principles in object oriented
+paradigm especially if we&rsquo;d like to enjoy modern tooling that those that
+generates code for us.</p>
+<p>This quick writing is not about whether one should use Lombok, Jackson, etc.
+or not, there&rsquo;s reasonable arguments that goes both way. But rather on how
+to keep a simple principle in his code base : immutable objects.</p>
+<p>They are quite easy to get right using vanilla Java. But when you have tons
+of objects with various boiler plate code like the accessors and constructors,
+generation tool may come naturally to reduce the repetitive tasks. And that&rsquo;s
+not even considering the maintenance cost of all this boiler plate code.</p>
+<h2 id="a-_simple_-bean">A <em>simple</em> bean</h2>
+<p>If the project don&rsquo;t have Lombok, the pojos will look a lot like this</p>
+<pre><code class="language-java">public class TrainSchedule {
+  private TrainNumber trainNumber;
+  private OffsetDateTime departureDateTime;
+  
+  // other fields
+  
+  public void setTrainNumber(TrainNumber id) { this.id = id; }
+  public TrainNumber getTrainNumber() { return id; }
+  public void setDepartureDateTime(OffsetDateTime departureDateTime) { 
+    this.departureDateTime = departureDateTime;
+  }
+  public OffsetDateTime getDepartureDateTime() { return departureDateTime; }
+  
+  // other accessors
+  // eventually toString, equals and haschCode
+}
+</code></pre>
 
   </div>
   
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/uri_paths_with_trailing_or_leading_slashes/" class="navigation-prev">
+    <a href="/drafts/2018/05/04/programmatic-tail-call-elimination-in-java/" class="navigation-prev">
       <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Opinion, should we prefix JAX-RS Path value with a slash ?</span>
+      <span class="navigation-tittle">Programmatic tail call elimination in Java</span>
     </a>
     
     
-    <a href="/drafts/immutable-jackson-pojo-with-lombok/" class="navigation-next">
-      <span class="navigation-tittle">Immutable jackson pojo with Lombok</span>
+    <a href="/drafts/2019/09/13/watchservice-and-bind-mount.fr/" class="navigation-next">
+      <span class="navigation-tittle">Lorsque le WatchService de Java n&#39;est pas le bon outil dans un conteneur</span>
       <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     
@@ -325,9 +319,9 @@
         
         
         
-        this.page.identifier = 'https://blog.arkey.fr/drafts/programmatic-tail-call-elimination-in-java/';
-        this.page.title = 'Programmatic tail call elimination in Java';
-        this.page.url = 'https://blog.arkey.fr/drafts/programmatic-tail-call-elimination-in-java/';
+        this.page.identifier = 'https://blog.arkey.fr/drafts/2019/02/14/immutable-jackson-pojo-with-lombok/';
+        this.page.title = 'Immutable jackson pojo with Lombok';
+        this.page.url = 'https://blog.arkey.fr/drafts/2019/02/14/immutable-jackson-pojo-with-lombok/';
     };
     (function() {
         if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {

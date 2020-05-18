@@ -17,7 +17,7 @@
     
     
 
-<title>Watchman • The Coffee Workshop</title>
+<title>Programmatic tail call elimination in Java • The Coffee Workshop</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="The Coffee Workshop">
-<meta property="og:title" content="Watchman">
+<meta property="og:title" content="Programmatic tail call elimination in Java">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/watchman/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2018/05/04/programmatic-tail-call-elimination-in-java/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -47,13 +47,13 @@
 <meta property="og:image:height" content="192">
     
 
-<meta property="og:updated_time" content="2020-04-29T15:15:09&#43;0200">
+<meta property="og:updated_time" content="2018-05-04T00:00:00Z">
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Watchman">
+<meta name="twitter:title" content="Programmatic tail call elimination in Java">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -65,7 +65,7 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+<link rel="stylesheet" href="/scss/hyde-hyde.9b1b3e6d6205b58c2248b99aa91300ba240c0e96e9c1fe272d9b609ce5903882.css" integrity="sha256-mxs&#43;bWIFtYwiSLmaqRMAuiQMDpbpwf4nLZtgnOWQOII=">
 
 
 <link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
@@ -234,20 +234,20 @@
 
 <article>
   <header>
-    <h1>Watchman</h1>
+    <h1>Programmatic tail call elimination in Java</h1>
     
     
 <div class="post__meta">
     
     
-      <i class="fas fa-calendar-alt"></i> 2020-04-29
+      <i class="fas fa-calendar-alt"></i> 2018-05-04
     
     
     
     
     
     <br/>
-    <i class="fas fa-clock"></i> 5 min read
+    <i class="fas fa-clock"></i> 3 min read
 
     
     
@@ -260,128 +260,59 @@
   
   
   
-  <div class="post adoc">
-    <div class="paragraph">
-<p><strong>Insert Lead paragraph here.</strong></p>
-</div>
-<div class="paragraph">
-<p>Alternatives to monitor a folder.</p>
-</div>
-<div class="sect1">
-<h2 id="_facebookwatchman"><a class="anchor" href="#_facebookwatchman"></a><a class="link" href="#_facebookwatchman">facebook/watchman</a></h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>A possible alternative to look at [watchman](<a href="https://facebook.github.io/watchman" class="bare">https://facebook.github.io/watchman</a>).
-This tool is a native process with Java bindings</p>
-</div>
-<div class="quoteblock">
-<blockquote>
-<div class="paragraph">
-<p>Watchman is known to compile and pass its test suite on:</p>
-</div>
-<div class="ulist">
+  <div class="post md">
+    <ol start="0">
+<li>Describe the problem</li>
+</ol>
+<p>Define :</p>
 <ul>
 <li>
-<p>Linux systems with <code>inotify</code></p>
+<p>recursion</p>
 </li>
 <li>
-<p>macOS (uses <code>FSEvents</code> on 10.7+, <code>kqueue(2)</code> on earlier versions)</p>
+<p>corecursion</p>
 </li>
 <li>
-<p>Windows x64 on Windows 7, Windows Server 2012 R2 and later is currently in <strong>beta</strong> status.</p>
+<p>thread stack</p>
+</li>
+<li>
+<p>tail call</p>
+</li>
+<li>
+<p>tail call elimination</p>
+<p>Show what is a tail call in a recursive method and what is not.</p>
 </li>
 </ul>
-</div>
-</blockquote>
-</div>
-<div class="paragraph">
-<p>Their <a href="https://facebook.github.io/watchman/docs/install">install procedure</a> is currently a bit messy
-in my opinion, it&#8217;s hard to actually find an exact version for linux. You currently have to search through
-the <a href="https://github.com/facebook/watchman/actions?query=is%3Asuccess+event%3Apush+workflow%3ACI">Github Actions jobs</a>
-and search for an artifact with a positive size (around 8 MB).</p>
-</div>
-<div class="quoteblock">
-<blockquote>
-<div class="paragraph">
-<p>The following artifacts have expired and are no longer able to be downloaded.</p>
-</div>
-</blockquote>
-</div>
-<div class="admonitionblock caution">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-caution" title="Caution"></i>
-</td>
-<td class="content">
-<code>watchman</code> does not follow semantic versioning! (<a href="https://facebook.github.io/watchman/docs/compatibility">Source</a>)
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>This tool is native however it does have several language bindings, C++ and NodeJS are the one that are documented.
-However the source code shows additional languages including <a href="https://github.com/facebook/watchman/tree/master/java">Java</a>.</p>
-</div>
-<div class="paragraph">
-<p>Usage of this code is not documented at this time. But by looking at the code,
-the Java client (and probalby in other languages as well) uses Unix domain socket (named pipe)
-and Windows Pipes to communicate with the <code>watchman</code> process. Like Docker, with Java Client
-example <a href="https://github.com/docker-java/docker-java">there</a>.</p>
-</div>
-<div class="listingblock">
-<div class="title">Java API usage</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">// Identifiy the actual socket depending on the platform
-WatchmanTransport socket = WatchmanTransportBuilder.discoverTransport(1, SECOND);
+<ol>
+<li>
+<p>Picture recursion with Java</p>
+<p>Illustrate thread stack for recursive calls</p>
+</li>
+<li>
+<p>Describe programatic approach of tail call elimination using a
+<code>TailCall</code> object.</p>
+<p>Illustrate tail call elimination</p>
+</li>
+</ol>
 
-WatchmanClient client = new WatchmanClientImpl(WatchmanTransportBuilder.discoverTransport());
-client.start();
-ListenableFuture&lt;SubscriptionDescriptor&gt; sd = client.subscribe(Paths.get("/etc"), null, new Callback() { <i class="conum" data-value="1"></i><b>(1)</b>
-      @Override
-      public void call(Map&lt;String, Object&gt; event) {
-        // act on event
-      }
-    });
 
-// unsubscribe
-client.unsbscribe(sd.get());
 
-client.close();</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Use the same semantic as the <a href="https://facebook.github.io/watchman/docs/subscribe"><code>subscribe</code></a> command internally.</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>The <code>WatchmanClient</code> exposes almost the same API as the <code>watchman</code> cli tool.</p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_watchexecwatchexec"><a class="anchor" href="#_watchexecwatchexec"></a><a class="link" href="#_watchexecwatchexec">watchexec/watchexec</a></h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p><a href="https://github.com/watchexec/watchexec" class="bare">https://github.com/watchexec/watchexec</a></p>
-</div>
-</div>
-</div>
 
   </div>
   
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/maxrampercentage-isnt-enough/" class="navigation-prev">
+    <a href="/drafts/2018/02/20/uri_paths_with_trailing_or_leading_slashes/" class="navigation-prev">
       <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">MaxRamPercentage isn&#39;t enough</span>
+      <span class="navigation-tittle">Opinion, should we prefix JAX-RS Path value with a slash ?</span>
     </a>
     
+    
+    <a href="/drafts/2019/02/14/immutable-jackson-pojo-with-lombok/" class="navigation-next">
+      <span class="navigation-tittle">Immutable jackson pojo with Lombok</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
     
 </div>
 
@@ -394,9 +325,9 @@ client.close();</code></pre>
         
         
         
-        this.page.identifier = 'https://blog.arkey.fr/drafts/watchman/';
-        this.page.title = 'Watchman';
-        this.page.url = 'https://blog.arkey.fr/drafts/watchman/';
+        this.page.identifier = 'https://blog.arkey.fr/drafts/2018/05/04/programmatic-tail-call-elimination-in-java/';
+        this.page.title = 'Programmatic tail call elimination in Java';
+        this.page.url = 'https://blog.arkey.fr/drafts/2018/05/04/programmatic-tail-call-elimination-in-java/';
     };
     (function() {
         if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {

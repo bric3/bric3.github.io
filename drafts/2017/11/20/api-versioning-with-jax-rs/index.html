@@ -17,7 +17,7 @@
     
     
 
-<title>Immutable jackson pojo with Lombok • The Coffee Workshop</title>
+<title>The Quest to API versioning with JAX-RS • The Coffee Workshop</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="The Coffee Workshop">
-<meta property="og:title" content="Immutable jackson pojo with Lombok">
+<meta property="og:title" content="The Quest to API versioning with JAX-RS">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/immutable-jackson-pojo-with-lombok/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2017/11/20/api-versioning-with-jax-rs/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -47,13 +47,13 @@
 <meta property="og:image:height" content="192">
     
 
-<meta property="og:updated_time" content="2019-02-14T00:00:00Z">
+<meta property="og:updated_time" content="2017-11-20T00:00:00Z">
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Immutable jackson pojo with Lombok">
+<meta name="twitter:title" content="The Quest to API versioning with JAX-RS">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -65,7 +65,7 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+<link rel="stylesheet" href="/scss/hyde-hyde.9b1b3e6d6205b58c2248b99aa91300ba240c0e96e9c1fe272d9b609ce5903882.css" integrity="sha256-mxs&#43;bWIFtYwiSLmaqRMAuiQMDpbpwf4nLZtgnOWQOII=">
 
 
 <link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
@@ -234,20 +234,20 @@
 
 <article>
   <header>
-    <h1>Immutable jackson pojo with Lombok</h1>
+    <h1>The Quest to API versioning with JAX-RS</h1>
     
     
 <div class="post__meta">
     
     
-      <i class="fas fa-calendar-alt"></i> 2019-02-14
+      <i class="fas fa-calendar-alt"></i> 2017-11-20
     
     
     
     
     
     <br/>
-    <i class="fas fa-clock"></i> 3 min read
+    <i class="fas fa-clock"></i> 5 min read
 
     
     
@@ -261,50 +261,90 @@
   
   
   <div class="post md">
-    <h2 id="the-quest-to-immutable-objects">The quest to immutable objects</h2>
-<p>It&rsquo;s sometime hard to keep following good principles in object oriented
-paradigm especially if we&rsquo;d like to enjoy modern tooling that those that
-generates code for us.</p>
-<p>This quick writing is not about whether one should use Lombok, Jackson, etc.
-or not, there&rsquo;s reasonable arguments that goes both way. But rather on how
-to keep a simple principle in his code base : immutable objects.</p>
-<p>They are quite easy to get right using vanilla Java. But when you have tons
-of objects with various boiler plate code like the accessors and constructors,
-generation tool may come naturally to reduce the repetitive tasks. And that&rsquo;s
-not even considering the maintenance cost of all this boiler plate code.</p>
-<h2 id="a-_simple_-bean">A <em>simple</em> bean</h2>
-<p>If the project don&rsquo;t have Lombok, the pojos will look a lot like this</p>
-<pre><code class="language-java">public class TrainSchedule {
-  private TrainNumber trainNumber;
-  private OffsetDateTime departureDateTime;
-  
-  // other fields
-  
-  public void setTrainNumber(TrainNumber id) { this.id = id; }
-  public TrainNumber getTrainNumber() { return id; }
-  public void setDepartureDateTime(OffsetDateTime departureDateTime) { 
-    this.departureDateTime = departureDateTime;
-  }
-  public OffsetDateTime getDepartureDateTime() { return departureDateTime; }
-  
-  // other accessors
-  // eventually toString, equals and haschCode
-}
+    <h1 id="the-quest-to-api-versioning-with-jax-rs">The Quest to API versioning with JAX-RS</h1>
+<blockquote>
+<p>In another post Nottingham adds that we <a href="http://www.mnot.net/blog/2012/07/11/header_versioning">shouldn’t use a custom header for versioning</a>
+and touches on versioning through the Accept header but there is a fundamental
+thread here: try as hard as possible to not introduce breaking changes so that
+versioning isn’t a big issue.</p>
+</blockquote>
+<p>There is multiple way to address that need.</p>
+<p>No versioning within the app, i.e. using a different backend (and as such a
+different authority, host and/or port) for each version</p>
+<ul>
+<li>Versioning via the path</li>
+<li>Query param</li>
+<li>Custom request header</li>
+<li>Via mime-type</li>
+</ul>
+<p>The trend is to use the Accept header with the mime-type to express versions.</p>
+<p>In this situation there&rsquo;s different approaches, that are not mutually exclusive</p>
+<ol>
+<li>
+<p>Using the media type <a href="https://tools.ietf.org/html/rfc6838#section-3.2">vendor tree</a> (RFC 6838)</p>
+<p>In the following request the client asks for the server to produce an <code>edge.v2.0</code>
+json. The <code>vnd</code> facet indicate the beginning of the  vendor tree.</p>
+<pre><code>GET /token HTTP/1.1
+Accept: application/vnd.app-api.v2.0+json
 </code></pre>
+</li>
+<li>
+<p>Using <a href="https://tools.ietf.org/html/rfc6838#section-4.3">media-type parameters</a> (RFC 6838)</p>
+<p>In the following request the client asks the server to produce the version 2.
+The media type is accompanied by the custom version parameter (same way as
+passing the charset)</p>
+<pre><code>GET /token HTTP/1.1
+Accept: application/json; version=2.0
+</code></pre>
+<p>The benefit of this approach is that, the code keeps using the standard know
+media-type here <code>application/json</code>, but that it can be customized with named
+parameters (<code>version</code>, <code>kind</code>, <code>experiment</code>, etc. along with the usual ones
+like <code>charset</code> or <code>q</code>).</p>
+</li>
+</ol>
+<p>The good news is that JAX-RS specification also supports parameter constructs
+since version JAX-RS 1.0 : <a href="https://docs.oracle.com/javaee/7/api/javax/ws/rs/core/MediaType.html">MediaType</a>.
+The bad news is that JAX-RS doesn&rsquo;t specify how content negotiation is supposed
+to be handled further that the raw media-type (i.e. without parameters), in
+practice Jersey for example does not handle this case. How to solve the problem :</p>
+<ul>
+<li>
+<p>The problem can be alleviated by using a pre-matching <code>ContainerRequestFilter</code>
+that will transform the media-type parameter to the vendor tree form.</p>
+</li>
+<li>
+<p>It seems that RestEasy (from JBoss / Redhat) understands media-type parameter.</p>
+</li>
+</ul>
+<p>In any case if <code>version</code> is not supported the server must send back a
+<code>406 Not Acceptable</code> status instead of <code>404 Not Found</code>.</p>
+<p>Client side, OkHttp 3.9.0 don&rsquo;t understand media-type parameters, but this is
+not a problem in practice as strings constants can be used.</p>
+
+
+
+<h2 id="end-words">End words</h2>
+<p>JAX-RS is NOT HTTP. I really think JAX-RS is one the best specification of the
+JEE bag, but yet again JAX-RS falls short in term of helping Java developers to
+design an HTTP API.</p>
+<h2 id="motivational-reads-">Motivational reads :</h2>
+<ul>
+<li><a href="http://www.mnot.net/blog/2012/12/04/api-evolution">http://www.mnot.net/blog/2012/12/04/api-evolution</a></li>
+<li><a href="https://content.pivotal.io/blog/api-versioning">https://content.pivotal.io/blog/api-versioning</a></li>
+<li><a href="https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/">https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/</a></li>
+<li><a href="http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned">http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned</a></li>
+<li><a href="https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/">https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/</a></li>
+<li><a href="https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html">https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html</a></li>
+</ul>
 
   </div>
   
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/programmatic-tail-call-elimination-in-java/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Programmatic tail call elimination in Java</span>
-    </a>
     
-    
-    <a href="/drafts/watchservice-and-bind-mount.fr/" class="navigation-next">
-      <span class="navigation-tittle">Lorsque le WatchService de Java n&#39;est pas le bon outil dans un conteneur</span>
+    <a href="/drafts/2018/02/20/uri_paths_with_trailing_or_leading_slashes/" class="navigation-next">
+      <span class="navigation-tittle">Opinion, should we prefix JAX-RS Path value with a slash ?</span>
       <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     
@@ -319,9 +359,9 @@ not even considering the maintenance cost of all this boiler plate code.</p>
         
         
         
-        this.page.identifier = 'https://blog.arkey.fr/drafts/immutable-jackson-pojo-with-lombok/';
-        this.page.title = 'Immutable jackson pojo with Lombok';
-        this.page.url = 'https://blog.arkey.fr/drafts/immutable-jackson-pojo-with-lombok/';
+        this.page.identifier = 'https://blog.arkey.fr/drafts/2017/11/20/api-versioning-with-jax-rs/';
+        this.page.title = 'The Quest to API versioning with JAX-RS';
+        this.page.url = 'https://blog.arkey.fr/drafts/2017/11/20/api-versioning-with-jax-rs/';
     };
     (function() {
         if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {

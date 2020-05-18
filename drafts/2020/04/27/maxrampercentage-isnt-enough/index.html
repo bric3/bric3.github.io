@@ -36,7 +36,7 @@
 <meta property="og:site_name" content="The Coffee Workshop">
 <meta property="og:title" content="MaxRamPercentage isn&amp;rsquo;t enough">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/maxrampercentage-isnt-enough/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/04/27/maxrampercentage-isnt-enough/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -65,7 +65,7 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+<link rel="stylesheet" href="/scss/hyde-hyde.9b1b3e6d6205b58c2248b99aa91300ba240c0e96e9c1fe272d9b609ce5903882.css" integrity="sha256-mxs&#43;bWIFtYwiSLmaqRMAuiQMDpbpwf4nLZtgnOWQOII=">
 
 
 <link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 30 min read
+    <i class="fas fa-clock"></i> 50 min read
 
     
     
@@ -261,108 +261,88 @@
   
   
   <div class="post adoc">
-    <div class="sect1">
-<h2 id="_app_docker_image"><a class="anchor" href="#_app_docker_image"></a><a class="link" href="#_app_docker_image">App Docker image</a></h2>
+    <div class="sidebarblock">
+<div class="content">
+<div class="title">Problem</div>
+<div class="paragraph">
+<p>With RAM percentage parameters of 85% of 3 GB memory tHe container
+still blow off over this limit, which results in killed pods and deployment
+of replicaset failing.</p>
+</div>
+<div class="paragraph">
+<p>Also this issue started to appear with full traffic. (It was working well when
+the traffic weight was 50%).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_actual_data_from_the_prod_cluster"><a class="anchor" href="#_actual_data_from_the_prod_cluster"></a><a class="link" href="#_actual_data_from_the_prod_cluster">Actual data from the prod cluster</a></h2>
 <div class="sectionbody">
-<div class="sect2">
-<h3 id="_building_and_running_locally"><a class="anchor" href="#_building_and_running_locally"></a><a class="link" href="#_building_and_running_locally">Building and running locally</a></h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ DOCKER_BUILDKIT=1 docker build -t test-edge-api --build-arg REGISTRY=eu.gcr.io/bbc-registry --no-cache -f _infra/Dockerfile .
-[+] Building 1.4s (9/9) FINISHED
- =&gt; [internal] load build definition from Dockerfile                                                                                                                                                        0.0s
- =&gt; =&gt; transferring dockerfile: 1.34kB                                                                                                                                                                      0.0s
- =&gt; [internal] load .dockerignore                                                                                                                                                                           0.0s
- =&gt; =&gt; transferring context: 35B                                                                                                                                                                            0.0s
- =&gt; [internal] load metadata for eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                           0.0s
- =&gt; CACHED [1/4] FROM eu.gcr.io/bbc-registry/corretto-java:11.0.6.10.1                                                                                                                                      0.0s
- =&gt; [internal] load build context                                                                                                                                                                           0.0s
- =&gt; =&gt; transferring context: 1.32kB                                                                                                                                                                         0.0s
- =&gt; [2/4] RUN mkdir -p /gclogs /etc/edge-api                                                                                                                                                                0.3s
- =&gt; [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                                                                             0.0s
- =&gt; [4/4] COPY ./build/libs/edge-api-boot.jar   ./build/java-agents/newrelic-agent.jar   ./build/java-agents/sqreen-agent.jar   ./build/java-agents/file-leak-detector.jar   ./src/serviceability/*.sh   /  0.6s
- =&gt; exporting to image                                                                                                                                                                                      0.4s
- =&gt; =&gt; exporting layers                                                                                                                                                                                     0.4s
- =&gt; =&gt; writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                                                                                0.0s
- =&gt; =&gt; naming to docker.io/library/test-edge-api</code></pre>
-</div>
+<div class="paragraph">
+<p>The application runs on a Kubernetes cluster. And nice the team that handled the issue
+wasn&#8217;t really prepared, they bumped the memory limits of the application to 5 GB.</p>
 </div>
 <div class="listingblock">
+<div class="title">deployment object of the app</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ docker run test-edge-api
-Picked up JAVA_TOOL_OPTIONS:
-WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.
-Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Configuration file not found. The agent will attempt to read required values from environment variables.
-Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic INFO: Using default collector host: collector.newrelic.com
-Mar 20, 2020 10:14:50 +0000 [7 1] com.newrelic ERROR: Unable to start the New Relic Agent. Your application will continue to run but it will not be monitored.
-com.newrelic.agent.config.ConfigurationException: The agent requires an application name. Check the app_name setting in newrelic.yml
-        at com.newrelic.agent.config.ConfigServiceFactory.validateConfig(ConfigServiceFactory.java:64) ~[newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.config.ConfigServiceFactory.createConfigService(ConfigServiceFactory.java:27) ~[newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.service.ServiceManagerImpl.&lt;init&gt;(ServiceManagerImpl.java:121) ~[newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.Agent.tryToInitializeServiceManager(Agent.java:194) [newrelic-agent.jar:5.8.0]
-        at com.newrelic.agent.Agent.continuePremain(Agent.java:137) [newrelic-agent.jar:5.8.0]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
-        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
-        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
-        at com.newrelic.bootstrap.BootstrapAgent.startAgent(BootstrapAgent.java:140) [newrelic-agent.jar:5.8.0]
-        at com.newrelic.bootstrap.BootstrapAgent.premain(BootstrapAgent.java:77) [newrelic-agent.jar:5.8.0]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?]
-        at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) ~[?:?]
-        at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
-        at java.lang.reflect.Method.invoke(Method.java:566) ~[?:?]
-        at sun.instrument.InstrumentationImpl.loadClassAndStartAgent(InstrumentationImpl.java:513) [?:?]
-        at sun.instrument.InstrumentationImpl.loadClassAndCallPremain(InstrumentationImpl.java:525) [?:?]
-10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
-2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-...</code></pre>
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: edge-api
+  # ...
+spec:
+  # ...
+  template:
+    # ...
+    spec:
+      containers:
+      - image: eu.gcr.io/cd-registry/java-app:1.20200513.102101-4c53e9c
+        name: java-app
+        # ...
+        resources:
+          limits:
+            cpu: "8"
+            memory: 5Gi <i class="conum" data-value="1"></i><b>(1)</b>
+          requests:
+            cpu: "3"
+            memory: 3Gi
+        # ...</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Actual memory limit.</td>
+</tr>
+</table>
 </div>
-<div class="sect2">
-<h3 id="_getting_the_jvm_flags_after_bootstrap"><a class="anchor" href="#_getting_the_jvm_flags_after_bootstrap"></a><a class="link" href="#_getting_the_jvm_flags_after_bootstrap">Getting the JVM flags after bootstrap</a></h3>
-<div class="listingblock">
-<div class="title">VM.flags local docker</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ docker exec -it unruffled_rubin bash -c "JAVA_TOOL_OPTIONS='' jcmd \$(pgrep java) VM.flags"
-Picked up JAVA_TOOL_OPTIONS:
-6:
--XX:CICompilerCount=3 -XX:ConcGCThreads=1 -XX:G1ConcRefinementThreads=4 -XX:G1HeapRegionSize=1048576
--XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=1774190592 -XX:InitialRAMPercentage=85.000000
--XX:+ManagementServer -XX:MarkStackSize=4194304 -XX:MaxHeapSize=1774190592 -XX:MaxNewSize=1064304640
--XX:MaxRAMPercentage=85.000000 -XX:MinHeapDeltaBytes=1048576 -XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5830732 -XX:NonProfiledCodeHeapSize=122913754 -XX:ProfiledCodeHeapSize=122913754
--XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps -XX:+UseG1GC</code></pre>
+<div class="paragraph">
+<p>But to understand our requirement, and to avoid lucky guess number (until it works),
+let&#8217;s explore the memory of a java process.</p>
 </div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_calculating_the_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_calculating_the_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_calculating_the_memory_footprint_of_the_java_process_in_the_container">Calculating the memory footprint of the java process in the container</a></h3>
-<div class="listingblock">
-<div class="title">RSS</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ cat /proc/$(pgrep java)/status | grep VmRSS
-VmRSS:	 4701120 kB</code></pre>
-</div>
+<div class="paragraph">
+<p>The RAM percentage are calculated at JVM startup from the given percentage, e.g.
+with <code>-XX:InitialRAMPercentage=85.0</code> and <code>-XX:MaxRAMPercentage=85.0</code>) the JVM
+calculates the following values.</p>
 </div>
 <div class="listingblock">
 <div class="title">VM.flags in k8s</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
 6:
 -XX:CICompilerCount=4
 -XX:ConcGCThreads=2
 -XX:G1ConcRefinementThreads=8
 -XX:G1HeapRegionSize=2097152
 -XX:GCDrainStackTargetSize=64
--XX:InitialHeapSize=4563402752
--XX:InitialRAMPercentage=85.000000
+-XX:InitialHeapSize=4563402752 <i class="conum" data-value="3"></i><b>(3)</b>
+-XX:InitialRAMPercentage=85.000000 <i class="conum" data-value="1"></i><b>(1)</b>
 -XX:+ManagementServer
 -XX:MarkStackSize=4194304
--XX:MaxHeapSize=4563402752
+-XX:MaxHeapSize=4563402752 <i class="conum" data-value="4"></i><b>(4)</b>
 -XX:MaxNewSize=2736783360
--XX:MaxRAMPercentage=85.000000
+-XX:MaxRAMPercentage=85.000000 <i class="conum" data-value="2"></i><b>(2)</b>
 -XX:MinHeapDeltaBytes=2097152
 -XX:NativeMemoryTracking=summary
 -XX:NonNMethodCodeHeapSize=5836300
@@ -376,9 +356,57 @@ VmRSS:	 4701120 kB</code></pre>
 -XX:+UseG1GC</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>initial ram at 85%</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>max ram at 85%</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>initial heap size ~4.5GB</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>max heap size ~4.5GB</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_reading_the_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container">Reading the memory footprint of the java process in the container</a></h3>
 <div class="paragraph">
-<p>As the container runs <code>java</code> with native memory tracking (<code>-XX:NativeMemoryTracking=summary</code>),
-it&#8217;s possible to ask the JVM some information about JVM memory zones other than heap.</p>
+<p>The first thing to look at is the resident set size, it can be obtained in
+various way, e.g. using <code>ps</code> or reading the <code>/proc</code> should give the same number
+if done at the same time.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">Via <code>ps</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ ps o pid,rss -p $(pidof java)
+PID   RSS
+  6 4701120</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">Via <code>/proc/&lt;pid&gt;/status</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ cat /proc/$(pgrep java)/status | grep VmRSS
+VmRSS:	 4701120 kB</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>4.7GB !!! Not quite within the 4.25 GB (85% of 5 GB) limit. So let&#8217;s dig a bit to understand
+this number (4701120 KB).</p>
+</div>
+<div class="sect3">
+<h4 id="_digging_in_the_java_memory_arenas"><a class="anchor" href="#_digging_in_the_java_memory_arenas"></a><a class="link" href="#_digging_in_the_java_memory_arenas">Digging in the java memory arenas</a></h4>
+<div class="paragraph">
+<p>Fortunately the application started with <code>-XX:NativeMemoryTracking=summary</code> which
+enables to have an overview of the different memory zones of a Java process.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -393,9 +421,9 @@ Enabling native memory tracking (NMT) causes a 5% -10% performance overhead.
 </table>
 </div>
 <div class="listingblock">
-<div class="title">VM.native_memory instant snapshot</div>
+<div class="title"><code>VM.native_memory</code> instant snapshot</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ docker exec -it unruffled_rubin bash -c "env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.native_memory scale=KB"
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) VM.native_memory scale=KB
 6:
 
 Native Memory Tracking:
@@ -530,17 +558,80 @@ etc.
 Also, note that enabling other part may show up if some JVM features are activated.
 <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
 <div class="paragraph">
-<p>For more information read the
+<p>At the present moment NMT reports a committed memory of 5380868 KB while process RSS is 4701120 KB.
+The difference relates to how <code>mmap</code> works (on Linux), memory pages are only backed by physical memory
+once they&#8217;re written to.</p>
+</div>
+<div class="paragraph">
+<p>The hotspot JVM option <code>-XX:+AlwaysPreTouch</code> can tell to always write zeroes to memory pages (which limits
+memory commit latencies) used for the heap allocations. But other zones like thread stack works
+differently, that means the some committed memory in NMT is not accounted by the RSS.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. vocabulary breakdown</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Used Heap</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects according to the last GC.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Address ranges that have been mapped with something other than <code>PROT_NONE</code>.
+They may or may not be backed by physical or swap due to lazy allocation and paging.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reserved</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> for a particular memory pool.
+The <em>reserved</em> / <em>committed</em> difference consists of <code>PROT_NONE</code> mappings, which are guaranteed to not be backed
+by physical memory</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Pages which are currently in physical ram. This means code, stacks, part of the committed memory
+pools but also portions of mmaped files which have recently been accessed and allocations outside the control
+of the JVM.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Virtual</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
+files or shared memory. This number is rarely informative since the JVM can reserve very large address
+ranges in advance or mmap large files.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="https://stackoverflow.com/a/31178912/48136">source</a></p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>There&#8217;s a lot more to read on the
 <a href="https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80">official documentation about NMT</a>
 and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">How to Monitor VM Internal Memory</a>.</p>
 </div>
 <div class="paragraph">
-<p>For a lot more details read this article by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a> on
+<p>For a full blow deep dive read this article by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a> on
 <a href="https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/">native memory tracking</a></p>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_explore_what_nmt_does_not_show"><a class="anchor" href="#_explore_what_nmt_does_not_show"></a><a class="link" href="#_explore_what_nmt_does_not_show">Explore what NMT does not show</a></h4>
 <div class="paragraph">
-<p>There&#8217;s also the MappedByteBuffers, these are the files mapped to virtual memory of a process.
+<p>There&#8217;s also the <code>MappedByteBuffers</code>, these are the files mapped to virtual memory of a process.
 NMT does not track them, however, MappedByteBuffers can also take physical memory. And there is
 no a simple way to limit how much they can take. However, it&#8217;s possible to see the actual usage
 of a process memory map: <code>pmap -x &lt;pid&gt;</code></p>
@@ -633,7 +724,7 @@ total kB         24035820 4776860 4720796</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>That&#8217;s a lot of information, let&#8217;s refine that with more
+<p>let&#8217;s refine that with more
 <a href="https://www.kernel.org/doc/Documentation/filesystems/proc.txt">knowledge about <code>/proc/&lt;pid&gt;/maps</code></a>,
 it indicates that a <em>map</em> has a set of modes:</p>
 </div>
@@ -668,7 +759,7 @@ already been mapped to physical memory, and the system is out of physical memory
 </ul>
 </div>
 <div class="paragraph">
-<p>So what&#8217;s interesting us at this time are the process&#8217;s memory mapped (shared) files</p>
+<p>At this time what we are looking for are the process&#8217;s memory mapped (shared) files:</p>
 </div>
 <div class="listingblock">
 <div class="title">process memory mapped files</div>
@@ -692,14 +783,16 @@ already been mapped to physical memory, and the system is out of physical memory
 <p>Which means there&#8217;s around 36 MB of memory mapped files.</p>
 </div>
 <div class="paragraph">
-<p><em>Another read on process memory <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">here</a></em>.</p>
+<p><em>Another read on process memory <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">here</a></em>
+helped me with the above command.</p>
 </div>
 <div class="paragraph">
-<p>That leaves us with this <em>equation</em> :</p>
+<p>Wrapping this information from NMT and memory mapped files leaves us with the
+following <em>equation</em> to estimate the actual memory usage of a process:</p>
 </div>
 <div class="literalblock">
 <div class="content">
-<pre>Total memory = Heap + Code Cache + Metaspace + Symbol tables
+<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Compiler + Other JVM structures + Thread stacks
                + Direct buffers + Mapped files +
                + Native Libraries + Malloc overhead + ...</pre>
@@ -716,12 +809,16 @@ already been mapped to physical memory, and the system is out of physical memory
 <td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Code Cache</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">105201</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">230739</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Metaspace</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">165788</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code Cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">105201</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Symbol tables</p></td>
@@ -760,22 +857,176 @@ already been mapped to physical memory, and the system is out of physical memory
 <td class="tableblock halign-left valign-top"><p class="tableblock">&#8230;&#8203;</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
+</tbody>
+<tfoot>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5186278 KB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5242880 KB</p></td>
+</tr>
+</tfoot>
+</table>
+<div class="paragraph">
+<p>5186278 KB is what this container is actually using, so way over the RSS (4701120 KB)
+but also over the 5 GB (5242880 KB) of the pod limit. Yet this pod is not oom killed.</p>
+</div>
+<div class="paragraph">
+<p>So what I am missing here ?</p>
+</div>
+<div class="paragraph">
+<p>There a few considerations to understand :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>NMT shows <em>reserved</em> and <em>committed</em> values on each arenas,</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reserved</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">this is the size that the OS guarantees to be available (but the
+JVM didn&#8217;t tell the OS to allocate this memory)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>committed</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">this size indicate the memory that the JVM allocated on the OS</p></td>
 </tr>
 </tbody>
 </table>
 <div class="paragraph">
-<p>5186278 KB is just tad under 5 GB (5242880 KB).
-But really the number we should look at is the actual non heap usage :</p>
+<p>Each of these memory arenas are managed differently: <code>GC</code>, <code>Compiler</code> have the
+same committed and reserved memory values while other zones have the ability to
+shrink or grow for example <code>thread stacks</code> arenas reports
+<code>85455 KB</code> but could take up to <code>696395 KB</code> if necessary, and theoretically
+same as the heap.</p>
+</div>
+</li>
+<li>
+<p>While the JVM did allocate this memory, Linux on x86 hardware uses virtual
+memory with paging. More specifically Linux optimize actual physical memory
+and only commit a page physically if this page is actually written to. In this
+case the <code>Heap</code> arena in particular seems to benefit from this behavior as the JVM
+allocated <code>4456448 KB</code>, but the actual RAM <em>resident set size</em> usage of this memory
+zone seems at this time is <code>3128252 KB</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Where to look this number? While it&#8217;s easy to get the RSS of a process, to understand
+if the committed heap actually <em>resides</em> on physical memory you need to use <code>pmap</code> or
+inspect <code>/proc/&lt;pid&gt;/maps</code> or <code>/proc/&lt;pid&gt;/smaps</code>. You have to notice the one of the first
+memory zone is quite big and about the size of the committed heap as shown in NMT. It&#8217;s easier
+to spot with <code>pmap -X</code> (capital <code>X</code>). <em>Note the below capture are from a different pod/process</em>.</p>
+</div>
+<div class="listingblock primary">
+<div class="title"><code>pmap -x &lt;pid&gt;</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -x $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- java
+0000000000600000       4       4       4 r---- java
+0000000000601000       4       4       4 rw--- java
+0000000001cfc000     412     224     224 rw---   [ anon ]
+00000006f0000000 4477472 2944744 2944744 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+0000000801488000 1027552       0       0 -----   [ anon ]
+00007f11b3744000   16388   16388   16388 rw---   [ anon ]
+00007f11b4745000      16       0       0 -----   [ anon ]
+00007f11b4749000   50688   49484   49484 rw---   [ anon ]
+00007f11b78c9000    1536       0       0 -----   [ anon ]
+00007f11b7a49000   32776   32776   32776 rw---   [ anon ]
+00007f11b9a4b000      16       0       0 -----   [ anon ] <i class="conum" data-value="2"></i><b>(2)</b>
+00007f11b9a4f000    1012      24      24 rw---   [ anon ] <i class="conum" data-value="3"></i><b>(3)</b>
+00007f11b9b4c000      16       0       0 -----   [ anon ]
+00007f11b9b50000    1012      92      92 rw---   [ anon ]
+00007f11b9c4d000      16       0       0 -----   [ anon ]
+00007f11b9c51000    1012     116     116 rw---   [ anon ]
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>heap arena</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>a thread guard pages</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>a thread stack</td>
+</tr>
+</table>
+</div>
+<div class="listingblock secondary">
+<div class="title"><code>pmap- X &lt;pid&gt;</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -X $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+         Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
+        00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
+        00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        00601000 rw-p 00001000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        01cfc000 rw-p 00000000  00:00       0      412     224     224        224       224        0              0              0               0    0       0      0           0 [heap] <i class="conum" data-value="1"></i><b>(1)</b>
+       6f0000000 rw-p 00000000  00:00       0  4477472 2939592 2939592    2939592   2939592        0              0              0               0    0       0      0           0
+       801488000 ---p 00000000  00:00       0  1027552       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4745000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4749000 rw-p 00000000  00:00       0    50688   49472   49472      49472     49472        0              0              0               0    0       0      0           0
+    7f11b78c9000 ---p 00000000  00:00       0     1536       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b7a49000 rw-p 00000000  00:00       0    32776   32776   32776      32776     32776        0              0              0               0    0       0      0           0
+    7f11b9a4b000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        <i class="conum" data-value="2"></i><b>(2)</b>
+    7f11b9a4f000 rw-p 00000000  00:00       0     1012     112     112        112       112        0              0              0               0    0       0      0           0        <i class="conum" data-value="3"></i><b>(3)</b>
+    7f11b9b4c000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b9b50000 rw-p 00000000  00:00       0     1012      96      96         96        96        0              0              0               0    0       0      0           0
+    7f11b9c4d000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>heap arena</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>a thread guard pages</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>a thread stack</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_going_back_to_choose_a_wise_value_for_the_ram_percentage"><a class="anchor" href="#_going_back_to_choose_a_wise_value_for_the_ram_percentage"></a><a class="link" href="#_going_back_to_choose_a_wise_value_for_the_ram_percentage">Going back to choose a wise value for the RAM percentage</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>From the above, it&#8217;s now possible with NMT especially and with <code>pmap</code> to
+understand actual memory usage and to answer the question: "what is a sensible
+ram percentage setting for this application ?"</p>
+</div>
+<div class="paragraph">
+<p>Really what drive the answer is the actual non-heap usage not accounted in <code>MaxRAMPercentage</code>, from
+the numbers above:</p>
 </div>
 <div class="literalblock">
 <div class="content">
-<pre>5186278 - 4456448 = 729830 KB</pre>
+<pre>(total) 5242880 - (heap) 4456448 = 786432 KB</pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. In percentages</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -784,27 +1035,38 @@ But really the number we should look at is the actual non heap usage :</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Non heap</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5186278 - 4456448 = 729830</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5242880 - 4456448 = 786432</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">~14 %</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">~85 %</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~86 %</p></td>
 </tr>
+</tbody>
+<tfoot>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">5186278</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">100 %</p></td>
 </tr>
-</tbody>
+</tfoot>
 </table>
 <div class="paragraph">
-<p>This means the application needs at least 730 MB plus the heap to run.</p>
+<p><strong>This means the application needs at least 790 MB, plus the heap to run.</strong></p>
 </div>
 <div class="paragraph">
-<p>The heap committed memory is 4563402752 B (set via <code>-XX:MaxRAMPercentage=85.000000</code>),
-but the heap usage may have a different figure :</p>
+<p>From the flags seen above, the JVM set the heap maximum size memory to <code>4563402752</code> Bytes,
+which was computed from this flag <code>-XX:MaxRAMPercentage=85.000000</code>, which is a lucky guess
+for <code>5 GB</code> deployment memory limit. If instead of the     XXXXX</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_going_further"><a class="anchor" href="#_going_further"></a><a class="link" href="#_going_further">Going further</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>but the heap usage may have a different figure :</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -863,7 +1125,6 @@ lead can lead to the actual memory usage for this app (in the given cluster topo
 </li>
 </ul>
 </div>
-</div>
 <div class="sect2">
 <h3 id="_interpreting_cgroups_memory"><a class="anchor" href="#_interpreting_cgroups_memory"></a><a class="link" href="#_interpreting_cgroups_memory">Interpreting cgroup&#8217;s memory</a></h3>
 <div class="paragraph">
@@ -873,7 +1134,7 @@ lead can lead to the actual memory usage for this app (in the given cluster topo
 <div class="listingblock">
 <div class="title">memory.stat</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ kubectl exec -it --container=edge-api deployment/edge-api -- cat /sys/fs/cgroup/memory/memory.stat
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ kubectl exec -it --container=java-app deployment/java-app -- cat /sys/fs/cgroup/memory/memory.stat
 cache 57434112 <i class="conum" data-value="7"></i><b>(7)</b>
 rss 4822343680 <i class="conum" data-value="1"></i><b>(1)</b>
 rss_huge 0
@@ -1043,19 +1304,179 @@ cat /sys/fs/cgroup/memory/memory.swappiness <i class="conum" data-value="2"></i>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_make_the_docker_image_memory_settings_tweakable_per_environment"><a class="anchor" href="#_make_the_docker_image_memory_settings_tweakable_per_environment"></a><a class="link" href="#_make_the_docker_image_memory_settings_tweakable_per_environment">Make the docker image memory settings tweakable per environment</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>RAM settings are part of the command, let&#8217;s make that part configurable by environment,
+for that let&#8217;s use <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC"><code>JAVA_TOOL_OPTIONS</code></a>
+to have more flexibility and remove the RAM percentage.</p>
+</div>
+<div class="listingblock">
+<div class="title">Application dockerfile</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">  ARG REGISTRY
+  FROM $REGISTRY/corretto-java:11.0.6.10.1
++ ENV JAVA_TOOL_OPTIONS="" <i class="conum" data-value="1"></i><b>(1)</b>
+
+  RUN mkdir -p /gclogs /etc/java-app
+
+  COPY ./build/libs/java-app-boot.jar \
+    ./build/java-agents/agent-1.jar \
+    ./build/java-agents/agent-2.jar \
+    ./src/serviceability/*.sh \
+    /
+
+  CMD [ "/usr/bin/java", \
+        "-Dfile.encoding=UTF-8", \
+        "-Duser.timezone=UTC", \
+        "-Dcom.sun.management.jmxremote.port=7199", \
+        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
+        "-Dcom.sun.management.jmxremote.ssl=false", \
+        "-Dcom.sun.management.jmxremote.authenticate=false", \
+        "-Djava.security.egd=file:/dev/./urandom", \
+-       "-XX:InitialRAMPercentage=85.0", \ <i class="conum" data-value="2"></i><b>(2)</b>
+-       "-XX:MaxRAMPercentage=85.0", \
+        "-XX:NativeMemoryTracking=summary", \
+        "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
+        "-javaagent:/agent-1.jar", \
+        "-javaagent:/agent-2.jar", \
+        "-Dsqreen.config_file=/sqreen.properties", \
+        "-jar", \
+        "/java-app-boot.jar", \
+        "--spring.config.additional-location=/etc/java-app/config.yaml", \
+        "--server.port=8080" ]
+
+  LABEL name="java-app"
+  LABEL build_path="../"
+  LABEL version_auto_semver="true"</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Defines the <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC"><code>JAVA_TOOL_OPTIONS</code></a></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Removes the RAM percentage settings to get <em>default</em> values.</td>
+</tr>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_usual_docker_prequel"><a class="anchor" href="#_usual_docker_prequel"></a><a class="link" href="#_usual_docker_prequel">Usual Docker prequel</a></h3>
+<div class="listingblock">
+<div class="title">Build the container</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ DOCKER_BUILDKIT=1 docker build \
+  --tag test-java-app \ <i class="conum" data-value="1"></i><b>(1)</b>
+  --build-arg REGISTRY=eu.gcr.io/cd-registry \
+  --file _infra/Dockerfile \
+  .
+[+] Building 1.4s (9/9) FINISHED
+ =&gt; [internal] load build definition from Dockerfile                                                                                              0.0s
+ =&gt; =&gt; transferring dockerfile: 1.34kB                                                                                                            0.0s
+ =&gt; [internal] load .dockerignore                                                                                                                 0.0s
+ =&gt; =&gt; transferring context: 35B                                                                                                                  0.0s
+ =&gt; [internal] load metadata for eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                  0.0s
+ =&gt; CACHED [1/4] FROM eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                             0.0s
+ =&gt; [internal] load build context                                                                                                                 0.0s
+ =&gt; =&gt; transferring context: 1.32kB                                                                                                               0.0s
+ =&gt; [2/4] RUN mkdir -p /gclogs /etc/java-app                                                                                                      0.3s
+ =&gt; [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                   0.0s
+ =&gt; [4/4] COPY ./build/libs/java-app-boot.jar   ./build/java-agents/agent-1.jar   ./build/java-agents/agent-2.jar   ./src/serviceability/*.sh   / 0.6s
+ =&gt; exporting to image                                                                                                                            0.4s
+ =&gt; =&gt; exporting layers                                                                                                                           0.4s
+ =&gt; =&gt; writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                      0.0s
+ =&gt; =&gt; naming to docker.io/library/test-java-app</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Custom tag to avoid collision with regular images in my cache</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">Run the container with the Java app</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run test-java-app
+Picked up JAVA_TOOL_OPTIONS:
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_getting_the_jvm_flags_after_bootstrap"><a class="anchor" href="#_getting_the_jvm_flags_after_bootstrap"></a><a class="link" href="#_getting_the_jvm_flags_after_bootstrap">Getting the JVM flags after bootstrap</a></h3>
+<div class="listingblock">
+<div class="title">VM.flags local docker</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">❯ docker exec -it j-mem bash -c "env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags | tr ' ' '\n'" <i class="conum" data-value="1"></i><b>(1)</b>
+6:
+-XX:CICompilerCount=3
+-XX:ConcGCThreads=1
+-XX:G1ConcRefinementThreads=4
+-XX:G1HeapRegionSize=1048576
+-XX:GCDrainStackTargetSize=64
+-XX:InitialHeapSize=33554432
+-XX:+ManagementServer
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=522190848 <i class="conum" data-value="2"></i><b>(2)</b>
+-XX:MaxNewSize=312475648
+-XX:MinHeapDeltaBytes=1048576
+-XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5830732
+-XX:NonProfiledCodeHeapSize=122913754
+-XX:ProfiledCodeHeapSize=122913754
+-XX:ReservedCodeCacheSize=251658240
+-XX:+SegmentedCodeCache
+-XX:+UseCompressedClassPointers
+-XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps
+-XX:+UseG1GC</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>unset <code>JAVA_TOOL_OPTIONS</code> otherwise jcmd may also take parameters intended
+for the main java application.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Max heap is about 500MB</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Notice there&#8217;s no RAM setting in the flags, however the JVM computed the value
+of other flags, like the max heap size at ~25% of my docker settings 2GB.</p>
+</div>
+<div class="paragraph">
+<p>(386453 - 1347 - 698) / 1028 &#8658; 373</p>
+</div>
+</div>
+</div>
+</div>
 
   </div>
   
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/using-java-flight-recorder/" class="navigation-prev">
+    <a href="/drafts/2020/04/24/using-java-flight-recorder/" class="navigation-prev">
       <i aria-hidden="true" class="fa fa-chevron-left"></i>
       <span class="navigation-tittle">Using Java FlightRecorder</span>
     </a>
     
     
-    <a href="/drafts/watchman/" class="navigation-next">
+    <a href="/drafts/2020/04/29/watchman/" class="navigation-next">
       <span class="navigation-tittle">Watchman</span>
       <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
@@ -1071,9 +1492,9 @@ cat /sys/fs/cgroup/memory/memory.swappiness <i class="conum" data-value="2"></i>
         
         
         
-        this.page.identifier = 'https://blog.arkey.fr/drafts/maxrampercentage-isnt-enough/';
+        this.page.identifier = 'https://blog.arkey.fr/drafts/2020/04/27/maxrampercentage-isnt-enough/';
         this.page.title = 'MaxRamPercentage isn\x27t enough';
-        this.page.url = 'https://blog.arkey.fr/drafts/maxrampercentage-isnt-enough/';
+        this.page.url = 'https://blog.arkey.fr/drafts/2020/04/27/maxrampercentage-isnt-enough/';
     };
     (function() {
         if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {

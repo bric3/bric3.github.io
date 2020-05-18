@@ -17,7 +17,7 @@
     
     
 
-<title>The Quest to API versioning with JAX-RS • The Coffee Workshop</title>
+<title>Opinion, should we prefix JAX-RS Path value with a slash ? • The Coffee Workshop</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="The Coffee Workshop">
-<meta property="og:title" content="The Quest to API versioning with JAX-RS">
+<meta property="og:title" content="Opinion, should we prefix JAX-RS Path value with a slash ?">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/api-versioning-with-jax-rs/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2018/02/20/uri_paths_with_trailing_or_leading_slashes/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -47,13 +47,13 @@
 <meta property="og:image:height" content="192">
     
 
-<meta property="og:updated_time" content="2017-11-20T00:00:00Z">
+<meta property="og:updated_time" content="2018-02-20T00:00:00Z">
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="The Quest to API versioning with JAX-RS">
+<meta name="twitter:title" content="Opinion, should we prefix JAX-RS Path value with a slash ?">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -65,7 +65,7 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.5cf410a6c1626c168f4dd77f022dc337f1dbfbdc551f0fe511a0c8bb3b56ec02.css" integrity="sha256-XPQQpsFibBaPTdd/Ai3DN/Hb&#43;9xVHw/lEaDIuztW7AI=">
+<link rel="stylesheet" href="/scss/hyde-hyde.9b1b3e6d6205b58c2248b99aa91300ba240c0e96e9c1fe272d9b609ce5903882.css" integrity="sha256-mxs&#43;bWIFtYwiSLmaqRMAuiQMDpbpwf4nLZtgnOWQOII=">
 
 
 <link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
@@ -234,20 +234,20 @@
 
 <article>
   <header>
-    <h1>The Quest to API versioning with JAX-RS</h1>
+    <h1>Opinion, should we prefix JAX-RS Path value with a slash ?</h1>
     
     
 <div class="post__meta">
     
     
-      <i class="fas fa-calendar-alt"></i> 2017-11-20
+      <i class="fas fa-calendar-alt"></i> 2018-02-20
     
     
     
     
     
     <br/>
-    <i class="fas fa-clock"></i> 5 min read
+    <i class="fas fa-clock"></i> 8 min read
 
     
     
@@ -261,90 +261,68 @@
   
   
   <div class="post md">
-    <h1 id="the-quest-to-api-versioning-with-jax-rs">The Quest to API versioning with JAX-RS</h1>
+    <p>In the past months I have been using extensively the infamous HTTP client
+OkHTTP, I have been impressed by the will power of committers to respect
+HTTP standards. My co-workers which have various degrees of knowledge and experience
+in different language ecosystem work on a server-side application with some JAX-RS
+endpoints, and this question arose:</p>
 <blockquote>
-<p>In another post Nottingham adds that we <a href="http://www.mnot.net/blog/2012/07/11/header_versioning">shouldn’t use a custom header for versioning</a>
-and touches on versioning through the Accept header but there is a fundamental
-thread here: try as hard as possible to not introduce breaking changes so that
-versioning isn’t a big issue.</p>
+<p>Should we prefix or not by a slash the path value in <code>@Path</code> annotations ?</p>
 </blockquote>
-<p>There is multiple way to address that need.</p>
-<p>No versioning within the app, i.e. using a different backend (and as such a
-different authority, host and/or port) for each version</p>
-<ul>
-<li>Versioning via the path</li>
-<li>Query param</li>
-<li>Custom request header</li>
-<li>Via mime-type</li>
-</ul>
-<p>The trend is to use the Accept header with the mime-type to express versions.</p>
-<p>In this situation there&rsquo;s different approaches, that are not mutually exclusive</p>
-<ol>
-<li>
-<p>Using the media type <a href="https://tools.ietf.org/html/rfc6838#section-3.2">vendor tree</a> (RFC 6838)</p>
-<p>In the following request the client asks for the server to produce an <code>edge.v2.0</code>
-json. The <code>vnd</code> facet indicate the beginning of the  vendor tree.</p>
-<pre><code>GET /token HTTP/1.1
-Accept: application/vnd.app-api.v2.0+json
+<p>Having worked for <del>so</del> <em>too</em> many years with JAX-RS endpoints I always liked paths
+pre-pended with a slash. However after working with OkHttp&rsquo;s <code>HttpUrl</code> I started
+to notice that JAX-RS was a bit non standard and may even be confusing for some.</p>
+<p>JAX-RS resolves URL paths with leading slashes the same way as without leading
+slashes, although the preferred way is without leading slash.</p>
+<blockquote>
+<p>A <code>@Path</code> value isn’t required to have leading or trailing slashes (/). The
+JAX-RS runtime parses URI path templates the same whether or not they have
+leading or trailing spaces. <a href="https://docs.oracle.com/cd/E19798-01/821-1841/ginpw/">[1]</a></p>
+</blockquote>
+<p>More specifically the JAX-RS <a href="https://docs.oracle.com/javaee/7/api/javax/ws/rs/Path.html"><code>@Path</code></a> documentation says :</p>
+<blockquote>
+<p>Paths are relative. For an annotated class the base URI is the application
+path, see <code>ApplicationPath</code>. For an annotated method the base URI is the
+effective URI of the containing class. For the purposes of absolutizing a
+path against the base URI , a leading &lsquo;/&rsquo; in a path is ignored and base URIs
+are treated as if they ended in &lsquo;/'.</p>
+</blockquote>
+<p>So an <code>ApllicationPath</code> can define a path that will be pre-pended anyway. And anyway
+the JAX-RS endpoints are registered in a servlet that can be set-up in a context
+path in the application container.</p>
+<p>Now if you know how Linux filesystem work, a leading slash usually indicates
+the root of the filesystem. And the web people understood that in order to
+<em>access</em> server resources some rules had to be made, they did create the
+<a href="https://tools.ietf.org/html/rfc3986">RFC 3886</a>. This document explains how
+a URI is structured :</p>
+<pre><code>         foo://example.com:8042/over/there?name=ferret#nose
+         \_/   \______________/\_________/ \_________/ \__/
+          |           |            |            |        |
+       scheme     authority       path        query   fragment
+          |   _____________________|__
+         / \ /                        \
+         urn:example:animal:ferret:nose
 </code></pre>
-</li>
-<li>
-<p>Using <a href="https://tools.ietf.org/html/rfc6838#section-4.3">media-type parameters</a> (RFC 6838)</p>
-<p>In the following request the client asks the server to produce the version 2.
-The media type is accompanied by the custom version parameter (same way as
-passing the charset)</p>
-<pre><code>GET /token HTTP/1.1
-Accept: application/json; version=2.0
-</code></pre>
-<p>The benefit of this approach is that, the code keeps using the standard know
-media-type here <code>application/json</code>, but that it can be customized with named
-parameters (<code>version</code>, <code>kind</code>, <code>experiment</code>, etc. along with the usual ones
-like <code>charset</code> or <code>q</code>).</p>
-</li>
-</ol>
-<p>The good news is that JAX-RS specification also supports parameter constructs
-since version JAX-RS 1.0 : <a href="https://docs.oracle.com/javaee/7/api/javax/ws/rs/core/MediaType.html">MediaType</a>.
-The bad news is that JAX-RS doesn&rsquo;t specify how content negotiation is supposed
-to be handled further that the raw media-type (i.e. without parameters), in
-practice Jersey for example does not handle this case. How to solve the problem :</p>
-<ul>
-<li>
-<p>The problem can be alleviated by using a pre-matching <code>ContainerRequestFilter</code>
-that will transform the media-type parameter to the vendor tree form.</p>
-</li>
-<li>
-<p>It seems that RestEasy (from JBoss / Redhat) understands media-type parameter.</p>
-</li>
-</ul>
-<p>In any case if <code>version</code> is not supported the server must send back a
-<code>406 Not Acceptable</code> status instead of <code>404 Not Found</code>.</p>
-<p>Client side, OkHttp 3.9.0 don&rsquo;t understand media-type parameters, but this is
-not a problem in practice as strings constants can be used.</p>
-
-
-
-<h2 id="end-words">End words</h2>
-<p>JAX-RS is NOT HTTP. I really think JAX-RS is one the best specification of the
-JEE bag, but yet again JAX-RS falls short in term of helping Java developers to
-design an HTTP API.</p>
-<h2 id="motivational-reads-">Motivational reads :</h2>
-<ul>
-<li><a href="http://www.mnot.net/blog/2012/12/04/api-evolution">http://www.mnot.net/blog/2012/12/04/api-evolution</a></li>
-<li><a href="https://content.pivotal.io/blog/api-versioning">https://content.pivotal.io/blog/api-versioning</a></li>
-<li><a href="https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/">https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/</a></li>
-<li><a href="http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned">http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned</a></li>
-<li><a href="https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/">https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/</a></li>
-<li><a href="https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html">https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html</a></li>
-</ul>
+<p>and in the path section the document identifies two kind
+of path absolute and relative</p>
+<p><strong>But</strong>, this interface is for Retrofit / OkHttp, which use his own <a href="https://square.github.io/okhttp/3.x/okhttp/okhttp3/HttpUrl.html"><code>HttpUrl</code></a> class for resolving resolving the path the retrofit annotation (e.g. <a href="http://square.github.io/retrofit/2.x/retrofit/retrofit2/http/POST.html#value--"><code>@POST</code></a>). Those annotations allows relating or absolute paths. And since it uses <code>HttpUrl.resolve</code> method, the leading slash in the url of the annotation is resolved as an absolute path, e.g. right after the authority. Everything is explained in this Retrofit <a href="http://square.github.io/retrofit/2.x/retrofit/retrofit2/Retrofit.Builder.html#baseUrl-okhttp3.HttpUrl-">documentation</a>.</p>
+<p><strong>So the leading or trailing slashes are not code cosmetic, but involves different semantic in the URL resolution, especially client side.</strong></p>
+<p>That&rsquo;s what browsers do, when resolving urls. It is the RFC 3886, and here&rsquo;s the tests in OkHttp.</p>
+<p>Actually there&rsquo;s a rationale behind the leading or trailing slash <code>/</code> in the URL, (notice I didn&rsquo;t format URL), it is because of URL resolution.</p>
 
   </div>
   
 
 <div class="navigation navigation-single">
     
+    <a href="/drafts/2017/11/20/api-versioning-with-jax-rs/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">The Quest to API versioning with JAX-RS</span>
+    </a>
     
-    <a href="/drafts/uri_paths_with_trailing_or_leading_slashes/" class="navigation-next">
-      <span class="navigation-tittle">Opinion, should we prefix JAX-RS Path value with a slash ?</span>
+    
+    <a href="/drafts/2018/05/04/programmatic-tail-call-elimination-in-java/" class="navigation-next">
+      <span class="navigation-tittle">Programmatic tail call elimination in Java</span>
       <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     
@@ -359,9 +337,9 @@ design an HTTP API.</p>
         
         
         
-        this.page.identifier = 'https://blog.arkey.fr/drafts/api-versioning-with-jax-rs/';
-        this.page.title = 'The Quest to API versioning with JAX-RS';
-        this.page.url = 'https://blog.arkey.fr/drafts/api-versioning-with-jax-rs/';
+        this.page.identifier = 'https://blog.arkey.fr/drafts/2018/02/20/uri_paths_with_trailing_or_leading_slashes/';
+        this.page.title = 'Opinion, should we prefix JAX-RS Path value with a slash ?';
+        this.page.url = 'https://blog.arkey.fr/drafts/2018/02/20/uri_paths_with_trailing_or_leading_slashes/';
     };
     (function() {
         if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
