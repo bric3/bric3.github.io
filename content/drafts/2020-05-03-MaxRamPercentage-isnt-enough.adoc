@@ -2,7 +2,7 @@
 authors: ["brice.dutheil"]
 date: "2020-04-27T11:45:29+02:00"
 language: en
-#tags: ["cgroup", "java", "kubernetes", "docker", "memory"]
+#tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "pmap"]
 slug: "maxrampercentage-isnt-enough"
 title: "MaxRamPercentage isn't enough"
 draft: true
@@ -237,13 +237,14 @@ At the present moment NMT reports a committed memory of 5380868 KB while process
 The difference relates to how `mmap` works (on Linux), memory pages are only backed by physical memory
 once they're written to.
 
-The hotspot JVM option `-XX:+AlwaysPreTouch` can tell to always write memory pages (to avoid the memory
-commit latencies) used for the heap. But other zones like thread stack works in a different manner.
+The hotspot JVM option `-XX:+AlwaysPreTouch` can tell to always write zeroes to memory pages (which limits
+memory commit latencies) used for the heap allocations. But other zones like thread stack works
+differently, that means the some committed memory in NMT is not accounted by the RSS.
 
 .vocabulary breakdown
 |===
 
-| *Used Heap* | the amount of memory occupied by live objects according to the last GC
+| *Used Heap* | The amount of memory occupied by live objects according to the last GC.
 
 | *Committed* | Address ranges that have been mapped with something other than `PROT_NONE`.
 They may or may not be backed by physical or swap due to lazy allocation and paging.
@@ -273,7 +274,7 @@ For a full blow deep dive read this article by http://twitter.com/shipilev[Aleks
 https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
 
 
-==== Explore NMT does not show
+==== Explore what NMT does not show
 
 There's also the `MappedByteBuffers`, these are the files mapped to virtual memory of a process.
 NMT does not track them, however, MappedByteBuffers can also take physical memory. And there is
@@ -368,7 +369,7 @@ ffffffffff600000       4       0       0 r-x--   [ anon ]
 total kB         24035820 4776860 4720796
 ----
 
-That's a lot of information, let's refine that with more
+let's refine that with more
 https://www.kernel.org/doc/Documentation/filesystems/proc.txt[knowledge about `/proc/<pid>/maps`],
 it indicates that a _map_ has a set of modes:
 
@@ -385,7 +386,7 @@ here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linu
 This means that we can get a segmentation fault by accessing that memory if it has not
 already been mapped to physical memory, and the system is out of physical memory.
 
-So what's interesting us at this time are the process's memory mapped (shared) files
+At this time what we are looking for are the process's memory mapped (shared) files:
 
 .process memory mapped files
 [source, bash]
@@ -407,22 +408,26 @@ $ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
 
 Which means there's around 36 MB of memory mapped files.
 
-_Another read on process memory https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[here]_.
+_Another read on process memory https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[here]_
+helped me with the above command.
 
-That leaves us with this _equation_ :
+Wrapping this information from NMT and memory mapped files leaves us with the
+following _equation_ to estimate the actual memory usage of a process:
 
 ....
-Total memory = Heap + Code Cache + Metaspace + Symbol tables
+Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Compiler + Other JVM structures + Thread stacks
                + Direct buffers + Mapped files +
                + Native Libraries + Malloc overhead + ...
 ....
 
+[options="footer"]
 |===
 
 | Heap                            | 4456448
-| Code Cache                      |  105201
+| GC                              |  230739
 | Metaspace                       |  165788
+| Code Cache                      |  105201
 | Symbol tables                   |   28915
 | Compiler                        |    5914
 | Other JVM structures
@@ -433,29 +438,165 @@ Total memory = Heap + Code Cache + Metaspace + Symbol tables
 | Native Libraries                | unaccounted at this time
 | Malloc overhead                 | accounted in NMT
 | ...                             |
-| Total                           | 5186278 KB
 
+| Total                           | 5242880 KB
 |===
 
-5186278 KB is just tad under 5 GB (5242880 KB).
-But really the number we should look at is the actual non heap usage :
+5186278 KB is what this container is actually using, so way over the RSS (4701120 KB)
+but also over the 5 GB (5242880 KB) of the pod limit. Yet this pod is not oom killed.
 
-....
-5186278 - 4456448 = 729830 KB
-....
+So what I am missing here ?
 
+There a few considerations to understand :
+
+* NMT shows _reserved_ and _committed_ values on each arenas,
++
 |===
 
-| Non heap | 5186278 - 4456448 = 729830 | ~14 %
-| Heap     | 4456448                    | ~85 %
+| `reserved` | this is the size that the OS guarantees to be available (but the
+JVM didn't tell the OS to allocate this memory)
+| `committed` | this size indicate the memory that the JVM allocated on the OS
+
+|===
++
+Each of these memory arenas are managed differently: `GC`, `Compiler` have the
+same committed and reserved memory values while other zones have the ability to
+shrink or grow for example `thread stacks` arenas reports
+`85455 KB` but could take up to `696395 KB` if necessary, and theoretically
+same as the heap.
+
+* While the JVM did allocate this memory, Linux on x86 hardware uses virtual
+memory with paging. More specifically Linux optimize actual physical memory
+and only commit a page physically if this page is actually written to. In this
+case the `Heap` arena in particular seems to benefit from this behavior as the JVM
+allocated `4456448 KB`, but the actual RAM _resident set size_ usage of this memory
+zone seems at this time is `3128252 KB`.
+
+Where to look this number? While it's easy to get the RSS of a process, to understand
+if the committed heap actually _resides_ on physical memory you need to use `pmap` or
+inspect `/proc/<pid>/maps` or `/proc/<pid>/smaps`. You have to notice the one of the first
+memory zone is quite big and about the size of the committed heap as shown in NMT. It's easier
+to spot with `pmap -X` (capital `X`). _Note the below capture are from a different pod/process_.
+
+.`pmap -x <pid>`
+[source, role="primary"]
+----
+$ pmap -x $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- java
+0000000000600000       4       4       4 r---- java
+0000000000601000       4       4       4 rw--- java
+0000000001cfc000     412     224     224 rw---   [ anon ]
+00000006f0000000 4477472 2944744 2944744 rw---   [ anon ] <1>
+0000000801488000 1027552       0       0 -----   [ anon ]
+00007f11b3744000   16388   16388   16388 rw---   [ anon ]
+00007f11b4745000      16       0       0 -----   [ anon ]
+00007f11b4749000   50688   49484   49484 rw---   [ anon ]
+00007f11b78c9000    1536       0       0 -----   [ anon ]
+00007f11b7a49000   32776   32776   32776 rw---   [ anon ]
+00007f11b9a4b000      16       0       0 -----   [ anon ] <2>
+00007f11b9a4f000    1012      24      24 rw---   [ anon ] <3>
+00007f11b9b4c000      16       0       0 -----   [ anon ]
+00007f11b9b50000    1012      92      92 rw---   [ anon ]
+00007f11b9c4d000      16       0       0 -----   [ anon ]
+00007f11b9c51000    1012     116     116 rw---   [ anon ]
+...
+----
+<1> heap arena
+<2> a thread guard pages
+<3> a thread stack
+
+.`pmap- X <pid>`
+[source, role="secondary"]
+----
+$ pmap -X $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+         Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
+        00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
+        00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        00601000 rw-p 00001000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        01cfc000 rw-p 00000000  00:00       0      412     224     224        224       224        0              0              0               0    0       0      0           0 [heap] <1>
+       6f0000000 rw-p 00000000  00:00       0  4477472 2939592 2939592    2939592   2939592        0              0              0               0    0       0      0           0
+       801488000 ---p 00000000  00:00       0  1027552       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4745000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4749000 rw-p 00000000  00:00       0    50688   49472   49472      49472     49472        0              0              0               0    0       0      0           0
+    7f11b78c9000 ---p 00000000  00:00       0     1536       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b7a49000 rw-p 00000000  00:00       0    32776   32776   32776      32776     32776        0              0              0               0    0       0      0           0
+    7f11b9a4b000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        <2>
+    7f11b9a4f000 rw-p 00000000  00:00       0     1012     112     112        112       112        0              0              0               0    0       0      0           0        <3>
+    7f11b9b4c000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b9b50000 rw-p 00000000  00:00       0     1012      96      96         96        96        0              0              0               0    0       0      0           0
+    7f11b9c4d000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
+...
+----
+<1> heap arena
+<2> a thread guard pages
+<3> a thread stack
+
+
+== Going back to choose a wise value for the RAM percentage
+
+From the above, it's now possible with NMT especially and with `pmap` to
+understand actual memory usage and to answer the question: "what is a sensible
+ram percentage setting for this application ?"
+
+Really what drive the answer is the actual non-heap usage not accounted in `MaxRAMPercentage`, from
+the numbers above:
+
+....
+(total) 5242880 - (heap) 4456448 = 786432 KB
+....
+
+
+.In percentages
+[options="footer"]
+|===
+
+| Non heap | 5242880 - 4456448 = 786432 | ~14 %
+| Heap     | 4456448                    | ~86 %
+
 | Total    | 5186278                    | 100 %
-
 |===
 
-This means the application needs at least 730 MB plus the heap to run.
+*This means the application needs around 790 MB, plus the heap to run.*
 
-The heap committed memory is 4563402752 B (set via `-XX:MaxRAMPercentage=85.000000`),
-but the heap usage may have a different figure :
+From the flags seen above, the JVM set the heap maximum size memory to `4 563 402 752` Bytes,
+this value was computed from this flag `-XX:MaxRAMPercentage=85.000000`, and this percentage
+is somehow a lucky guess that worked for the `5 GB` deployment memory limit.
+But this percentage is wrong, if he JVM needed all that memory then the container/pod would
+have been _oom killed_. Also, it is necessary to give some free space in the container
+to be able to perform serviceability tasks, like profiling, heap dump, etc.
+
+For a 5GB limit it may be good to give around 20% for all of these non-heap, plus system space
+for this particular workload (e.g. if the application requires heavy filesystem usage, then
+it would be a different number to make room for the filesystem cache).
+
+So the problem would be solved with the following value, for a `5 GB` memory limit :
+
+[source]
+----
+-XX:InitialRAMPercentage=80.0 <1>
+-XX:MaxRAMPercentage=80.0 <1>
+----
+
+
+== Going further
+
+As a reminder this application was set up with 85% limit for the java heap when the
+deployment limit was `3 GB`, it worked under 50% of the traffic but failed with full traffic.
+Then tis pod memory limit was bum ped to 5 GB. So actually this is the memory limit that
+is a lucky guess for 5 GB, as the RAM percentage was set in the `CMD` directive of the Dockerfile.
+
+This can be explained by two arenas whose usage increased especially, the stacks and the heap usage.
+
+But this application worked well under way less memory. Let's explore that.
+
+=== Actual Java Heap usage
+
+While the previous section allowed to understand actual memory usage, it didn't gave any figure
+regarding the actual heap usage for this application :
 
 [source, bash]
 ----
@@ -467,7 +608,7 @@ $ jcmd $(pgrep java) GC.heap_info
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
 
-Successive execution may give different results about the used memory
+Successive execution may of course indicate an evolving output about java heap usage:
 
 [source, bash]
 ----
@@ -486,17 +627,22 @@ $ jcmd 6 GC.heap_info
   class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
 ----
 
-The heap went from 925702 KB to 2421454 KB ! Following the trend of the heap usage
+The heap went from `925702 KB` to `2421454 KB` ! Following the trend of the heap usage
 lead can lead to the actual memory usage for this app (in the given cluster topology).
 
-
+....
 2.5 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.5 GB
+....
 
-Which leads to set `-XX:MaxRAMPercentage=71.0`. if we want a lower memory footprint.
+Note this is the heap usage with the current GC activity, but this usage may eventually
+be lower at the cost of higher GC activity (and most likely CPU usage).
+
+The above number give the following percentage value `-XX:MaxRAMPercentage=71.0` with
+a deployment limit of `3.5 GB`.
 
 
 
-
+TODO XXXX
 
 
 * RSS => amount of physical memory allocated & used by a process
@@ -737,3 +883,26 @@ for the main java application.
 
 Notice there's no RAM setting in the flags, however the JVM computed the value
 of other flags, like the max heap size at ~25% of my docker settings 2GB.
+
+
+
+
+
+
+(386453 - 1347 - 698) / 1028 => 373
+
+
+
+
+
+
+////
+
+https://pangin.pro/posts/stack-overflow-handling
+
+https://stackoverflow.com/questions/25309748/what-is-thread-stack-size-option-xss-given-to-jvm-why-does-it-have-a-limit-of[What is thread stack size option(-Xss) given to jvm? Why does it have a limit of atleast 68k in a windows pc?]
+
+Memory footprint of a Java process by Andrei Pangin
+https://www.youtube.com/watch?v=c755fFv1Rnk
+
+////
