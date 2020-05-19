@@ -65,10 +65,10 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.e4cd07d68e6b87d5686d52ad08e184b6ba4bf96afc170089c756cdc4af7c877d.css" integrity="sha256-5M0H1o5rh9VobVKtCOGEtrpL&#43;Wr8FwCJx1bNxK98h30=">
+<link rel="stylesheet" href="/scss/hyde-hyde.09f5378f6c3541dcc6b3aa2c4bf3449a72eb648896f9a5142e5b1fd7e3239629.css" integrity="sha256-CfU3j2w1QdzGs6osS/NEmnLrZIiW&#43;aUULlsf1&#43;Mjlik=">
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde-dark.25c0245fdf4298c5779495d3b15063f4aa3e0f9d23e66dcb888241644669c066.css" integrity="sha256-JcAkX99CmMV3lJXTsVBj9Ko&#43;D50j5m3LiIJBZEZpwGY=" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.ed3355e174ad47eef241d8e787e6571c1a182421442c6e694b1a4dde3364f897.css" integrity="sha256-7TNV4XStR&#43;7yQdjnh&#43;ZXHBoYJCFELG5pSxpN3jNk&#43;Jc=" media="(prefers-color-scheme: dark)">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 53 min read
+    <i class="fas fa-clock"></i> 55 min read
 
     
     
@@ -261,19 +261,35 @@
   
   
   <div class="post adoc">
-    <div class="sidebarblock">
+    <div class="paragraph">
+<p>So like many I was happy to see that the JDK 11 had everything to run
+in a container, it can read information form the <code>cgroups</code> and it&#8217;s possible to
+tell the memory usage via the <code>-XX:MaxRAMPercentage</code>.
+However&#8230;&#8203;</p>
+</div>
+<div class="sidebarblock">
 <div class="content">
 <div class="title">Problem</div>
 <div class="paragraph">
-<p>With RAM percentage parameters of 85% of 3 GB memory tHe container
-still blow off over this limit, which results in killed pods and deployment
-of replicaset failing.</p>
+<p>With a RAM percentage parameters at <code>85%</code> of <code>3 GB</code> memory, the container
+application still go over this limit, which resulted in killed pods and failing
+deployment of our replicaset.</p>
 </div>
 <div class="paragraph">
-<p>Also this issue started to appear with full traffic. (It was working well when
+<p>This issue started to appear with full traffic. (It was working well when
 the traffic weight was 50%).</p>
 </div>
 </div>
+</div>
+<div class="paragraph">
+<p>The following writing tries to gather various piece of information,
+that are not really available if you don&#8217;t know what to look for or where.
+Also it summarize things I knew, things I grepped in the JDK codebase,
+and things learned from other (awesome) people.</p>
+</div>
+<div class="paragraph">
+<p>I hope I didn&#8217;t dismissed important things, I hope I&#8217;m not totally wrong,
+or simply I hope I&#8217;m not misguiding myself and especially others.</p>
 </div>
 <div class="sect1">
 <h2 id="_actual_data_from_the_prod_cluster"><a class="anchor" href="#_actual_data_from_the_prod_cluster"></a><a class="link" href="#_actual_data_from_the_prod_cluster">Actual data from the prod cluster</a></h2>
@@ -379,12 +395,12 @@ calculates the following values.</p>
 <div class="sect2">
 <h3 id="_reading_the_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container">Reading the memory footprint of the java process in the container</a></h3>
 <div class="paragraph">
-<p>The first thing to look at is the resident set size, it can be obtained in
+<p>The first thing to look at is the <em>resident set size</em>, it can be obtained in
 various way, e.g. using <code>ps</code> or reading the <code>/proc</code> should give the same number
 if done at the same time.</p>
 </div>
 <div class="listingblock primary">
-<div class="title">Via <code>ps</code></div>
+<div class="title"><code>ps</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ ps o pid,rss -p $(pidof java)
 PID   RSS
@@ -392,14 +408,14 @@ PID   RSS
 </div>
 </div>
 <div class="listingblock secondary">
-<div class="title">Via <code>/proc/{pid}/status</code></div>
+<div class="title"><code>/proc/{pid}/status</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>4.7GB !!! Not quite within the 4.25 GB (85% of 5 GB) limit. So let&#8217;s dig a bit to understand
+<p><code>4.7 GB</code> !!! Not quite within the 4.5 GB (85% of 5 GB) limit. So let&#8217;s dig a bit to understand
 this number (4701120 KB).</p>
 </div>
 <div class="sect3">
@@ -415,7 +431,7 @@ enables to have an overview of the different memory zones of a Java process.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Enabling native memory tracking (NMT) causes a 5% -10% performance overhead.
+Enabling native memory tracking (NMT) causes a 5% to 10% performance overhead.
 </td>
 </tr>
 </table>
@@ -506,25 +522,27 @@ Total: reserved=7168324KB, committed=5380868KB                               <i 
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>This shows what the JVM reserved for memory 7168324 KB (~7.1 GB) and what is actually used
-by the jvm process 4456448 KB (~4.45 GB).</td>
+<td>This shows a <code>reserved</code> value (<code>7168324 KB</code> (~<code>7.1 GB</code>)), it&#8217;s the amount of addressable memory
+(all OS types) on that container, and a <code>committed</code> value (<code>4456448 KB</code> (~<code>4.45 GB</code>)) that represents
+what the JVM actually told the OS to allocate.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>heap arena, note reserved and committed values are the same 4456448 KB, I&#8217;m not sure why this
-number is different from the VM flags <code>-XX:MaxHeapSize=4563402752</code></td>
+<td>Heap arena, note reserved and committed values are the same <code>4456448 KB</code> here because our
+<code>InitialRAMPercentage</code> is the same as max. I&#8217;m not sure why this number is different from the VM
+flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>~165 MB of class metadata</td>
+<td>~<code>165 MB</code> of class metadata</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>how many classes have been loaded : 28431</td>
+<td>How many classes have been loaded : <code>28431</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>674 threads are using ~81 MB out of 696 MB reserved</td>
+<td>There are 674 threads that are using ~<code>81 MB</code> and could use up to <code>696 MB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="6"></i><b>6</b></td>
@@ -532,28 +550,28 @@ number is different from the VM flags <code>-XX:MaxHeapSize=4563402752</code></t
 </tr>
 <tr>
 <td><i class="conum" data-value="7"></i><b>7</b></td>
-<td>G1GC internal data structures take ~230 MB</td>
+<td>G1GC internal data structures take ~<code>230 MB</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="8"></i><b>8</b></td>
-<td>C1 / C2 compilers (which compile bytecodes to assembly) uses ~6 MB</td>
+<td>C1 / C2 compilers (which compile bytecodes to assembly) uses ~<code>6 MB</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="9"></i><b>9</b></td>
-<td>The symbols contains many things lik interned strings and other internal constants ~29 MB</td>
+<td>The symbols contains many things like interned strings and other internal constants ~<code>29 MB</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="10"></i><b>10</b></td>
-<td>Internal (included DirectByteBuffers before Java 11), maybe others objects, here takes ~24 MB</td>
+<td>Internal (included DirectByteBuffers before Java 11), maybe others objects, here takes ~<code>24 MB</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="11"></i><b>11</b></td>
-<td>Other section after Java 11 includes DirectByteBuffers ~267 MB</td>
+<td>Other section after Java 11 includes DirectByteBuffers ~<code>267 MB</code></td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Other areas are much smaller in scale, NMT takes ~8 MB itself, module system ~1.3 MB,
+<p>Other areas are much smaller in scale, NMT takes ~<code>8 MB</code> itself, module system usage ~<code>1.3 MB</code>,
 etc.
 Also, note that enabling other part may show up if some JVM features are activated.
 <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
@@ -566,12 +584,12 @@ Also, note that enabling other part may show up if some JVM features are activat
 </td>
 <td class="content">
 <div class="paragraph">
-<p>At the present moment NMT reports a committed memory of 5380868 KB while process RSS is 4701120 KB.
+<p>At the present moment NMT reports a committed memory of <code>5380868 KB</code> while process RSS is 4701120 KB.
 The difference relates to how <code>mmap</code> works (on Linux), memory pages are only backed by physical memory
 once they&#8217;re written to.</p>
 </div>
 <div class="paragraph">
-<p>The hotspot JVM option <code>-XX:+AlwaysPreTouch</code> can tell to always write zeroes to memory pages (which limits
+<p>The Hotspot JVM option <code>-XX:+AlwaysPreTouch</code> can tell to always write zeroes to memory pages (which limits
 memory commit latencies) used for the heap allocations. But other zones like thread stack works
 differently, that means the some committed memory in NMT is not accounted by the RSS.</p>
 </div>
@@ -584,7 +602,7 @@ differently, that means the some committed memory in NMT is not accounted by the
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Used Heap</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects according to the last GC.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects according.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed</strong></p></td>
@@ -600,7 +618,7 @@ by physical memory</p></td>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Pages which are currently in physical ram. This means code, stacks, part of the committed memory
-pools but also portions of mmaped files which have recently been accessed and allocations outside the control
+pools but also portions of <code>mmap</code>ed files which have recently been accessed and allocations outside the control
 of the JVM.</p></td>
 </tr>
 <tr>
@@ -621,7 +639,7 @@ ranges in advance or mmap large files.</p></td>
 <div class="paragraph">
 <p>There&#8217;s a lot more to read on the
 <a href="https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80">official documentation about NMT</a>
-and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">How to Monitor VM Internal Memory</a>.</p>
+and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">how to Monitor VM Internal Memory</a>.</p>
 </div>
 <div class="paragraph">
 <p>For a full blow deep dive read this article by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a> on
@@ -632,16 +650,16 @@ and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-t
 <h4 id="_explore_what_nmt_does_not_show"><a class="anchor" href="#_explore_what_nmt_does_not_show"></a><a class="link" href="#_explore_what_nmt_does_not_show">Explore what NMT does not show</a></h4>
 <div class="paragraph">
 <p>There&#8217;s also the <code>MappedByteBuffers</code>, these are the files mapped to virtual memory of a process.
-NMT does not track them, however, MappedByteBuffers can also take physical memory. And there is
-no a simple way to limit how much they can take. However, it&#8217;s possible to see the actual usage
-of a process memory map: <code>pmap -x &lt;pid&gt;</code></p>
+NMT does not track them, however, <code>MappedByteBuffers</code> can also take physical memory. It&#8217;s possible
+to see the actual usage of a process memory map: <code>pmap -x &lt;pid&gt;</code></p>
 </div>
 <div class="listingblock">
 <div class="title">process memory mappings</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x $(pgrep java)
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Djava.security.egd=file:/dev/.
-/urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary -Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
+-XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
+-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000000400000       4       4       0 r-x-- java
 0000000000600000       4       4       4 r---- java
@@ -724,8 +742,8 @@ total kB         24035820 4776860 4720796</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>let&#8217;s refine that with more
-<a href="https://www.kernel.org/doc/Documentation/filesystems/proc.txt">knowledge about <code>/proc/&lt;pid&gt;/maps</code></a>,
+<p>Let&#8217;s refine that with more
+<a href="https://www.kernel.org/doc/Documentation/filesystems/proc.txt">knowledge about <code>/proc/{pid}/maps</code></a>,
 it indicates that a <em>map</em> has a set of modes:</p>
 </div>
 <div class="ulist">
@@ -746,45 +764,50 @@ but <code>pmap</code> only show the <code>s</code> flag.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>Also, <code>pmap</code> has another mapping mode which I barely found any reference of,
-here&#8217;s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a> and <a href="https://linux.die.net/man/2/mmap">here</a></p>
+<p>On a side note, <code>pmap</code> may show another mapping mode which I barely found any reference of,
+here&#8217;s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a>
+and <a href="https://linux.die.net/man/2/mmap">here</a></p>
 </div>
 <div class="ulist">
 <ul>
 <li>
 <p><code>R</code>: if set, the map has no swap space reserved (<code>MAP_NORESERVE</code> flag of <code>mmap</code>).
 This means that we can get a segmentation fault by accessing that memory if it has not
-already been mapped to physical memory, and the system is out of physical memory.</p>
+already been mapped to physical memory, and if the system is out of physical memory.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>At this time what we are looking for are the process&#8217;s memory mapped (shared) files:</p>
+<p>At this time the focus is to see what are the memory mapped files with the JVM. Those can be either
+read from or written to, we need to look for both the <code>r</code> or <code>w</code> or neither, also while quite unlikely
+with Java let&#8217;s not restrict on the <em>executable</em> mapping, so the only thing we could be restricting to
+is the shared mapping <code>s</code> (memory mapped files are shared because the OS may want to reuse the afferent
+memory pages for other processes) :</p>
 </div>
 <div class="listingblock">
-<div class="title">process memory mapped files</div>
+<div class="title">Our application memory mapped files</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
 00007f5fdc02f000       4       4       0 r--s- instrumentation1647616515145161084.jar
 00007f5fdc030000       4       4       0 r--s- instrumentation11262564974060761935.jar
 00007f5fdc053000       8       8       0 r--s- java-agent-bs-cl.jar
 00007f5fdc055000       4       4       0 r--s- instrumentation249633448216144460.jar
-00007f5fdc056000       4       4       0 r--s- newrelic-bootstrap10447345921091566771.jar
-00007f5fdc057000      12      12       0 r--s- newrelic-api6038277081136135384.jar
-00007f5fec000000       8       8       0 r--s- newrelic-weaver-api16247655721253674284.jar
-00007f5fec002000       4       4       0 r--s- newrelic-opentracing-bridge12060425782296980104.jar
-00007f5fec003000      12      12       0 r--s- agent-bridge3261511391751138774.jar
+00007f5fdc056000       4       4       0 r--s- agent1-bootstrap10447345921091566771.jar
+00007f5fdc057000      12      12       0 r--s- agent1-api6038277081136135384.jar
+00007f5fec000000       8       8       0 r--s- agent1-weaver-api16247655721253674284.jar
+00007f5fec002000       4       4       0 r--s- agent1-opentracing-bridge12060425782296980104.jar
+00007f5fec003000      12      12       0 r--s- agent2-bridge3261511391751138774.jar
 00007f5ffb910000  138176   36060       0 r--s- modules
 00007f6008006000      28      28       0 r--s- gconv-modules.cache
                            ^^^^^               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Which means there&#8217;s around 36 MB of memory mapped files.</p>
+<p>There&#8217;s around <code>36 MB</code> of memory mapped files.</p>
 </div>
 <div class="paragraph">
-<p><em>Another read on process memory <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">here</a></em>
-helped me with the above command.</p>
+<p><em>As I was a bit unfamiliar with <code>pmap</code>, reading <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">this process memory blog</a>
+helped me with the above command.</em></p>
 </div>
 <div class="paragraph">
 <p>Wrapping this information from NMT and memory mapped files leaves us with the
@@ -866,11 +889,12 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
 </tfoot>
 </table>
 <div class="paragraph">
-<p>5186278 KB is what this container is actually using, so way over the RSS (4701120 KB)
-but also over the 5 GB (5242880 KB) of the pod limit. Yet this pod is not oom killed.</p>
+<p><code>5186278 KB</code> is what this container is actually using, so way over the RSS (<code>4701120 KB</code>)
+but also over the <code>5 GB</code> (<code>5242880 KB</code>) of the pod limit. Yet this pod is healthy and far from
+the thresholds to be oom killed.</p>
 </div>
 <div class="paragraph">
-<p>So what I am missing here ?</p>
+<p><strong>So what I am missing here ?</strong></p>
 </div>
 <div class="paragraph">
 <p>There a few considerations to understand :</p>
@@ -917,7 +941,7 @@ zone seems at this time is <code>3128252 KB</code>.</p>
 <div class="paragraph">
 <p>Where to look this number? While it&#8217;s easy to get the RSS of a process, to understand
 if the committed heap actually <em>resides</em> on physical memory you need to use <code>pmap</code> or
-inspect <code>/proc/&lt;pid&gt;/maps</code> or <code>/proc/&lt;pid&gt;/smaps</code>. You have to notice the one of the first
+inspect <code>/proc/{pid}/maps</code> or <code>/proc/{pid}/smaps</code>. You have to notice the one of the first
 memory zone is quite big and about the size of the committed heap as shown in NMT. It&#8217;s easier
 to spot with <code>pmap -X</code> (capital <code>X</code>). <em>Note the below capture are from a different pod/process</em>.</p>
 </div>
@@ -925,7 +949,7 @@ to spot with <code>pmap -X</code> (capital <code>X</code>). <em>Note the below c
 <div class="title"><code>pmap -x &lt;pid&gt;</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -x $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000000400000       4       4       0 r-x-- java
 0000000000600000       4       4       4 r---- java
@@ -967,7 +991,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <div class="title"><code>pmap- X &lt;pid&gt;</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -X $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
          Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
         00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
         00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
@@ -1013,8 +1037,8 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <div class="sectionbody">
 <div class="paragraph">
 <p>From the above, it&#8217;s now possible with NMT especially and with <code>pmap</code> to
-understand actual memory usage and to answer the question: "what is a sensible
-ram percentage setting for this application ?"</p>
+understand actual memory usage and to answer the question: "What is a sensible
+RAM percentage setting for this application ?"</p>
 </div>
 <div class="paragraph">
 <p>Really what drive the answer is the actual non-heap usage not accounted in <code>MaxRAMPercentage</code>, from
@@ -1053,14 +1077,15 @@ the numbers above:</p>
 </tfoot>
 </table>
 <div class="paragraph">
-<p><strong>This means the application needs around 790 MB, plus the heap to run.</strong></p>
+<p><strong>This means the application needs around <code>790 MB</code>, plus the heap to run.</strong></p>
 </div>
 <div class="paragraph">
 <p>From the flags seen above, the JVM set the heap maximum size memory to <code>4 563 402 752</code> Bytes,
 this value was computed from this flag <code>-XX:MaxRAMPercentage=85.000000</code>, and this percentage
 is somehow a lucky guess that worked for the <code>5 GB</code> deployment memory limit.
-But this percentage is wrong, if he JVM needed all that memory then the container/pod would
-have been <em>oom killed</em>. Also, it is necessary to give some free space in the container
+But this actual percentage is in fact <em>wrong</em>, if he JVM needed all the memory within the max
+heap plus bigger stack traces then the container/pod would have been <em>oom killed</em>. Also, it is
+necessary to give some free space in the container
 to be able to perform serviceability tasks, like profiling, heap dump, etc.</p>
 </div>
 <div class="paragraph">
@@ -1152,6 +1177,56 @@ a deployment limit of <code>3.5 GB</code>.</p>
 </div>
 <div class="paragraph">
 <p>TODO XXXX</p>
+</div>
+<div class="paragraph">
+<p>The documentation doesn&#8217;t even mention <code>*RAMPercentage</code> flags</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>java</code> (JDK11)</a></p>
+</li>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/12/docs/specs/man/java.html"><code>java</code> (JDK12)</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Fortunately there&#8217;s still</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. <a href="https://chriswhocodes.com/hotspot_options_jdk11.html">VM Options Explorer - JDK11 HotSpot</a></caption>
+<colgroup>
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.091%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Since</th>
+<th class="tableblock halign-left valign-top">Deprecated</th>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">OS</th>
+<th class="tableblock halign-left valign-top">CPU</th>
+<th class="tableblock halign-left valign-top">Component</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Availability</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Defined in</th>
+</tr>
+</thead>
+</table>
+<div class="paragraph">
+<p>I should have visited those before.</p>
 </div>
 <div class="exampleblock">
 <div class="content">
