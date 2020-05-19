@@ -56,7 +56,7 @@ spec:
 ----
 <1> Actual memory limit.
 
-But to understand our requirement, and to avoid lucky guess number (until it works),
+In order to understand our requirement, and to avoid lucky guess number (until it works),
 let's explore the memory of a java process.
 
 
@@ -113,7 +113,7 @@ PID   RSS
   6 4701120
 ----
 
-.Via `/proc/<pid>/status`
+.Via `/proc/{pid}/status`
 [source, bash, role="secondary"]
 ----
 $ cat /proc/$(pgrep java)/status | grep VmRSS
@@ -242,6 +242,7 @@ memory commit latencies) used for the heap allocations. But other zones like thr
 differently, that means the some committed memory in NMT is not accounted by the RSS.
 
 .vocabulary breakdown
+[%autowidth.stretch]
 |===
 
 | *Used Heap* | The amount of memory occupied by live objects according to the last GC.
@@ -421,7 +422,7 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Native Libraries + Malloc overhead + ...
 ....
 
-[options="footer"]
+[%autowidth.stretch,options="footer"]
 |===
 
 | Heap                            | 4456448
@@ -451,6 +452,7 @@ There a few considerations to understand :
 
 * NMT shows _reserved_ and _committed_ values on each arenas,
 +
+[%autowidth.stretch]
 |===
 
 | `reserved` | this is the size that the OS guarantees to be available (but the
@@ -551,7 +553,7 @@ the numbers above:
 
 
 .In percentages
-[options="footer"]
+[%autowidth.stretch,options="footer"]
 |===
 
 | Non heap | 5242880 - 4456448 = 786432 | ~14 %
@@ -635,7 +637,10 @@ lead can lead to the actual memory usage for this app (in the given cluster topo
 ....
 
 Note this is the heap usage with the current GC activity, but this usage may eventually
-be lower at the cost of higher GC activity (and most likely CPU usage).
+be lower at the cost of higher GC activity and most likely CPU usage. This CPU usage
+may require some adjustment on the deployment CPU limit, because on Kubernetes, if
+a pod reached its CPU limit it gets throttled, and this would be very bad for a Java app
+to be throttled.
 
 The above number give the following percentage value `-XX:MaxRAMPercentage=71.0` with
 a deployment limit of `3.5 GB`.
@@ -645,9 +650,12 @@ a deployment limit of `3.5 GB`.
 TODO XXXX
 
 
+====
 * RSS => amount of physical memory allocated & used by a process
 * Java MaxHeapSize != Docker stats (“MEM USAGE”)
 ** Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + ...)
+====
+
 
 
 === Interpreting cgroup's memory
