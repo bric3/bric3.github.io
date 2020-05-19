@@ -10,17 +10,29 @@ draft: true
 #  list: never
 ---
 
+So like many I was happy to see that the JDK 11 had everything to run
+in a container, it can read information form the `cgroups` and it's possible to
+tell the memory usage via the `-XX:MaxRAMPercentage`.
+However...
+
 
 .Problem
 ****
-With RAM percentage parameters of 85% of 3 GB memory tHe container
-still blow off over this limit, which results in killed pods and deployment
-of replicaset failing.
+With a RAM percentage parameters at `85%` of `3 GB` memory, the container
+application still go over this limit, which resulted in killed pods and failing
+deployment of our replicaset.
 
-Also this issue started to appear with full traffic. (It was working well when
+This issue started to appear with full traffic. (It was working well when
 the traffic weight was 50%).
 ****
 
+The following writing tries to gather various piece of information,
+that are not really available if you don't know what to look for or where.
+Also it summarize things I knew, things I grepped in the JDK codebase,
+and things learned from other (awesome) people.
+
+I hope I didn't dismissed important things, I hope I'm not totally wrong,
+or simply I hope I'm not misguiding myself and especially others.
 
 == Actual data from the prod cluster
 
@@ -101,11 +113,11 @@ $ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
 
 === Reading the memory footprint of the java process in the container
 
-The first thing to look at is the resident set size, it can be obtained in
+The first thing to look at is the _resident set size_, it can be obtained in
 various way, e.g. using `ps` or reading the `/proc` should give the same number
 if done at the same time.
 
-.Via `ps`
+.`ps`
 [source, bash, role="primary"]
 ----
 $ ps o pid,rss -p $(pidof java)
@@ -113,14 +125,14 @@ PID   RSS
   6 4701120
 ----
 
-.Via `/proc/{pid}/status`
+.`/proc/{pid}/status`
 [source, bash, role="secondary"]
 ----
 $ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB
 ----
 
-4.7GB !!! Not quite within the 4.25 GB (85% of 5 GB) limit. So let's dig a bit to understand
+`4.7 GB` !!! Not quite within the 4.5 GB (85% of 5 GB) limit. So let's dig a bit to understand
 this number (4701120 KB).
 
 ==== Digging in the java memory arenas
@@ -128,7 +140,7 @@ this number (4701120 KB).
 Fortunately the application started with `-XX:NativeMemoryTracking=summary` which
 enables to have an overview of the different memory zones of a Java process.
 
-NOTE: Enabling native memory tracking (NMT) causes a 5% -10% performance overhead.
+NOTE: Enabling native memory tracking (NMT) causes a 5% to 10% performance overhead.
 
 .`VM.native_memory` instant snapshot
 [source, bash]
@@ -211,21 +223,23 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
 -                   Unknown (reserved=32KB, committed=32KB)
                             (mmap: reserved=32KB, committed=32KB)
 ----
-<1> This shows what the JVM reserved for memory 7168324 KB (~7.1 GB) and what is actually used
-by the jvm process 4456448 KB (~4.45 GB).
-<2> heap arena, note reserved and committed values are the same 4456448 KB, I'm not sure why this
-number is different from the VM flags `-XX:MaxHeapSize=4563402752`
-<3> ~165 MB of class metadata
-<4> how many classes have been loaded : 28431
-<5> 674 threads are using ~81 MB out of 696 MB reserved
+<1> This shows a `reserved` value (`7168324 KB` (~`7.1 GB`)), it's the amount of addressable memory
+(all OS types) on that container, and a `committed` value (`4456448 KB` (~`4.45 GB`)) that represents
+what the JVM actually told the OS to allocate.
+<2> Heap arena, note reserved and committed values are the same `4456448 KB` here because our
+`InitialRAMPercentage` is the same as max. I'm not sure why this number is different from the VM
+flags `-XX:MaxHeapSize=4563402752` though.
+<3> ~`165 MB` of class metadata
+<4> How many classes have been loaded : `28431`
+<5> There are 674 threads that are using ~`81 MB` and could use up to `696 MB`.
 <6> Code cache area (assembly of the used methods) ~105 MB out of 251 MB which matches with `-XX:ReservedCodeCacheSize=251658240`
-<7> G1GC internal data structures take ~230 MB
-<8> C1 / C2 compilers (which compile bytecodes to assembly) uses ~6 MB
-<9> The symbols contains many things lik interned strings and other internal constants ~29 MB
-<10> Internal (included DirectByteBuffers before Java 11), maybe others objects, here takes ~24 MB
-<11> Other section after Java 11 includes DirectByteBuffers ~267 MB
+<7> G1GC internal data structures take ~`230 MB`
+<8> C1 / C2 compilers (which compile bytecodes to assembly) uses ~`6 MB`
+<9> The symbols contains many things like interned strings and other internal constants ~`29 MB`
+<10> Internal (included DirectByteBuffers before Java 11), maybe others objects, here takes ~`24 MB`
+<11> Other section after Java 11 includes DirectByteBuffers ~`267 MB`
 
-Other areas are much smaller in scale, NMT takes ~8 MB itself, module system ~1.3 MB,
+Other areas are much smaller in scale, NMT takes ~`8 MB` itself, module system usage ~`1.3 MB`,
 etc.
 Also, note that enabling other part may show up if some JVM features are activated.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
@@ -233,11 +247,11 @@ https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUI
 
 [NOTE]
 ====
-At the present moment NMT reports a committed memory of 5380868 KB while process RSS is 4701120 KB.
+At the present moment NMT reports a committed memory of `5380868 KB` while process RSS is `4701120 KB`.
 The difference relates to how `mmap` works (on Linux), memory pages are only backed by physical memory
 once they're written to.
 
-The hotspot JVM option `-XX:+AlwaysPreTouch` can tell to always write zeroes to memory pages (which limits
+The Hotspot JVM option `-XX:+AlwaysPreTouch` can tell to always write zeroes to memory pages (which limits
 memory commit latencies) used for the heap allocations. But other zones like thread stack works
 differently, that means the some committed memory in NMT is not accounted by the RSS.
 
@@ -245,7 +259,7 @@ differently, that means the some committed memory in NMT is not accounted by the
 [%autowidth.stretch]
 |===
 
-| *Used Heap* | The amount of memory occupied by live objects according to the last GC.
+| *Used Heap* | The amount of memory occupied by live objects according.
 
 | *Committed* | Address ranges that have been mapped with something other than `PROT_NONE`.
 They may or may not be backed by physical or swap due to lazy allocation and paging.
@@ -255,7 +269,7 @@ The _reserved_ / _committed_ difference consists of `PROT_NONE` mappings, which 
 by physical memory
 
 | *Resident* | Pages which are currently in physical ram. This means code, stacks, part of the committed memory
-pools but also portions of mmaped files which have recently been accessed and allocations outside the control
+pools but also portions of ``mmap``ed files which have recently been accessed and allocations outside the control
 of the JVM.
 
 | *Virtual* | The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
@@ -269,7 +283,7 @@ https://stackoverflow.com/a/31178912/48136[source]
 
 There's a lot more to read on the
 https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80[official documentation about NMT]
-and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77[How to Monitor VM Internal Memory].
+and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77[how to Monitor VM Internal Memory].
 
 For a full blow deep dive read this article by http://twitter.com/shipilev[Aleksey Shipilёv] on
 https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
@@ -278,17 +292,17 @@ https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory
 ==== Explore what NMT does not show
 
 There's also the `MappedByteBuffers`, these are the files mapped to virtual memory of a process.
-NMT does not track them, however, MappedByteBuffers can also take physical memory. And there is
-no a simple way to limit how much they can take. However, it's possible to see the actual usage
-of a process memory map: `pmap -x <pid>`
+NMT does not track them, however, `MappedByteBuffers` can also take physical memory. It's possible
+to see the actual usage of a process memory map: `pmap -x <pid>`
 
 
 .process memory mappings
 [source, bash]
 ----
 $ pmap -x $(pgrep java)
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Djava.security.egd=file:/dev/.
-/urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary -Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
+-XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
+-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000000400000       4       4       0 r-x-- java
 0000000000600000       4       4       4 r---- java
@@ -370,8 +384,8 @@ ffffffffff600000       4       0       0 r-x--   [ anon ]
 total kB         24035820 4776860 4720796
 ----
 
-let's refine that with more
-https://www.kernel.org/doc/Documentation/filesystems/proc.txt[knowledge about `/proc/<pid>/maps`],
+Let's refine that with more
+https://www.kernel.org/doc/Documentation/filesystems/proc.txt[knowledge about `/proc/{pid}/maps`],
 it indicates that a _map_ has a set of modes:
 
 * `r-`: readable memory mapping
@@ -380,16 +394,21 @@ it indicates that a _map_ has a set of modes:
 * `s` or `p` : shared memory mapping or private mapping. `/proc/<pid>/maps` shows both
 but `pmap` only show the `s` flag.
 
-Also, `pmap` has another mapping mode which I barely found any reference of,
-here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html[one] and https://linux.die.net/man/2/mmap[here]
+On a side note, `pmap` may show another mapping mode which I barely found any reference of,
+here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html[one]
+and https://linux.die.net/man/2/mmap[here]
 
 * `R`: if set, the map has no swap space reserved (`MAP_NORESERVE` flag of `mmap`).
 This means that we can get a segmentation fault by accessing that memory if it has not
-already been mapped to physical memory, and the system is out of physical memory.
+already been mapped to physical memory, and if the system is out of physical memory.
 
-At this time what we are looking for are the process's memory mapped (shared) files:
+At this time the focus is to see what are the memory mapped files with the JVM. Those can be either
+read from or written to, we need to look for both the `r` or `w` or neither, also while quite unlikely
+with Java let's not restrict on the _executable_ mapping, so the only thing we could be restricting to
+is the shared mapping `s` (memory mapped files are shared because the OS may want to reuse the afferent
+memory pages for other processes) :
 
-.process memory mapped files
+.Our application memory mapped files
 [source, bash]
 ----
 $ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
@@ -397,20 +416,20 @@ $ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
 00007f5fdc030000       4       4       0 r--s- instrumentation11262564974060761935.jar
 00007f5fdc053000       8       8       0 r--s- java-agent-bs-cl.jar
 00007f5fdc055000       4       4       0 r--s- instrumentation249633448216144460.jar
-00007f5fdc056000       4       4       0 r--s- newrelic-bootstrap10447345921091566771.jar
-00007f5fdc057000      12      12       0 r--s- newrelic-api6038277081136135384.jar
-00007f5fec000000       8       8       0 r--s- newrelic-weaver-api16247655721253674284.jar
-00007f5fec002000       4       4       0 r--s- newrelic-opentracing-bridge12060425782296980104.jar
-00007f5fec003000      12      12       0 r--s- agent-bridge3261511391751138774.jar
+00007f5fdc056000       4       4       0 r--s- agent1-bootstrap10447345921091566771.jar
+00007f5fdc057000      12      12       0 r--s- agent1-api6038277081136135384.jar
+00007f5fec000000       8       8       0 r--s- agent1-weaver-api16247655721253674284.jar
+00007f5fec002000       4       4       0 r--s- agent1-opentracing-bridge12060425782296980104.jar
+00007f5fec003000      12      12       0 r--s- agent2-bridge3261511391751138774.jar
 00007f5ffb910000  138176   36060       0 r--s- modules
 00007f6008006000      28      28       0 r--s- gconv-modules.cache
                            ^^^^^               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ----
 
-Which means there's around 36 MB of memory mapped files.
+There's around `36 MB` of memory mapped files.
 
-_Another read on process memory https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[here]_
-helped me with the above command.
+_As I was a bit unfamiliar with `pmap`, reading https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[this process memory blog]
+helped me with the above command._
 
 Wrapping this information from NMT and memory mapped files leaves us with the
 following _equation_ to estimate the actual memory usage of a process:
@@ -443,10 +462,11 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
 | Total                           | 5242880 KB
 |===
 
-5186278 KB is what this container is actually using, so way over the RSS (4701120 KB)
-but also over the 5 GB (5242880 KB) of the pod limit. Yet this pod is not oom killed.
+`5186278 KB` is what this container is actually using, so way over the RSS (`4701120 KB`)
+but also over the `5 GB` (`5242880 KB`) of the pod limit. Yet this pod is healthy and far from
+the thresholds to be oom killed.
 
-So what I am missing here ?
+*So what I am missing here ?*
 
 There a few considerations to understand :
 
@@ -476,7 +496,7 @@ zone seems at this time is `3128252 KB`.
 
 Where to look this number? While it's easy to get the RSS of a process, to understand
 if the committed heap actually _resides_ on physical memory you need to use `pmap` or
-inspect `/proc/<pid>/maps` or `/proc/<pid>/smaps`. You have to notice the one of the first
+inspect `/proc/{pid}/maps` or `/proc/{pid}/smaps`. You have to notice the one of the first
 memory zone is quite big and about the size of the committed heap as shown in NMT. It's easier
 to spot with `pmap -X` (capital `X`). _Note the below capture are from a different pod/process_.
 
@@ -484,7 +504,7 @@ to spot with `pmap -X` (capital `X`). _Note the below capture are from a differe
 [source, role="primary"]
 ----
 $ pmap -x $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000000400000       4       4       0 r-x-- java
 0000000000600000       4       4       4 r---- java
@@ -513,7 +533,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 [source, role="secondary"]
 ----
 $ pmap -X $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.man
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
          Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
         00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
         00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
@@ -541,8 +561,8 @@ $ pmap -X $(pidof java) | less -S -X
 == Going back to choose a wise value for the RAM percentage
 
 From the above, it's now possible with NMT especially and with `pmap` to
-understand actual memory usage and to answer the question: "what is a sensible
-ram percentage setting for this application ?"
+understand actual memory usage and to answer the question: "What is a sensible
+RAM percentage setting for this application ?"
 
 Really what drive the answer is the actual non-heap usage not accounted in `MaxRAMPercentage`, from
 the numbers above:
@@ -562,13 +582,14 @@ the numbers above:
 | Total    | 5186278                    | 100 %
 |===
 
-*This means the application needs around 790 MB, plus the heap to run.*
+*This means the application needs around `790 MB`, plus the heap to run.*
 
 From the flags seen above, the JVM set the heap maximum size memory to `4 563 402 752` Bytes,
 this value was computed from this flag `-XX:MaxRAMPercentage=85.000000`, and this percentage
 is somehow a lucky guess that worked for the `5 GB` deployment memory limit.
-But this percentage is wrong, if he JVM needed all that memory then the container/pod would
-have been _oom killed_. Also, it is necessary to give some free space in the container
+But this actual percentage is in fact _wrong_, if he JVM needed all the memory within the max
+heap plus bigger stack traces then the container/pod would have been _oom killed_. Also, it is
+necessary to give some free space in the container
 to be able to perform serviceability tasks, like profiling, heap dump, etc.
 
 For a 5GB limit it may be good to give around 20% for all of these non-heap, plus system space
@@ -648,6 +669,29 @@ a deployment limit of `3.5 GB`.
 
 
 TODO XXXX
+
+The thing is that when this flag appeared (before it was `*RAMFraction`), almost only blogs (like this
+https://merikan.com/2019/04/jvm-in-a-container/[one]) explored the options, thanks to them, but most are
+incomplete to get the big picture, not to mention those who have slight errors.
+
+The official documentation doesn't even mention `*RAMPercentage` flags:
+
+.Oracle documentation
+* https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`java` (JDK11)]
+* https://docs.oracle.com/en/java/javase/12/docs/specs/man/java.html[`java` (JDK12)]
+
+Fortunately there's still
+
+.https://chriswhocodes.com/hotspot_options_jdk11.html[VM Options Explorer - JDK11 HotSpot]
+|===
+| Name | Since | Deprecated | Type | OS | CPU | Component | Default | Availability | Description | Defined in
+
+| MaxRAMPercentage | JDK10 | double | gc | 25.0 | range(0.0, 100.0) | product | Maximum percentage of real memory used for maximum heap size | share/gc/shared/gc_globals.hpp
+
+|===
+
+I should have visited https://twitter.com/chriswhocodes[Chris Newland] blog before.
+
 
 
 ====
