@@ -65,10 +65,10 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.9b1b3e6d6205b58c2248b99aa91300ba240c0e96e9c1fe272d9b609ce5903882.css" integrity="sha256-mxs&#43;bWIFtYwiSLmaqRMAuiQMDpbpwf4nLZtgnOWQOII=">
+<link rel="stylesheet" href="/scss/hyde-hyde.e4cd07d68e6b87d5686d52ad08e184b6ba4bf96afc170089c756cdc4af7c877d.css" integrity="sha256-5M0H1o5rh9VobVKtCOGEtrpL&#43;Wr8FwCJx1bNxK98h30=">
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde-dark.6deb3c45b1a714e80e12aced0b792f1a4c9b9a191abdf28341f9a6038cf9a645.css" integrity="sha256-bes8RbGnFOgOEqztC3kvGkybmhkavfKDQfmmA4z5pkU=" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.25c0245fdf4298c5779495d3b15063f4aa3e0f9d23e66dcb888241644669c066.css" integrity="sha256-JcAkX99CmMV3lJXTsVBj9Ko&#43;D50j5m3LiIJBZEZpwGY=" media="(prefers-color-scheme: dark)">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -318,7 +318,7 @@ spec:
 </table>
 </div>
 <div class="paragraph">
-<p>But to understand our requirement, and to avoid lucky guess number (until it works),
+<p>In order to understand our requirement, and to avoid lucky guess number (until it works),
 let&#8217;s explore the memory of a java process.</p>
 </div>
 <div class="paragraph">
@@ -392,7 +392,7 @@ PID   RSS
 </div>
 </div>
 <div class="listingblock secondary">
-<div class="title">Via <code>/proc/&lt;pid&gt;/status</code></div>
+<div class="title">Via <code>/proc/{pid}/status</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB</code></pre>
@@ -575,11 +575,11 @@ once they&#8217;re written to.</p>
 memory commit latencies) used for the heap allocations. But other zones like thread stack works
 differently, that means the some committed memory in NMT is not accounted by the RSS.</p>
 </div>
-<table class="tableblock frame-all grid-all stretch">
+<table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 1. vocabulary breakdown</caption>
 <colgroup>
-<col style="width: 50%;">
-<col style="width: 50%;">
+<col>
+<col>
 </colgroup>
 <tbody>
 <tr>
@@ -798,10 +798,10 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
                + Native Libraries + Malloc overhead + ...</pre>
 </div>
 </div>
-<table class="tableblock frame-all grid-all stretch">
+<table class="tableblock frame-all grid-all fit-content stretch">
 <colgroup>
-<col style="width: 50%;">
-<col style="width: 50%;">
+<col>
+<col>
 </colgroup>
 <tbody>
 <tr>
@@ -879,10 +879,10 @@ but also over the 5 GB (5242880 KB) of the pod limit. Yet this pod is not oom ki
 <ul>
 <li>
 <p>NMT shows <em>reserved</em> and <em>committed</em> values on each arenas,</p>
-<table class="tableblock frame-all grid-all stretch">
+<table class="tableblock frame-all grid-all fit-content stretch">
 <colgroup>
-<col style="width: 50%;">
-<col style="width: 50%;">
+<col>
+<col>
 </colgroup>
 <tbody>
 <tr>
@@ -1025,12 +1025,12 @@ the numbers above:</p>
 <pre>(total) 5242880 - (heap) 4456448 = 786432 KB</pre>
 </div>
 </div>
-<table class="tableblock frame-all grid-all stretch">
+<table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 2. In percentages</caption>
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 33.3333%;">
-<col style="width: 33.3334%;">
+<col>
+<col>
+<col>
 </colgroup>
 <tbody>
 <tr>
@@ -1141,7 +1141,10 @@ lead can lead to the actual memory usage for this app (in the given cluster topo
 </div>
 <div class="paragraph">
 <p>Note this is the heap usage with the current GC activity, but this usage may eventually
-be lower at the cost of higher GC activity (and most likely CPU usage).</p>
+be lower at the cost of higher GC activity and most likely CPU usage. This CPU usage
+may require some adjustment on the deployment CPU limit, because on Kubernetes, if
+a pod reached its CPU limit it gets throttled, and this would be very bad for a Java app
+to be throttled.</p>
 </div>
 <div class="paragraph">
 <p>The above number give the following percentage value <code>-XX:MaxRAMPercentage=71.0</code> with
@@ -1150,6 +1153,8 @@ a deployment limit of <code>3.5 GB</code>.</p>
 <div class="paragraph">
 <p>TODO XXXX</p>
 </div>
+<div class="exampleblock">
+<div class="content">
 <div class="ulist">
 <ul>
 <li>
@@ -1166,6 +1171,8 @@ a deployment limit of <code>3.5 GB</code>.</p>
 </div>
 </li>
 </ul>
+</div>
+</div>
 </div>
 </div>
 <div class="sect2">
