@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 50 min read
+    <i class="fas fa-clock"></i> 53 min read
 
     
     
@@ -1053,12 +1053,29 @@ the numbers above:</p>
 </tfoot>
 </table>
 <div class="paragraph">
-<p><strong>This means the application needs at least 790 MB, plus the heap to run.</strong></p>
+<p><strong>This means the application needs around 790 MB, plus the heap to run.</strong></p>
 </div>
 <div class="paragraph">
-<p>From the flags seen above, the JVM set the heap maximum size memory to <code>4563402752</code> Bytes,
-which was computed from this flag <code>-XX:MaxRAMPercentage=85.000000</code>, which is a lucky guess
-for <code>5 GB</code> deployment memory limit. If instead of the     XXXXX</p>
+<p>From the flags seen above, the JVM set the heap maximum size memory to <code>4 563 402 752</code> Bytes,
+this value was computed from this flag <code>-XX:MaxRAMPercentage=85.000000</code>, and this percentage
+is somehow a lucky guess that worked for the <code>5 GB</code> deployment memory limit.
+But this percentage is wrong, if he JVM needed all that memory then the container/pod would
+have been <em>oom killed</em>. Also, it is necessary to give some free space in the container
+to be able to perform serviceability tasks, like profiling, heap dump, etc.</p>
+</div>
+<div class="paragraph">
+<p>For a 5GB limit it may be good to give around 20% for all of these non-heap, plus system space
+for this particular workload (e.g. if the application requires heavy filesystem usage, then
+it would be a different number to make room for the filesystem cache).</p>
+</div>
+<div class="paragraph">
+<p>So the problem would be solved with the following value, for a <code>5 GB</code> memory limit :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:InitialRAMPercentage=80.0 <i class="conum" data-value="1"></i><b>(1)</b>
+-XX:MaxRAMPercentage=80.0 <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -1066,7 +1083,22 @@ for <code>5 GB</code> deployment memory limit. If instead of the     XXXXX</p>
 <h2 id="_going_further"><a class="anchor" href="#_going_further"></a><a class="link" href="#_going_further">Going further</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>but the heap usage may have a different figure :</p>
+<p>As a reminder this application was set up with 85% limit for the java heap when the
+deployment limit was <code>3 GB</code>, it worked under 50% of the traffic but failed with full traffic.
+Then tis pod memory limit was bum ped to 5 GB. So actually this is the memory limit that
+is a lucky guess for 5 GB, as the RAM percentage was set in the <code>CMD</code> directive of the Dockerfile.</p>
+</div>
+<div class="paragraph">
+<p>This can be explained by two arenas whose usage increased especially, the stacks and the heap usage.</p>
+</div>
+<div class="paragraph">
+<p>But this application worked well under way less memory. Let&#8217;s explore that.</p>
+</div>
+<div class="sect2">
+<h3 id="_actual_java_heap_usage"><a class="anchor" href="#_actual_java_heap_usage"></a><a class="link" href="#_actual_java_heap_usage">Actual Java Heap usage</a></h3>
+<div class="paragraph">
+<p>While the previous section allowed to understand actual memory usage, it didn&#8217;t gave any figure
+regarding the actual heap usage for this application :</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1079,7 +1111,7 @@ for <code>5 GB</code> deployment memory limit. If instead of the     XXXXX</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Successive execution may give different results about the used memory</p>
+<p>Successive execution may of course indicate an evolving output about java heap usage:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1099,14 +1131,24 @@ $ jcmd 6 GC.heap_info
 </div>
 </div>
 <div class="paragraph">
-<p>The heap went from 925702 KB to 2421454 KB ! Following the trend of the heap usage
+<p>The heap went from <code>925702 KB</code> to <code>2421454 KB</code> ! Following the trend of the heap usage
 lead can lead to the actual memory usage for this app (in the given cluster topology).</p>
 </div>
-<div class="paragraph">
-<p>2.5 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.5 GB</p>
+<div class="literalblock">
+<div class="content">
+<pre>2.5 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.5 GB</pre>
+</div>
 </div>
 <div class="paragraph">
-<p>Which leads to set <code>-XX:MaxRAMPercentage=71.0</code>. if we want a lower memory footprint.</p>
+<p>Note this is the heap usage with the current GC activity, but this usage may eventually
+be lower at the cost of higher GC activity (and most likely CPU usage).</p>
+</div>
+<div class="paragraph">
+<p>The above number give the following percentage value <code>-XX:MaxRAMPercentage=71.0</code> with
+a deployment limit of <code>3.5 GB</code>.</p>
+</div>
+<div class="paragraph">
+<p>TODO XXXX</p>
 </div>
 <div class="ulist">
 <ul>
@@ -1124,6 +1166,7 @@ lead can lead to the actual memory usage for this app (in the given cluster topo
 </div>
 </li>
 </ul>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_interpreting_cgroups_memory"><a class="anchor" href="#_interpreting_cgroups_memory"></a><a class="link" href="#_interpreting_cgroups_memory">Interpreting cgroup&#8217;s memory</a></h3>
