@@ -1,6 +1,6 @@
 ---
 authors: ["brice.dutheil"]
-date: "2020-04-27T11:45:29+02:00"
+date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "pmap"]
 slug: "maxrampercentage-isnt-enough"
@@ -20,7 +20,7 @@ However...
 ****
 With a RAM percentage parameters at `85%` of `3 GB` memory, the container
 application still go over this limit, which resulted in killed pods and failing
-deployment of our replicaset.
+_deployment_ of our _replicaset_.
 
 This issue started to appear with full traffic. (It was working well when
 the traffic weight was 50%).
@@ -236,8 +236,8 @@ flags `-XX:MaxHeapSize=4563402752` though.
 <7> G1GC internal data structures take ~`230 MB`
 <8> C1 / C2 compilers (which compile bytecodes to assembly) uses ~`6 MB`
 <9> The symbols contains many things like interned strings and other internal constants ~`29 MB`
-<10> Internal (included DirectByteBuffers before Java 11), maybe others objects, here takes ~`24 MB`
-<11> Other section after Java 11 includes DirectByteBuffers ~`267 MB`
+<10> Internal (includes `DirectByteBuffers` before Java 11), maybe others objects, here takes ~`24 MB`
+<11> Other section after Java 11 includes `DirectByteBuffers` ~`267 MB`
 
 Other areas are much smaller in scale, NMT takes ~`8 MB` itself, module system usage ~`1.3 MB`,
 etc.
@@ -558,7 +558,7 @@ $ pmap -X $(pidof java) | less -S -X
 <3> a thread stack
 
 
-== Going back to choose a wise value for the RAM percentage
+== Going back to choose a better value for the RAM percentage
 
 From the above, it's now possible with NMT especially and with `pmap` to
 understand actual memory usage and to answer the question: "What is a sensible
@@ -605,23 +605,231 @@ So the problem would be solved with the following value, for a `5 GB` memory lim
 ----
 
 
+
+For a quick win let's adapt the application image.
+
+== Make the docker image memory settings tweakable per environment
+
+AS seen at beginning of this post, RAM settings are part of the command declaration, this
+is not suitable as seen above. In addition, the deployment requirements / limits is likely to
+differ depending on the cluster / environment. One good reason would be to decrease the money spending
+on your cloud provider for non-production clusters, like staging, pre-production, etc.
+It will be useful to enable flexibility one setting the application for any given environment.
+
+Let's use https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JAVA_TOOL_OPTIONS`]
+environment variable to enable flexibility and remove the RAM percentage in the `CMD` directive.
+
+.Application dockerfile
+[source,diff]
+----
+  ARG REGISTRY
+  FROM $REGISTRY/corretto-java:11.0.6.10.1
++ ENV JAVA_TOOL_OPTIONS="" <1>
+
+  RUN mkdir -p /gclogs /etc/java-app
+
+  COPY ./build/libs/java-app-boot.jar \
+    ./build/java-agents/agent-1.jar \
+    ./build/java-agents/agent-2.jar \
+    ./src/serviceability/*.sh \
+    /
+
+  CMD [ "/usr/bin/java", \
+        "-Dfile.encoding=UTF-8", \
+        "-Duser.timezone=UTC", \
+        "-Dcom.sun.management.jmxremote.port=7199", \
+        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
+        "-Dcom.sun.management.jmxremote.ssl=false", \
+        "-Dcom.sun.management.jmxremote.authenticate=false", \
+        "-Djava.security.egd=file:/dev/./urandom", \
+-       "-XX:InitialRAMPercentage=85.0", \ <2>
+-       "-XX:MaxRAMPercentage=85.0", \
+        "-XX:NativeMemoryTracking=summary", \
+        "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
+        "-javaagent:/agent-1.jar", \
+        "-javaagent:/agent-2.jar", \
+        "-Dsqreen.config_file=/sqreen.properties", \
+        "-jar", \
+        "/java-app-boot.jar", \
+        "--spring.config.additional-location=/etc/java-app/config.yaml", \
+        "--server.port=8080" ]
+
+  LABEL name="java-app"
+  LABEL build_path="../"
+  LABEL version_auto_semver="true"
+----
+<1> Defines the https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JAVA_TOOL_OPTIONS`]
+<2> Removes the RAM percentage settings to get _default_ values.
+
+Now let's test this locally to play a bit.
+
+.Build the container
+[source]
+----
+❯ DOCKER_BUILDKIT=1 docker build \
+  --tag test-java-app \ <1>
+  --build-arg REGISTRY=eu.gcr.io/cd-registry \
+  --file _infra/Dockerfile \
+  .
+[+] Building 1.4s (9/9) FINISHED
+ => [internal] load build definition from Dockerfile                                                                                              0.0s
+ => => transferring dockerfile: 1.34kB                                                                                                            0.0s
+ => [internal] load .dockerignore                                                                                                                 0.0s
+ => => transferring context: 35B                                                                                                                  0.0s
+ => [internal] load metadata for eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                  0.0s
+ => CACHED [1/4] FROM eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                             0.0s
+ => [internal] load build context                                                                                                                 0.0s
+ => => transferring context: 1.32kB                                                                                                               0.0s
+ => [2/4] RUN mkdir -p /gclogs /etc/java-app                                                                                                      0.3s
+ => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                   0.0s
+ => [4/4] COPY ./build/libs/java-app-boot.jar   ./build/java-agents/agent-1.jar   ./build/java-agents/agent-2.jar   ./src/serviceability/*.sh   / 0.6s
+ => exporting to image                                                                                                                            0.4s
+ => => exporting layers                                                                                                                           0.4s
+ => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                      0.0s
+ => => naming to docker.io/library/test-java-app
+----
+<1> Custom tag to avoid collision with regular images in my cache
+
+Run the container with the Java app
+
+.*Without* `JAVA_TOOL_OPTIONS`
+[source,role="primary"]
+----
+❯ docker run --rm --memory="3gb" --name j-mem test-java-app
+Picked up JAVA_TOOL_OPTIONS:
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...
+----
+
+.*With* `JAVA_TOOL_OPTIONS`
+[source,role="secondary"]
+----
+❯ docker run --rm --memory="3gb" --env JAVA_TOOL_OPTIONS="-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0" --name j-mem test-java-app
+Picked up JAVA_TOOL_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...
+----
+
+
+Then we can make sure we have the correct flags.
+
+.*Without* `JAVA_TOOL_OPTIONS`
+[source, role="primary"]
+----
+❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
+6:
+-XX:CICompilerCount=3
+-XX:ConcGCThreads=1
+-XX:G1ConcRefinementThreads=4
+-XX:G1HeapRegionSize=1048576
+-XX:GCDrainStackTargetSize=64
+-XX:InitialHeapSize=50331648
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=805306368 <1>
+-XX:MaxNewSize=482344960
+-XX:MinHeapDeltaBytes=1048576
+-XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5830732
+-XX:NonProfiledCodeHeapSize=122913754
+-XX:ProfiledCodeHeapSize=122913754
+-XX:ReservedCodeCacheSize=251658240
+-XX:+SegmentedCodeCache
+-XX:+UseCompressedClassPointers
+-XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps
+-XX:+UseG1GC
+
+----
+<1> Max heap is about `805 MB`
+
+.*With* `JAVA_TOOL_OPTIONS`
+[source, role="secondary"]
+----
+❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
+6:
+-XX:CICompilerCount=3
+-XX:ConcGCThreads=1
+-XX:G1ConcRefinementThreads=4
+-XX:G1HeapRegionSize=1048576
+-XX:GCDrainStackTargetSize=64
+-XX:InitialHeapSize=2256535552
+-XX:InitialRAMPercentage=70.000000
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=2256535552 <1>
+-XX:MaxNewSize=1353711616
+-XX:MaxRAMPercentage=70.000000
+-XX:MinHeapDeltaBytes=1048576
+-XX:NativeMemoryTracking=summary
+-XX:NonNMethodCodeHeapSize=5830732
+-XX:NonProfiledCodeHeapSize=122913754
+-XX:ProfiledCodeHeapSize=122913754
+-XX:ReservedCodeCacheSize=251658240
+-XX:+SegmentedCodeCache
+-XX:+UseCompressedClassPointers
+-XX:+UseCompressedOops
+-XX:+UseFastUnorderedTimeStamps
+-XX:+UseG1GC
+
+----
+<1> Max heap is about `2.25 GB`
+
+
+Notice when there's no RAM settings the JVM computed computed the max heap size at 25%
+of memory constraints `3 GB`. And to 80%, `2.25 GB`, of the same limit when passing the RAM percentages.
+Also the heap values are the only one affected, other memory areas default values kept the same values.
+
+
 == Going further
 
-As a reminder this application was set up with 85% limit for the java heap when the
-deployment limit was `3 GB`, it worked under 50% of the traffic but failed with full traffic.
-Then tis pod memory limit was bum ped to 5 GB. So actually this is the memory limit that
-is a lucky guess for 5 GB, as the RAM percentage was set in the `CMD` directive of the Dockerfile.
+As a reminder this application was set up with 85% max heap when the
+deployment limit was `3 GB`, it worked well under 50% of the traffic but failed with full traffic.
+Then this pod memory limit was bumped to `5 GB` and the pod wasn't anymore oomkilled.
+How this _limit_ was found is a lucky guess, given the RAM percentages were set in the `CMD`
+directive of the Dockerfile.
 
-This can be explained by two arenas whose usage increased especially, the stacks and the heap usage.
+As identified above there are two, maybe three arenas whose usage may explain the surge in memory before
+the memory limit was increased. I don't have anything to back that except how I expect these memory arenas
+to grow but not the others.
 
-But this application worked well under way less memory. Let's explore that.
+1. The thread stack memory arena, the increase actual memory pages is small, but enough to be mentioned.
+
+2. The GC internal memory arena, with more threads there are more allocations, and as such more
+things to track.
+
+3. The _other_ memory arenas with more `DirectByteBuffers` usage.
+
+The heap had a max value anyway, and if it was then the app would either trigger full gcs, or self terminated
+with an `OutOfMemoryError`, so that not the heap. AS for the offers it's unlikely with the workload they grow
+that much.
+
+My hypothesis is that when full traffic came to this pod, these arenas grew by `100 MB` to `200 MB` (sum),
+while not much, it was sufficient to go over the 15% of memory left for the non heap memory, and thus triggered
+the system oom killer.
+
+
+Also, at some point in time this application worked well under way less memory in a different cluster `-Xmx=2g`.
+The code is not the culprit in this case. Let's explore that.
 
 === Actual Java Heap usage
 
-While the previous section allowed to understand actual memory usage, it didn't gave any figure
+While the previous section allowed to understand the actual memory usage, it didn't give any figure
 regarding the actual heap usage for this application :
 
-[source, bash]
+.local docker
+[source, role="primary"]
+----
+$ jcmd $(pgrep java) GC.heap_info
+6:
+ garbage-first heap   total 2203648K, used 373495K [0x0000000779800000, 0x0000000800000000)
+  region size 1024K, 217 young (222208K), 8 survivors (8192K)
+ Metaspace       used 103178K, capacity 105394K, committed 105604K, reserved 1140736K
+  class space    used 13168K, capacity 14004K, committed 14060K, reserved 1048576K
+----
+
+.prod first
+[source, role="secondary"]
 ----
 $ jcmd $(pgrep java) GC.heap_info
 6:
@@ -631,9 +839,8 @@ $ jcmd $(pgrep java) GC.heap_info
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
 
-Successive execution may of course indicate an evolving output about java heap usage:
-
-[source, bash]
+.prod second
+[source, role="secondary"]
 ----
 $ jcmd 6 GC.heap_info
 6:
@@ -641,7 +848,11 @@ $ jcmd 6 GC.heap_info
   region size 2048K, 543 young (1112064K), 12 survivors (24576K)
  Metaspace       used 154163K, capacity 160620K, committed 160976K, reserved 1189888K
   class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
+----
 
+.prod third
+[source, role="secondary"]
+----
 $ jcmd 6 GC.heap_info
 6:
  garbage-first heap   total 4456448K, used 2421454K [0x00000006f0000000, 0x0000000800000000)
@@ -650,8 +861,9 @@ $ jcmd 6 GC.heap_info
   class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
 ----
 
-The heap went from `925702 KB` to `2421454 KB` ! Following the trend of the heap usage
+The heap went from `925702 KB` to `2421454 KB`. When following the trend of the heap usage
 lead can lead to the actual memory usage for this app (in the given cluster topology).
+
 
 ....
 2.5 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.5 GB
@@ -668,7 +880,10 @@ a deployment limit of `3.5 GB`.
 
 
 
-TODO XXXX
+                         TODO XXXX
+
+
+=== The lesson
 
 The thing is that when this flag appeared (before it was `*RAMFraction`), almost only blogs (like this
 https://merikan.com/2019/04/jvm-in-a-container/[one]) explored the options, thanks to them, but most are
@@ -682,23 +897,52 @@ The official documentation doesn't even mention `*RAMPercentage` flags:
 
 Fortunately there's still
 
+{{< wrapTable >}}
+
 .https://chriswhocodes.com/hotspot_options_jdk11.html[VM Options Explorer - JDK11 HotSpot]
 |===
-| Name | Since | Deprecated | Type | OS | CPU | Component | Default | Availability | Description | Defined in
+| Name             | Since | Deprecated | Type   | OS | CPU | Component | Default                   | Availability | Description                                                  | Defined in
 
-| MaxRAMPercentage | JDK10 | double | gc | 25.0 | range(0.0, 100.0) | product | Maximum percentage of real memory used for maximum heap size | share/gc/shared/gc_globals.hpp
+| MaxRAMPercentage | JDK10 |            | double |    |     | gc        | 25.0 range(0.0, 100.0) | product      | Maximum percentage of real memory used for maximum heap size | `share/gc/shared/gc_globals.hpp`
 
 |===
 
-I should have visited https://twitter.com/chriswhocodes[Chris Newland] blog before.
+{{< /wrapTable >}}
 
 
+Point taken, I already knew https://twitter.com/chriswhocodes[Chris Newland] useful websites
+but didn't visit them to use this option, *I should have !*
+
+
+
+
+
+== So as wrap-up
+
+The memory of a process can be
 
 ====
 * RSS => amount of physical memory allocated & used by a process
 * Java MaxHeapSize != Docker stats (“MEM USAGE”)
 ** Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + ...)
 ====
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -812,129 +1056,132 @@ cat /sys/fs/cgroup/memory/memory.swappiness <2>
 <2> cgroup swapiness, here the setting is not overridden
 
 
-== Make the docker image memory settings tweakable per environment
-
-RAM settings are part of the command, let's make that part configurable by environment,
-for that let's use https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JAVA_TOOL_OPTIONS`]
-to have more flexibility and remove the RAM percentage.
-
-.Application dockerfile
-[source,diff]
-----
-  ARG REGISTRY
-  FROM $REGISTRY/corretto-java:11.0.6.10.1
-+ ENV JAVA_TOOL_OPTIONS="" <1>
-
-  RUN mkdir -p /gclogs /etc/java-app
-
-  COPY ./build/libs/java-app-boot.jar \
-    ./build/java-agents/agent-1.jar \
-    ./build/java-agents/agent-2.jar \
-    ./src/serviceability/*.sh \
-    /
-
-  CMD [ "/usr/bin/java", \
-        "-Dfile.encoding=UTF-8", \
-        "-Duser.timezone=UTC", \
-        "-Dcom.sun.management.jmxremote.port=7199", \
-        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
-        "-Dcom.sun.management.jmxremote.ssl=false", \
-        "-Dcom.sun.management.jmxremote.authenticate=false", \
-        "-Djava.security.egd=file:/dev/./urandom", \
--       "-XX:InitialRAMPercentage=85.0", \ <2>
--       "-XX:MaxRAMPercentage=85.0", \
-        "-XX:NativeMemoryTracking=summary", \
-        "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
-        "-javaagent:/agent-1.jar", \
-        "-javaagent:/agent-2.jar", \
-        "-Dsqreen.config_file=/sqreen.properties", \
-        "-jar", \
-        "/java-app-boot.jar", \
-        "--spring.config.additional-location=/etc/java-app/config.yaml", \
-        "--server.port=8080" ]
-
-  LABEL name="java-app"
-  LABEL build_path="../"
-  LABEL version_auto_semver="true"
-----
-<1> Defines the https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JAVA_TOOL_OPTIONS`]
-<2> Removes the RAM percentage settings to get _default_ values.
-
-=== Usual Docker prequel
-
-.Build the container
+.log container details
 [source]
 ----
-❯ DOCKER_BUILDKIT=1 docker build \
-  --tag test-java-app \ <1>
-  --build-arg REGISTRY=eu.gcr.io/cd-registry \
-  --file _infra/Dockerfile \
-  .
-[+] Building 1.4s (9/9) FINISHED
- => [internal] load build definition from Dockerfile                                                                                              0.0s
- => => transferring dockerfile: 1.34kB                                                                                                            0.0s
- => [internal] load .dockerignore                                                                                                                 0.0s
- => => transferring context: 35B                                                                                                                  0.0s
- => [internal] load metadata for eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                  0.0s
- => CACHED [1/4] FROM eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                             0.0s
- => [internal] load build context                                                                                                                 0.0s
- => => transferring context: 1.32kB                                                                                                               0.0s
- => [2/4] RUN mkdir -p /gclogs /etc/java-app                                                                                                      0.3s
- => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                   0.0s
- => [4/4] COPY ./build/libs/java-app-boot.jar   ./build/java-agents/agent-1.jar   ./build/java-agents/agent-2.jar   ./src/serviceability/*.sh   / 0.6s
- => exporting to image                                                                                                                            0.4s
- => => exporting layers                                                                                                                           0.4s
- => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                      0.0s
- => => naming to docker.io/library/test-java-app
+-Xlog:pagesize,os,os+container:file=/gclogs/%t-os-container-pagezise.log:time,uptime,tags,level
 ----
-<1> Custom tag to avoid collision with regular images in my cache
 
-.Run the container with the Java app
+
+.output
 [source]
 ----
-❯ docker run test-java-app
-Picked up JAVA_TOOL_OPTIONS:
-10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
-2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+$ head -n 200 /gclogs/2020-05-22_22-28-32-os-container-pagezise.log
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] OSContainer::init: Initializing Container Support
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Use Hierarchy is: 1
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T22:28:33.405+0000][0.003s][info ][os,container] Memory Limit is: 5368709120
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] CPU Quota is: -1
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] CPU Period is: 100000
+[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Shares is: 1024
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Quota is: -1
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Period is: 100000
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Shares is: 1024
+[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
+[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
+[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
+[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
+[2020-05-22T22:28:33.406+0000][0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
+[2020-05-22T22:28:33.406+0000][0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[2020-05-22T22:28:33.408+0000][0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[2020-05-22T22:28:33.408+0000][0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[2020-05-22T22:28:33.410+0000][0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
+[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
+[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
+[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
+[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
+[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Quota is: -1
+[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Period is: 100000
+[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Shares is: 1024
+[2020-05-22T22:28:33.410+0000][0.009s][trace][os,container] OSContainer::active_processor_count: 4
+[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
+[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
+[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
+[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
+[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
+[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
+[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
+[2020-05-22T22:28:33.412+0000][0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached). 
+[2020-05-22T22:28:33.412+0000][0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
+[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
+[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
+[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
+[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
+[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
+[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
+[2020-05-22T22:28:33.412+0000][0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached). 
+[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
+[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached). 
+[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
+[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached). 
+[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
+[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached). 
+[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
+[2020-05-22T22:28:33.423+0000][0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached). 
+[2020-05-22T22:28:33.423+0000][0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
+[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Quota is: -1
+[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Period is: 100000
+[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Shares is: 1024
+[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] OSContainer::active_processor_count: 4
+[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached). 
+[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
+[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached). 
+[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
+[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached). 
+[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
+[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached). 
+[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
+[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached). 
+[2020-05-22T22:28:33.436+0000][0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
+[2020-05-22T22:28:33.436+0000][0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached). 
+[2020-05-22T22:28:33.437+0000][0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
+[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Memory Usage is: 9551872
+[2020-05-22T22:28:33.439+0000][0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[2020-05-22T22:28:33.439+0000][0.037s][trace][os,container] Memory Usage is: 9682944
 ...
+[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Memory Usage is: 12820480
+...
+[2020-05-22T22:28:33.466+0000][0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[2020-05-22T22:28:33.466+0000][0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
+...
+[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Memory Usage is: 4093734912
+[2020-05-22T15:40:38.913+0000][8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Memory Usage is: 4093943808
+
 ----
 
 
-=== Getting the JVM flags after bootstrap
 
-.VM.flags local docker
-[source, bash]
-----
-❯ docker exec -it j-mem bash -c "env -u JAVA_TOOL_OPTIONS jcmd \$(pgrep java) VM.flags | tr ' ' '\n'" # <1>
-6:
--XX:CICompilerCount=3
--XX:ConcGCThreads=1
--XX:G1ConcRefinementThreads=4
--XX:G1HeapRegionSize=1048576
--XX:GCDrainStackTargetSize=64
--XX:InitialHeapSize=33554432
--XX:+ManagementServer
--XX:MarkStackSize=4194304
--XX:MaxHeapSize=522190848 <2>
--XX:MaxNewSize=312475648
--XX:MinHeapDeltaBytes=1048576
--XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5830732
--XX:NonProfiledCodeHeapSize=122913754
--XX:ProfiledCodeHeapSize=122913754
--XX:ReservedCodeCacheSize=251658240
--XX:+SegmentedCodeCache
--XX:+UseCompressedClassPointers
--XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps
--XX:+UseG1GC
-----
-<1> unset `JAVA_TOOL_OPTIONS` otherwise jcmd may also take parameters intended
-for the main java application.
-<2> Max heap is about 500MB
-
-Notice there's no RAM setting in the flags, however the JVM computed the value
-of other flags, like the max heap size at ~25% of my docker settings 2GB.
 
 
 
