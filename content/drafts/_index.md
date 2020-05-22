@@ -1,3 +1,3 @@
 ---
-title: Drafts or ideas scratchpad
+title: Drafts / ideas / work in progress
 ---
