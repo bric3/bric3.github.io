@@ -4,7 +4,7 @@ date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "pmap"]
 slug: "maxrampercentage-isnt-enough"
-title: "MaxRamPercentage isn't enough"
+title: "So MaxRamPercentage isn't enough"
 draft: true
 #_build:
 #  list: never
@@ -817,70 +817,117 @@ The code is not the culprit in this case. Let's explore that.
 While the previous section allowed to understand the actual memory usage, it didn't give any figure
 regarding the actual heap usage for this application :
 
-.local docker
+.GC.heap_info
 [source, role="primary"]
 ----
 $ jcmd $(pgrep java) GC.heap_info
 6:
- garbage-first heap   total 2203648K, used 373495K [0x0000000779800000, 0x0000000800000000)
-  region size 1024K, 217 young (222208K), 8 survivors (8192K)
- Metaspace       used 103178K, capacity 105394K, committed 105604K, reserved 1140736K
-  class space    used 13168K, capacity 14004K, committed 14060K, reserved 1048576K
+ garbage-first heap   total 4456448K, used 537569K [0x00000006f0000000, 0x0000000800000000) <1>
+  region size 2048K, 161 young (329728K), 13 survivors (26624K)
+ Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
+  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
+<1> Used heap : ~`537 MB`
 
-.prod first
+.1
 [source, role="secondary"]
 ----
 $ jcmd $(pgrep java) GC.heap_info
 6:
- garbage-first heap   total 4456448K, used 925702K [0x00000006f0000000, 0x0000000800000000)
+ garbage-first heap   total 4456448K, used 925702K [0x00000006f0000000, 0x0000000800000000) <1>
   region size 2048K, 387 young (792576K), 12 survivors (24576K)
  Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
+<1> Used heap : ~`926 MB`
 
-.prod second
+.2
 [source, role="secondary"]
 ----
 $ jcmd 6 GC.heap_info
 6:
- garbage-first heap   total 4456448K, used 1245902K [0x00000006f0000000, 0x0000000800000000)
+ garbage-first heap   total 4456448K, used 1245902K [0x00000006f0000000, 0x0000000800000000) <1>
   region size 2048K, 543 young (1112064K), 12 survivors (24576K)
- Metaspace       used 154163K, capacity 160620K, committed 160976K, reserved 1189888K
-  class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
+ Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
+  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
+<1> Used heap : ~`1,246 MB`
 
-.prod third
+.3
 [source, role="secondary"]
 ----
 $ jcmd 6 GC.heap_info
 6:
- garbage-first heap   total 4456448K, used 2421454K [0x00000006f0000000, 0x0000000800000000)
+ garbage-first heap   total 4456448K, used 2421454K [0x00000006f0000000, 0x0000000800000000) <1>
   region size 2048K, 1117 young (2287616K), 12 survivors (24576K)
- Metaspace       used 154163K, capacity 160620K, committed 160976K, reserved 1189888K
-  class space    used 18071K, capacity 20476K, committed 20556K, reserved 1048576K
+ Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
+  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
+<1> Used heap : ~`2,421 MB`
 
-The heap went from `925702 KB` to `2421454 KB`. When following the trend of the heap usage
-lead can lead to the actual memory usage for this app (in the given cluster topology).
+.4
+[source, role="secondary"]
+----
+$ jcmd 6 GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 2715248K [0x00000006f0000000, 0x0000000800000000) <1>
+  region size 2048K, 1225 young (2508800K), 13 survivors (26624K)
+ Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
+  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
+----
+<1> Used heap : ~`2,715 MB`
 
+.5
+[source, role="secondary"]
+----
+$ jcmd 6 GC.heap_info
+6:
+ garbage-first heap   total 4456448K, used 279521K [0x00000006f0000000, 0x0000000800000000) <1>
+  region size 2048K, 35 young (71680K), 13 survivors (26624K)
+ Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
+  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
+----
+<1> Used heap : ~`279 MB`
+
+On the application in production, limited with `5 GB` of memory, the heap
+seems to increase between something like `280 MB` to `2.72 GB`. Graphing the trend of the heap usage
+over time suggests the memory usage for this app (for the current cluster topology (_replicaset_, traffic, etc.))
+
+To keep things simple let's use the rough top usage of `2.8 GB` of the heap. While the available
+allocated heap is `4.45 GB`. As a reminder non-used memory pages are not physically in RAM,
+thanks to the OS (in that cae Linux), look at the `RSS` column of the `pmap` output.
+
+So just using this heap usage with the non heap usage, plus some margin, gives this number :
 
 ....
-2.5 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.5 GB
+2.8 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.8 GB
 ....
 
-Note this is the heap usage with the current GC activity, but this usage may eventually
-be lower at the cost of higher GC activity and most likely CPU usage. This CPU usage
-may require some adjustment on the deployment CPU limit, because on Kubernetes, if
-a pod reached its CPU limit it gets throttled, and this would be very bad for a Java app
-to be throttled.
+Again keep in mind this is the heap usage with the current GC activity. As said earlier
+this application worked with a lower heap `2 GB`, this certainly worked at the cost of higher
+GC activity and CPU usage, this works as this workload is mostly IO bound.
 
-The above number give the following percentage value `-XX:MaxRAMPercentage=71.0` with
-a deployment limit of `3.5 GB`.
+Anyway this CPU usage may require some adjustment on the deployment CPU limit
+(https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes[millicores]).
+This is essential because on Kubernetes, if a pod reached its CPU limit it gets
+https://cloud.google.com/blog/products/gcp/kubernetes-best-practices-resource-requests-and-limits?hl=fa[throttled],
+and this very bad for a Java app to be throttled (this is the same for a Go application).
+
+Going back to our _equation_ above, those numbers yield the following percentage
+`-XX:MaxRAMPercentage=73.6` for a deployment limit of `3.8 GB`.
+
+
+ _____ ___  ____   ___
+|_   _/ _ \|  _ \ / _ \
+  | || | | | | | | | | |
+  | || |_| | |_| | |_| |
+  |_| \___/|____/ \___/
+
+                         TODO VALIDATE in prod
+                         TODO Use -Xmx=2g
 
 
 
-                         TODO XXXX
 
 
 === The lesson
@@ -910,48 +957,65 @@ Fortunately there's still
 {{< /wrapTable >}}
 
 
-Point taken, I already knew https://twitter.com/chriswhocodes[Chris Newland] useful websites
+Point taken, I already knew https://twitter.com/chriswhocodes[Chris Newland]'s useful websites
 but didn't visit them to use this option, *I should have !*
 
+Anyway after all, I don't think `*RAMPercentage` flags are very useful (or those
+are used inadequately in our application ?!). For me they don't quite respect the _principle of
+the least surprise_. As we've seen these percentages do not account how non-heap usage grow,
+and the JVM didn't limit these zones according to the `cgroup` limits, which is confusing, because
+if they were, we would have seen``OutOfMemoryError``s from these zones.
+
+All things considered, it is actually just as ok, if not more useful to prefer the usual `-Xmx` flags
+in a container for now, especially with the `JAVA_TOOL_OPTIONS` environment variable, so you won't
+have to calculate a percentage and just use the actual max memory.
+
+
+== Take away
+
+* Use `JAVA_TOOL_OPTIONS` in the image rather than setting memory in the `CMD` directive.
+* RSS => amount of physical memory allocated & used by a process,
+* RSS maybe more or inferior to committed memory of the JVM due to OS virtual memory management
+* `/proc` filesystem and related tooling is great
+* Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + ...)
+* Using `Xmx` in a container is still a very good bet compared to `MaxRAMPercentage`
 
 
 
 
-== So as wrap-up
-
-The memory of a process can be
-
-====
-* RSS => amount of physical memory allocated & used by a process
-* Java MaxHeapSize != Docker stats (“MEM USAGE”)
-** Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + ...)
-====
+'''
+'''
+'''
+'''
 
 
 
 
 
+ __
+/\ \
+\ \ \____    ___     ___   __  __    ____
+ \ \ '__`\  / __`\ /' _ `\/\ \/\ \  /',__\
+  \ \ \L\ \/\ \L\ \/\ \/\ \ \ \_\ \/\__, `\
+   \ \_,__/\ \____/\ \_\ \_\ \____/\/\____/
+    \/___/  \/___/  \/_/\/_/\/___/  \/___/
 
 
+== Bonus
 
+The main topic of blog post is over, but as it was interesting to look at this problem
+with some `cgroup` knowledge and Linux memory understanding, so I wrapped some
+information that was nice to refresh and explore.
 
+=== Interpreting cgroup's memory (cgroup v1)
 
+Before going further I'd like o mention that the Linux kernel documentation on
+https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt[cgroup v1]
+is a very good start.
 
-
-
-
-
-
-
-
-
-
-=== Interpreting cgroup's memory
-
-A good start is the actual Linux Kernel documentation on
-https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt[cgroup v1].
-
-
+In our case let's see what `cgroup` have to say inside our container. A lot of interesting
+bits are available in the `/sys/fs/cgroup`, those are not process specific.
+They may help tackle issue with memory not directly related with the process itself:
 
 .memory.stat
 [source, bash]
@@ -1019,7 +1083,8 @@ Therefore, `active_anon` + `inactive_anon` ≠ rss, because rss does not include
 * `active_file` + `inactive_file` = cache - size of tmpfs
 ****
 
-There other memory settings to look at
+There other memory settings to look at, some of these are being looked upon by the JVM
+to understand the contraint of the cgroup.
 
 .memory usage and limits
 [source, bash]
@@ -1030,19 +1095,20 @@ cat /sys/fs/cgroup/memory/memory.{usage_in_bytes,limit_in_bytes,memsw.usage_in_b
 4944748544 <3>
 5368709120 <4>
 ----
-<1> current memory usage ~4.9GB, but it's recommended to read cache+rss+swap values in `memory.stat`
-<2> limit on the memory usage (~5.3GB)
-<3> current memory and swap usage (~4.9 GB)
-<4> limit on memory and swap (~5.3GB)
+<1> current memory usage ~`4.9 GB`, but for the whole memory it's recommended to read cache+rss+swap values in `memory.stat`
+<2> limit of the memory resource (~`5.3 GB`)
+<3> current memory and swap usage (~`4.9 GB`)
+<4> limit on memory and swap (~`5.3 GB`)
 
 Note the `memory.limit_in_bytes` and `memory.memsw.limit_in_bytes` values are the same,
 that means that the processes in the cgroup can use all the memory before swaping,
 however it is not impossible for the process to be use the swap before this limit is reached.
 
-In fact due to the swapiness value the kernel may try to reclaim memory.
-
-
+In fact due to the OS `swapiness` value the kernel may try to reclaim memory from RAM and put
+on the swap.
 There are other parameters related to the kernel and tcp allocations.
+
+On the swapiness side, it's possible to change that in the cgroup as well.
 
 .memory.swapiness
 [source, bash]
@@ -1052,144 +1118,130 @@ cat /proc/sys/vm/swappiness <1>
 cat /sys/fs/cgroup/memory/memory.swappiness <2>
 60
 ----
-<1> OS swapiness
-<2> cgroup swapiness, here the setting is not overridden
+<1> OS `swapiness`
+<2> cgroup `swapiness`, here the setting is unchanged.
 
+By the way that high `swappiness` is a bad for applications with GC like the JVM.
+
+AS mentioned earlier the JVM look for some values in `memory.limit_in_bytes` and `memory.usage_in_bytes`,
+but not only, let's find out with this logger :
 
 .log container details
 [source]
 ----
--Xlog:pagesize,os,os+container:file=/gclogs/%t-os-container-pagezise.log:time,uptime,tags,level
+-Xlog:os,os+container=trace:file=/gclogs/%t-os-container.log:time,uptime,tags,level
 ----
+
 
 
 .output
 [source]
 ----
-$ head -n 200 /gclogs/2020-05-22_22-28-32-os-container-pagezise.log
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] OSContainer::init: Initializing Container Support
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Use Hierarchy is: 1
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.405+0000][0.003s][info ][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
-[2020-05-22T22:28:33.406+0000][0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
-[2020-05-22T22:28:33.406+0000][0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[2020-05-22T22:28:33.408+0000][0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[2020-05-22T22:28:33.408+0000][0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.410+0000][0.009s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
-[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
-[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached). 
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
-[2020-05-22T22:28:33.412+0000][0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached). 
-[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
-[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached). 
-[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached). 
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached). 
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
-[2020-05-22T22:28:33.423+0000][0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached). 
-[2020-05-22T22:28:33.423+0000][0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached). 
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached). 
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached). 
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached). 
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached). 
-[2020-05-22T22:28:33.436+0000][0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
-[2020-05-22T22:28:33.436+0000][0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached). 
-[2020-05-22T22:28:33.437+0000][0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Memory Usage is: 9551872
-[2020-05-22T22:28:33.439+0000][0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T22:28:33.439+0000][0.037s][trace][os,container] Memory Usage is: 9682944
+$ head -n 200 /logs/2020-05-22_22-28-32-os-container.log
+[2020-05-22T23:17:44.775+0000][0.001s][trace][os,container] OSContainer::init: Initializing Container Support
+[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes <1>
+[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us <2>
+[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] CPU Quota is: 800000
+[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us <3>
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Period is: 100000
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares <4>
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Shares is: 3072
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Quota count based on quota/period: 8
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Share count based on shares: 3
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] OSContainer::active_processor_count: 8
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Quota is: 800000
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Period is: 100000
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Shares is: 3072
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Quota count based on quota/period: 8
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Share count based on shares: 3
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] OSContainer::active_processor_count: 8
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] Use of CLOCK_MONOTONIC is supported
+[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] Use of pthread_condattr_setclock is supported
+[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
+[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
+[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007f3b2efcf000, good (unprotected) page:0x00007f3b2efd0000
+[2020-05-22T23:17:44.777+0000][0.002s][info ][os,thread   ] Thread attached (tid: 2260, pthread id: 139892140738304).
+[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
+[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
+[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
+[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Quota is: 800000
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Period is: 100000
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Shares is: 3072
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Quota count based on quota/period: 8
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Share count based on shares: 3
+[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] OSContainer::active_processor_count: 8
+[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] CPU:total 32 (initial active 8) (16 cores per cpu, 2 threads per core) family 6 model 85 stepping 3, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, rtm, 3dnowpref, lzcnt, ht, tsc, tscinvbit, bmi1, bmi2, adx, fma
+[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
+[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] model name  : Intel(R) Xeon(R) CPU @ 2.00GHz
+[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single pti ssbd ibrs ibpb stibp fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx avx512f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves arat md_clear arch_capabilities
+[2020-05-22T23:17:44.779+0000][0.005s][info ][os,thread   ] Thread started (pthread id: 139892128659200, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[2020-05-22T23:17:44.779+0000][0.005s][info ][os,thread   ] Thread is alive (tid: 2261, pthread id: 139892128659200).
+[2020-05-22T23:17:44.780+0000][0.005s][info ][os,thread   ] Thread started (pthread id: 139891649345280, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[2020-05-22T23:17:44.780+0000][0.006s][info ][os,thread   ] Thread is alive (tid: 2262, pthread id: 139891649345280).
+[2020-05-22T23:17:44.780+0000][0.006s][info ][os,thread   ] Thread started (pthread id: 139891430127360, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[2020-05-22T23:17:44.780+0000][0.006s][info ][os,thread   ] Thread is alive (tid: 2263, pthread id: 139891430127360).
+[2020-05-22T23:17:44.817+0000][0.043s][info ][os,thread   ] Thread started (pthread id: 139891387094784, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[2020-05-22T23:17:44.817+0000][0.043s][info ][os,thread   ] Thread is alive (tid: 2264, pthread id: 139891387094784).
+[2020-05-22T23:17:44.818+0000][0.043s][info ][os,thread   ] Thread started (pthread id: 139891386038016, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[2020-05-22T23:17:44.818+0000][0.043s][info ][os,thread   ] Thread is alive (tid: 2265, pthread id: 139891386038016).
+[2020-05-22T23:17:44.835+0000][0.060s][info ][os,thread   ] Thread started (pthread id: 139891384080128, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[2020-05-22T23:17:44.835+0000][0.060s][info ][os,thread   ] Thread is alive (tid: 2266, pthread id: 139891384080128).
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Quota is: 800000
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Period is: 100000
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Shares is: 3072
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Quota count based on quota/period: 8
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Share count based on shares: 3
+[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] OSContainer::active_processor_count: 8
+[2020-05-22T23:17:44.841+0000][0.067s][info ][os,thread   ] Thread started (pthread id: 139891383023360, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[2020-05-22T23:17:44.841+0000][0.067s][info ][os,thread   ] Thread is alive (tid: 2267, pthread id: 139891383023360).
+[2020-05-22T23:17:44.842+0000][0.067s][info ][os,thread   ] Thread started (pthread id: 139891381970688, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[2020-05-22T23:17:44.842+0000][0.067s][info ][os,thread   ] Thread is alive (tid: 2268, pthread id: 139891381970688).
+[2020-05-22T23:17:44.851+0000][0.077s][info ][os,thread   ] Thread started (pthread id: 139891168560896, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[2020-05-22T23:17:44.851+0000][0.077s][info ][os,thread   ] Thread is alive (tid: 2269, pthread id: 139891168560896).
+[2020-05-22T23:17:44.852+0000][0.077s][info ][os,thread   ] Thread started (pthread id: 139891167508224, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[2020-05-22T23:17:44.852+0000][0.077s][info ][os,thread   ] Thread is alive (tid: 2270, pthread id: 139891167508224).
+[2020-05-22T23:17:44.852+0000][0.078s][info ][os,thread   ] Thread started (pthread id: 139891166455552, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[2020-05-22T23:17:44.852+0000][0.078s][info ][os,thread   ] Thread is alive (tid: 2271, pthread id: 139891166455552).
+[2020-05-22T23:17:44.852+0000][0.078s][info ][os,thread   ] Thread started (pthread id: 139891165402880, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[2020-05-22T23:17:44.853+0000][0.078s][info ][os,thread   ] Thread is alive (tid: 2272, pthread id: 139891165402880).
+[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes <1>
+[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes <5>
+[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Memory Usage is: 4583374848
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Usage is: 4583374848
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Limit is: 5368709120
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Usage is: 4583505920
 ...
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Memory Usage is: 12820480
-...
-[2020-05-22T22:28:33.466+0000][0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.466+0000][0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
-...
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Memory Usage is: 4093734912
-[2020-05-22T15:40:38.913+0000][8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Memory Usage is: 4093943808
-
 ----
+<1> `/sys/fs/cgroup/memory/memory.limit_in_bytes` = 5368709120 bytes, in the k8s deployment object `spec.containers[0].resources.limits.memory: 5Gi`
+<2> `/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us` = 800000, in the k8s deployment object `spec.containers[0].resources.limits.cpu: 8`
+<3> `/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us` = 100000, 1/10 of a second, the minimal time slice the process can be scheduled on the CPU,
+<4> `/sys/fs/cgroup/cpu,cpuacct/cpu.shares` = 3072, in the k8s deployment object this comes from `spec.containers[0].resources.requests.cpu: 3`
+<5> `/sys/fs/cgroup/memory/memory.usage_in_bytes` = 4583374848 bytes => 4.5 GB
 
-
-
-
-
-
-
-
-
-(386453 - 1347 - 698) / 1028 => 373
-
+Kubernetes documentation was lacking a bit in that regard, but I found
+https://medium.com/@betz.mark/understanding-resource-limits-in-kubernetes-cpu-time-9eff74d3161b[this blog post that
+explained a bit better how cpu resource limits work in kubernetes].
 
 
 
