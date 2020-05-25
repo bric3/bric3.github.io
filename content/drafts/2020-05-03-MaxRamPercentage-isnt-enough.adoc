@@ -4,43 +4,54 @@ date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "pmap"]
 slug: "maxrampercentage-isnt-enough"
-title: "So MaxRamPercentage isn't enough"
+title: "MaxRamPercentage is not enough, if not debatable"
 draft: true
 #_build:
 #  list: never
 ---
 
-So like many I was happy to see that the JDK 11 had everything to run
-in a container, it can read information form the `cgroups` and it's possible to
-tell the memory usage via the `-XX:MaxRAMPercentage`.
-However...
+Like many I was happy to see that the JDK landed support for containers
+in Java 9, it was backported to Java 8 too.
+Now JDK 11 does this by default and read information from `cgroups` and
+it's possible to tell the memory usage via the `-XX:MaxRAMPercentage` flag.
+
+However in practice this turned not not working as well as well as hoped.
 
 
 .Problem
 ****
 With a RAM percentage parameters at `85%` of `3 GB` memory, the container
-application still go over this limit, which resulted in killed pods and failing
-_deployment_ of our _replicaset_.
+metrics showed the application actually went over this limit, which resulted
+in killed pods and failing _deployment_ of our _replicaset_. The deployment
+had was set up with an _horizontal pod auto-scaler_ too.
 
-This issue started to appear with full traffic. (It was working well when
-the traffic weight was 50%).
+This issue started to appear with full traffic ; it was working well when
+the traffic weight was 50%, it was even working well much 2Gb of heap
+and 100% traffic. And from this point each of pods were oom killed.
 ****
 
-The following writing tries to gather various piece of information,
-that are not really available if you don't know what to look for or where.
-Also it summarize things I knew, things I grepped in the JDK codebase,
-and things learned from other (awesome) people.
+While this problem could be solved with a lot less information, it served as
+an excuse to go down the rabbit hole of process memory exploration.
+In doing so the following writing tries to gather various piece of information,
+that are not easily available if you don't know what to look for or where,
+gathering elements from a few things I knew, things I grepped in the
+JDK codebase, and things learned from other (awesome) people.
 
-I hope I didn't dismissed important things, I hope I'm not totally wrong,
-or simply I hope I'm not misguiding myself and especially others.
+I hope I didn't ignored important things, I hope I'm not totally wrong,
+or simply I hope I'm not misguiding myself and especially others. If I'm wrong
+please reach out.
 
-== Actual data from the prod cluster
+Going back to trail.
 
-The application runs on a Kubernetes cluster. And nice the team that handled the issue
-wasn't really prepared, they bumped the memory limits of the application to 5 GB.
+== Lucky fixing the issue
+
+The application that became problematic runs on a Kubernetes cluster. As mentioned above
+this application worked fine before, and the people that handled the issue at that time were
+not well prepared, and I certainly wasn't either. So they tried memory limits until it worked.
+`5 GB` proved to be the lucky number.
 
 
-.deployment object of the app
+.memory limits in the deployment object of the app
 [source,yaml]
 ----
 apiVersion: extensions/v1beta1
@@ -66,9 +77,18 @@ spec:
             memory: 3Gi
         # ...
 ----
-<1> Actual memory limit.
+<1> The working memory limit.
 
-In order to understand our requirement, and to avoid lucky guess number (until it works),
+This works but this is not satisfactory :
+
+1. This number is not even a guess, but a brute forced number
+2. This application worked with a `2 GB` of heap, `5 GB` looks greedy
+3. Again this number is not understood
+
+
+== Analyze
+
+In order to understand our requirement, and to avoid lucky number (until it works),
 let's explore the memory of a java process.
 
 
@@ -105,10 +125,10 @@ $ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
 -XX:+UseFastUnorderedTimeStamps
 -XX:+UseG1GC
 ----
-<1> initial ram at 85%
-<2> max ram at 85%
-<3> initial heap size ~4.5GB
-<4> max heap size ~4.5GB
+<1> Initial RAM at 85%
+<2> Max RAM at 85%
+<3> Initial heap size ~`4.5 GB`
+<4> Max heap size ~`4.5 GB`
 
 
 === Reading the memory footprint of the java process in the container
@@ -118,7 +138,7 @@ various way, e.g. using `ps` or reading the `/proc` should give the same number
 if done at the same time.
 
 .`ps`
-[source, bash, role="primary"]
+[source, role="primary"]
 ----
 $ ps o pid,rss -p $(pidof java)
 PID   RSS
@@ -126,7 +146,7 @@ PID   RSS
 ----
 
 .`/proc/{pid}/status`
-[source, bash, role="secondary"]
+[source, role="secondary"]
 ----
 $ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB
@@ -240,20 +260,23 @@ flags `-XX:MaxHeapSize=4563402752` though.
 <11> Other section after Java 11 includes `DirectByteBuffers` ~`267 MB`
 
 Other areas are much smaller in scale, NMT takes ~`8 MB` itself, module system usage ~`1.3 MB`,
-etc.
-Also, note that enabling other part may show up if some JVM features are activated.
+etc. Also, note that enabling other JVM features may show up if they are activated.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
 
 
 [NOTE]
 ====
-At the present moment NMT reports a committed memory of `5380868 KB` while process RSS is `4701120 KB`.
-The difference relates to how `mmap` works (on Linux), memory pages are only backed by physical memory
-once they're written to.
+At the time this report was executed the committed memory is `5380868 KB` while the process
+RSS is `4701120 KB`. The difference relates to how `mmap` works (on Linux), memory pages
+are only backed by physical memory once they're written to.
 
-The Hotspot JVM option `-XX:+AlwaysPreTouch` can tell to always write zeroes to memory pages (which limits
-memory commit latencies) used for the heap allocations. But other zones like thread stack works
-differently, that means the some committed memory in NMT is not accounted by the RSS.
+Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
+the JVM to always write zeroes to memory pages (which has the effect of reducing physical memory
+commit latencies), but this option only affect the heap memory allocations. Other zones like
+thread stack or metaspace work differently, that means some *committed* memory shown in NMT is not
+*resident* and not accounted by the RSS counter.
+
+Here's some memory related vocabulary that help distinguish between memory _statuses_ :
 
 .vocabulary breakdown
 [%autowidth.stretch]
@@ -285,8 +308,8 @@ There's a lot more to read on the
 https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80[official documentation about NMT]
 and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77[how to Monitor VM Internal Memory].
 
-For a full blow deep dive read this article by http://twitter.com/shipilev[Aleksey Shipilёv] on
-https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
+And another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
+by http://twitter.com/shipilev[Aleksey Shipilёv].
 
 
 ==== Explore what NMT does not show
@@ -960,25 +983,26 @@ Fortunately there's still
 Point taken, I already knew https://twitter.com/chriswhocodes[Chris Newland]'s useful websites
 but didn't visit them to use this option, *I should have !*
 
-Anyway after all, I don't think `*RAMPercentage` flags are very useful (or those
-are used inadequately in our application ?!). For me they don't quite respect the _principle of
-the least surprise_. As we've seen these percentages do not account how non-heap usage grow,
-and the JVM didn't limit these zones according to the `cgroup` limits, which is confusing, because
-if they were, we would have seen``OutOfMemoryError``s from these zones.
+Anyway after all, I don't think `*RAMPercentage` flags are quite useful (or those
+are used inadequately for this application ?!). For me they don't quite respect the _principle of
+the least surprise_. We've seen these percentages lacks any consideration of how non-heap usage grow,
+and the JVM didn't limit these zones according to the `cgroup` limits, which is unsettling, because
+if they were, the JVM would have crashed with an ``OutOfMemoryError``s from these zones.
 
-All things considered, it is actually just as ok, if not more useful to prefer the usual `-Xmx` flags
-in a container for now, especially with the `JAVA_TOOL_OPTIONS` environment variable, so you won't
-have to calculate a percentage and just use the actual max memory.
+That being said, I believe that fro now it is actually just as ok if not better to prefer the usual
+`-Xmx` flags for Java applications running in a container for now, especially with the
+`JAVA_TOOL_OPTIONS` environment variable, and this a bit less work because it's not anymore necessary
+to translate byte numbers in percentages but instead just use the actual max memory.
 
 
 == Take away
 
 * Use `JAVA_TOOL_OPTIONS` in the image rather than setting memory in the `CMD` directive.
-* RSS => amount of physical memory allocated & used by a process,
-* RSS maybe more or inferior to committed memory of the JVM due to OS virtual memory management
+* `RSS`, the amount of physical memory that is allocated & used by a process,
+* `RSS` maybe more or inferior to committed memory of the JVM due to OS virtual memory management
 * `/proc` filesystem and related tooling is great
 * Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + ...)
-* Using `Xmx` in a container is still a very good bet compared to `MaxRAMPercentage`
+* Using `Xmx` in a container is still a very good choice compared to `MaxRAMPercentage`
 
 
 
@@ -987,18 +1011,19 @@ have to calculate a percentage and just use the actual max memory.
 '''
 '''
 '''
+'''
+'''
 
 
 
 
-
- __
-/\ \
-\ \ \____    ___     ___   __  __    ____
- \ \ '__`\  / __`\ /' _ `\/\ \/\ \  /',__\
-  \ \ \L\ \/\ \L\ \/\ \/\ \ \ \_\ \/\__, `\
-   \ \_,__/\ \____/\ \_\ \_\ \____/\/\____/
-    \/___/  \/___/  \/_/\/_/\/___/  \/___/
+   __
+  /\ \
+  \ \ \____    ___     ___   __  __    ____
+   \ \ '__`\  / __`\ /' _ `\/\ \/\ \  /',__\
+    \ \ \L\ \/\ \L\ \/\ \/\ \ \ \_\ \/\__, `\
+     \ \_,__/\ \____/\ \_\ \_\ \____/\/\____/
+      \/___/  \/___/  \/_/\/_/\/___/  \/___/
 
 
 == Bonus
