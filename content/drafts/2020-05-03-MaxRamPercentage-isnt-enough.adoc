@@ -3,8 +3,8 @@ authors: ["brice.dutheil"]
 date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "pmap"]
-slug: "maxrampercentage-isnt-enough"
-title: "MaxRamPercentage is not enough, if not debatable"
+slug: "maxrampercentage-isnt-what-i-wished-for"
+title: "MaxRamPercentage is what I wished for"
 draft: true
 #_build:
 #  list: never
@@ -20,13 +20,13 @@ However in practice this turned not not working as well as well as hoped.
 
 .Problem
 ****
-With a RAM percentage parameters at `85%` of `3 GB` memory, the container
+With a RAM percentage parameters at `85%` of `3 GiB` memory, the container
 metrics showed the application actually went over this limit, which resulted
 in killed pods and failing _deployment_ of our _replicaset_. The deployment
 had was set up with an _horizontal pod auto-scaler_ too.
 
 This issue started to appear with full traffic ; it was working well when
-the traffic weight was 50%, it was even working well much 2Gb of heap
+the traffic weight was 50%, it was even working well much `2 GiB` of heap
 and 100% traffic. And from this point each of pods were oom killed.
 ****
 
@@ -43,12 +43,20 @@ please reach out.
 
 Going back to trail.
 
+
+[NOTE]
+====
+Memory figures use binary units, it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
+our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
+and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps`, although I could find a reference).
+====
+
 == Lucky fixing the issue
 
 The application that became problematic runs on a Kubernetes cluster. As mentioned above
 this application worked fine before, and the people that handled the issue at that time were
 not well prepared, and I certainly wasn't either. So they tried memory limits until it worked.
-`5 GB` proved to be the lucky number.
+`5 GiB` proved to be the lucky number.
 
 
 .memory limits in the deployment object of the app
@@ -82,7 +90,7 @@ spec:
 This works but this is not satisfactory :
 
 1. This number is not even a guess, but a brute forced number
-2. This application worked with a `2 GB` of heap, `5 GB` looks greedy
+2. This application worked with a `2 GiB` of heap, `5 GiB` looks greedy
 3. Again this number is not understood
 
 
@@ -127,8 +135,8 @@ $ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
 ----
 <1> Initial RAM at 85%
 <2> Max RAM at 85%
-<3> Initial heap size ~`4.5 GB`
-<4> Max heap size ~`4.5 GB`
+<3> Initial heap size ~`4.25 GiB`
+<4> Max heap size ~`4.25 GiB`
 
 
 === Reading the memory footprint of the java process in the container
@@ -152,8 +160,8 @@ $ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB
 ----
 
-`4.7 GB` !!! Not quite within the 4.5 GB (85% of 5 GB) limit. So let's dig a bit to understand
-this number (4701120 KB).
+`4.6 GiB` !!! Not quite within the `4.25 GiB` (85% of `5 GiB`) limit. So let's dig a
+bit to understand this number (4701120 KiB).
 
 ==== Digging in the java memory arenas
 
@@ -190,9 +198,9 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
                             (    free=2308KB)
                             (    waste=0KB =0.00%)
 
--                    Thread (reserved=696395KB, committed=85455KB)           <5>
+-                    Thread (reserved=696395KB, committed=85455KB)
                             (thread #674)
-                            (stack: reserved=692812KB, committed=81872KB)
+                            (stack: reserved=692812KB, committed=81872KB)    <5>
                             (malloc=2432KB #4046)
                             (arena=1150KB #1347)
 
@@ -243,32 +251,32 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
 -                   Unknown (reserved=32KB, committed=32KB)
                             (mmap: reserved=32KB, committed=32KB)
 ----
-<1> This shows a `reserved` value (`7168324 KB` (~`7.1 GB`)), it's the amount of addressable memory
-(all OS types) on that container, and a `committed` value (`4456448 KB` (~`4.45 GB`)) that represents
+<1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount of addressable memory
+(all OS types) on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`)) that represents
 what the JVM actually told the OS to allocate.
-<2> Heap arena, note reserved and committed values are the same `4456448 KB` here because our
+<2> Heap arena, note reserved and committed values are the same `4456448 KiB` here because our
 `InitialRAMPercentage` is the same as max. I'm not sure why this number is different from the VM
 flags `-XX:MaxHeapSize=4563402752` though.
-<3> ~`165 MB` of class metadata
+<3> ~`162 MiB` of metaspace
 <4> How many classes have been loaded : `28431`
-<5> There are 674 threads that are using ~`81 MB` and could use up to `696 MB`.
-<6> Code cache area (assembly of the used methods) ~105 MB out of 251 MB which matches with `-XX:ReservedCodeCacheSize=251658240`
-<7> G1GC internal data structures take ~`230 MB`
-<8> C1 / C2 compilers (which compile bytecodes to assembly) uses ~`6 MB`
-<9> The symbols contains many things like interned strings and other internal constants ~`29 MB`
-<10> Internal (includes `DirectByteBuffers` before Java 11), maybe others objects, here takes ~`24 MB`
-<11> Other section after Java 11 includes `DirectByteBuffers` ~`267 MB`
+<5> There are 674 threads that are using ~`80 MiB` and could use up to ~`676 MiB`.
+<6> Code cache area (assembly of the used methods) ~`102 MiB` out of ~`246 MiB` which matches with `-XX:ReservedCodeCacheSize=251658240`
+<7> G1GC internal data structures take ~`225 MiB`
+<8> C1 / C2 compilers (which compile bytecodes to assembly) uses ~`5.8 MiB`
+<9> The symbols contains many things like interned strings and other internal constants ~`28.2 MiB`
+<10> Internal (includes `DirectByteBuffers` before Java 11), maybe others objects, here takes ~`24 MiB`
+<11> Other section after Java 11 includes `DirectByteBuffers` ~`261 MiB`
 
-Other areas are much smaller in scale, NMT takes ~`8 MB` itself, module system usage ~`1.3 MB`,
+Other areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
 etc. Also, note that enabling other JVM features may show up if they are activated.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
 
 
 [NOTE]
 ====
-At the time this report was executed the committed memory is `5380868 KB` while the process
-RSS is `4701120 KB`. The difference relates to how `mmap` works (on Linux), memory pages
-are only backed by physical memory once they're written to.
+At the time this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
+the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
+pages are only backed by physical memory once they're written to.
 
 Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
 the JVM to always write zeroes to memory pages (which has the effect of reducing physical memory
@@ -449,7 +457,7 @@ $ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
                            ^^^^^               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ----
 
-There's around `36 MB` of memory mapped files.
+There's around `35.2 MiB` of memory mapped files.
 
 _As I was a bit unfamiliar with `pmap`, reading https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[this process memory blog]
 helped me with the above command._
@@ -482,11 +490,11 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
 | Malloc overhead                 | accounted in NMT
 | ...                             |
 
-| Total                           | 5242880 KB
+| Total                           | 5242880 KiB
 |===
 
-`5186278 KB` is what this container is actually using, so way over the RSS (`4701120 KB`)
-but also over the `5 GB` (`5242880 KB`) of the pod limit. Yet this pod is healthy and far from
+`5186278 KiB` is what this container is actually using, so way over the RSS (`4701120 KiB`)
+but also over the `5 GiB` (`5242880 KiB`) of the pod limit. Yet this pod is healthy and far from
 the thresholds to be oom killed.
 
 *So what I am missing here ?*
@@ -507,15 +515,15 @@ JVM didn't tell the OS to allocate this memory)
 Each of these memory arenas are managed differently: `GC`, `Compiler` have the
 same committed and reserved memory values while other zones have the ability to
 shrink or grow for example `thread stacks` arenas reports
-`85455 KB` but could take up to `696395 KB` if necessary, and theoretically
+`85455 KiB` but could take up to `696395 KiB` if necessary, and theoretically
 same as the heap.
 
 * While the JVM did allocate this memory, Linux on x86 hardware uses virtual
 memory with paging. More specifically Linux optimize actual physical memory
 and only commit a page physically if this page is actually written to. In this
 case the `Heap` arena in particular seems to benefit from this behavior as the JVM
-allocated `4456448 KB`, but the actual RAM _resident set size_ usage of this memory
-zone seems at this time is `3128252 KB`.
+allocated `4456448 KiB`, but the actual RAM _resident set size_ usage of this memory
+zone seems at this time is `3128252 KiB`.
 
 Where to look this number? While it's easy to get the RSS of a process, to understand
 if the committed heap actually _resides_ on physical memory you need to use `pmap` or
@@ -587,11 +595,11 @@ From the above, it's now possible with NMT especially and with `pmap` to
 understand actual memory usage and to answer the question: "What is a sensible
 RAM percentage setting for this application ?"
 
-Really what drive the answer is the actual non-heap usage not accounted in `MaxRAMPercentage`, from
-the numbers above:
+Really what drive the answer is the actual non-heap usage not accounted in
+`MaxRAMPercentage`, from the numbers above:
 
 ....
-(total) 5242880 - (heap) 4456448 = 786432 KB
+(total) 5242880 - (heap) 4456448 = 786432 KiB
 ....
 
 
@@ -605,21 +613,21 @@ the numbers above:
 | Total    | 5186278                    | 100 %
 |===
 
-*This means the application needs around `790 MB`, plus the heap to run.*
+*This means the application needs around `790 MiB`, plus the heap to run.*
 
 From the flags seen above, the JVM set the heap maximum size memory to `4 563 402 752` Bytes,
 this value was computed from this flag `-XX:MaxRAMPercentage=85.000000`, and this percentage
-is somehow a lucky guess that worked for the `5 GB` deployment memory limit.
+is somehow a lucky guess that worked for the `5 GiB` deployment memory limit.
 But this actual percentage is in fact _wrong_, if he JVM needed all the memory within the max
 heap plus bigger stack traces then the container/pod would have been _oom killed_. Also, it is
 necessary to give some free space in the container
 to be able to perform serviceability tasks, like profiling, heap dump, etc.
 
-For a 5GB limit it may be good to give around 20% for all of these non-heap, plus system space
+For a `5 GiB` limit it may be good to give around 20% for all of these non-heap, plus system space
 for this particular workload (e.g. if the application requires heavy filesystem usage, then
 it would be a different number to make room for the filesystem cache).
 
-So the problem would be solved with the following value, for a `5 GB` memory limit :
+So the problem would be solved with the following value, for a `5 GiB` memory limit :
 
 [source]
 ----
@@ -765,7 +773,7 @@ Then we can make sure we have the correct flags.
 -XX:+UseG1GC
 
 ----
-<1> Max heap is about `805 MB`
+<1> Max heap is about `768 MiB`
 
 .*With* `JAVA_TOOL_OPTIONS`
 [source, role="secondary"]
@@ -796,19 +804,20 @@ Then we can make sure we have the correct flags.
 -XX:+UseG1GC
 
 ----
-<1> Max heap is about `2.25 GB`
+<1> Max heap is about `2.1 GiB`
 
 
-Notice when there's no RAM settings the JVM computed computed the max heap size at 25%
-of memory constraints `3 GB`. And to 80%, `2.25 GB`, of the same limit when passing the RAM percentages.
-Also the heap values are the only one affected, other memory areas default values kept the same values.
+Notice when there's no RAM settings the JVM computed the max heap size at 25%
+of memory constraints `3 GiB`. And to 80%, `2.1 GiB`, of the same limit when
+passing the RAM percentages. Also, the heap values are the only one affected,
+other memory areas default values kept the same values.
 
 
 == Going further
 
 As a reminder this application was set up with 85% max heap when the
-deployment limit was `3 GB`, it worked well under 50% of the traffic but failed with full traffic.
-Then this pod memory limit was bumped to `5 GB` and the pod wasn't anymore oomkilled.
+deployment limit was `3 GiB`, it worked well under 50% of the traffic but failed with full traffic.
+Then this pod memory limit was bumped to `5 GiB` and the pod wasn't anymore oomkilled.
 How this _limit_ was found is a lucky guess, given the RAM percentages were set in the `CMD`
 directive of the Dockerfile.
 
@@ -827,7 +836,7 @@ The heap had a max value anyway, and if it was then the app would either trigger
 with an `OutOfMemoryError`, so that not the heap. AS for the offers it's unlikely with the workload they grow
 that much.
 
-My hypothesis is that when full traffic came to this pod, these arenas grew by `100 MB` to `200 MB` (sum),
+My hypothesis is that when full traffic came to this pod, these arenas grew by `100 MiB` to `200 MiB` (sum),
 while not much, it was sufficient to go over the 15% of memory left for the non heap memory, and thus triggered
 the system oom killer.
 
@@ -850,7 +859,7 @@ $ jcmd $(pgrep java) GC.heap_info
  Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
-<1> Used heap : ~`537 MB`
+<1> Used heap : ~`525 MiB`
 
 .1
 [source, role="secondary"]
@@ -862,7 +871,7 @@ $ jcmd $(pgrep java) GC.heap_info
  Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
-<1> Used heap : ~`926 MB`
+<1> Used heap : ~`904 MiB`
 
 .2
 [source, role="secondary"]
@@ -874,7 +883,7 @@ $ jcmd 6 GC.heap_info
  Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
-<1> Used heap : ~`1,246 MB`
+<1> Used heap : ~`1,217 MiB`
 
 .3
 [source, role="secondary"]
@@ -886,7 +895,7 @@ $ jcmd 6 GC.heap_info
  Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
-<1> Used heap : ~`2,421 MB`
+<1> Used heap : ~`2,364 MiB`
 
 .4
 [source, role="secondary"]
@@ -898,7 +907,7 @@ $ jcmd 6 GC.heap_info
  Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
-<1> Used heap : ~`2,715 MB`
+<1> Used heap : ~`2,652 MiB`
 
 .5
 [source, role="secondary"]
@@ -910,24 +919,28 @@ $ jcmd 6 GC.heap_info
  Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
   class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
 ----
-<1> Used heap : ~`279 MB`
+<1> Used heap : ~`273 MiB`
 
-On the application in production, limited with `5 GB` of memory, the heap
-seems to increase between something like `280 MB` to `2.72 GB`. Graphing the trend of the heap usage
-over time suggests the memory usage for this app (for the current cluster topology (_replicaset_, traffic, etc.))
+On the application in production, limited with `5 GiB` of memory, the heap
+seems to increase between something like `273 MiB` to `2.7 GiB`. Graphing the trend of the heap usage
+over time suggests the memory usage for this app (for the current cluster topology
+(_replicaset_, traffic, etc.)).
 
-To keep things simple let's use the rough top usage of `2.8 GB` of the heap. While the available
-allocated heap is `4.45 GB`. As a reminder non-used memory pages are not physically in RAM,
-thanks to the OS (in that cae Linux), look at the `RSS` column of the `pmap` output.
+
+XXX : image
+
+To keep things simple let's use the rough top usage of `2.7 GiB` of the heap. While the available
+allocated heap is `4.25 GiB`. As a reminder non-used memory pages are not physically in RAM,
+thanks to the OS (in that case Linux), look at the `RSS` column of the `pmap` output.
 
 So just using this heap usage with the non heap usage, plus some margin, gives this number :
 
 ....
-2.8 GB of used heap + 0.8 GB of non heap + 0.2 MB margin = 3.8 GB
+2.7 GiB of used heap + 0.8 GiB of non heap + 0.2 GiB margin = 3.7 GiB
 ....
 
 Again keep in mind this is the heap usage with the current GC activity. As said earlier
-this application worked with a lower heap `2 GB`, this certainly worked at the cost of higher
+this application worked with a lower heap `2 GiB`, this certainly worked at the cost of higher
 GC activity and CPU usage, this works as this workload is mostly IO bound.
 
 Anyway this CPU usage may require some adjustment on the deployment CPU limit
@@ -937,7 +950,7 @@ https://cloud.google.com/blog/products/gcp/kubernetes-best-practices-resource-re
 and this very bad for a Java app to be throttled (this is the same for a Go application).
 
 Going back to our _equation_ above, those numbers yield the following percentage
-`-XX:MaxRAMPercentage=73.6` for a deployment limit of `3.8 GB`.
+`-XX:MaxRAMPercentage=72.97` for a deployment limit of `3.7 GiB`.
 
 
  _____ ___  ____   ___
@@ -1089,13 +1102,13 @@ total_inactive_file 58806272
 total_active_file 188416
 total_unevictable 0
 ----
-<1> rss of the processes, anonymous memory and swap cache, without `tmpfs` (shmem) (~4.8 GB)
+<1> rss of the processes, anonymous memory and swap cache, without `tmpfs` (shmem) (~`4.49 GiB`)
 <2> anonymous memory and swap cache on active LRU list, with `tmpfs` (shmem)
-<3> anonymous memory and swap cache on inactive LRU list, with `tmpfs` (shmem) (~4.8 GB)
-<4> file-backed memory on inactive LRU list, in bytes (~59 MB)
-<5> file-backed memory on active LRU list, in bytes (~190 KB)
+<3> anonymous memory and swap cache on inactive LRU list, with `tmpfs` (shmem) (~`4.49 GiB`)
+<4> file-backed memory on inactive LRU list, in bytes (~`56 MiB`)
+<5> file-backed memory on active LRU list, in bytes (~`184 KiB`)
 <6> swap usage, `0` is the only good value for java
-<7> page cache memory (~57 MB)
+<7> page cache memory (~`54.8 MiB`)
 
 .From the https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/sec-memory[RHEL6 documentation]
 ****
@@ -1120,10 +1133,10 @@ cat /sys/fs/cgroup/memory/memory.{usage_in_bytes,limit_in_bytes,memsw.usage_in_b
 4944748544 <3>
 5368709120 <4>
 ----
-<1> current memory usage ~`4.9 GB`, but for the whole memory it's recommended to read cache+rss+swap values in `memory.stat`
-<2> limit of the memory resource (~`5.3 GB`)
-<3> current memory and swap usage (~`4.9 GB`)
-<4> limit on memory and swap (~`5.3 GB`)
+<1> current memory usage ~`4.61 GiB`, but for the whole memory it's recommended to read cache+rss+swap values in `memory.stat`
+<2> limit of the memory resource (~`5 GiB`)
+<3> current memory and swap usage (~`4.61 GiB`)
+<4> limit on memory and swap (~`5 GiB`)
 
 Note the `memory.limit_in_bytes` and `memory.memsw.limit_in_bytes` values are the same,
 that means that the processes in the cgroup can use all the memory before swaping,
@@ -1262,11 +1275,12 @@ $ head -n 200 /logs/2020-05-22_22-28-32-os-container.log
 <2> `/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us` = 800000, in the k8s deployment object `spec.containers[0].resources.limits.cpu: 8`
 <3> `/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us` = 100000, 1/10 of a second, the minimal time slice the process can be scheduled on the CPU,
 <4> `/sys/fs/cgroup/cpu,cpuacct/cpu.shares` = 3072, in the k8s deployment object this comes from `spec.containers[0].resources.requests.cpu: 3`
-<5> `/sys/fs/cgroup/memory/memory.usage_in_bytes` = 4583374848 bytes => 4.5 GB
+<5> `/sys/fs/cgroup/memory/memory.usage_in_bytes` = 4583374848 bytes => `4.27 GiB`
 
 Kubernetes documentation was lacking a bit in that regard, but I found
 https://medium.com/@betz.mark/understanding-resource-limits-in-kubernetes-cpu-time-9eff74d3161b[this blog post that
 explained a bit better how cpu resource limits work in kubernetes].
+And anyway the official documentation is https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run[here].
 
 
 
