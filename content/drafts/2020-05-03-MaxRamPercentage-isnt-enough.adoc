@@ -30,7 +30,15 @@ the traffic weight was 50%, it was even working well much `2 GiB` of heap
 and 100% traffic. And from this point each of pods were oom killed.
 ****
 
-While this problem could be solved with a lot less information, it served as
+image:/assets/maxrampercentage/pod-memory-usage.png[]
+_The orange line is the pod memory limit, the increasing green line is the
+total memory usage of the container `container_memory_usage_bytes`._
+
+image:/assets/maxrampercentage/app-jvm-memory-usage.png[]
+_The blue line is the heap limit `3 GiB`, the increasing green line
+is the application RSS, yellow line is the heap usage._
+
+This problem could be solved with a lot less information, it served as
 an excuse to go down the rabbit hole of process memory exploration.
 In doing so the following writing tries to gather various piece of information,
 that are not easily available if you don't know what to look for or where,
@@ -46,17 +54,19 @@ Going back to trail.
 
 [NOTE]
 ====
-Memory figures use binary units, it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
+Memory figures use binary units (IEC), it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
 our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
 and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps`, although I could find a reference).
+
+Some graphs however show metric values instead of IEC, (1000 multiplier instead of 1024 (power of 2)).
 ====
 
 == Lucky fixing the issue
 
 The application that became problematic runs on a Kubernetes cluster. As mentioned above
 this application worked fine before, and the people that handled the issue at that time were
-not well prepared, and I certainly wasn't either. So they tried memory limits until it worked.
-`5 GiB` proved to be the lucky number.
+not well-prepared, and I certainly wouldn't perform much better, so they tried memory limits
+until it worked. `5 GiB` proved to be the lucky number.
 
 
 .memory limits in the deployment object of the app
@@ -89,9 +99,9 @@ spec:
 
 This works but this is not satisfactory :
 
-1. This number is not even a guess, but a brute forced number
-2. This application worked with a `2 GiB` of heap, `5 GiB` looks greedy
-3. Again this number is not understood
+1. This number is not even a guess, but a brute forced number.
+2. This application worked with a `2 GiB` of heap, `5 GiB` looks greedy.
+3. Again this number is not understood.
 
 
 == Analyze
@@ -832,6 +842,11 @@ things to track.
 
 3. The _other_ memory arenas with more `DirectByteBuffers` usage.
 
+4. And anyway with more thread there could be a bit more allocations, which means more
+memory pages needed.
+
+image:/assets/maxrampercentage/app-file-descriptors.png[]
+
 The heap had a max value anyway, and if it was then the app would either trigger full gcs, or self terminated
 with an `OutOfMemoryError`, so that not the heap. AS for the offers it's unlikely with the workload they grow
 that much.
@@ -926,8 +941,7 @@ seems to increase between something like `273 MiB` to `2.7 GiB`. Graphing the tr
 over time suggests the memory usage for this app (for the current cluster topology
 (_replicaset_, traffic, etc.)).
 
-
-XXX : image
+image::/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png[]
 
 To keep things simple let's use the rough top usage of `2.7 GiB` of the heap. While the available
 allocated heap is `4.25 GiB`. As a reminder non-used memory pages are not physically in RAM,
@@ -940,8 +954,9 @@ So just using this heap usage with the non heap usage, plus some margin, gives t
 ....
 
 Again keep in mind this is the heap usage with the current GC activity. As said earlier
-this application worked with a lower heap `2 GiB`, this certainly worked at the cost of higher
-GC activity and CPU usage, this works as this workload is mostly IO bound.
+this application worked with a lower heap `2 GiB`, this certainly worked at the cost of
+higher GC activity and CPU usage at that time, this is ok as this workload is mostly IO bound.
+But with restraints in Kubernetes care must be taken otherwise the pod may be throttled.
 
 Anyway this CPU usage may require some adjustment on the deployment CPU limit
 (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes[millicores]).
@@ -1002,7 +1017,7 @@ the least surprise_. We've seen these percentages lacks any consideration of how
 and the JVM didn't limit these zones according to the `cgroup` limits, which is unsettling, because
 if they were, the JVM would have crashed with an ``OutOfMemoryError``s from these zones.
 
-That being said, I believe that fro now it is actually just as ok if not better to prefer the usual
+That being said, I believe that from now on it is actually just as ok if not better to prefer the usual
 `-Xmx` flags for Java applications running in a container for now, especially with the
 `JAVA_TOOL_OPTIONS` environment variable, and this a bit less work because it's not anymore necessary
 to translate byte numbers in percentages but instead just use the actual max memory.
