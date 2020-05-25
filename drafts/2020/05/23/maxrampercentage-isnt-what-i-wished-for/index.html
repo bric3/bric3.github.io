@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 83 min read
+    <i class="fas fa-clock"></i> 85 min read
 
     
     
@@ -287,7 +287,17 @@ and 100% traffic. And from this point each of pods were oom killed.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>While this problem could be solved with a lot less information, it served as
+<p><span class="image"><img src="/assets/maxrampercentage/pod-memory-usage.png" alt="pod memory usage"></span>
+<em>The orange line is the pod memory limit, the increasing green line is the
+total memory usage of the container <code>container_memory_usage_bytes</code>.</em></p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/maxrampercentage/app-jvm-memory-usage.png" alt="app jvm memory usage"></span>
+<em>The blue line is the heap limit <code>3 GiB</code>, the increasing green line
+is the application RSS, yellow line is the heap usage.</em></p>
+</div>
+<div class="paragraph">
+<p>This problem could be solved with a lot less information, it served as
 an excuse to go down the rabbit hole of process memory exploration.
 In doing so the following writing tries to gather various piece of information,
 that are not easily available if you don&#8217;t know what to look for or where,
@@ -310,9 +320,12 @@ please reach out.</p>
 </td>
 <td class="content">
 <div class="paragraph">
-<p>Memory figures use binary units, it matches the <a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226">JVM</a>,
+<p>Memory figures use binary units (IEC), it matches the <a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226">JVM</a>,
 our <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory">Kubernetes</a> usage,
 and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code>, although I could find a reference).</p>
+</div>
+<div class="paragraph">
+<p>Some graphs however show metric values instead of IEC, (1000 multiplier instead of 1024 (power of 2)).</p>
 </div>
 </td>
 </tr>
@@ -324,8 +337,8 @@ and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps
 <div class="paragraph">
 <p>The application that became problematic runs on a Kubernetes cluster. As mentioned above
 this application worked fine before, and the people that handled the issue at that time were
-not well prepared, and I certainly wasn&#8217;t either. So they tried memory limits until it worked.
-<code>5 GiB</code> proved to be the lucky number.</p>
+not well-prepared, and I certainly wouldn&#8217;t perform much better, so they tried memory limits
+until it worked. <code>5 GiB</code> proved to be the lucky number.</p>
 </div>
 <div class="listingblock">
 <div class="title">memory limits in the deployment object of the app</div>
@@ -368,13 +381,13 @@ spec:
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>This number is not even a guess, but a brute forced number</p>
+<p>This number is not even a guess, but a brute forced number.</p>
 </li>
 <li>
-<p>This application worked with a <code>2 GiB</code> of heap, <code>5 GiB</code> looks greedy</p>
+<p>This application worked with a <code>2 GiB</code> of heap, <code>5 GiB</code> looks greedy.</p>
 </li>
 <li>
-<p>Again this number is not understood</p>
+<p>Again this number is not understood.</p>
 </li>
 </ol>
 </div>
@@ -1397,7 +1410,14 @@ things to track.</p>
 <li>
 <p>The <em>other</em> memory arenas with more <code>DirectByteBuffers</code> usage.</p>
 </li>
+<li>
+<p>And anyway with more thread there could be a bit more allocations, which means more
+memory pages needed.</p>
+</li>
 </ol>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/maxrampercentage/app-file-descriptors.png" alt="app file descriptors"></span></p>
 </div>
 <div class="paragraph">
 <p>The heap had a max value anyway, and if it was then the app would either trigger full gcs, or self terminated
@@ -1539,8 +1559,10 @@ seems to increase between something like <code>273 MiB</code> to <code>2.7 GiB</
 over time suggests the memory usage for this app (for the current cluster topology
 (<em>replicaset</em>, traffic, etc.)).</p>
 </div>
-<div class="paragraph">
-<p>XXX : image</p>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png" alt="app heap usage with 5GiB limit 85p max">
+</div>
 </div>
 <div class="paragraph">
 <p>To keep things simple let&#8217;s use the rough top usage of <code>2.7 GiB</code> of the heap. While the available
@@ -1557,8 +1579,9 @@ thanks to the OS (in that case Linux), look at the <code>RSS</code> column of th
 </div>
 <div class="paragraph">
 <p>Again keep in mind this is the heap usage with the current GC activity. As said earlier
-this application worked with a lower heap <code>2 GiB</code>, this certainly worked at the cost of higher
-GC activity and CPU usage, this works as this workload is mostly IO bound.</p>
+this application worked with a lower heap <code>2 GiB</code>, this certainly worked at the cost of
+higher GC activity and CPU usage at that time, this is ok as this workload is mostly IO bound.
+But with restraints in Kubernetes care must be taken otherwise the pod may be throttled.</p>
 </div>
 <div class="paragraph">
 <p>Anyway this CPU usage may require some adjustment on the deployment CPU limit
@@ -1678,7 +1701,7 @@ and the JVM didn&#8217;t limit these zones according to the <code>cgroup</code> 
 if they were, the JVM would have crashed with an <code>OutOfMemoryError</code>s from these zones.</p>
 </div>
 <div class="paragraph">
-<p>That being said, I believe that fro now it is actually just as ok if not better to prefer the usual
+<p>That being said, I believe that from now on it is actually just as ok if not better to prefer the usual
 <code>-Xmx</code> flags for Java applications running in a container for now, especially with the
 <code>JAVA_TOOL_OPTIONS</code> environment variable, and this a bit less work because it&#8217;s not anymore necessary
 to translate byte numbers in percentages but instead just use the actual max memory.</p>
