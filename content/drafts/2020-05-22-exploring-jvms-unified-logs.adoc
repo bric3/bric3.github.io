@@ -362,12 +362,134 @@ $ head -n 200 /gclogs/2020-05-22_22-28-32-os-container-pagezise.log
 
 https://openjdk.java.net/jeps/271[JEP 271: Unified GC Logging]
 
+[source]
+----
+-XX:+PrintGCDetails                                                        \
+-XX:+PrintGCApplicationStoppedTime                                         \
+-XX:+PrintGCApplicationConcurrentTime                                      \
+-XX:+PrintGCCause                                                          \
+-XX:+PrintTenuringDistribution                                             \
+-XX:+PrintGCDateStamps                                                     \
+-XX:+UseGCLogFileRotation                                                  \
+-XX:NumberOfGCLogFiles=5                                                   \
+-XX:GCLogFileSize=10M                                                      \
+-Xloggc:/gclogs/`hostname`-`date +%FT%H-%M-%S`-gc.log                      \
+----
 
 
 [source]
 ----
--Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M
+-Xlog:
+  gc*,       <1>
+  gc+heap=debug,  <2>
+  gc+ref=debug,  <3>
+  gc+ergo*=trace, <4>
+  gc+age*=trace, <5>
+  gc+phases*, <6>
+  safepoint*, <7>
+  :file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M
 ----
+<1> `PrintGCDetails`
+<2> `PrintHeapAtGC`
+<3> `PrintReferenceGC`
+<4> `PrintAdaptiveSizePolicy`
+<5> `PrintTenuringDistribution`
+<6> `PrintParallelOldGCPhaseTimes`
+<7> `PrintGCApplicationConcurrentTime` and `PrintGCApplicationStoppedTime`
+
+
+
+.translation
+[cols="m,a,a",options="headers"]
+|===
+| Old GC log flags usually set with `-XX:+...` | Equivalent tags with log level             | Definition of the the old flag
+
+| PrintGC -Xloggc:<gc-log-file-path>           | `gc`                                       | Print message at garbage collection
+| PrintGCDetails -Xloggc:<gc-log-file-path>    | `gc*`                                      | Print more details at garbage collection
+| -verbose:gc                                  | `gc=trace` `gc+heap=trace` `gc+heap+exit=trace` `gc+metaspace=trace` `gc+sweep=debug` `gc+heap+ergo=debug` | Verbose GC
+
+| PrintGCCause                                 | GC cause is now always logged              | Include GC cause in GC logging
+| PrintGCID                                    | GC ID is now always logged                 | Print an identifier for each garbage collection
+
+| PrintGCApplicationStoppedTime                | `safepoint`                                | Print the time the application has been stopped
+| PrintGCApplicationConcurrentTime             | `safepoint`                                | Print the time the application has been running
+| PrintTenuringDistribution                    | `gc+age*=trace`                            | Print tenuring age information
+
+| PrintAdaptiveSizePolicy                      | `gc+ergo*=trace`                           | Print information about AdaptiveSizePolicy
+
+| PrintHeapAtGC                                | `gc+heap=debug`                            | Print heap layout before and after each GC
+| PrintHeapAtGCExtended                        | `gc+heap=trace`                            | Print extended information about the layout of the heap when -XX:+PrintHeapAtGC is set
+
+
+| PrintClassHistogramBeforeFullGC              | `classhisto*=trace`                        | Print a class histogram before any major stop-world GC
+| PrintClassHistogramAfterFullGC               | `classhisto*=trace`                        | Print a class histogram after any major stop-world GC
+
+| PrintStringDeduplicationStatistics           | `gc+stringdedup*=debug`                    | Print string deduplication statistics
+
+| PrintJNIGCStalls                             | `gc+jni=debug`                             | Print diagnostic message when GC is stalled by JNI critical section
+
+| PrintReferenceGC                             | `gc+ref=debug`                             | Print times spent handling reference objects during GC
+
+| PrintGCTaskTimeStamps                        | `task*=debug`                              | Print timestamps for individual gc worker thread tasks
+| PrintTaskQueue                               | `gc+task+stats=trace`                      | Print taskqueue statistics for parallel collectors
+
+| PrintPLAB                                    | `gc+plab=trace`                            | Print (survivor space) promotion LAB's sizing decisions
+| PrintOldPLAB                                 | `gc+plab=trace`                            | Print (old gen) promotion LAB's sizing decisions
+| PrintPromotionFailure                        | `gc+promotion=debug`                       | Print additional diagnostic information following promotion failure
+| PrintTLAB                                    | `gc+tlab=trace`                            | Print various TLAB related information (augmented with `-XX:+TLABStats`)
+| PrintTerminationStats                        | `gc+task+stats=debug`                      | Print termination statistics for parallel collectors
+
+// G1GC
+| G1PrintHeapRegions                           | `gc+region=trace`                          | If set G1 will print information on which regions are being allocated and which are reclaimed
+| G1PrintRegionsLivenessInfo                   | `gc+liveness=trace`                        | Prints the liveness information for all regions in the heap at the end of a marking cycle
+| G1SummarizeConcMark                          | `gc+marking=trace`                         | Summarize concurrent mark info
+| G1SummarizeRSets                             | `gc+remset*=trace`                         | Summarize remembered set processing info
+| G1TraceConcRefinement                        | `gc+refine=debug`                          | Trace G1 concurrent refinement
+| G1TraceEagerReclaimHumongousObjects          | `gc+humongous=debug`                       | Print some information about large object liveness at every young GC
+| G1TraceStringSymbolTableScrubbing            | `gc+stringdedup=trace`                     | Trace information string and symbol table scrubbing
+
+// ParallelOldGC
+| PrintParallelOldGCPhaseTimes                 | `gc+phases=trace`                          | Print the time taken by each phase in ParallelOldGC
+
+
+// CMS
+| CMSDumpAtPromotionFailure                    | `gc+promotion=trace`                       | Dump useful information about the state of the CMS old generation upon a promotion failure (complemented by flags `CMSPrintChunksInDump` or `CMSPrintObjectsInDump`)
+| CMSPrintEdenSurvivorChunks                   | `gc+heap=trace`                            | Print the eden and the survivor chunks used for the parallel initial mark or remark of the eden/survivor spaces
+| PrintCMSInitiationStatistics                 | `gc=trace`                                 | Statistics for initiating a CMS collection
+| PrintCMSStatistics                           | `gc=debug` (`trace`) `gc+task=trace` `gc+survivor=trace` `log+sweep=debug` (`trace`) | Statistics for CMS (complemented by `CMSVerifyReturnedBytes`)
+| PrintFLSCensus                               | `gc+freelist+census=debug`                 | Census for CMS' FreeListSpace
+| PrintFLSStatistics                           | `gc+freelist+stats=debug` (`trace`) `gc+freelist*=debug` (`trace`) | Statistics for CMS' FreeListSpace
+| TraceCMSState                                | `gc+state=debug`                           | Trace the state of the CMS collection
+
+
+
+| TraceAdaptativeGCBoundary                    | `heap+ergo=debug`                          | Trace young-old boundary moves
+| TraceDynamicGCThreads                        | `gc+task=trace`                            | Trace the dynamic GC thread usage
+| TraceMetadataHumongousAllocation             | `gc+metaspace+alloc=debug`                 | Trace humongous metadata allocations
+
+| VerifySilently                               | `gc+verify=debug`                          | Do not print the verification progress
+
+
+|===
+
+
+.decorators
+[cols="m,m"]
+|===
+
+| PrintGCDateStamps                            | time
+| PrintGCTimeStamps                            | uptime
+
+|===
+
+
+From https://twitter.com/poonam_bajaj[Poonam Bajaj Parhar],s talk on
+https://www.slideshare.net/PoonamBajaj5/lets-learn-to-talk-to-gc-logs-in-java-9[unified GC logs]
+
+https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092
+https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3
+
+https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5
 
 
 
