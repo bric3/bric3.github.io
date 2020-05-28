@@ -185,6 +185,40 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 
 === Configuring unified logging
 
+From the help and the JEP above here's what to retain :
+
+
+Tags::
+When a log message is shown, it should be associated with a set of tags in the JVM which identify by names: `os`, `gc`, `modules`…
+
+– We can apply different settings for individual tags.
+– `\*` denotes _wildcard_ tag match. Not using `*` means all messages matching exactly the specified tags.
+
+Levels::
+We can perform logging at different levels. The available levels are `error`, `warning`, `info`, `debug`, `trace` and `develop`.
+
+To disable logging, use the alternative `off`.
+
+Outputs::
+The output currently supports 3 types: stdout, stderr, or a text file, which can be set up for log file rotation based on written size and a number of files to rotate (for example: each 10MB, keep 5 files in rotation)
+
+Decorators::
+There are more details about the message called decorators. Here is the list:
+
+* `time`/`timemillis`/`timenanos`: current time and date (ISO-8601 format)
+* `uptime`/`uptimemillis`/`uptimenanos`: time since the start of the JVM
+* `pid`: process identifier
+* `tid`: thread identifier
+* `level`: level associated with the log message
+* `tags`: tag associated with the log message
+
+Default settings::
+.. tag-set: `all`.
+.. level: `info`
+.. output: `stdout`
+.. decorators: `uptime`, `level`, `tags`
+
+
 .`java` command
 [source,role="primary"]
 ----
