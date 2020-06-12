@@ -482,6 +482,16 @@ https://openjdk.java.net/jeps/271[JEP 271: Unified GC Logging]
 
 |===
 
+.log on demand
+[source,bash]
+----
+env -u JAVA_TOOL_OPTIONS jcmd $(pidof java) \
+  VM.log \
+    what="gc*,gc+heap=debug,gc+ref=debug,gc+ergo*=trace,gc+age*=trace,gc+phases*,safepoint*,os*,gc+region=trace,gc+liveness=trace" \
+    decorators=uptime,tags,level \
+    output="file=/gclogs/%t-gc-trace.log"
+    \output_options="filecount=10,filesize=20M"
+----
 
 From https://twitter.com/poonam_bajaj[Poonam Bajaj Parhar],s talk on
 https://www.slideshare.net/PoonamBajaj5/lets-learn-to-talk-to-gc-logs-in-java-9[unified GC logs]
