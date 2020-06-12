@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 28 min read
+    <i class="fas fa-clock"></i> 33 min read
 
     
     
@@ -333,6 +333,34 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 	maxsize : [optional] Maximum amount of bytes to keep (on disk) in (k)B, (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
 	dumponexit : [optional] Dump running recording when JVM shuts down (BOOLEAN, no default value)
 	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>TODO look at <code>-XX:FlightRecorderOptions</code> options more specically, e.g. <code>stackdepth</code>, <code>maxchunksize</code>, <code>memorysize</code>, <code>repository</code></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">jcmd 80657 help JFR.configure
+80657:
+JFR.configure
+Configure JFR
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.configure [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+	repositorypath : [optional] Path to repository,.e.g \"My Repository\" (STRING, no default value)
+	dumppath : [optional] Path to dump,.e.g \"My Dump path\" (STRING, no default value)
+	stackdepth : [optional] Stack Depth (JULONG, 64)
+	globalbuffercount : [optional] Number of global buffers, (JULONG, 20)
+	globalbuffersize : [optional] Size of a global buffers, (MEMORY SIZE, 512k)
+	thread_buffer_size : [optional] Size of a thread buffer (MEMORY SIZE, 8k)
+	memorysize : [optional] Overall memory size,  (MEMORY SIZE, 10m)
+	maxchunksize : [optional] Size of an individual disk chunk (MEMORY SIZE, 12m)
+	samplethreads : [optional] Activate Thread sampling (BOOLEAN, true)</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -959,6 +987,143 @@ and manage them with the "<em>template manager</em>"</p>
 </div>
 <div class="paragraph">
 <p>add these options <code>dumponexit=true</code>, and override the filename if the above arent suited <code>dumponexitpath=/vm-exit.jfr</code></p>
+</div>
+<div class="listingblock">
+<div class="title">jfrOptionSet.cpp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">static const ObsoleteOption OBSOLETE_OPTIONS[] = {
+  {"checkpointbuffersize", ""},
+  {"maxsize",              "Use -XX:StartFlightRecording=maxsize=... instead."},
+  {"maxage",               "Use -XX:StartFlightRecording=maxage=... instead."},
+  {"settings",             "Use -XX:StartFlightRecording=settings=... instead."},
+  {"defaultrecording",     "Use -XX:StartFlightRecording=disk=false to create an in-memory recording."},
+  {"disk",                 "Use -XX:StartFlightRecording=disk=... instead."},
+  {"dumponexit",           "Use -XX:StartFlightRecording=dumponexit=... instead."},
+  {"dumponexitpath",       "Use -XX:StartFlightRecording=filename=... instead."},
+  {"loglevel",             "Use -Xlog:jfr=... instead."}
+};</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:jfr</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>env --unset JAVA_TOOL_OPTIONS jcmd $(pidof java) JFR.start name=app-profile path-to-gc-roots=true maxsize=200mb settings=profile name=continuous-profile stackdepth=128 disk=true dumponexit=true filename=/gclogs/app-profile-$(date +%FT%H-%M-%S).jfr
+env --unset JAVA_TOOL_OPTIONS jcmd $(pidof java) JFR.dump filename=/gclogs/hotspot-pid-6-2020_05_28_11_13_52.jfr</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pidof java) VM.native_memory
+6:
+
+Native Memory Tracking:
+
+Total: reserved=5324939KB, committed=3600539KB
+-                 Java Heap (reserved=2793472KB, committed=2793472KB)
+                            (mmap: reserved=2793472KB, committed=2793472KB)
+
+-                     Class (reserved=1202747KB, committed=174583KB)
+                            (classes #30836)
+                            (  instance classes #28978, array classes #1858)
+                            (malloc=6715KB #103633)
+                            (mmap: reserved=1196032KB, committed=167868KB)
+                            (  Metadata:   )
+                            (    reserved=147456KB, committed=145988KB)
+                            (    used=141426KB)
+                            (    free=4562KB)
+                            (    waste=0KB =0.00%)
+                            (  Class space:)
+                            (    reserved=1048576KB, committed=21880KB)
+                            (    used=19330KB)
+                            (    free=2550KB)
+                            (    waste=0KB =0.00%)
+
+-                    Thread (reserved=636185KB, committed=93205KB)
+                            (thread #616)
+                            (stack: reserved=633176KB, committed=90196KB)
+                            (malloc=2222KB #3697)
+                            (arena=787KB #1231)
+
+-                      Code (reserved=255120KB, committed=101864KB)
+                            (malloc=7432KB #29664)
+                            (mmap: reserved=247688KB, committed=94432KB)
+
+-                        GC (reserved=166886KB, committed=166886KB)
+                            (malloc=29750KB #67554)
+                            (mmap: reserved=137136KB, committed=137136KB)
+
+-                  Compiler (reserved=4913KB, committed=4913KB)
+                            (malloc=4847KB #2888)
+                            (arena=66KB #5)
+
+-                  Internal (reserved=9799KB, committed=9799KB)
+                            (malloc=9799KB #16775)
+
+-                     Other (reserved=135800KB, committed=135800KB)
+                            (malloc=135800KB #552)
+
+-                    Symbol (reserved=30719KB, committed=30719KB)
+                            (malloc=25916KB #330226)
+                            (arena=4803KB #1)
+
+-    Native Memory Tracking (reserved=10409KB, committed=10409KB)
+                            (malloc=108KB #1385)
+                            (tracking overhead=10300KB)
+
+-               Arena Chunk (reserved=217KB, committed=217KB)
+                            (malloc=217KB)
+
+-                   Tracing (reserved=75866KB, committed=75866KB)
+                            (malloc=75866KB #85438)
+
+-                   Logging (reserved=7KB, committed=7KB)
+                            (malloc=7KB #269)
+
+-                 Arguments (reserved=18KB, committed=18KB)
+                            (malloc=18KB #507)
+
+-                    Module (reserved=1856KB, committed=1856KB)
+                            (malloc=1856KB #7920)
+
+-              Synchronizer (reserved=885KB, committed=885KB)
+                            (malloc=885KB #7308)
+
+-                 Safepoint (reserved=8KB, committed=8KB)
+                            (mmap: reserved=8KB, committed=8KB)
+
+-                   Unknown (reserved=32KB, committed=32KB)
+                            (mmap: reserved=32KB, committed=32KB)</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_startup_latencies_issues"><a class="anchor" href="#_startup_latencies_issues"></a><a class="link" href="#_startup_latencies_issues">Startup latencies issues</a></h2>
+<div class="sectionbody">
+
+</div>
+</div>
+<div class="sect1">
+<h2 id="_controlling_jfr_programmatically"><a class="anchor" href="#_controlling_jfr_programmatically"></a><a class="link" href="#_controlling_jfr_programmatically">Controlling JFR programmatically</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>While JDK 14 allows to consume events on the fly, previous JDK versions (from JDK 11)
+offer a public API to control Flight Recorder programmatically.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">Configuration c = Configuration.getConfiguration("profile");
+Recording r = new Recording(c);
+r.setName("contunuous jaxrs");
+r.enable(JaxRsIncovation.class);
+r.setMaxAge(Duration.of(...));
+r.start();
+...
+r.stop();
+r.dump(Files.createTempFile("my-jaxrs", ".jfr"));</code></pre>
 </div>
 </div>
 </div>

@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 25 min read
+    <i class="fas fa-clock"></i> 35 min read
 
     
     
@@ -443,16 +443,95 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 </div>
 <div class="sect2">
 <h3 id="_configuring_unified_logging"><a class="anchor" href="#_configuring_unified_logging"></a><a class="link" href="#_configuring_unified_logging">Configuring unified logging</a></h3>
+<div class="paragraph">
+<p>From the help and the JEP above here&#8217;s what to retain :</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Tags</dt>
+<dd>
+<p>When a log message is shown, it should be associated with a set of tags in the JVM which identify by names: <code>os</code>, <code>gc</code>, <code>modules</code>…</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>– We can apply different settings for individual tags.
+– <code>*</code> denotes <em>wildcard</em> tag match. Not using <code>*</code> means all messages matching exactly the specified tags.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Levels</dt>
+<dd>
+<p>We can perform logging at different levels. The available levels are <code>error</code>, <code>warning</code>, <code>info</code>, <code>debug</code>, <code>trace</code> and <code>develop</code>.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>To disable logging, use the alternative <code>off</code>.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Outputs</dt>
+<dd>
+<p>The output currently supports 3 types: stdout, stderr, or a text file, which can be set up for log file rotation based on written size and a number of files to rotate (for example: each 10MB, keep 5 files in rotation)</p>
+</dd>
+<dt class="hdlist1">Decorators</dt>
+<dd>
+<p>There are more details about the message called decorators. Here is the list:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>time</code>/<code>timemillis</code>/<code>timenanos</code>: current time and date (ISO-8601 format)</p>
+</li>
+<li>
+<p><code>uptime</code>/<code>uptimemillis</code>/<code>uptimenanos</code>: time since the start of the JVM</p>
+</li>
+<li>
+<p><code>pid</code>: process identifier</p>
+</li>
+<li>
+<p><code>tid</code>: thread identifier</p>
+</li>
+<li>
+<p><code>level</code>: level associated with the log message</p>
+</li>
+<li>
+<p><code>tags</code>: tag associated with the log message</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Default settings</dt>
+<dd>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>tag-set: <code>all</code>.</p>
+</li>
+<li>
+<p>level: <code>info</code></p>
+</li>
+<li>
+<p>output: <code>stdout</code></p>
+</li>
+<li>
+<p>decorators: <code>uptime</code>, <code>level</code>, <code>tags</code></p>
+</li>
+</ol>
+</div>
+</dd>
+</dl>
+</div>
 <div class="listingblock primary">
 <div class="title"><code>java</code> command</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:pagesize,os,os+container:file=/gclogs/%t-os-container-pagezise.log:time,uptime,tags,level</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:pagesize,os*,os+container=trace:file=/var/log/%t-os-container-pagezise.log:uptime,tags,level</code></pre>
 </div>
 </div>
 <div class="listingblock">
 <div class="title"><code>jcmd</code> command</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="role"secondary"" class="language-role"secondary" hljs">$ jcmd 6 VM.log output=/gclogs/%t-os-container-pagezise.log what=pagesize,os,os+container decorators=time,uptime,tags,level</code></pre>
+<pre class="highlightjs highlight"><code data-lang="role"secondary"" class="language-role"secondary" hljs">$ jcmd 6 VM.log output=/var/log/%t-os-container-pagezise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -469,116 +548,117 @@ will output logs only during JVM bootstrap.</p>
 <div class="title">output</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">$ head -n 200 /gclogs/2020-05-22_22-28-32-os-container-pagezise.log
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] OSContainer::init: Initializing Container Support
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Use Hierarchy is: 1
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.405+0000][0.003s][info ][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.405+0000][0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.406+0000][0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
-[2020-05-22T22:28:33.406+0000][0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
-[2020-05-22T22:28:33.406+0000][0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
-[2020-05-22T22:28:33.406+0000][0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[2020-05-22T22:28:33.407+0000][0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[2020-05-22T22:28:33.408+0000][0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[2020-05-22T22:28:33.408+0000][0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
-[2020-05-22T22:28:33.410+0000][0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.410+0000][0.008s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.410+0000][0.009s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
-[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
-[2020-05-22T22:28:33.410+0000][0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T22:28:33.412+0000][0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
-[2020-05-22T22:28:33.412+0000][0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
-[2020-05-22T22:28:33.412+0000][0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
-[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T22:28:33.413+0000][0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T22:28:33.413+0000][0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
-[2020-05-22T22:28:33.423+0000][0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T22:28:33.423+0000][0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Quota is: -1
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Period is: 100000
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] CPU Shares is: 1024
-[2020-05-22T22:28:33.426+0000][0.024s][trace][os,container] OSContainer::active_processor_count: 4
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.427+0000][0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
-[2020-05-22T22:28:33.435+0000][0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.436+0000][0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
-[2020-05-22T22:28:33.436+0000][0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.437+0000][0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T22:28:33.438+0000][0.036s][trace][os,container] Memory Usage is: 9551872
-[2020-05-22T22:28:33.439+0000][0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T22:28:33.439+0000][0.037s][trace][os,container] Memory Usage is: 9682944
+[0.003s][trace][os,container] OSContainer::init: Initializing Container Support
+[0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
+[0.003s][trace][os,container] Use Hierarchy is: 1
+[0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.003s][trace][os,container] Memory Limit is: 5368709120
+[0.003s][info ][os,container] Memory Limit is: 5368709120
+[0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.003s][trace][os,container] CPU Quota is: -1
+[0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.003s][trace][os,container] CPU Period is: 100000
+[0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.004s][trace][os,container] CPU Shares is: 1024
+[0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.004s][trace][os,container] CPU Quota is: -1
+[0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.004s][trace][os,container] CPU Period is: 100000
+[0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.004s][trace][os,container] CPU Shares is: 1024
+[0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
+[0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
+[0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
+[0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
+[0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
+[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
+[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
+[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
+[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
+[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
+[0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.008s][trace][os,container] CPU Quota is: -1
+[0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.008s][trace][os,container] CPU Period is: 100000
+[0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.008s][trace][os,container] CPU Shares is: 1024
+[0.009s][trace][os,container] OSContainer::active_processor_count: 4
+[0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
+[0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
+[0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
+[0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
+[0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
+[0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
+[0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
+[0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
+[0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
+[0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
+[0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
+[0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
+[0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
+[0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
+[0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
+[0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
+[0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.024s][trace][os,container] CPU Quota is: -1
+[0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.024s][trace][os,container] CPU Period is: 100000
+[0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.024s][trace][os,container] CPU Shares is: 1024
+[0.024s][trace][os,container] OSContainer::active_processor_count: 4
+[0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
+[0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
+[0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
+[0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.036s][trace][os,container] Memory Limit is: 5368709120
+[0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.036s][trace][os,container] Memory Usage is: 9551872
+[0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.037s][trace][os,container] Memory Usage is: 9682944
 ...
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T22:28:33.460+0000][0.058s][trace][os,container] Memory Usage is: 12820480
+[0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.058s][trace][os,container] Memory Limit is: 5368709120
+[0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.058s][trace][os,container] Memory Usage is: 12820480
 ...
-[2020-05-22T22:28:33.466+0000][0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T22:28:33.466+0000][0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
+[0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
 ...
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T15:40:29.807+0000][8005.132s][trace][os,container] Memory Usage is: 4093734912
-[2020-05-22T15:40:38.913+0000][8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T15:40:38.914+0000][8014.238s][trace][os,container] Memory Usage is: 4093943808</code></pre>
+[8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[8005.132s][trace][os,container] Memory Limit is: 5368709120
+[8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[8005.132s][trace][os,container] Memory Usage is: 4093734912
+[8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[8014.238s][trace][os,container] Memory Limit is: 5368709120
+[8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[8014.238s][trace][os,container] Memory Usage is: 4093943808
+...</code></pre>
 </div>
 </div>
 </div>
@@ -589,9 +669,741 @@ will output logs only during JVM bootstrap.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:+PrintGCDetails                                                        \
+-XX:+PrintGCApplicationStoppedTime                                         \
+-XX:+PrintGCApplicationConcurrentTime                                      \
+-XX:+PrintGCCause                                                          \
+-XX:+PrintTenuringDistribution                                             \
+-XX:+PrintGCDateStamps                                                     \
+-XX:+UseGCLogFileRotation                                                  \
+-XX:NumberOfGCLogFiles=5                                                   \
+-XX:GCLogFileSize=10M                                                      \
+-Xloggc:/gclogs/`hostname`-`date +%FT%H-%M-%S`-gc.log                      \</code></pre>
 </div>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:
+  gc*,       <i class="conum" data-value="1"></i><b>(1)</b>
+  gc+heap=debug,  <i class="conum" data-value="2"></i><b>(2)</b>
+  gc+ref=debug,  <i class="conum" data-value="3"></i><b>(3)</b>
+  gc+ergo*=trace, <i class="conum" data-value="4"></i><b>(4)</b>
+  gc+age*=trace, <i class="conum" data-value="5"></i><b>(5)</b>
+  gc+phases*, <i class="conum" data-value="6"></i><b>(6)</b>
+  safepoint*, <i class="conum" data-value="7"></i><b>(7)</b>
+  :file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>PrintGCDetails</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>PrintHeapAtGC</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><code>PrintReferenceGC</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td><code>PrintAdaptiveSizePolicy</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td><code>PrintTenuringDistribution</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td><code>PrintParallelOldGCPhaseTimes</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td><code>PrintGCApplicationConcurrentTime</code> and <code>PrintGCApplicationStoppedTime</code></td>
+</tr>
+</table>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. translation</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Old GC log flags usually set with <code>-XX:+&#8230;&#8203;</code></th>
+<th class="tableblock halign-left valign-top">Equivalent tags with log level</th>
+<th class="tableblock halign-left valign-top">Definition of the the old flag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGC -Xloggc:&lt;gc-log-file-path&gt;</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print message at garbage collection</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCDetails -Xloggc:&lt;gc-log-file-path&gt;</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc*</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print more details at garbage collection</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-verbose:gc</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc=trace</code> <code>gc+heap=trace</code> <code>gc+heap+exit=trace</code> <code>gc+metaspace=trace</code> <code>gc+sweep=debug</code> <code>gc+heap+ergo=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Verbose GC</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCCause</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>GC cause is now always logged</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Include GC cause in GC logging</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCID</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>GC ID is now always logged</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print an identifier for each garbage collection</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCApplicationStoppedTime</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>safepoint</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print the time the application has been stopped</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCApplicationConcurrentTime</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>safepoint</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print the time the application has been running</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintTenuringDistribution</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+age*=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print tenuring age information</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintAdaptiveSizePolicy</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+ergo*=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print information about AdaptiveSizePolicy</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintHeapAtGC</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+heap=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print heap layout before and after each GC</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintHeapAtGCExtended</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+heap=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print extended information about the layout of the heap when -XX:+PrintHeapAtGC is set</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintClassHistogramBeforeFullGC</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>classhisto*=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print a class histogram before any major stop-world GC</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintClassHistogramAfterFullGC</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>classhisto*=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print a class histogram after any major stop-world GC</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintStringDeduplicationStatistics</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+stringdedup*=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print string deduplication statistics</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintJNIGCStalls</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+jni=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print diagnostic message when GC is stalled by JNI critical section</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintReferenceGC</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+ref=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print times spent handling reference objects during GC</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCTaskTimeStamps</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>task*=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print timestamps for individual gc worker thread tasks</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintTaskQueue</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+task+stats=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print taskqueue statistics for parallel collectors</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintPLAB</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+plab=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print (survivor space) promotion LAB&#8217;s sizing decisions</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintOldPLAB</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+plab=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print (old gen) promotion LAB&#8217;s sizing decisions</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintPromotionFailure</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+promotion=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print additional diagnostic information following promotion failure</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintTLAB</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+tlab=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print various TLAB related information (augmented with <code>-XX:+TLABStats</code>)</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintTerminationStats</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+task+stats=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print termination statistics for parallel collectors</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>G1PrintHeapRegions</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+region=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>If set G1 will print information on which regions are being allocated and which are reclaimed</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>G1PrintRegionsLivenessInfo</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+liveness=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Prints the liveness information for all regions in the heap at the end of a marking cycle</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>G1SummarizeConcMark</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+marking=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Summarize concurrent mark info</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>G1SummarizeRSets</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+remset*=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Summarize remembered set processing info</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>G1TraceConcRefinement</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+refine=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Trace G1 concurrent refinement</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>G1TraceEagerReclaimHumongousObjects</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+humongous=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print some information about large object liveness at every young GC</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>G1TraceStringSymbolTableScrubbing</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+stringdedup=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Trace information string and symbol table scrubbing</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintParallelOldGCPhaseTimes</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+phases=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print the time taken by each phase in ParallelOldGC</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CMSDumpAtPromotionFailure</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+promotion=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Dump useful information about the state of the CMS old generation upon a promotion failure (complemented by flags <code>CMSPrintChunksInDump</code> or <code>CMSPrintObjectsInDump</code>)</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CMSPrintEdenSurvivorChunks</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+heap=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Print the eden and the survivor chunks used for the parallel initial mark or remark of the eden/survivor spaces</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintCMSInitiationStatistics</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Statistics for initiating a CMS collection</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintCMSStatistics</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc=debug</code> (<code>trace</code>) <code>gc+task=trace</code> <code>gc+survivor=trace</code> <code>log+sweep=debug</code> (<code>trace</code>)</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Statistics for CMS (complemented by <code>CMSVerifyReturnedBytes</code>)</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintFLSCensus</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+freelist+census=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Census for CMS' FreeListSpace</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintFLSStatistics</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+freelist+stats=debug</code> (<code>trace</code>) <code>gc+freelist*=debug</code> (<code>trace</code>)</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Statistics for CMS' FreeListSpace</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceCMSState</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+state=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Trace the state of the CMS collection</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceAdaptativeGCBoundary</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>heap+ergo=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Trace young-old boundary moves</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceDynamicGCThreads</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+task=trace</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Trace the dynamic GC thread usage</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceMetadataHumongousAllocation</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+metaspace+alloc=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Trace humongous metadata allocations</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>VerifySilently</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>gc+verify=debug</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Do not print the verification progress</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. decorators</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCDateStamps</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>time</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PrintGCTimeStamps</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>uptime</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">log on demand</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">env -u JAVA_TOOL_OPTIONS jcmd $(pidof java) \
+  VM.log \
+    what="gc*,gc+heap=debug,gc+ref=debug,gc+ergo*=trace,gc+age*=trace,gc+phases*,safepoint*,os*,gc+region=trace,gc+liveness=trace" \
+    decorators=uptime,tags,level \
+    output="file=/gclogs/%t-gc-trace.log"
+    \output_options="filecount=10,filesize=20M"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>From <a href="https://twitter.com/poonam_bajaj">Poonam Bajaj Parhar</a>,s talk on
+<a href="https://www.slideshare.net/PoonamBajaj5/lets-learn-to-talk-to-gc-logs-in-java-9">unified GC logs</a></p>
+</div>
+<div class="paragraph">
+<p><a href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092" class="bare">https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092</a>
+<a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3" class="bare">https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3</a></p>
+</div>
+<div class="paragraph">
+<p><a href="https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5" class="bare">https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5</a></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_classes"><a class="anchor" href="#_classes"></a><a class="link" href="#_classes">Classes</a></h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceClassInitialization</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+init=info</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceClassLoading</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+load=info</code> (<code>debug)</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceClassLoadingPreorder</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+preorder=debug</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceClassUnloading</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+unload=info</code> (<code>trace)</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceClassPaths</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+path=info</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceClassResolution</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+resolve=debug</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceRedefineClasses</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>redefine+class*=info</code> (<code>debug</code>, <code>trace)</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceLoaderConstraints</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+loader+constraints=info</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceClassLoaderData</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>class+loader+data=debug</code> (<code>trace)</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceSafepoint</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>safepoint=debug</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceSafepointCleanupTime</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>safepoint+cleanup=info</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceMonitorInflation</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>monitorinflation=debug</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceBiasedLocking</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>biasedlocking=info</code> (<code>trace)</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>TraceExceptions</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>exceptions=info</code></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>VerboseVerification</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>verification=info</code></p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_tags"><a class="anchor" href="#_tags"></a><a class="link" href="#_tags">tags</a></h4>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Region</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>region</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Liveness</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>liveness</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Marking</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>marking</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Remembered Set</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>remset</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Ergonomics</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ergo</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Class Histogram</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>classhisto</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Safepoint</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>safepoint</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Task</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>task</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Heap</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>heap</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>JNI</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>jni</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Promotion(Parallel) Local Allocation Buffer</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>plab</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Promotion</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>promotion</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Reference</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ref</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>String Deduplication</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>stringdedup</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Statistics</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>stats</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Tenuring</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>age</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Thread Local Allocation Buffer</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tlab</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Metaspace</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>metaspace</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Humongous Allocation</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>alloc</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Refinement</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>refine</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Humongous</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>humongous</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>String Symbol Table</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>stringtable</code></p></td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 </div>
