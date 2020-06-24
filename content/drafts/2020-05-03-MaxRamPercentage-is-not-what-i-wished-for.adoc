@@ -12,22 +12,26 @@ draft: true
 
 Like many I was happy to see that the JDK landed support for containers
 in Java 9, it was backported to Java 8 too.
-Now JDK 11 does this by default and reads information from `cgroups` and
+Now JDK 11 does this by default and reads information from `cgroup`s and
 it's possible to tell the memory usage via the `-XX:MaxRAMPercentage` flag.
 
 However in practice this turned out not not working as well as hoped.
+Here's an issue about a containerized Java 11 web application running on Kubernetes,
+at some point in time this application experienced memory  problems.
 
 
 .Problem
 ****
-With a RAM percentage parameters at `85%` of `3 GiB` memory, the container
-metrics showed the application actually went over this limit, which resulted
+With a RAM percentage parameter at `85%` of `3 GiB` memory, the container
+metrics showed the application actually hit this limit, which resulted
 in killed pods and failing _deployment_ of our _replicaset_. The deployment
 had been set up with an _horizontal pod auto-scaler_ too.
 
-This issue started to appear with full traffic ; it was working well when
-the traffic weight was 50%, it was even working well much `2 GiB` of heap
-and 100% traffic. And from this point each of pods were oom killed.
+We had instances on different datacenter without `cgroup` that handled well
+100% of the traffic with a heap of `2 GiB`. We migrated half of this traffic
+to instances on a Kubernetes cluster that used `cgroup` limits, the K8s instances
+worked well in these conditions. Then when we increased the traffic to 100%
+on these new instances the __pod__s started to get _oom killed_.
 ****
 
 image:/assets/maxrampercentage/pod-memory-usage.png[]
@@ -36,35 +40,39 @@ total memory usage of the container `container_memory_usage_bytes`._
 
 image:/assets/maxrampercentage/app-jvm-memory-usage.png[]
 _The blue line is the heap limit `3 GiB`, the increasing green line
-is the application RSS, yellow line is the heap usage._
+is the application memory or more precisely the **R**esident **S**et **S**ize
+(RSS), yellow line is the heap usage._
 
-This problem could be solved with a lot less information, it served as
-an excuse to go down the rabbit hole of process memory exploration.
-In doing so the following writing tries to gather various pieces of information
-that are not easily available if you don't know what to look for or where,
-gathering elements from a few things I knew, things I grepped in the
-JDK codebase, and things learned from other (awesome) people.
+While this problem at the surface could have be solved with a lot less information,
+this issue served as an excuse to go down the rabbit hole of process memory exploration,
+and the JVM in particular.
+In doing so the following writing tries to piece together several elements
+from a few things I knew, things I grepped in the JDK codebase, blog post, stack overflow,
+and things learned from other -- awesome –- people, all related to the JVM and its
+interaction with the Linux OS.
 
-I hope I didn't ignored important things, I hope I'm not totally wrong,
+I hope I didn't ignore important things, I hope I'm not totally wrong,
 or simply I hope I'm not misguiding myself and especially others. If I'm wrong
 please reach out.
 
-Going back to trail.
+_Now let's answer this question: Why does the container use more than `MaxRamPercentage`
+of `resourceslimits.memory`?_
 
 
 [NOTE]
 ====
-Memory figures use binary units (IEC), it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
+Most of the time, figures will use the https://en.wikipedia.org/wiki/Binary_prefix[IEC binary notation] (`1 KiB = 1024 B`),
+it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
 our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
 and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps`, although I could find a reference).
 
-Some graphs however show metric values instead of IEC, (1000 multiplier instead of 1024 (power of 2)).
+Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[metric notation] (`1 KB = 1000 B`).
 ====
 
 == Lucky fixing the issue
 
 The application that became problematic runs on a Kubernetes cluster. As mentioned above
-this application worked fine before, and the people that handled the issue at that time were
+this application worked fine before, and the people who handled the issue at that time were
 not well-prepared, and I certainly wouldn't perform much better, so they tried memory limits
 until it worked. `5 GiB` proved to be the lucky number.
 
@@ -75,17 +83,12 @@ until it worked. `5 GiB` proved to be the lucky number.
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: edge-api
-  # ...
+  name: java-app
 spec:
-  # ...
   template:
-    # ...
     spec:
       containers:
-      - image: eu.gcr.io/cd-registry/java-app:1.20200513.102101-4c53e9c
-        name: java-app
-        # ...
+      - name: java-app
         resources:
           limits:
             cpu: "8"
@@ -93,7 +96,6 @@ spec:
           requests:
             cpu: "3"
             memory: 3Gi
-        # ...
 ----
 <1> The working memory limit.
 
@@ -106,42 +108,31 @@ This works but this is not satisfactory :
 
 == Analyze
 
-In order to understand our requirement, and to avoid lucky number (until it works),
+In order to understand our requirement, and to avoid guessing numbers until it works,
 let's explore the memory of a java process.
 
 
-The RAM percentage are calculated at JVM startup from the given percentage, e.g.
-with `-XX:InitialRAMPercentage=85.0` and `-XX:MaxRAMPercentage=85.0`) the JVM
-calculates the following values.
+The RAM percentage are calculated at JVM startup from a given percentage, via
+`-XX:InitialRAMPercentage=85.0` and `-XX:MaxRAMPercentage=85.0`, those are the only
+memory settings passed to the JVM, then the JVM calculates the following values.
+Do not confuse `VM.flags` which will output parameters calculated from the command line
+and `VM.command_line` which will print the actual command line.
 
-.VM.flags in k8s
+.`VM.flags` in k8s
 [source, bash]
 ----
 $ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
 6:
--XX:CICompilerCount=4
--XX:ConcGCThreads=2
--XX:G1ConcRefinementThreads=8
--XX:G1HeapRegionSize=2097152
--XX:GCDrainStackTargetSize=64
+...
 -XX:InitialHeapSize=4563402752 <3>
 -XX:InitialRAMPercentage=85.000000 <1>
--XX:+ManagementServer
 -XX:MarkStackSize=4194304
 -XX:MaxHeapSize=4563402752 <4>
 -XX:MaxNewSize=2736783360
 -XX:MaxRAMPercentage=85.000000 <2>
 -XX:MinHeapDeltaBytes=2097152
 -XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5836300
--XX:NonProfiledCodeHeapSize=122910970
--XX:ProfiledCodeHeapSize=122910970
--XX:ReservedCodeCacheSize=251658240
--XX:+SegmentedCodeCache
--XX:+UseCompressedClassPointers
--XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps
--XX:+UseG1GC
+...
 ----
 <1> Initial RAM at 85%
 <2> Max RAM at 85%
@@ -152,7 +143,7 @@ $ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
 === Reading the memory footprint of the java process in the container
 
 The first thing to look at is the _resident set size_, it can be obtained in
-various ways, e.g. using `ps` or reading the `/proc` should give the same number
+various ways, e.g. using `ps`, `top` or reading the `/proc` should give the same number
 if done at the same time.
 
 .`ps`
@@ -170,13 +161,13 @@ $ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB
 ----
 
-`4.6 GiB` !!! Not quite within the `4.25 GiB` (85% of `5 GiB`) limit. So let's dig a
-bit to understand this number (4701120 KiB).
+`4.6 GiB` !!! Not quite within the `4.25 GiB` - 85% of `5 GiB` - limit. So let's dig a
+bit to understand this number `4701120 KiB`.
 
-==== Digging in the java memory arenas
+==== Digging in the java memory zones
 
 Fortunately the application started with `-XX:NativeMemoryTracking=summary` which
-enables to have an overview of the different memory zones of a Java process.
+produces an overview of the different memory zones of a Java process.
 
 NOTE: Enabling native memory tracking (NMT) causes a 5% to 10% performance overhead.
 
@@ -264,7 +255,7 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
 <1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount of addressable memory
 (all OS types) on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`)) that represents
 what the JVM actually told the OS to allocate.
-<2> `Heap` arena, note reserved and committed values are the same `4456448 KiB` here because our
+<2> `Heap` zone, note reserved and committed values are the same `4456448 KiB` here because our
 `InitialRAMPercentage` is the same as max. I'm not sure why this number is different from the VM
 flags `-XX:MaxHeapSize=4563402752` though.
 <3> ~`162 MiB` of metaspace
@@ -511,7 +502,7 @@ the thresholds to be oom killed.
 
 There a few considerations to understand :
 
-* NMT shows _reserved_ and _committed_ values on each arenas,
+* NMT shows _reserved_ and _committed_ values on each areas,
 +
 [%autowidth.stretch]
 |===
@@ -522,16 +513,16 @@ JVM didn't tell the OS to allocate this memory)
 
 |===
 +
-Each of these memory arenas are managed differently: `GC`, `Compiler` have the
+Each of these memory zones are managed differently: `GC`, `Compiler` have the
 same committed and reserved memory values while other zones have the ability to
-shrink or grow for example `thread stacks` arenas reports
+shrink or grow for example `thread stacks` zone reports
 `85455 KiB` but could take up to `696395 KiB` if necessary, and theoretically
 same as the heap.
 
 * While the JVM did allocate this memory, Linux on x86 hardware uses virtual
 memory with paging. More specifically Linux optimizes actual physical memory
 and only commits a page physically if this page is actually written to. In this
-case the `Heap` arena in particular seems to benefit from this behavior as the JVM
+case the `Heap` zone in particular seems to benefit from this behavior as the JVM
 allocated `4456448 KiB`, but the actual RAM _resident set size_ usage of this memory
 zone seems at this time is `3128252 KiB`.
 
@@ -566,7 +557,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 00007f11b9c51000    1012     116     116 rw---   [ anon ]
 ...
 ----
-<1> heap arena
+<1> heap memory
 <2> a thread guard pages
 <3> a thread stack
 
@@ -594,7 +585,7 @@ $ pmap -X $(pidof java) | less -S -X
     7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
 ...
 ----
-<1> heap arena
+<1> heap memory
 <2> a thread guard pages
 <3> a thread stack
 
@@ -831,16 +822,16 @@ Then this pod memory limit was bumped to `5 GiB` and the pod wasn't anymore oomk
 How this _limit_ was found is a lucky guess, given the RAM percentages were set in the `CMD`
 directive of the Dockerfile.
 
-As identified above there are two, maybe three arenas whose usage may explain the surge in memory before
-the memory limit was increased. I don't have anything to back that idea except how I expect these memory arenas
+As identified above there are two, maybe three memory areas whose usage may explain the surge in memory before
+the memory limit was increased. I don't have anything to back that idea except how I expect these memory areas
 to grow but not the others.
 
-1. The thread stack memory arena, the increased actual memory pages is small, but enough to be mentioned.
+1. The `Thread` stack memory zone, the increased actual memory pages is small, but enough to be mentioned.
 
-2. The GC internal memory arena, with more threads there are more allocations, and as such more
+2. The `GC` internal memory zone, with more threads there are more allocations, and as such more
 things to track.
 
-3. The _other_ memory arenas with more `DirectByteBuffers` usage.
+3. The `Other` memory zones with more `DirectByteBuffers` usage.
 
 4. And anyway with more thread there could be a bit more allocations, which means more
 memory pages needed.
@@ -851,7 +842,7 @@ The heap had a max value anyway, and if it was then the app would either trigger
 with an `OutOfMemoryError`, so that is not the heap. As for the offers it's unlikely with the workload they grow
 that much.
 
-My hypothesis is that when full traffic came to this pod, these arenas grew by `100 MiB` to `200 MiB` (sum),
+My hypothesis is that when full traffic came to this pod, these zones grew by `100 MiB` to `200 MiB` (sum),
 while not much, it was sufficient to go over the 15% of memory left for the non heap memory, and thus triggered
 the system oom killer.
 
