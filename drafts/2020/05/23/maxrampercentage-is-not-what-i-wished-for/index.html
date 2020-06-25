@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 85 min read
+    <i class="fas fa-clock"></i> 95 min read
 
     
     
@@ -333,7 +333,7 @@ our <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-
 and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code>, although I could find a reference).</p>
 </div>
 <div class="paragraph">
-<p>Some charts may however use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">metric notation</a> (<code>1 KB = 1000 B</code>).</p>
+<p>Some charts may however use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">SI metric notation</a> (<code>1 KB = 1000 B</code>).</p>
 </div>
 </td>
 </tr>
@@ -374,6 +374,48 @@ spec:
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>The working memory limit.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>The resources tree is equivalent to this docker params</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">docker run \
+  --cpu-shares=3 \ <i class="conum" data-value="1"></i><b>(1)</b>
+  --cpu-quota=8 \ <i class="conum" data-value="2"></i><b>(2)</b>
+  --memory=5g \ <i class="conum" data-value="3"></i><b>(3)</b>
+  ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>cpu request, this is the relative weight of that container for CPU time</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>cpu limit, this limits the CPU time of container’s processes, that means throttling</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>memory limit, tells the OS to kill (<code>oomkill</code>) the container&#8217;s processes if they hit this limit</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The memory request is only used for scheduling the pod on a node.</p>
+</div>
+</td>
 </tr>
 </table>
 </div>
@@ -485,7 +527,21 @@ produces an overview of the different memory zones of a Java process.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Enabling native memory tracking (NMT) causes a 5% to 10% performance overhead.
+Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10% performance overhead.
+But the <em>summary</em> mode only has an impact in memory as shown below.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+It is necessary to note that while the above command indicate a scale in <code>KB</code> for the JVM
+it really means <code>KiB</code>.
 </td>
 </tr>
 </table>
@@ -578,49 +634,50 @@ Total: reserved=7168324KB, committed=5380868KB                               <i 
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>This shows a <code>reserved</code> value (<code>7168324 KiB</code> (~<code>6.84 GiB</code>)), it&#8217;s the amount of addressable memory
 (all OS types) on that container, and a <code>committed</code> value (<code>4456448 KiB</code> (~<code>4.25 GiB</code>)) that represents
-what the JVM actually told the OS to allocate.</td>
+what the JVM actually asked the OS to allocate.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>Heap</code> zone, note reserved and committed values are the same <code>4456448 KiB</code> here because our
+<td><code>Heap</code> zone, note that reserved and committed values are the same <code>4456448 KiB</code> here because our
 <code>InitialRAMPercentage</code> is the same as max. I&#8217;m not sure why this number is different from the VM
 flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>~<code>162 MiB</code> of metaspace</td>
+<td>~<code>162 MiB</code> of metaspace.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>How many classes have been loaded : <code>28431</code></td>
+<td>How many classes have been loaded : <code>28431</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>There are 674 threads that are using ~<code>80 MiB</code> and could use up to ~<code>676 MiB</code>.</td>
+<td>There are 674 threads whose stacks are using ~<code>80 MiB</code> at this time.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="6"></i><b>6</b></td>
-<td><code>Code</code> cache area (assembly of the used methods) ~<code>102 MiB</code> out of ~<code>246 MiB</code> which matches with <code>-XX:ReservedCodeCacheSize=251658240</code></td>
+<td><code>Code</code> cache area (assembly of the used methods) ~<code>102 MiB</code> out of ~<code>246 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="7"></i><b>7</b></td>
-<td>This is app is using G1GC, this section contains <code>GC</code> internal data structures which takes ~<code>225 MiB</code></td>
+<td>This section contains <code>GC</code> algorithms internal data structures, this is app is using G1GC which takes ~<code>225 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="8"></i><b>8</b></td>
-<td>C1 / C2 compilers (which compile bytecode to assembly) uses ~<code>5.8 MiB</code></td>
+<td>C1 / C2 compilers (which compile bytecode to assembly) use ~<code>5.8 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="9"></i><b>9</b></td>
-<td>The <code>Symbol</code> section contains many things like interned strings and other internal constants ~<code>28.2 MiB</code></td>
+<td>The <code>Symbol</code> section contains many things like interned strings and other internal constants for about <code>28.2 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="10"></i><b>10</b></td>
-<td><code>Internal</code> (includes <code>DirectByteBuffers</code> before Java 11), maybe others objects, here takes ~<code>24 MiB</code></td>
+<td>The <code>Internal</code> area takes ~<code>24 MiB</code>. Before Java 11 this area included <code>DirectByteBuffers</code>, but from Java 11 those
+are accounted in the <code>Other</code> zone.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="11"></i><b>11</b></td>
-<td><code>Other</code> section after Java 11 includes <code>DirectByteBuffers</code> ~<code>261 MiB</code></td>
+<td>The <code>Other</code> section after Java 11 includes <code>DirectByteBuffers</code> ~<code>261 MiB</code>.</td>
 </tr>
 </table>
 </div>
@@ -628,71 +685,6 @@ flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
 <p>The remaining areas are much smaller in scale, NMT takes ~<code>8.2 MiB</code> itself, module system usage ~<code>1.3 MiB</code>,
 etc. Also, note that enabling other JVM features may show up if they are activated.
 <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>At the time this report was executed the committed memory is <code>5380868 KiB</code> (<code>5.13 GiB</code>) while
-the process RSS is <code>4701120 KiB</code>. The difference relates to how <code>mmap</code> works (on Linux), memory
-pages are only backed by physical memory once they&#8217;re written to.</p>
-</div>
-<div class="paragraph">
-<p>Some people may have heard of the <code>-XX:+AlwaysPreTouch</code> Hotspot option. This option tells
-the JVM to always write zeros to memory pages (which has the effect of reducing physical memory
-commit latencies), but this option only affects the heap memory allocations. Other zones like
-thread stack or metaspace work differently, that means some <strong>committed</strong> memory shown in NMT is not
-<strong>resident</strong> and not accounted for by the RSS counter.</p>
-</div>
-<div class="paragraph">
-<p>Here&#8217;s some memory related vocabulary that help distinguish between memory <em>statuses</em> :</p>
-</div>
-<table class="tableblock frame-all grid-all fit-content stretch">
-<caption class="title">Table 1. vocabulary breakdown</caption>
-<colgroup>
-<col>
-<col>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Used Heap</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects according.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Address ranges that have been mapped with something other than <code>PROT_NONE</code>.
-They may or may not be backed by physical or swap due to lazy allocation and paging.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reserved</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> for a particular memory pool.
-The <em>reserved</em> / <em>committed</em> difference consists of <code>PROT_NONE</code> mappings, which are guaranteed to not be backed
-by physical memory</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Pages which are currently in physical ram. This means code, stacks, part of the committed memory
-pools but also portions of <code>mmap</code>ed files which have recently been accessed and allocations outside the control
-of the JVM.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Virtual</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
-files or shared memory. This number is rarely informative since the JVM can reserve very large address
-ranges in advance or mmap large files.</p></td>
-</tr>
-</tbody>
-</table>
-<div class="paragraph">
-<p><a href="https://stackoverflow.com/a/31178912/48136">source</a></p>
-</div>
-</td>
-</tr>
-</table>
 </div>
 <div class="paragraph">
 <p>There&#8217;s a lot more to read on the
@@ -705,11 +697,167 @@ by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_explore_what_nmt_does_not_show"><a class="anchor" href="#_explore_what_nmt_does_not_show"></a><a class="link" href="#_explore_what_nmt_does_not_show">Explore what NMT does not show</a></h4>
+<h4 id="_lets_pause_a_bit_and_revise_memory"><a class="anchor" href="#_lets_pause_a_bit_and_revise_memory"></a><a class="link" href="#_lets_pause_a_bit_and_revise_memory">Let&#8217;s pause a bit and revise memory</a></h4>
 <div class="paragraph">
-<p>There&#8217;s also the <code>MappedByteBuffers</code>, these are the files mapped to virtual memory of a process.
-NMT does not track them, however, <code>MappedByteBuffers</code> can also take physical memory. It&#8217;s possible
-to see the actual usage of a process memory map: <code>pmap -x &lt;pid&gt;</code></p>
+<p>I mentioned it already : the <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it? What exactly means
+<em>committed</em> memory ? Or <em>reserved</em> memory ? How do they relate to each others?</p>
+</div>
+<div class="paragraph">
+<p>First let&#8217;s break down the vocabulary when we talk about memory.</p>
+</div>
+<table class="tableblock frame-all grid-all fit-content stretch">
+<caption class="title">Table 1. vocabulary breakdown</caption>
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Used Heap</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects and to a certain extent object
+that are unreachable but not yet collected by the GC. This only relate to the JVM.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Address ranges that have been mapped or <code>malloc</code>ed.
+They may or may not be backed by physical or swap due to lazy allocation and paging.
+This applies to the JVM and the OS.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reserved</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> or <code>malloc</code> for a
+particular memory pool. In other words <em>reserved memory</em> represents the maximum addressable memory.
+Those could be referred to as <strong>uncommitted</strong>.
+This applies to the JVM and the OS.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OS memory pages which are currently in physical ram. This means code, stacks, part of the
+committed memory pools but also portions of <code>mmap</code>ed files which have recently been accessed
+and allocations outside the control of the JVM.
+This only relate to the OS.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Virtual</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
+files or shared memory. This number is rarely informative since the JVM will reserve large address
+ranges upfront. We can see this number as the pessimistic memory usage.
+This only relate to the OS.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="https://stackoverflow.com/a/31178912/48136">source</a></p>
+</div>
+<div class="sect4">
+<h5 id="_malloc_and_mmap"><a class="anchor" href="#_malloc_and_mmap"></a><a class="link" href="#_malloc_and_mmap">malloc and mmap</a></h5>
+<div class="paragraph">
+<p>Now I&#8217;ve just mentioned two words <code>malloc</code> and <code>mmap</code>, these two calls to ask the OS to allocate memory.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/maxrampercentage/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"></span></p>
+</div>
+<div class="ulist">
+<div class="title">Differences between <a href="https://linux.die.net/man/3/malloc"><code>malloc</code></a> and <a href="http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html"><code>mmap</code></a></div>
+<ul>
+<li>
+<p><code>malloc</code> may <em>recycle</em> previously used memory that was released by <code>free</code>, and perform a system call to
+get memory only required. It&#8217;s part of the C standard.</p>
+</li>
+<li>
+<p><code>malloc</code> allows you pass a size and that&#8217;s basically it.</p>
+</li>
+<li>
+<p><code>mmap</code> is a system call. It&#8217;s not part of the C standard, and may not be available on all platforms.</p>
+</li>
+<li>
+<p><code>mmap</code> can both map private memory or shared memory (as in shared with other processes). Those are called
+<em>anonymous mapping</em> using flag <code>MAP_ANONYMOUS</code>.</p>
+</li>
+<li>
+<p><code>mmap</code> can also interact with disk files on specific ranges, without having a file descriptor.</p>
+</li>
+<li>
+<p><code>mmap</code> can be set with various flags that are used to control how this memory mapping behave.</p>
+</li>
+<li>
+<p>Both have their performance characteristics, <code>malloc</code> is usually preferred for few and small allocations,
+<code>mmap</code> is preferred for few but large allocations.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_reserved_and_committed"><a class="anchor" href="#_reserved_and_committed"></a><a class="link" href="#_reserved_and_committed">reserved and committed</a></h5>
+<div class="paragraph">
+<p>The idea of the <strong>reserved</strong> / <strong>committed</strong> memory is to make virtually <strong>continuous</strong> memory
+mapping. The <em>committed</em> memory is immediately usable, on the other hand the <em>reserved</em> memory is just
+reserved but not usable. The reserved range is mapped with the <code>PROT_NONE</code> flag to prevent any access,
+also this has the effect to tell the OS that this mapping should not be backed by physical memory.
+When the JVM thinks it need more commited memory, it will update part of the mapping by removing the
+<code>PROT_NONE</code> flag.</p>
+</div>
+<div class="paragraph">
+<p>The JVM starts be <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444"><em>reserving</em> the memory</a>,
+then parts of this will be made available by <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3517-L3531">modifying the mappings</a>.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_virtual_memory_and_paging"><a class="anchor" href="#_virtual_memory_and_paging"></a><a class="link" href="#_virtual_memory_and_paging">virtual memory and paging</a></h5>
+<div class="paragraph">
+<p><strong>Virtual memory</strong> is a memory management scheme that is used by most operating systems ;
+it allows programs to use memory without dealing with hardware, or other concerns like
+sharing the memory resource. In doing so it allows programs to request more memory than
+available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
+called <strong>pages</strong>. For any given page in the virtual memory, and depending on the application(s)
+the OS may</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>make this page resident in physical memory, if something has be written into it</p>
+</li>
+<li>
+<p>do nothing if a page is not used, this page is virtually available</p>
+</li>
+<li>
+<p>move a page from physical memory to swap, if the OS thinks there&#8217;s not enough room for other pages</p>
+</li>
+<li>
+<p>map ta portion of a file to this page</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging" title="Simple overview of OS paging"></span></p>
+</div>
+<div class="paragraph">
+<p>E.g at the moment this report was executed the committed memory is <code>5380868 KiB</code> (<code>5.13 GiB</code>) while
+the process RSS is <code>4701120 KiB</code>. The difference relates to how <code>mmap</code> works (on Linux), memory
+pages are only backed by physical memory once they&#8217;re written to.</p>
+</div>
+<div class="paragraph">
+<p>Some people may have heard of the <code>-XX:+AlwaysPreTouch</code> Hotspot option. This option tells
+the JVM to <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829">write a zero to every OS memory pages</a>.
+This option has the effect of avoiding physical memory commit latencies at runtime, however this
+only affects the heap memory zone. Other areas like thread stack or metaspace work differently.</p>
+</div>
+<div class="paragraph">
+<p>In other words that means parts of the <strong>committed</strong> memory shown in NMT is not <strong>resident</strong> and as such
+RSS counter may not reflect what is een in the <strong>committed</strong> memory.</p>
+</div>
+<div class="paragraph">
+<p>Now that we revised some basics, let&#8217;s go back to the trail.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_exploring_what_nmt_does_not_show"><a class="anchor" href="#_exploring_what_nmt_does_not_show"></a><a class="link" href="#_exploring_what_nmt_does_not_show">Exploring what NMT does not show</a></h4>
+<div class="paragraph">
+<p>The above output showed many memory are but not all. There&#8217;s also the <code>MappedByteBuffers</code>, these
+are the files that are <em>memory mapped</em> to the virtual memory of a process. NMT does not track them,
+but <code>MappedByteBuffers</code> can also take physical memory if the application access any of them. It&#8217;s possible
+to see the actual usage of a process memory map: <code>pmap -x &lt;pid&gt;</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">process memory mappings</div>
@@ -950,6 +1098,31 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
 <p><code>5186278 KiB</code> is what this container is actually using, so way over the RSS (<code>4701120 KiB</code>)
 but also over the <code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit. Yet this pod is healthy and far from
 the thresholds to be oom killed.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>You can use this command to extract all relevant from the summary
+in a simple addition</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">echo $(($(jcmd $(pidof java) VM.native_memory \
+  | tee /dev/tty \
+  | grep -P "^-.*committed=" \
+  | grep -o -P "(?&lt;=committed=)[0-9]+(?=KB)" \
+  | awk 'BEGIN { ORS=""; print "(" }; {print p$0; p=" + "} END { print ")\n"}' \
+  | tee /dev/tty )))</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p><strong>So what I am missing here ?</strong></p>
@@ -1550,10 +1723,8 @@ seems to increase between something like <code>273 MiB</code> to <code>2.7 GiB</
 over time suggests the memory usage for this app (for the current cluster topology
 (<em>replicaset</em>, traffic, etc.)).</p>
 </div>
-<div class="imageblock">
-<div class="content">
-<img src="/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png" alt="app heap usage with 5GiB limit 85p max">
-</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png" alt="app heap usage with 5GiB limit 85p max"></span></p>
 </div>
 <div class="paragraph">
 <p>To keep things simple let&#8217;s use the rough top usage of <code>2.7 GiB</code> of the heap. While the available
@@ -2123,13 +2294,8 @@ And anyway the official documentation is <a href="https://kubernetes.io/docs/con
 
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script><script type="text/javascript">
-        
-        hljs.initHighlightingOnLoad();
-    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
     
-    
-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
 <script type="text/javascript">
