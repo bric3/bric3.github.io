@@ -69,12 +69,14 @@ and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps`, although I could fi
 Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 B`).
 ====
 
-== Lucky fixing the issue
+== Fixing the issue without understanding
 
 The application that became problematic runs on a Kubernetes cluster. As mentioned above
 this application worked fine before, and the people who handled the issue at that time were
-not well-prepared, and I certainly wouldn't perform much better, so they tried memory limits
-until it worked. `5 GiB` proved to be the lucky number.
+not well-prepared, and I certainly wouldn't be prepared much better, that means memory
+limits until it worked. `5 GiB` proved to be the lucky number.
+It was the right approach at this moment in this context as it quickly resolved production
+issues.
 
 
 .memory limits in the deployment object of the app
@@ -119,14 +121,14 @@ The memory request is only used for scheduling the pod on a node.
 
 ====
 
-This works but this is not satisfactory :
+However, while this number work this is not satisfactory :
 
-1. This number is not even a guess, but a brute forced number.
-2. This application worked with a `2 GiB` of heap, `5 GiB` looks greedy.
-3. Again this number is not understood.
+1. This number comes from trial and error.
+2. This application worked with a `2 GiB` heap, `5 GiB` looks greedy.
+3. Why this his number work is not understood.
 
 
-== Analyze
+== Diagnosis
 
 In order to understand our requirement, and to avoid guessing numbers until it works,
 let's explore the memory of a java process.
@@ -522,7 +524,7 @@ This means that we can get a segmentation fault by accessing that memory if it h
 already been mapped to physical memory, and if the system is out of physical memory.
 
 At this time the focus is to see what are the memory mapped files with the JVM. Those can be either
-read from or written to, we need to look for both the `r` or `w` or neither, also while quite unlikely
+read from or written to, we need to look for both the `r` or `w` or neither. Also, while quite unlikely
 with Java let's not restrict on the _executable_ mapping, so the only thing we could be restricting to
 is the shared mapping `s` (memory mapped files are shared because the OS may want to reuse the afferent
 memory pages for other processes) :
@@ -548,7 +550,7 @@ $ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
 There's around `35.2 MiB` of memory mapped files.
 
 _As I was a bit unfamiliar with `pmap`, reading https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[this process memory blog]
-helped me with the above command._
+helped me with this command._
 
 Wrapping this information from NMT and memory mapped files leaves us with the
 following _equation_ to estimate the actual memory usage of a process:
@@ -573,21 +575,26 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
 (Internal + NMT + smaller area)   |   24460 + 8433 + 217 + 7 + 19 + 1362 + 837 + 8 + 32
 | Thread stacks                   |   85455
 | Direct buffers (Other)          |  267034
+
+| Total accounted by NMT          | 5380869
+
 | Mapped files                    |   36060 + 4 + 4 + 8 + 4 + 4 + 12 + 8 + 4 + 12 + 28
 | Native Libraries                | unaccounted at this time
 | Malloc overhead                 | accounted in NMT
 | ...                             |
 
-| Total                           | 5242880 KiB
+| Total                           | 5417017 KiB
 |===
 
-`5186278 KiB` is what this container is actually using, so way over the RSS (`4701120 KiB`)
-but also over the `5 GiB` (`5242880 KiB`) of the pod limit. Yet this pod is healthy and far from
+
+`5417017 KiB` is what this container is supposedly actually using, but that's way over the RSS (`4701120 KiB`)
+and, also over the `5 GiB` (`5242880 KiB`) of the pod limit. Yet this pod is healthy and far from
 the thresholds to be oom killed.
 
+////
 [TIP]
 =====
-You can use this command to extract all relevant from the summary
+While NMT show you the total you can use this command to extract all relevant from the summary
 in a simple addition
 
 [source,bash]
@@ -600,31 +607,33 @@ echo $(($(jcmd $(pidof java) VM.native_memory \
   | tee /dev/tty )))
 ----
 
+On macOs you should install the GNU coreutils and use `ggrep` and `ghead`.
 =====
+////
 
+===== RSS and expected memory don't match
 
-*So what I am missing here ?*
+First let's state a few considerations to understand :
 
-There a few considerations to understand :
-
-* NMT shows _reserved_ and _committed_ values on each areas,
+. NMT shows _reserved_ and _committed_ values on each areas,
 +
 [%autowidth.stretch]
 |===
 
-| `reserved` | this is the size that the OS guarantees to be available (but the
-JVM didn't tell the OS to allocate this memory)
-| `committed` | this size indicate the memory that the JVM allocated on the OS
+| `reserved` | This is the size that the JVM reserved, the OS guarantees these adresses to be
+available, but the JVM isn't yet using the whole reserved space.
+| `committed` | This size indicate the memory that the JVM actually uses from the reserved space.
 
 |===
 +
 Each of these memory zones are managed differently: `GC`, `Compiler` have the
 same committed and reserved memory values while other zones have the ability to
 shrink or grow for example `thread stacks` zone reports
-`85455 KiB` but could take up to `696395 KiB` if necessary, and theoretically
-same as the heap.
+`85455 KiB` but could be reduced to `696395 KiB` if necessary, the heap has theoretically the
+possibility to shrink as well, however I never saw that in practice, maybe in JDK 12 with
+https://openjdk.java.net/jeps/346[JEP-346].
 
-* While the JVM did allocate this memory, Linux on x86 hardware uses virtual
+. While the JVM did allocate this memory, Linux on x86 hardware uses virtual
 memory with paging. More specifically Linux optimizes actual physical memory
 and only commits a page physically if this page is actually written to. In this
 case the `Heap` zone in particular seems to benefit from this behavior as the JVM
@@ -695,7 +704,7 @@ $ pmap -X $(pidof java) | less -S -X
 <3> a thread stack
 
 
-== Going back to choose a better value for the RAM percentage
+== Choosing a better value for the RAM percentage
 
 From the above, it's now possible with NMT especially and with `pmap` to
 understand actual memory usage and to answer the question: "What is a sensible
@@ -705,7 +714,7 @@ Really what drive the answer is the actual non-heap usage not accounted in
 `MaxRAMPercentage`, from the numbers above:
 
 ....
-(total) 5242880 - (heap) 4456448 = 786432 KiB
+(total) 5417017 - (heap) 4456448 = 960569 KiB
 ....
 
 
@@ -713,33 +722,44 @@ Really what drive the answer is the actual non-heap usage not accounted in
 [%autowidth.stretch,options="footer"]
 |===
 
-| Non heap | 5242880 - 4456448 = 786432 | ~14 %
-| Heap     | 4456448                    | ~86 %
+| Non heap | 5417017 - 4456448 = 960569 | ~17 %
+| Heap     | 4456448                    | ~83 %
 
-| Total    | 5186278                    | 100 %
+| Total    | 5417017                    | 100 %
 |===
 
-*This means the application needs around `790 MiB`, plus the heap to run.*
+*This means, at that time the application needed around `960 MiB`, plus the heap to run.*
 
-From the flags seen above, the JVM set the heap maximum size memory to `4 563 402 752` Bytes,
-this value was computed from this flag `-XX:MaxRAMPercentage=85.000000`, and this percentage
-is somehow a lucky guess that worked for the `5 GiB` deployment memory limit.
-But this actual percentage is in fact _wrong_, if the JVM needed all the memory within the max
-heap plus bigger stack traces then the container/pod would have been _oom killed_. Also, it is
-necessary to give some free space in the container
-to be able to perform serviceability tasks, like profiling, heap dump, etc.
+The JVM was run this flag `-XX:MaxRAMPercentage=85.000000` which sets the heap maximum size
+to `4 563 402 752` Bytes or `4456448 KiB`, the value of this percentage is a lucky guess that
+worked for the `5 GiB` deployment memory limit, because the application never use the whole
+heap memory and as such it never used all the pages.
 
-For a `5 GiB` limit it may be good to give around 20% for all of these non-heap, plus system space
-for this particular workload (e.g. if the application requires heavy filesystem usage, then
-it would be a different number to make room for the filesystem cache).
+This percentage is however *wrong*, if the JVM needed all the memory within the max
+heap plus higher thread usage be it more threads or deeper stack traces then the
+container/pod would have been _oom killed_. Also, it is necessary to give some free space
+in the container to be able to perform serviceability tasks, like profiling, etc.
 
-So the problem would be solved with the following value, for a `5 GiB` memory limit :
+For a `5 GiB` memory limit it may be good to give a minimum of 20% space, my experience in this
+scenario is that 20% is too tight to handle surges. Supposing we'd like an additional `400 MiB`
+over `960 569 KiB` will give a percentage of 26%.
+
+Of course this number has to be adapted to the workload, e.g. if the application allocate a
+lot more ``DirectByteBuffer``s or if it requires heavy filesystem usage, then it would be a
+different number to account the room needed for the filesystem cache.
+
+In our case the starting point for a `5 GiB` memory limit is 26% :
 
 [source]
 ----
--XX:InitialRAMPercentage=80.0 <1>
--XX:MaxRAMPercentage=80.0 <1>
+-XX:InitialRAMPercentage=74.0 <1>
+-XX:MaxRAMPercentage=74.0 <1>
 ----
+
+But if the cgroup limit is decreased, for our application it meant the non heap usage will take
+a more significant part. For example on this same application we saw `1.3 GiB` of non-heap memory
+for a heap sized at `3 GiB`.
+
 
 
 
@@ -747,14 +767,14 @@ For a quick win let's adapt the application image.
 
 == Make the docker image memory settings tweakable per environment
 
-As seen at the beginning of this post, RAM settings are part of the command declaration, this
-is not suitable as seen above. In addition, the deployment requirements / limits are likely to
-differ depending on the cluster / environment. One good reason would be to decrease the money spending
-on your cloud provider for non-production clusters, like staging, pre-production, etc.
-It will be useful to enable flexibility one setting the application for any given environment.
+As seen at the beginning of this post, RAM settings are part of the command declaration,
+first these arguments turned out to be incorrect but they are more difficult to change or tweak.
+In addition, the deployment requirements / limits are likely to
+differ depending on the cluster / environment ; this can happen when you need to decrease the money
+spending on your cloud provider for non-production clusters, like staging, pre-production, etc.
 
-Let's use https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JDK_JAVA_OPTIONS`]
-environment variable to enable flexibility and remove the RAM percentage in the `CMD` directive.
+Let's use https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
+environment variable for more flexibility and remove the RAM percentage in the `CMD` directive.
 
 .Application dockerfile
 [source,diff]
@@ -795,10 +815,10 @@ environment variable to enable flexibility and remove the RAM percentage in the 
   LABEL build_path="../"
   LABEL version_auto_semver="true"
 ----
-<1> Defines the https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC[`JDK_JAVA_OPTIONS`]
+<1> Defines a default empty https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
 <2> Removes the RAM percentage settings to get _default_ values.
 
-Now let's test this locally to play a bit.
+Now let's test this locally.
 
 .Build the container
 [source]
@@ -827,7 +847,9 @@ Now let's test this locally to play a bit.
 ----
 <1> Custom tag to avoid collision with regular images in my cache
 
-Run the container with the Java app
+=== Run the container locally with the Java app
+
+In this local test serie, I'm using 3GB as a memory limit and I chose 70% for the heap percengtage.
 
 .*Without* `JDK_JAVA_OPTIONS`
 [source,role="primary"]
@@ -914,18 +936,12 @@ Then we can make sure we have the correct flags.
 
 
 Notice when there's no RAM settings the JVM computed the max heap size at 25%
-of memory constraints `3 GiB`. And to 80%, `2.1 GiB`, of the same limit when
+of memory constraints `3 GiB`. And at 80%, `2.1 GiB`, of the same limit when
 passing the RAM percentages. Also, the heap values are the only one affected,
 other memory areas default values kept the same values.
 
 
 == Going further
-
-As a reminder this application was set up with 85% max heap when the
-deployment limit was `3 GiB`, it worked well under 50% of the traffic but failed with full traffic.
-Then this pod memory limit was bumped to `5 GiB` and the pod wasn't anymore oomkilled.
-How this _limit_ was found is a lucky guess, given the RAM percentages were set in the `CMD`
-directive of the Dockerfile.
 
 As identified above there are two, maybe three memory areas whose usage may explain the surge in memory before
 the memory limit was increased. I don't have anything to back that idea except how I expect these memory areas
