@@ -66,7 +66,7 @@ it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2
 our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
 and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps`, although I could find a reference).
 
-Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[metric notation] (`1 KB = 1000 B`).
+Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 B`).
 ====
 
 == Lucky fixing the issue
@@ -98,6 +98,26 @@ spec:
             memory: 3Gi
 ----
 <1> The working memory limit.
+
+[TIP]
+====
+The resources tree is equivalent to this docker params
+
+[source]
+----
+docker run \
+  --cpu-shares=3 \ # <1>
+  --cpu-quota=8 \ # <2>
+  --memory=5g \ # <3>
+  ...
+----
+<1> cpu request, this is the relative weight of that container for CPU time
+<2> cpu limit, this limits the CPU time of container’s processes, that means throttling
+<3> memory limit, tells the OS to kill (`oomkill`) the container's processes if they hit this limit
+
+The memory request is only used for scheduling the pod on a node.
+
+====
 
 This works but this is not satisfactory :
 
@@ -169,7 +189,11 @@ bit to understand this number `4701120 KiB`.
 Fortunately the application started with `-XX:NativeMemoryTracking=summary` which
 produces an overview of the different memory zones of a Java process.
 
-NOTE: Enabling native memory tracking (NMT) causes a 5% to 10% performance overhead.
+NOTE: Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10% performance overhead.
+But the _summary_ mode only has an impact in memory as shown below.
+
+NOTE: It is necessary to note that while the above command indicate a scale in `KB` for the JVM
+it really means `KiB`.
 
 .`VM.native_memory` instant snapshot
 [source, bash]
@@ -254,64 +278,24 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
 ----
 <1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount of addressable memory
 (all OS types) on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`)) that represents
-what the JVM actually told the OS to allocate.
-<2> `Heap` zone, note reserved and committed values are the same `4456448 KiB` here because our
+what the JVM actually asked the OS to allocate.
+<2> `Heap` zone, note that reserved and committed values are the same `4456448 KiB` here because our
 `InitialRAMPercentage` is the same as max. I'm not sure why this number is different from the VM
 flags `-XX:MaxHeapSize=4563402752` though.
-<3> ~`162 MiB` of metaspace
-<4> How many classes have been loaded : `28431`
-<5> There are 674 threads that are using ~`80 MiB` and could use up to ~`676 MiB`.
-<6> `Code` cache area (assembly of the used methods) ~`102 MiB` out of ~`246 MiB` which matches with `-XX:ReservedCodeCacheSize=251658240`
-<7> This is app is using G1GC, this section contains `GC` internal data structures which takes ~`225 MiB`
-<8> C1 / C2 compilers (which compile bytecode to assembly) uses ~`5.8 MiB`
-<9> The `Symbol` section contains many things like interned strings and other internal constants ~`28.2 MiB`
-<10> `Internal` (includes `DirectByteBuffers` before Java 11), maybe others objects, here takes ~`24 MiB`
-<11> `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`
+<3> ~`162 MiB` of metaspace.
+<4> How many classes have been loaded : `28431`.
+<5> There are 674 threads whose stacks are using ~`80 MiB` at this time.
+<6> `Code` cache area (assembly of the used methods) ~`102 MiB` out of ~`246 MiB`.
+<7> This section contains `GC` algorithms internal data structures, this is app is using G1GC which takes ~`225 MiB`.
+<8> C1 / C2 compilers (which compile bytecode to assembly) use ~`5.8 MiB`.
+<9> The `Symbol` section contains many things like interned strings and other internal constants for about `28.2 MiB`.
+<10> The `Internal` area takes ~`24 MiB`. Before Java 11 this area included `DirectByteBuffers`, but from Java 11 those
+are accounted in the `Other` zone.
+<11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
 
 The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
 etc. Also, note that enabling other JVM features may show up if they are activated.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
-
-
-[NOTE]
-====
-At the time this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
-the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
-pages are only backed by physical memory once they're written to.
-
-Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
-the JVM to always write zeros to memory pages (which has the effect of reducing physical memory
-commit latencies), but this option only affects the heap memory allocations. Other zones like
-thread stack or metaspace work differently, that means some *committed* memory shown in NMT is not
-*resident* and not accounted for by the RSS counter.
-
-Here's some memory related vocabulary that help distinguish between memory _statuses_ :
-
-.vocabulary breakdown
-[%autowidth.stretch]
-|===
-
-| *Used Heap* | The amount of memory occupied by live objects according.
-
-| *Committed* | Address ranges that have been mapped with something other than `PROT_NONE`.
-They may or may not be backed by physical or swap due to lazy allocation and paging.
-
-| *Reserved* | The total address range that has been pre-mapped via `mmap` for a particular memory pool.
-The _reserved_ / _committed_ difference consists of `PROT_NONE` mappings, which are guaranteed to not be backed
-by physical memory
-
-| *Resident* | Pages which are currently in physical ram. This means code, stacks, part of the committed memory
-pools but also portions of ``mmap``ed files which have recently been accessed and allocations outside the control
-of the JVM.
-
-| *Virtual* | The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
-files or shared memory. This number is rarely informative since the JVM can reserve very large address
-ranges in advance or mmap large files.
-
-|===
-
-https://stackoverflow.com/a/31178912/48136[source]
-====
 
 There's a lot more to read on the
 https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80[official documentation about NMT]
@@ -320,12 +304,115 @@ and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html
 And another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
 by http://twitter.com/shipilev[Aleksey Shipilёv].
 
+==== Let's pause a bit and revise memory
 
-==== Explore what NMT does not show
+I mentioned it already : the _RSS_ or **R**esident **S**et **S**ize, what is it? What exactly means
+_committed_ memory ? Or _reserved_ memory ? How do they relate to each others?
 
-There's also the `MappedByteBuffers`, these are the files mapped to virtual memory of a process.
-NMT does not track them, however, `MappedByteBuffers` can also take physical memory. It's possible
-to see the actual usage of a process memory map: `pmap -x <pid>`
+First let's break down the vocabulary when we talk about memory.
+
+.vocabulary breakdown
+[%autowidth.stretch]
+|===
+
+| *Used Heap* | The amount of memory occupied by live objects and to a certain extent object
+that are unreachable but not yet collected by the GC. This only relate to the JVM.
+
+| *Committed* | Address ranges that have been mapped or ``malloc``ed.
+They may or may not be backed by physical or swap due to lazy allocation and paging.
+This applies to the JVM and the OS.
+
+| *Reserved* | The total address range that has been pre-mapped via `mmap` or `malloc` for a
+particular memory pool. In other words _reserved memory_ represents the maximum addressable memory.
+Those could be referred to as *uncommitted*.
+This applies to the JVM and the OS.
+
+| *Resident* | OS memory pages which are currently in physical ram. This means code, stacks, part of the
+committed memory pools but also portions of ``mmap``ed files which have recently been accessed
+and allocations outside the control of the JVM.
+This only relate to the OS.
+
+| *Virtual* | The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
+files or shared memory. This number is rarely informative since the JVM will reserve large address
+ranges upfront. We can see this number as the pessimistic memory usage.
+This only relate to the OS.
+
+|===
+
+https://stackoverflow.com/a/31178912/48136[source]
+
+===== malloc and mmap
+
+Now I've just mentioned two words `malloc` and `mmap`, these two calls to ask the OS to allocate memory.
+
+image:/assets/maxrampercentage/malloc-mmap.svg[align="center", title="Simple overview of malloc and mmap"]
+
+.Differences between https://linux.die.net/man/3/malloc[`malloc`] and http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html[`mmap`]
+* `malloc` may _recycle_ previously used memory that was released by `free`, and perform a system call to
+get memory only required. It's part of the C standard.
+
+* `malloc` allows you pass a size and that's basically it.
+
+* `mmap` is a system call. It's not part of the C standard, and may not be available on all platforms.
+
+* `mmap` can both map private memory or shared memory (as in shared with other processes). Those are called
+_anonymous mapping_ using flag `MAP_ANONYMOUS`.
+
+* `mmap` can also interact with disk files on specific ranges, without having a file descriptor.
+
+* `mmap` can be set with various flags that are used to control how this memory mapping behave.
+
+* Both have their performance characteristics, `malloc` is usually preferred for few and small allocations,
+`mmap` is preferred for few but large allocations.
+
+===== reserved and committed
+
+The idea of the *reserved* / *committed* memory is to make virtually *continuous* memory
+mapping. The _committed_ memory is immediately usable, on the other hand the _reserved_ memory is just
+reserved but not usable. The reserved range is mapped with the `PROT_NONE` flag to prevent any access,
+also this has the effect to tell the OS that this mapping should not be backed by physical memory.
+When the JVM thinks it need more commited memory, it will update part of the mapping by removing the
+`PROT_NONE` flag.
+
+The JVM starts be https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444[_reserving_ the memory],
+then parts of this will be made available by https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3517-L3531[modifying the mappings].
+
+===== virtual memory and paging
+
+*Virtual memory* is a memory management scheme that is used by most operating systems ;
+it allows programs to use memory without dealing with hardware, or other concerns like
+sharing the memory resource. In doing so it allows programs to request more memory than
+available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
+called *pages*. For any given page in the virtual memory, and depending on the application(s)
+the OS may
+
+* make this page resident in physical memory, if something has be written into it
+* do nothing if a page is not used, this page is virtually available
+* move a page from physical memory to swap, if the OS thinks there's not enough room for other pages
+* map ta portion of a file to this page
+
+image:/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
+
+E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
+the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
+pages are only backed by physical memory once they're written to.
+
+Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
+the JVM to https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829[write a zero to every OS memory pages].
+This option has the effect of avoiding physical memory commit latencies at runtime, however this
+only affects the heap memory zone. Other areas like thread stack or metaspace work differently.
+
+In other words that means parts of the *committed* memory shown in NMT is not *resident* and as such
+RSS counter may not reflect what is een in the *committed* memory.
+
+Now that we revised some basics, let's go back to the trail.
+
+==== Exploring what NMT does not show
+
+The above output showed many memory are but not all. There's also the `MappedByteBuffers`, these
+are the files that are _memory mapped_ to the virtual memory of a process. NMT does not track them,
+but `MappedByteBuffers` can also take physical memory if the application access any of them. It's possible
+to see the actual usage of a process memory map: `pmap -x <pid>`.
 
 
 .process memory mappings
@@ -497,6 +584,24 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
 `5186278 KiB` is what this container is actually using, so way over the RSS (`4701120 KiB`)
 but also over the `5 GiB` (`5242880 KiB`) of the pod limit. Yet this pod is healthy and far from
 the thresholds to be oom killed.
+
+[TIP]
+=====
+You can use this command to extract all relevant from the summary
+in a simple addition
+
+[source,bash]
+----
+echo $(($(jcmd $(pidof java) VM.native_memory \
+  | tee /dev/tty \
+  | grep -P "^-.*committed=" \
+  | grep -o -P "(?<=committed=)[0-9]+(?=KB)" \
+  | awk 'BEGIN { ORS=""; print "(" }; {print p$0; p=" + "} END { print ")\n"}' \
+  | tee /dev/tty )))
+----
+
+=====
+
 
 *So what I am missing here ?*
 
@@ -932,7 +1037,7 @@ seems to increase between something like `273 MiB` to `2.7 GiB`. Graphing the tr
 over time suggests the memory usage for this app (for the current cluster topology
 (_replicaset_, traffic, etc.)).
 
-image::/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png[]
+image:/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png[]
 
 To keep things simple let's use the rough top usage of `2.7 GiB` of the heap. While the available
 allocated heap is `4.25 GiB`. As a reminder non-used memory pages are not physically in RAM,
