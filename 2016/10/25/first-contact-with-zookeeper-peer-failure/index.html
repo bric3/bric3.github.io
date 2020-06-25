@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -281,7 +281,7 @@
 <p>Bien qu&rsquo;aujourd&rsquo;hui d&rsquo;autres logiciels plus pratiques et plus efficaces sont apparus, Zookeeper n&rsquo;en reste pas moins une pièce maitresse de certains outils comme <a href="http://hadoop.apache.org/">Hadoop</a> ou <a href="https://kafka.apache.org/documentation#quickstart_startserver">Kafka</a>.</p>
 <h2 id="comment-zookeeper-fonctionne-">Comment zookeeper fonctionne ?</h2>
 <p>Zookeeper peut fonctionner avec une seule instance ou avec plusieur, dasn ce cas appelé <em>ensemble Zookeeper</em>. L&rsquo;intérêt de Zookeeper est de fonctionner de manière distribué, une seul instance peut marcher, mais <strong>il n&rsquo;y a pas de continuité de service</strong> si cette seule instance s&rsquo;arrête.</p>
-<p>Cet <em>ensemble</em> d&rsquo;instance Zookeeper vont donc partager un état. Lorsqu&rsquo;un changement doit avoir lieu sur cet état, le changement n&rsquo;est pas considéré comme terminé avec succès tant que le quorum de l&rsquo;ensemble Zookeeper n&rsquo;a pas été atteint. Ce qui veut dire <strong>plus de la la moitié</strong> des noeuds doivent acquitter l'écriture.</p>
+<p>Cet <em>ensemble</em> d&rsquo;instance Zookeeper vont donc partager un état. Lorsqu&rsquo;un changement doit avoir lieu sur cet état, le changement n&rsquo;est pas considéré comme terminé avec succès tant que le quorum de l&rsquo;ensemble Zookeeper n&rsquo;a pas été atteint. Ce qui veut dire <strong>plus de la la moitié</strong> des noeuds doivent acquitter l&rsquo;écriture.</p>
 <p>Comme il s&rsquo;agit d&rsquo;un système distribué il peut y avoir des raisons pour les quelles une instance Zookeeper n&rsquo;est pas disponible (opération de maintenance, etc.). La règle de calcul pour établir le nombre d&rsquo;instances nécéssaire pour qu&rsquo;un ensemble supporte la perte d&rsquo;un certain nombre de membre est :</p>
 <pre><code>( 2 x instance non disponible ) + 1
 </code></pre>
@@ -290,7 +290,7 @@
 <li>Pour qu&rsquo;un ensemble puisse supporter la perte de deux instances, il faudra 5 serveurs.</li>
 <li>Pour qu&rsquo;un ensemble puisse supporter la perte de trois instances, il faudra 7 server.</li>
 </ul>
-<p>(À noter que plus il y a de noeuds plus le quorum <a href="http://zookeeper.apache.org/doc/r3.4.9/zookeeperOver.html#Performance">met longtemps à s'établir</a> ; dans la majorité des cas un cluster de 3 ou 5 instances sera suffisant)</p>
+<p>(À noter que plus il y a de noeuds plus le quorum <a href="http://zookeeper.apache.org/doc/r3.4.9/zookeeperOver.html#Performance">met longtemps à s&rsquo;établir</a> ; dans la majorité des cas un cluster de 3 ou 5 instances sera suffisant)</p>
 <p>Cette formule conduit naturellement au fait que le nombre minimum nécéssaire pour un ensemble zookeeper sera toujours impair. Si le nombre de l&rsquo;ensemble était pair, le quorum ne serait toujours atteint qu&rsquo;avec plus de la moitié.</p>
 <p>Exemple: Un cluster de 6 perds 2 instances, il en reste 4, le quorum peut être atteint. S&rsquo;il en en perd 3, il reste 3 instances, le quorum ne peut pas être atteint.</p>
 <p>Enfin un ensemble zookeeper choisit toujours un leader, ce leader est choisit également par quorum. Les autres instances sont des <em>suiveurs</em> (follower). Toutes les écritures sont transferrée au leader. Les lectures peuvent en revanche être traitées par les autres instances.</p>
@@ -351,7 +351,7 @@ jps -v
 <p>Pour monitorer les 5 noeuds en continue la commande suivante se base sur <code>watch</code></p>
 <pre><code class="language-bash">watch --difference --color 'for i in {1..5}; do printf &quot;\nzk peer $i\n&quot;; echo stat | nc localhost 2181$i; done'
 </code></pre>
-<p>Une fois qu&rsquo;on peut voir l'état de chaque noeud, on peut dans une console séparée, de préférence à coté.</p>
+<p>Une fois qu&rsquo;on peut voir l&rsquo;état de chaque noeud, on peut dans une console séparée, de préférence à coté.</p>
 <h3 id="stopper-linstance-proprement-avec-le-script-zkserver">Stopper l&rsquo;instance proprement avec le script <code>zkServer</code></h3>
 <p>Il faut en premier trouver le leader (<code>mode : leader</code>), par exemple si le server <code>2</code> est le leader on devrait voir quelque chose de similaire à :</p>
 <pre><code>zk peer 2
@@ -372,7 +372,7 @@ Node count: 4
 <pre><code class="language-bash">env ZOO_LOG_DIR=`pwd`/2 `pwd`/zookeeper-3.4.9/bin/zkServer.sh stop `pwd`/zoo.2.cfg
 </code></pre>
 <p>Une fois le leader supprimé, le cluster élit un nouveau leader parmis les membres restants.</p>
-<p>En local l'élection est rapide. Le cluster n&rsquo;est <strong>indisponible</strong> qu&rsquo;un bref moment, mais il est quand même indisponible, sur réseau ce processus peut-être significativement plus long.</p>
+<p>En local l&rsquo;élection est rapide. Le cluster n&rsquo;est <strong>indisponible</strong> qu&rsquo;un bref moment, mais il est quand même indisponible, sur réseau ce processus peut-être significativement plus long.</p>
 <p>Maintenant supprimons un deuxième serveur, cet ensemble est constitué de cinq membre, la perte d&rsquo;un autre membre est donc tolérée.
 Après la réélection le nouveau leader est l&rsquo;instance <code>5</code> :</p>
 <pre><code class="language-bash">env ZOO_LOG_DIR=`pwd`/5 `pwd`/zookeeper-3.4.9/bin/zkServer.sh stop `pwd`/zoo.5.cfg
@@ -404,7 +404,7 @@ env ZOO_LOG_DIR=`pwd`/5 `pwd`/zookeeper-3.4.6/bin/zkServer.sh stop `pwd`/zoo.5.c
 </code></pre>
 <h2 id="wrap-up">Wrap Up</h2>
 <p>Un ensemble Zookeeper est capable de se remettre de la perte de ces membres tant que le quorum peut-être atteint. Cependant la perte des membres introduit une fenêtre d&rsquo;indisponibilité.
-Qui plus est, les processus de cet ensemble utilise l&rsquo;interface <em>loopback</em> ; reproduire ces scénarios sur des machines différentes montrera que le réseau introduit des latences. Zookeeper n&rsquo;aime pas du tout les latences (par exemple une instance qui a des problèmes peut ralentir considérablement le reste de l&rsquo;ensemble Zookeeper pour le vote d&rsquo;acquittement d'écriture ou pour élire un nouveau leader).</p>
+Qui plus est, les processus de cet ensemble utilise l&rsquo;interface <em>loopback</em> ; reproduire ces scénarios sur des machines différentes montrera que le réseau introduit des latences. Zookeeper n&rsquo;aime pas du tout les latences (par exemple une instance qui a des problèmes peut ralentir considérablement le reste de l&rsquo;ensemble Zookeeper pour le vote d&rsquo;acquittement d&rsquo;écriture ou pour élire un nouveau leader).</p>
 <p>Ces considérations sont à prendre en compte lorsqu&rsquo;une maintenance est à prévoir sur les machines qui hébergent ces processus.</p>
 
   </div>
@@ -435,7 +435,7 @@ Qui plus est, les processus de cet ensemble utilise l&rsquo;interface <em>loopba
         
         
         this.page.identifier = 'https://blog.arkey.fr/2016/10/25/first-contact-with-zookeeper-peer-failure/';
-        this.page.title = 'Premier contact avec la perte d\x27instances Zookeeper';
+        this.page.title = 'Premier contact avec la perte d\u0027instances Zookeeper';
         this.page.url = 'https://blog.arkey.fr/2016/10/25/first-contact-with-zookeeper-peer-failure/';
     };
     (function() {

@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -285,7 +285,7 @@
   <div class="post md">
     <h1 id="le-contexte">Le contexte</h1>
 <p>L&rsquo;histoire commence par un problème en production sur une version à priori stable et sans anomalie connue. Seulement voilà une fois en prod l&rsquo;application devient de plus en plus lente. Pourquoi? Que se passe-t-il?</p>
-<p>Avec l&rsquo;activation des logs du GC dans les options de la JVM, l'équipe s&rsquo;aperçoit donc très vite que l&rsquo;application arrive à bout de la mémoire disponible, mais pas de <code>OutOfMemoryError</code> (pourtant classique lors d&rsquo;une fuite mémoire).</p>
+<p>Avec l&rsquo;activation des logs du GC dans les options de la JVM, l&rsquo;équipe s&rsquo;aperçoit donc très vite que l&rsquo;application arrive à bout de la mémoire disponible, mais pas de <code>OutOfMemoryError</code> (pourtant classique lors d&rsquo;une fuite mémoire).</p>
 <pre><code class="language-bash">-Xloggc:-XX:+PrintGCDetails
 </code></pre>
 <p> </p>
@@ -294,16 +294,16 @@
 <p><img src="/assets/application-gc.png" alt="application-gc"></p>
 <p>On voit comment se passe le consommation de la mémoire dans l&rsquo;application, on sait que l&rsquo;application est lente, maintenant pourquoi la consommation mémoire monte autant sans être libéré. Effectivement les raisons peuvent varier <strong>surtout qu&rsquo;il n&rsquo;y avait pas de OutOfMemoryError</strong>!</p>
 <ul>
-<li>Possibilité 1 : Un problème de concurrence (deadlock, point de contention sur une ressource, &hellip;); c&rsquo;est cette possibilité qui a été retenue pour l&rsquo;investigation du problème. Les thread dump nous confortaient dans cette optique étant donné qu&rsquo;on voyait régulièrement le même code revenir. Et les indicateurs sur le CPU montrait qu&rsquo;il n'était pas énormément utilisé.</li>
+<li>Possibilité 1 : Un problème de concurrence (deadlock, point de contention sur une ressource, &hellip;); c&rsquo;est cette possibilité qui a été retenue pour l&rsquo;investigation du problème. Les thread dump nous confortaient dans cette optique étant donné qu&rsquo;on voyait régulièrement le même code revenir. Et les indicateurs sur le CPU montrait qu&rsquo;il n&rsquo;était pas énormément utilisé.</li>
 <li>Possibilité 2 : Une fuite mémoire, choix écarté parce qu&rsquo;on ne voyait de <!-- raw HTML omitted -->OOME<!-- raw HTML omitted -->.</li>
 </ul>
 <p>Et bien on avait tort, il s&rsquo;agissait d&rsquo;une fuite mémoire. Avec un collègue plus expérimenté nous avons fait du profiling, très vite il a mis le doigt sur le code en tort. <strong>Mais quelque chose me choquait, pourquoi pas d&rsquo;erreur <!-- raw HTML omitted -->OOME<!-- raw HTML omitted --></strong> alors qu&rsquo;il s&rsquo;agissait manifestement d&rsquo;une fuite mémoire.</p>
 <h1 id="la-bonne-rencontre">La bonne rencontre</h1>
 <p>J&rsquo;ai eu la chance de pouvoir rencontré <a href="http://www.zenika.com/">Zenika</a>, en discutant avec lui j&rsquo;ai eu l&rsquo;occasion d&rsquo;aborder ce sujet. Il m&rsquo;a immédiatement demandé si notre application utilisait beaucoup d&rsquo;introspection. Il m&rsquo;a dit qu&rsquo;il soupçonnait que ce genre de cas pouvait se produire, et il m&rsquo;a ensuite aiguillé sur la manière dont le JDK de Sun utilise des SoftReference pour stocker les éléments issus de la reflection.</p>
-<p>Et là, les cases manquantes n'étaient plus, en effet les objets <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/ref/SoftReference.html">SoftReference</a> sont des références qui sont réclamées par le GC lorsque la JVM a vraiment vraiment besoin de mémoire, juste avant de lever une OutOfMemoryError. En gros, ça se passe typiquement lors des Full GC.</p>
+<p>Et là, les cases manquantes n&rsquo;étaient plus, en effet les objets <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/lang/ref/SoftReference.html">SoftReference</a> sont des références qui sont réclamées par le GC lorsque la JVM a vraiment vraiment besoin de mémoire, juste avant de lever une OutOfMemoryError. En gros, ça se passe typiquement lors des Full GC.</p>
 <p>Et donc comme l&rsquo;application est toujours en état de marche, le code qui a besoin de reflection va recréer ces objets. Cette combinaison de Full GC et la recréation constante des références des éléments issus de l&rsquo;introspection, va très fortement ralentir l&rsquo;application sans lever cette fameuse <!-- raw HTML omitted -->OOME<!-- raw HTML omitted -->. Ou en tout cas en repoussant dans le temps cette <!-- raw HTML omitted -->OOME<!-- raw HTML omitted -->.</p>
 <h1 id="la-preuve">La preuve</h1>
-<p>Fort de cette nouvelle connaissance, j&rsquo;ai été jeter un coup d'œil dans l&rsquo;objet <code>java.lang.Class</code> pour effectivement y découvrir la mise en cache des éléments comme les méthodes et les champs dans une <code>SoftReference</code>. Ainsi en regardant le code source de OpenJDK:</p>
+<p>Fort de cette nouvelle connaissance, j&rsquo;ai été jeter un coup d&rsquo;œil dans l&rsquo;objet <code>java.lang.Class</code> pour effectivement y découvrir la mise en cache des éléments comme les méthodes et les champs dans une <code>SoftReference</code>. Ainsi en regardant le code source de OpenJDK:</p>
 <pre><code class="language-java">/*
  * Copyright 1994-2006 Sun Microsystems, Inc.  All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -594,7 +594,7 @@ public class Service {
 </code></pre>
 <p>Autre outil à utiliser, jVisualVM qui est disponible en standard avec le JDK6. On se retrouve avec onglet de monitoring sympa. A noter que les graphes d&rsquo;activité du CPU ne sont pas disponible en standard sur jVisualVM avec la JDK6.</p>
 <p><img src="/assets/visualvm-mon1.png" alt="visualvm-mon"></p>
-<p>Ce que je ne voyais pas avec GCViewer c&rsquo;est que le nombre de threads actives a dramatiquement baissé, ce qui confirme la lenteur exécution, les traitements mettent vraiment plus longtemps, et les autres threads sont alors mises en standby. Si on fait attention à la fenêtre temporelle, ça passe vers 14h48, à ce moment là, la mémoire heap n&rsquo;est pas encore complètement saturée les GC tenaient jusque là. C&rsquo;est ensuite que <strong>les</strong> Full GC prennent le relai pour réclamer de la mémoire, c&rsquo;est donc à ce moment que les SoftReference sont collectées. Et comme dit plus haut, ces références sont recréées par les <em>traitements métier</em>. Et comme le Full GC s&rsquo;exerce en permanence après ce moment, les références qui viennent d'être recréés sont collectées à nouveau. Et voilà la boucle est bouclée.</p>
+<p>Ce que je ne voyais pas avec GCViewer c&rsquo;est que le nombre de threads actives a dramatiquement baissé, ce qui confirme la lenteur exécution, les traitements mettent vraiment plus longtemps, et les autres threads sont alors mises en standby. Si on fait attention à la fenêtre temporelle, ça passe vers 14h48, à ce moment là, la mémoire heap n&rsquo;est pas encore complètement saturée les GC tenaient jusque là. C&rsquo;est ensuite que <strong>les</strong> Full GC prennent le relai pour réclamer de la mémoire, c&rsquo;est donc à ce moment que les SoftReference sont collectées. Et comme dit plus haut, ces références sont recréées par les <em>traitements métier</em>. Et comme le Full GC s&rsquo;exerce en permanence après ce moment, les références qui viennent d&rsquo;être recréés sont collectées à nouveau. Et voilà la boucle est bouclée.</p>
 <h1 id="conclusion">Conclusion</h1>
 <p>En conclusion, ce n&rsquo;est pas parce qu&rsquo;il n&rsquo;y a pas de OutOfMemoryError qu&rsquo;il n&rsquo;y a pas de fuite mémoire. Plus généralement le réflexe c&rsquo;est de se demander si notre application utilise beaucoup d&rsquo;introspection ou plus simplement si l&rsquo;application utilise beaucoup de références plus faibles comme les WeakReference, SoftReference.</p>
 

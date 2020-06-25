@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -1139,14 +1139,14 @@ will output logs only during JVM bootstrap.</p>
 </tbody>
 </table>
 <div class="listingblock">
-<div class="title">log on demand</div>
+<div class="title">log on demand, with G1 region tracing</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">env -u JAVA_TOOL_OPTIONS jcmd $(pidof java) \
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">jcmd $(pidof java) \
   VM.log \
-    what="gc*,gc+heap=debug,gc+ref=debug,gc+ergo*=trace,gc+age*=trace,gc+phases*,safepoint*,os*,gc+region=trace,gc+liveness=trace" \
-    decorators=uptime,tags,level \
-    output="file=/gclogs/%t-gc-trace.log"
-    \output_options="filecount=10,filesize=20M"</code></pre>
+    what="gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*,os*" \
+    decorators=uptime,time,tags,level \
+    output="file=/gclogs/%t-gc-trace.log" \
+    output_options="filecount=10,filesize=20M"</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1155,7 +1155,8 @@ will output logs only during JVM bootstrap.</p>
 </div>
 <div class="paragraph">
 <p><a href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092" class="bare">https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092</a>
-<a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3" class="bare">https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3</a></p>
+<a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3" class="bare">https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3</a>
+log prefixes : <a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3#l120.8" class="bare">https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3#l120.8</a></p>
 </div>
 <div class="paragraph">
 <p><a href="https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5" class="bare">https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5</a></p>

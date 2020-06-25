@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -293,7 +293,7 @@
   
   <div class="post md">
     <h1 id="prologue">Prologue</h1>
-<p>A l'école nos professeurs nous apprenaient ce qu'était la programmation orientée objet; en particulier l&rsquo;encapsulation. En effet avoir un accès public aux variables internes d&rsquo;un objet n&rsquo;est pas particulièrement recommandé, pourtant nous avons connaissons tous la convention JavaBean :</p>
+<p>A l&rsquo;école nos professeurs nous apprenaient ce qu&rsquo;était la programmation orientée objet; en particulier l&rsquo;encapsulation. En effet avoir un accès public aux variables internes d&rsquo;un objet n&rsquo;est pas particulièrement recommandé, pourtant nous avons connaissons tous la convention JavaBean :</p>
 <pre><code class="language-java">class Bean {
   /** constructeur sans argument, optionnel si c'est le seul constructeur de la classe */
   public Bean() { }
@@ -307,10 +307,10 @@
   }
 }
 </code></pre>
-<p>Manque de bol, cette convention qui a pourtant son utilité -voire sa nécéssité- peut dans certains contextes  briser l&rsquo;encapsulation, et plus dangereux pour votre code, elle permet à vos objets d'être mutable, c&rsquo;est à dire de pouvoir modifier l'état d&rsquo;un objet après sa création. Bien que dans certains cas le design ou le rôle de la classe demande cette caractéristique, dans beaucoup d&rsquo;autres situations la mutabilité peut poser problème.</p>
-<p>D&rsquo;ailleurs historiquement les JavaBeans ont été pensé pour être utilisé par des applications  graphiques afin d'être construit itérativement et finalement pour être facilement dé/sérialisés [1]. Mais ces objets exposent publiquement leurs états, du coup :</p>
+<p>Manque de bol, cette convention qui a pourtant son utilité -voire sa nécéssité- peut dans certains contextes  briser l&rsquo;encapsulation, et plus dangereux pour votre code, elle permet à vos objets d&rsquo;être mutable, c&rsquo;est à dire de pouvoir modifier l&rsquo;état d&rsquo;un objet après sa création. Bien que dans certains cas le design ou le rôle de la classe demande cette caractéristique, dans beaucoup d&rsquo;autres situations la mutabilité peut poser problème.</p>
+<p>D&rsquo;ailleurs historiquement les JavaBeans ont été pensé pour être utilisé par des applications  graphiques afin d&rsquo;être construit itérativement et finalement pour être facilement dé/sérialisés [1]. Mais ces objets exposent publiquement leurs états, du coup :</p>
 <ol>
-<li>Il y a de l&rsquo;adhérence à des propriétés internes d&rsquo;un objet, s&rsquo;il y a beaucoup de code qui utilise ces propriétés internes, l'évolutivité et la maintenance de ce code peut très vite devenir difficile et donc couteuse.</li>
+<li>Il y a de l&rsquo;adhérence à des propriétés internes d&rsquo;un objet, s&rsquo;il y a beaucoup de code qui utilise ces propriétés internes, l&rsquo;évolutivité et la maintenance de ce code peut très vite devenir difficile et donc couteuse.</li>
 <li>Ce n&rsquo;est plus vraiment de la programmation orientée objet. C&rsquo;est en quelque sorte des variables globales, ça fait plus de 30 ans qu&rsquo;on sait que les variables globales c&rsquo;est mal! Demandez à Barbara Liskov [2].</li>
 <li>Avec cette possibilité de muter les objets, il peut y avoir des problèmes au runtime, et croyez moi avec l&rsquo;arrivée de la parallélisation en plus dans vos applications il va y avoir des surprises.</li>
 </ol>
@@ -403,9 +403,9 @@
 </code></pre>
 <p>En bref :</p>
 <p><img src="/assets/fail.jpg" alt="fail"></p>
-<p>Que s&rsquo;est-il passé? S&rsquo;il n&rsquo;y a pas de <em>hashCode</em> et de <em>equals</em>, ce sont les méthodes de la super classe qui sont utilisées, dans le code listé plus haut ce sont les méthodes de Object qui seront utilisées pour tester l'égalité et le hashCode.</p>
+<p>Que s&rsquo;est-il passé? S&rsquo;il n&rsquo;y a pas de <em>hashCode</em> et de <em>equals</em>, ce sont les méthodes de la super classe qui sont utilisées, dans le code listé plus haut ce sont les méthodes de Object qui seront utilisées pour tester l&rsquo;égalité et le hashCode.</p>
 <ul>
-<li>Donc pour l'égalité Object.equals(Object) vérifie uniquement si l&rsquo;instance est la même. Ce qui explique que les tests d'égalité échouent plus haut.</li>
+<li>Donc pour l&rsquo;égalité Object.equals(Object) vérifie uniquement si l&rsquo;instance est la même. Ce qui explique que les tests d&rsquo;égalité échouent plus haut.</li>
 <li>Pour le hashCode, c&rsquo;est la JVM qui le génère, bref autant dire que le hashcode est différent pour chaque instance. Ceci explique que les instances <em>obj1</em> et <em>obj2</em> sont ajoutées au HashSet, si le hashcode avait été le même alors les opérations d&rsquo;ajout et de suppression auraient renvoyé <em>false</em> (n&rsquo;oublions pas qu&rsquo;il s&rsquo;agit d&rsquo;un <strong>Hash</strong> Set).</li>
 </ul>
 <h2 id="et-donc-pour-le-code-mutable">Et donc pour le code mutable</h2>
@@ -454,7 +454,7 @@ public boolean equals(final Object obj) {
 <p>Surprise! You just got</p>
 <p><img src="/assets/pwned.jpg" alt="pwned"></p>
 <p>Alors on sait que les méthodes <em>equals</em> et <em>hashCode</em> utilisent les deux propriétés <em>name</em> et <em>sellingDate</em>, donc quand on ajoute un objet dans le HashSet le hashCode correspondra au calcul fait partir des valeurs des ces attributs. Mais voilà le hashcode de l&rsquo;objet n&rsquo;est calculé qu&rsquo;une fois, au moment de l&rsquo;interaction dans la Map (ajout, suppression, contains, etc&hellip;).</p>
-<p>Donc ce qu&rsquo;il se passe c&rsquo;est qu&rsquo;on a fait muter l'état de notre objet, du coup le hashcode est différent, mais la collection conserve la référence de l&rsquo;objet qu&rsquo;elle contiens et ne recalcule pas son hashcode! C&rsquo;est aussi avec avec ce genre de code que vous pouvez avoir des fuites mémoires. Et on est même pas dans un contexte multithreadé, alors imaginez si la collection est partagée entre plusieurs thread!</p>
+<p>Donc ce qu&rsquo;il se passe c&rsquo;est qu&rsquo;on a fait muter l&rsquo;état de notre objet, du coup le hashcode est différent, mais la collection conserve la référence de l&rsquo;objet qu&rsquo;elle contiens et ne recalcule pas son hashcode! C&rsquo;est aussi avec avec ce genre de code que vous pouvez avoir des fuites mémoires. Et on est même pas dans un contexte multithreadé, alors imaginez si la collection est partagée entre plusieurs thread!</p>
 <h2 id="attention-aux-collections-ou-aux-dates-du-jdk">Attention aux collections ou aux dates du JDK</h2>
 <p>Par ignorance puis par laxisme, j&rsquo;avoue que j&rsquo;ai écris du code qui ressemble à ça (et j&rsquo;ai honte de le dire) :</p>
 <pre><code class="language-java">public class AnotherSupposedImmutableClass {
@@ -589,20 +589,20 @@ public void playWithInternalMutability() throws Exception {
 </code></pre>
 <p>A noter que cette classe utilise des objets immutables pour ces attributs (<code>DateTime</code>, et <code>ImmutableList</code>).</p>
 <p>Un des avantages, c&rsquo;est qu&rsquo;il est possible de valider les propriétés avant la création effective de l&rsquo;objet. Avec les setters c&rsquo;est faisable mais ça peut être délicat dans certaines situations.</p>
-<p>Il y a un plugin Eclipse, qui permet de générer ces Builder, celà dit il est loin d'être super user friendly.</p>
+<p>Il y a un plugin Eclipse, qui permet de générer ces Builder, celà dit il est loin d&rsquo;être super user friendly.</p>
 <p><a href="http://code.google.com/p/bpep/">http://code.google.com/p/bpep/</a></p>
 <p>Quoiqu&rsquo;il en soit en aucun cas ce pattern n&rsquo;est un remplacement du pattern Builder du GoF, il s&rsquo;agit plus d&rsquo;un pattern à appliquer dans un contexte ou il faut des objets immutable. Et encore ce n&rsquo;est pas la seule solution, JodaTime typiquement n&rsquo;utilise pas de builders.</p>
 <h1 id="comment-gérer-la-modification-de-lobjet">Comment gérer la modification de l&rsquo;objet</h1>
-<p>Si un comportement qui fait partit du domaine de l&rsquo;objet et doit modifier l'état, alors il faut peut-être créer une nouvelle instance. La bibliothèque Joda-Time fait typiquement ça lorsqu&rsquo;il y a modification d&rsquo;un champs.</p>
+<p>Si un comportement qui fait partit du domaine de l&rsquo;objet et doit modifier l&rsquo;état, alors il faut peut-être créer une nouvelle instance. La bibliothèque Joda-Time fait typiquement ça lorsqu&rsquo;il y a modification d&rsquo;un champs.</p>
 <pre><code class="language-java">DateTime instance1 = new DateTime(&quot;2009-04-01&quot;);
 DateTime instance2 = instance1.withYear(2010);
 
 </code></pre>
-<p>Je ne m'étends pas sur le sujet, mais ce genre de choses dépends de votre contexte, du rôle et du besoin. Un objet devrait être par défaut immutable, sauf si vraiment votre domaine identifie un cas ou l'état doit bouger et alors vous aurez des méthodes documentées qui appliqueront cette modification.</p>
+<p>Je ne m&rsquo;étends pas sur le sujet, mais ce genre de choses dépends de votre contexte, du rôle et du besoin. Un objet devrait être par défaut immutable, sauf si vraiment votre domaine identifie un cas ou l&rsquo;état doit bouger et alors vous aurez des méthodes documentées qui appliqueront cette modification.</p>
 <h1 id="conclusion">Conclusion</h1>
-<p>Mieux vaut des objets bien pensés et immutables que d&rsquo;introduire la possibilité de changer l'état d&rsquo;un objet et avoir des surprises. Et puis aussi :</p>
+<p>Mieux vaut des objets bien pensés et immutables que d&rsquo;introduire la possibilité de changer l&rsquo;état d&rsquo;un objet et avoir des surprises. Et puis aussi :</p>
 <ul>
-<li>Il y a un risque fort d&rsquo;avoir des problèmes au runtime, d&rsquo;autant plus 10 ans après lorsqu&rsquo;il y a une évolution à apporter et que plus personne ne sait qu'à tel endroit dans le code il y a le truc qui fout tout en l&rsquo;air. Et les problèmes au runtime ca peut vite couter cher à analyser.</li>
+<li>Il y a un risque fort d&rsquo;avoir des problèmes au runtime, d&rsquo;autant plus 10 ans après lorsqu&rsquo;il y a une évolution à apporter et que plus personne ne sait qu&rsquo;à tel endroit dans le code il y a le truc qui fout tout en l&rsquo;air. Et les problèmes au runtime ca peut vite couter cher à analyser.</li>
 <li>Si vos objets ne peuvent pas être modifié alors vous n&rsquo;aurez pas à vous soucier des problèmes de concurrences, c&rsquo;est manifestement un gain de temps au développement et en maintenance. (Et donc un gain d&rsquo;argent sur le long terme.)</li>
 <li>Bon ces objets sont bien cool, mais voilà il y a encore plein de framework (à tord ou à raison) qui se basent sur la convention JavaBean, je pense notamment aux objets marshallés en XML et consort.</li>
 <li>Ce code basé sur les builders est propre, mais il faut passer un petit peut plus de temps pour le faire. Il y a bien un plugin pour Eclipse, mais quid des autres IDE.</li>

@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -303,7 +303,7 @@ public void do_not_fail() {
     assertThat(result).satisfies(someCondition);
 }
 </code></pre>
-<p>Mais voilà, vous restez en local, et par exemple si vous avez merdé sur la sérialisation de vos beans, vous ne verrez pas d'échec dans vos test et vous aurez une surprise en prod, ou avant si votre projet a un processus qualité décent.</p>
+<p>Mais voilà, vous restez en local, et par exemple si vous avez merdé sur la sérialisation de vos beans, vous ne verrez pas d&rsquo;échec dans vos test et vous aurez une surprise en prod, ou avant si votre projet a un processus qualité décent.</p>
 <p>Évidement il y a une solution, l&rsquo;idée c&rsquo;est de pouvoir se connecter au <code>mBeanServer</code> local à votre processus (typiquement dans maven 3, l’exécution de vos tests peuvent être forkée).</p>
 <p>Alors j&rsquo;ai essayé de récupérer les informations pour récupérer les informations de la VM qui tourne, mais bon on tombe dans des classes <strong>sun</strong>, j&rsquo;ai préféré ne pas continuer sur ce chemin semé d&rsquo;embûches, sans compter sur la faiblesse de cette approche.</p>
 <p>Bref en relisant les articles de Khanh sur JMX, j&rsquo;ai vu quelque chose d&rsquo;intéressant <code>JMXConnectorServerFactory</code>. Cette classe permet donc de créer un <code>JMXConnectorServer</code> avec l&rsquo;URL qu&rsquo;on lui spécifie et d&rsquo;un <code>MBeanServer</code>. A noter que cette URL doit respecter un certain formalisme tel que la javadoc l&rsquo;indique : <code>service:jmx:*protocol*:*remainder*</code>.</p>
@@ -316,7 +316,7 @@ public void do_not_fail() {
 
 connectorServer.start();
 </code></pre>
-<p>Hop dans le code précédent, on a créé puis démarrer notre <code>JMXConnectorServer</code>. Il n&rsquo;y a plus qu'à se connecter dessus de manière standard :</p>
+<p>Hop dans le code précédent, on a créé puis démarrer notre <code>JMXConnectorServer</code>. Il n&rsquo;y a plus qu&rsquo;à se connecter dessus de manière standard :</p>
 <p>Je vais utiliser <code>connectorServer.getJMXServer()</code> pour récupérer l&rsquo;URL du service, il y a une raison à cela, c&rsquo;est que comme l&rsquo;indique la javadoc, l&rsquo;URL passée pour la création du <code>JMXConnectorServer</code> peut être légèrement modifiée par celui-ci, il faut donc récupérer la nouvelle URL.<!-- raw HTML omitted --></p>
 <pre><code class="language-java">JMXConnector jmxConnetor = JMXConnectorFactory.connect(connectorServer.getJMXServiceUrl());
 MBeanServerConnection connection = jmx.getgetMBeanServerConnection();

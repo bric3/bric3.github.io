@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -416,7 +416,7 @@ public void negativeLookBehind() {
 <p>Observez ici qu&rsquo;il y a deux constructions adjacentes look behind, l&rsquo;une positive l&rsquo;autre négative, ce qui
 illustre encore mieux que ces constructions ne consomment pas la séquence de caractères.</p>
 <p>Observez également que l&rsquo;expression ici est de longueur connue : le <code>\w{4,8}</code> ne prend que de 4 à 8 caractères.
-Il n&rsquo;est pas possible d'écrire un look behind avec un quantificateur où la longueur n&rsquo;est pas connue, la
+Il n&rsquo;est pas possible d&rsquo;écrire un look behind avec un quantificateur où la longueur n&rsquo;est pas connue, la
 <strong>construction suivante est fausse</strong> et provoquera une erreur de syntaxe : <code>(?&lt;!private \w+ )</code>.
 C&rsquo;est une limite technique qui impose aux groupes de look behind d&rsquo;avoir une longueur fixe ou calculable;
 les quantificateurs bornés <code>{n,m}</code>, l&rsquo;option <code>?</code> ou l&rsquo;alternative <code>|</code> tombent dans cette catégorie.
@@ -437,7 +437,7 @@ la même classe. Dans le bout de texte utilisé dans le premier exemple, les nom
 <p>Lorsqu&rsquo;on faisait un <strong>positive look ahead</strong>, le quantificateur <code>\w+</code> va chercher à matcher l’ensemble des caractères
 de cette classe, ce qui veut dire que <code>\w+</code> va <strong>matcher et consommer</strong> les caractères <code>anotherStaticVarLabel</code>.
 Du coup lorsque la construction <code>(?=Label)</code> cherche à matcher <code>Label</code>, elle n&rsquo;y arrive pas. Ce n&rsquo;est pas grave,
-avec le backtracking l&rsquo;expression <code>\w+</code> reviens en arrière jusqu'à ce que <code>(?=Label)</code> matche.</p>
+avec le backtracking l&rsquo;expression <code>\w+</code> reviens en arrière jusqu&rsquo;à ce que <code>(?=Label)</code> matche.</p>
 <p>L&rsquo;histoire est différente avec un <strong>negative look ahead</strong>; une fois que la partie <code>\w+</code> a matché
 <code>anotherStaticVarLabel</code>, le curseur est positionné après le <code>l</code>. Maintenant le moteur teste <code>(?!Label)</code>, qui cherche
 donc à ne pas matcher <code>Label</code>, normal c&rsquo;est une négation. Et là ça marche, cette partie de l&rsquo;expression ne peut plus
@@ -473,7 +473,7 @@ la regex suivante:</p>
 <pre><code>[a-zA-Z]
 </code></pre>
 <p>Maintenant je me dit que je souhaiterais avoir des clients français! Aille! L&rsquo;approche facile mais peu élégante
-est d'écrire une regex dans ce genre :</p>
+est d&rsquo;écrire une regex dans ce genre :</p>
 <pre><code>[a-zA-Zéèêïôàù]
 </code></pre>
 <p>Et encore j&rsquo;oublie les accents sur les majuscules et encore d&rsquo;autre caractères spéciaux, alors qu&rsquo;ils ont pourtant 
@@ -779,7 +779,7 @@ assertTrue(Pattern.matches(&quot;[[^\p{Lu}]&amp;&amp;\p{IsL} ]+&quot;,
 </code></pre>
 <h2 id="petit-retour-sur-les-base-de-java">Petit retour sur les base de Java</h2>
 <p>Java gère nativement Unicode, les <strong>String sont encodées en UTF-16</strong>. Ce qui explique par conséquent que lorsque je
-veux exprimer un caractère sous forme hexadécimale, il faut <strong>l'écrire dans sa forme UTF-16</strong>.</p>
+veux exprimer un caractère sous forme hexadécimale, il faut <strong>l&rsquo;écrire dans sa forme UTF-16</strong>.</p>
 <pre><code class="language-java">@Test
 public void utf16() throws Exception {
     assertTrue(Pattern.matches(&quot;\u00E9&quot;, &quot;é&quot;)); // char UTF-16 compris par le compilateur

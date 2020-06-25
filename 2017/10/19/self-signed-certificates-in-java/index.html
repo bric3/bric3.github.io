@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -337,7 +337,7 @@ des packages <code>sun</code>. Alors que dit cette stacktrace :</p>
 construire la <em>chaine</em> des certificats en suivant la norme <strong>PKIX</strong></li>
 </ul>
 <p>Autrement dit, ce serveur (wiremock) expose un certificat, mais le client n&rsquo;arrive
-pas à remonter la chaine des certificats jusqu'à une <strong>autorité</strong> connue pour le
+pas à remonter la chaine des certificats jusqu&rsquo;à une <strong>autorité</strong> connue pour le
 vérifier. Pourquoi cette exception? Le même code qui se connecte sur <code>https://google.com</code>
 fonctionnera sans cette erreur. Le soucis vient du fait que wiremock utilise un
 <strong>certificat auto-signé</strong>, et ce certificat auto-signé n&rsquo;est pas reconnu comme valide
@@ -366,7 +366,7 @@ et à celui d&rsquo;un tiers de confiance. En général il s&rsquo;agit d&rsquo;
 <blockquote>
 <p>À la connexion sur <a href="https://github.com">https://github.com</a>, en premier il faut vérifier le certificat
 de GitHub, regarder qui a signé ce certificat, vérifier le certificat du signataire
-et ainsi de suite jusqu'à finir sur un certificat d&rsquo;un tiers de confiance, en
+et ainsi de suite jusqu&rsquo;à finir sur un certificat d&rsquo;un tiers de confiance, en
 général ce dernier certificat est celui d&rsquo;une autorité de certification.</p>
 </blockquote>
 <p>Ces certificats appelés certificats <strong>X.509</strong> portent des informations comme le
@@ -490,7 +490,7 @@ afin de prévenir les attaques <em>man-in-the-middle</em>.</p>
 <p>Dans ce cas précis le certificat auto-signé de wiremock ne fournit pas de noms
 alternatifs <code>subjectAltNames</code> qui correspondent soit à <code>localhost</code> soit aux IPs
 locales.</p>
-<p>Il est possible d'écrire un <code>HostnameVerifier</code> qui accepte tous les hostnames :</p>
+<p>Il est possible d&rsquo;écrire un <code>HostnameVerifier</code> qui accepte tous les hostnames :</p>
 <pre><code class="language-java">public static HostnameVerifier allowAllHostNames() {
     return (hostname, sslSession) -&gt; true;
 }
@@ -524,7 +524,7 @@ HttpsURLConnection.setDefaultSSLSocketFactory(trustAllSslContext().getSocketFact
 new URL(&quot;https://localhost:&quot; + wireMock.httpsPort()).openConnection().connect();
 </code></pre>
 <p>Il faut ajouter un <a href="https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/HostnameVerifier.html"><code>HostnameVerifier</code></a>
-qui ne vérifie rien, et de configurer <code>HttpsURLConnection</code> avant d'établir la connexion :</p>
+qui ne vérifie rien, et de configurer <code>HttpsURLConnection</code> avant d&rsquo;établir la connexion :</p>
 <pre><code class="language-java">HostnameVerifier allHostsValid = (hostname, session) -&gt; true;
 HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
 HttpsURLConnection.setDefaultSSLSocketFactory(trustAllSslContext().getSocketFactory());
@@ -622,7 +622,7 @@ du certificat.</p>
  0 s:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
    i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
 </code></pre>
-<p>Ce que ça veut dire c&rsquo;est qu&rsquo;il est possible d'écrire un trust manager capable
+<p>Ce que ça veut dire c&rsquo;est qu&rsquo;il est possible d&rsquo;écrire un trust manager capable
 de vérifier les chaines de certificats usuelles et de détecter les certificats
 auto-signés pour leur appliquer une vérification spécifique.</p>
 <pre><code class="language-java">public static class TrustSelfSignedX509TrustManager implements X509TrustManager {
@@ -719,7 +719,7 @@ Throws:
     IllegalStateException - if the factory is not initialized.
 </code></pre>
 </blockquote>
-<p>Dans les faits jusqu'à aujourd&rsquo;hui PKIX / X509 est le seul type possible pour une
+<p>Dans les faits jusqu&rsquo;à aujourd&rsquo;hui PKIX / X509 est le seul type possible pour une
 connexion TLS. Et la factory de la JVM ne crée qu&rsquo;une seule instance de trust
 manager de type <code>X509Trustmanager</code>.</p>
 <p>Bien que cela fonctionne et que la sécurité ait été raffinée la sécurité est
@@ -742,7 +742,7 @@ de la confiance à ce certificat parce que aucune autorité de certification
 <em>installer</em> ce certificat.</p>
 <p>Avant de l&rsquo;installer toutefois, il faut le récupérer.</p>
 <h3 id="récupération-du-certificat-auto-signé">Récupération du certificat auto-signé</h3>
-<p>À l'établissement de la connexion TLS, plus précisément durant la phase de
+<p>À l&rsquo;établissement de la connexion TLS, plus précisément durant la phase de
 négociation, le serveur envoie ses certificats.</p>
 <p>Il est possible de les récupérer au format <code>PEM</code> avec <code>openssl</code>.</p>
 <pre><code class="language-sh">echo -n | \
@@ -750,7 +750,7 @@ négociation, le serveur envoie ses certificats.</p>
   openssl x509 -outform pem \
   &gt; certificate-host.pem
 </code></pre>
-<p>On indique au client ssl de <code>openssl</code> d'établir la connexion sur <code>host:port</code>
+<p>On indique au client ssl de <code>openssl</code> d&rsquo;établir la connexion sur <code>host:port</code>
 puis le résultat est passé à la commande <code>x509</code> pour décoder le certificat
 (à la norme x509) afin de l&rsquo;extraire sous la forme du format PEM.</p>
 <p>On peut également afficher dans la console une représentation lisible par
@@ -1227,7 +1227,7 @@ EOF
 </code></pre>
 <p>Ce demande génère un fichier CSR (<strong>C</strong>ertificate <strong>S</strong>ign <strong>R</strong>equest) au format PEM.
 Il prend la clé privé du propriétaire des serveurs au format PEM. Les informations qui
-concernent la configuration de l'émission du CSR sont indiquées dans un fichier de config
+concernent la configuration de l&rsquo;émission du CSR sont indiquées dans un fichier de config
 (dans cette commande passée via un stream <code>&lt;(cat &lt;&lt;-MARKER ... MARKER)</code>).</p>
 <p>On y retrouve une section <code>[req]</code>, indiquant le mode non interactif <code>prompt = no</code>,
 le lien vers la section du <strong>D</strong>istinguished <strong>N</strong>ame <code>distinguished_name = dn</code>,

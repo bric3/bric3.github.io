@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -340,13 +340,15 @@ and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps
 </table>
 </div>
 <div class="sect1">
-<h2 id="_lucky_fixing_the_issue"><a class="anchor" href="#_lucky_fixing_the_issue"></a><a class="link" href="#_lucky_fixing_the_issue">Lucky fixing the issue</a></h2>
+<h2 id="_fixing_the_issue_without_understanding"><a class="anchor" href="#_fixing_the_issue_without_understanding"></a><a class="link" href="#_fixing_the_issue_without_understanding">Fixing the issue without understanding</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The application that became problematic runs on a Kubernetes cluster. As mentioned above
 this application worked fine before, and the people who handled the issue at that time were
-not well-prepared, and I certainly wouldn&#8217;t perform much better, so they tried memory limits
-until it worked. <code>5 GiB</code> proved to be the lucky number.</p>
+not well-prepared, and I certainly wouldn&#8217;t be prepared much better, that means memory
+limits until it worked. <code>5 GiB</code> proved to be the lucky number.
+It was the right approach at this moment in this context as it quickly resolved production
+issues.</p>
 </div>
 <div class="listingblock">
 <div class="title">memory limits in the deployment object of the app</div>
@@ -420,25 +422,25 @@ spec:
 </table>
 </div>
 <div class="paragraph">
-<p>This works but this is not satisfactory :</p>
+<p>However, while this number work this is not satisfactory :</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>This number is not even a guess, but a brute forced number.</p>
+<p>This number comes from trial and error.</p>
 </li>
 <li>
-<p>This application worked with a <code>2 GiB</code> of heap, <code>5 GiB</code> looks greedy.</p>
+<p>This application worked with a <code>2 GiB</code> heap, <code>5 GiB</code> looks greedy.</p>
 </li>
 <li>
-<p>Again this number is not understood.</p>
+<p>Why this his number work is not understood.</p>
 </li>
 </ol>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_analyze"><a class="anchor" href="#_analyze"></a><a class="link" href="#_analyze">Analyze</a></h2>
+<h2 id="_diagnosis"><a class="anchor" href="#_diagnosis"></a><a class="link" href="#_diagnosis">Diagnosis</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>In order to understand our requirement, and to avoid guessing numbers until it works,
@@ -985,7 +987,7 @@ already been mapped to physical memory, and if the system is out of physical mem
 </div>
 <div class="paragraph">
 <p>At this time the focus is to see what are the memory mapped files with the JVM. Those can be either
-read from or written to, we need to look for both the <code>r</code> or <code>w</code> or neither, also while quite unlikely
+read from or written to, we need to look for both the <code>r</code> or <code>w</code> or neither. Also, while quite unlikely
 with Java let&#8217;s not restrict on the <em>executable</em> mapping, so the only thing we could be restricting to
 is the shared mapping <code>s</code> (memory mapped files are shared because the OS may want to reuse the afferent
 memory pages for other processes) :</p>
@@ -1013,7 +1015,7 @@ memory pages for other processes) :</p>
 </div>
 <div class="paragraph">
 <p><em>As I was a bit unfamiliar with <code>pmap</code>, reading <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">this process memory blog</a>
-helped me with the above command.</em></p>
+helped me with this command.</em></p>
 </div>
 <div class="paragraph">
 <p>Wrapping this information from NMT and memory mapped files leaves us with the
@@ -1071,6 +1073,10 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
 <td class="tableblock halign-left valign-top"><p class="tableblock">267034</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Total accounted by NMT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5380869</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Mapped files</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">36060 + 4 + 4 + 8 + 4 + 4 + 12 + 8 + 4 + 12 + 28</p></td>
 </tr>
@@ -1090,48 +1096,22 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
 <tfoot>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5242880 KiB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5417017 KiB</p></td>
 </tr>
 </tfoot>
 </table>
 <div class="paragraph">
-<p><code>5186278 KiB</code> is what this container is actually using, so way over the RSS (<code>4701120 KiB</code>)
-but also over the <code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit. Yet this pod is healthy and far from
+<p><code>5417017 KiB</code> is what this container is supposedly actually using, but that&#8217;s way over the RSS (<code>4701120 KiB</code>)
+and, also over the <code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit. Yet this pod is healthy and far from
 the thresholds to be oom killed.</p>
 </div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
+<div class="sect4">
+<h5 id="_rss_and_expected_memory_dont_match"><a class="anchor" href="#_rss_and_expected_memory_dont_match"></a><a class="link" href="#_rss_and_expected_memory_dont_match">RSS and expected memory don&#8217;t match</a></h5>
 <div class="paragraph">
-<p>You can use this command to extract all relevant from the summary
-in a simple addition</p>
+<p>First let&#8217;s state a few considerations to understand :</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">echo $(($(jcmd $(pidof java) VM.native_memory \
-  | tee /dev/tty \
-  | grep -P "^-.*committed=" \
-  | grep -o -P "(?&lt;=committed=)[0-9]+(?=KB)" \
-  | awk 'BEGIN { ORS=""; print "(" }; {print p$0; p=" + "} END { print ")\n"}' \
-  | tee /dev/tty )))</code></pre>
-</div>
-</div>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p><strong>So what I am missing here ?</strong></p>
-</div>
-<div class="paragraph">
-<p>There a few considerations to understand :</p>
-</div>
-<div class="ulist">
-<ul>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
 <p>NMT shows <em>reserved</em> and <em>committed</em> values on each areas,</p>
 <table class="tableblock frame-all grid-all fit-content stretch">
@@ -1142,12 +1122,12 @@ in a simple addition</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>reserved</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">this is the size that the OS guarantees to be available (but the
-JVM didn&#8217;t tell the OS to allocate this memory)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This is the size that the JVM reserved, the OS guarantees these adresses to be
+available, but the JVM isn&#8217;t yet using the whole reserved space.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>committed</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">this size indicate the memory that the JVM allocated on the OS</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This size indicate the memory that the JVM actually uses from the reserved space.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1155,8 +1135,9 @@ JVM didn&#8217;t tell the OS to allocate this memory)</p></td>
 <p>Each of these memory zones are managed differently: <code>GC</code>, <code>Compiler</code> have the
 same committed and reserved memory values while other zones have the ability to
 shrink or grow for example <code>thread stacks</code> zone reports
-<code>85455 KiB</code> but could take up to <code>696395 KiB</code> if necessary, and theoretically
-same as the heap.</p>
+<code>85455 KiB</code> but could be reduced to <code>696395 KiB</code> if necessary, the heap has theoretically the
+possibility to shrink as well, however I never saw that in practice, maybe in JDK 12 with
+<a href="https://openjdk.java.net/jeps/346">JEP-346</a>.</p>
 </div>
 </li>
 <li>
@@ -1167,7 +1148,7 @@ case the <code>Heap</code> zone in particular seems to benefit from this behavio
 allocated <code>4456448 KiB</code>, but the actual RAM <em>resident set size</em> usage of this memory
 zone seems at this time is <code>3128252 KiB</code>.</p>
 </li>
-</ul>
+</ol>
 </div>
 <div class="paragraph">
 <p>Where to look for this number? While it&#8217;s easy to get the RSS of a process, to understand
@@ -1263,8 +1244,9 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 </div>
 </div>
 </div>
+</div>
 <div class="sect1">
-<h2 id="_going_back_to_choose_a_better_value_for_the_ram_percentage"><a class="anchor" href="#_going_back_to_choose_a_better_value_for_the_ram_percentage"></a><a class="link" href="#_going_back_to_choose_a_better_value_for_the_ram_percentage">Going back to choose a better value for the RAM percentage</a></h2>
+<h2 id="_choosing_a_better_value_for_the_ram_percentage"><a class="anchor" href="#_choosing_a_better_value_for_the_ram_percentage"></a><a class="link" href="#_choosing_a_better_value_for_the_ram_percentage">Choosing a better value for the RAM percentage</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>From the above, it&#8217;s now possible with NMT especially and with <code>pmap</code> to
@@ -1277,7 +1259,7 @@ RAM percentage setting for this application ?"</p>
 </div>
 <div class="literalblock">
 <div class="content">
-<pre>(total) 5242880 - (heap) 4456448 = 786432 KiB</pre>
+<pre>(total) 5417017 - (heap) 4456448 = 960569 KiB</pre>
 </div>
 </div>
 <table class="tableblock frame-all grid-all fit-content stretch">
@@ -1290,48 +1272,61 @@ RAM percentage setting for this application ?"</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Non heap</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5242880 - 4456448 = 786432</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">~14 %</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5417017 - 4456448 = 960569</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~17 %</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">~86 %</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~83 %</p></td>
 </tr>
 </tbody>
 <tfoot>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5186278</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5417017</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">100 %</p></td>
 </tr>
 </tfoot>
 </table>
 <div class="paragraph">
-<p><strong>This means the application needs around <code>790 MiB</code>, plus the heap to run.</strong></p>
+<p><strong>This means, at that time the application needed around <code>960 MiB</code>, plus the heap to run.</strong></p>
 </div>
 <div class="paragraph">
-<p>From the flags seen above, the JVM set the heap maximum size memory to <code>4 563 402 752</code> Bytes,
-this value was computed from this flag <code>-XX:MaxRAMPercentage=85.000000</code>, and this percentage
-is somehow a lucky guess that worked for the <code>5 GiB</code> deployment memory limit.
-But this actual percentage is in fact <em>wrong</em>, if the JVM needed all the memory within the max
-heap plus bigger stack traces then the container/pod would have been <em>oom killed</em>. Also, it is
-necessary to give some free space in the container
-to be able to perform serviceability tasks, like profiling, heap dump, etc.</p>
+<p>The JVM was run this flag <code>-XX:MaxRAMPercentage=85.000000</code> which sets the heap maximum size
+to <code>4 563 402 752</code> Bytes or <code>4456448 KiB</code>, the value of this percentage is a lucky guess that
+worked for the <code>5 GiB</code> deployment memory limit, because the application never use the whole
+heap memory and as such it never used all the pages.</p>
 </div>
 <div class="paragraph">
-<p>For a <code>5 GiB</code> limit it may be good to give around 20% for all of these non-heap, plus system space
-for this particular workload (e.g. if the application requires heavy filesystem usage, then
-it would be a different number to make room for the filesystem cache).</p>
+<p>This percentage is however <strong>wrong</strong>, if the JVM needed all the memory within the max
+heap plus higher thread usage be it more threads or deeper stack traces then the
+container/pod would have been <em>oom killed</em>. Also, it is necessary to give some free space
+in the container to be able to perform serviceability tasks, like profiling, etc.</p>
 </div>
 <div class="paragraph">
-<p>So the problem would be solved with the following value, for a <code>5 GiB</code> memory limit :</p>
+<p>For a <code>5 GiB</code> memory limit it may be good to give a minimum of 20% space, my experience in this
+scenario is that 20% is too tight to handle surges. Supposing we&#8217;d like an additional <code>400 MiB</code>
+over <code>960 569 KiB</code> will give a percentage of 26%.</p>
+</div>
+<div class="paragraph">
+<p>Of course this number has to be adapted to the workload, e.g. if the application allocate a
+lot more <code>DirectByteBuffer</code>s or if it requires heavy filesystem usage, then it would be a
+different number to account the room needed for the filesystem cache.</p>
+</div>
+<div class="paragraph">
+<p>In our case the starting point for a <code>5 GiB</code> memory limit is 26% :</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-XX:InitialRAMPercentage=80.0 <i class="conum" data-value="1"></i><b>(1)</b>
--XX:MaxRAMPercentage=80.0 <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:InitialRAMPercentage=74.0 <i class="conum" data-value="1"></i><b>(1)</b>
+-XX:MaxRAMPercentage=74.0 <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>But if the cgroup limit is decreased, for our application it meant the non heap usage will take
+a more significant part. For example on this same application we saw <code>1.3 GiB</code> of non-heap memory
+for a heap sized at <code>3 GiB</code>.</p>
 </div>
 <div class="paragraph">
 <p>For a quick win let&#8217;s adapt the application image.</p>
@@ -1342,15 +1337,15 @@ it would be a different number to make room for the filesystem cache).</p>
 <h2 id="_make_the_docker_image_memory_settings_tweakable_per_environment"><a class="anchor" href="#_make_the_docker_image_memory_settings_tweakable_per_environment"></a><a class="link" href="#_make_the_docker_image_memory_settings_tweakable_per_environment">Make the docker image memory settings tweakable per environment</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>As seen at the beginning of this post, RAM settings are part of the command declaration, this
-is not suitable as seen above. In addition, the deployment requirements / limits are likely to
-differ depending on the cluster / environment. One good reason would be to decrease the money spending
-on your cloud provider for non-production clusters, like staging, pre-production, etc.
-It will be useful to enable flexibility one setting the application for any given environment.</p>
+<p>As seen at the beginning of this post, RAM settings are part of the command declaration,
+first these arguments turned out to be incorrect but they are more difficult to change or tweak.
+In addition, the deployment requirements / limits are likely to
+differ depending on the cluster / environment ; this can happen when you need to decrease the money
+spending on your cloud provider for non-production clusters, like staging, pre-production, etc.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s use <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC"><code>JDK_JAVA_OPTIONS</code></a>
-environment variable to enable flexibility and remove the RAM percentage in the <code>CMD</code> directive.</p>
+<p>Let&#8217;s use <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
+environment variable for more flexibility and remove the RAM percentage in the <code>CMD</code> directive.</p>
 </div>
 <div class="listingblock">
 <div class="title">Application dockerfile</div>
@@ -1396,7 +1391,7 @@ environment variable to enable flexibility and remove the RAM percentage in the 
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Defines the <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-0A40ECEE-AFDF-48CB-AF7C-A33DDE07A8DC"><code>JDK_JAVA_OPTIONS</code></a></td>
+<td>Defines a default empty <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1405,7 +1400,7 @@ environment variable to enable flexibility and remove the RAM percentage in the 
 </table>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s test this locally to play a bit.</p>
+<p>Now let&#8217;s test this locally.</p>
 </div>
 <div class="listingblock">
 <div class="title">Build the container</div>
@@ -1441,8 +1436,10 @@ environment variable to enable flexibility and remove the RAM percentage in the 
 </tr>
 </table>
 </div>
+<div class="sect2">
+<h3 id="_run_the_container_locally_with_the_java_app"><a class="anchor" href="#_run_the_container_locally_with_the_java_app"></a><a class="link" href="#_run_the_container_locally_with_the_java_app">Run the container locally with the Java app</a></h3>
 <div class="paragraph">
-<p>Run the container with the Java app</p>
+<p>In this local test serie, I&#8217;m using 3GB as a memory limit and I chose 70% for the heap percengtage.</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
@@ -1541,22 +1538,16 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 </div>
 <div class="paragraph">
 <p>Notice when there&#8217;s no RAM settings the JVM computed the max heap size at 25%
-of memory constraints <code>3 GiB</code>. And to 80%, <code>2.1 GiB</code>, of the same limit when
+of memory constraints <code>3 GiB</code>. And at 80%, <code>2.1 GiB</code>, of the same limit when
 passing the RAM percentages. Also, the heap values are the only one affected,
 other memory areas default values kept the same values.</p>
+</div>
 </div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_going_further"><a class="anchor" href="#_going_further"></a><a class="link" href="#_going_further">Going further</a></h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>As a reminder this application was set up with 85% max heap when the
-deployment limit was <code>3 GiB</code>, it worked well under 50% of the traffic but failed with full traffic.
-Then this pod memory limit was bumped to <code>5 GiB</code> and the pod wasn&#8217;t anymore oomkilled.
-How this <em>limit</em> was found is a lucky guess, given the RAM percentages were set in the <code>CMD</code>
-directive of the Dockerfile.</p>
-</div>
 <div class="paragraph">
 <p>As identified above there are two, maybe three memory areas whose usage may explain the surge in memory before
 the memory limit was increased. I don&#8217;t have anything to back that idea except how I expect these memory areas

@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -316,7 +316,7 @@
   
   
   <div class="post md">
-    <p>Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d'équipe. L&rsquo;organisation dans la boite favorise ou freine cette opportunité de résoudre un problème à travers les différentes équipe impliquées. Dans ce billet je vous fait un petit retour d&rsquo;expérience sur un problème de lenteur sur une application web genre &ldquo;<em>CRUD</em>&rdquo; sur une JVM IBM.</p>
+    <p>Sujet intéressant, les problèmes en production sont quand même pour beaucoup des casse-têtes. Effectivement c&rsquo;est bien vrai, les problèmes en production sont difficiles à résoudre. Il y a bien une partie technique souvent absconse, mais ce n&rsquo;est pas un travail en solitaire, c&rsquo;est un travail d&rsquo;équipe. L&rsquo;organisation dans la boite favorise ou freine cette opportunité de résoudre un problème à travers les différentes équipe impliquées. Dans ce billet je vous fait un petit retour d&rsquo;expérience sur un problème de lenteur sur une application web genre &ldquo;<em>CRUD</em>&rdquo; sur une JVM IBM.</p>
 <h1 id="le-contexte">Le contexte</h1>
 <p><em>&ldquo;The context is King&rdquo;</em> disait Andy Hunt dans son livre Pragmatic Learning and Thinking. Alors brève introduction au contexte du problème.</p>
 <ul>
@@ -328,17 +328,17 @@
 </ul>
 <h1 id="le-problème">Le problème</h1>
 <p>Les utilisateurs ressentent des lenteurs, voire des freezes. L&rsquo;outil INSC identifie ces threads en <em>Stalled</em>, et permet de donner des métriques sur les temps d&rsquo;attentes et de réponses de certains éléments du systèmes, les ingénieurs systèmes utilisent abondamment cet outils. Bref, les temps de réponses vont de quelques dizaines de secondes à plusieurs minutes.</p>
-<p>Il y a définitivement un problème. Forcément quand on a un super outils comme INSC qui a plein de métriques, on se balade dedans pour essayer de trouver le problème. Malheureusement <strong>un seul</strong> thread dump pour voir ce qu&rsquo;il se passe dans les threads ne suffit pas. Le thread dump révèle que la plupart des threads sont à l'état &ldquo;<strong>Waiting On Condition</strong>&quot;. Le super outils INSC indique un usage de la heap, il indique aussi que certaines requêtes SQL sont très très longues, il indique les sessions web ouvertes une petite trentaine, pas de quoi fouetter un chat. Et pourtant il y aurait du CPU assez fortement utilisé, vu depuis Introscope.</p>
+<p>Il y a définitivement un problème. Forcément quand on a un super outils comme INSC qui a plein de métriques, on se balade dedans pour essayer de trouver le problème. Malheureusement <strong>un seul</strong> thread dump pour voir ce qu&rsquo;il se passe dans les threads ne suffit pas. Le thread dump révèle que la plupart des threads sont à l&rsquo;état &ldquo;<strong>Waiting On Condition</strong>&rdquo;. Le super outils INSC indique un usage de la heap, il indique aussi que certaines requêtes SQL sont très très longues, il indique les sessions web ouvertes une petite trentaine, pas de quoi fouetter un chat. Et pourtant il y aurait du CPU assez fortement utilisé, vu depuis Introscope.</p>
 <p>Mais voilà l&rsquo;analyse tourne un peu autour du pot. Pourquoi ces threads sont-elles bloquées? Pourquoi les requêtes SQL sont-elles aussi longues?!</p>
 <h1 id="le-problème-dans-lanalyse">Le problème dans l&rsquo;analyse</h1>
 <p>Récapitulons, dans cette situation les métriques de Introscope ont été regardées, et on a un seul thread dump.</p>
 <p>Introscope malgré ces métriques ne dit pas ou est le problème, il ne dit même pas quel est le type de problème. Les métriques affichées sont pour certaines intéressantes, je pense à l&rsquo;identification des threads figées, les temps de réponses de certains composants, la consommation mémoire, et l&rsquo;utilisation du CPU.</p>
 <p>Mais pourquoi cet outils n&rsquo;a pas aidé à trouver le problème, parce qu&rsquo;il ne mesure pas les bonnes choses. Et il faut en particulier comprendre que quand un système fonctionne mal il y a un effet de corrélation qui s&rsquo;applique sur un ensemble de variable. Et ce n&rsquo;est pas avec Introscope qu&rsquo;on va pouvoir identifier la cause du ralentissement généralisé, ni trouver** une relation de cause-à-effet**.</p>
 <blockquote>
-<p>Pour résoudre un problème, il faut s'équiper avec les bons outils! Il faut aussi regarder les bonnes données, au bon endroit, et au bon moment!</p>
+<p>Pour résoudre un problème, il faut s&rsquo;équiper avec les bons outils! Il faut aussi regarder les bonnes données, au bon endroit, et au bon moment!</p>
 </blockquote>
 <h1 id="a-la-poursuite-du-vrai-problème-partie-1">A la poursuite du vrai problème (partie 1)</h1>
-<p>Bon hop, déjà pour commencer j'écarte pour le moment Introscope. Et j&rsquo;ai un thread dump &hellip; de la JVM de IBM, il va falloir essayer les outils IBM qui permettent de traiter ces informations. Je vais me satisfaire ça pour l&rsquo;instant.</p>
+<p>Bon hop, déjà pour commencer j&rsquo;écarte pour le moment Introscope. Et j&rsquo;ai un thread dump &hellip; de la JVM de IBM, il va falloir essayer les outils IBM qui permettent de traiter ces informations. Je vais me satisfaire ça pour l&rsquo;instant.</p>
 <h2 id="lanalyse-du-thread-dump">L&rsquo;analyse du thread dump</h2>
 <h3 id="avec--ibm-thread-and-monitor-dump-analyzer-for-java">Avec : IBM Thread and Monitor Dump Analyzer for Java</h3>
 <p>Évidement le format ne correspond pas à celui de Sun, heureusement IBM nous fournit des outils pour analyser ces informations. Direction :  <a href="http://www.alphaworks.ibm.com/tech/jca">http://www.alphaworks.ibm.com/tech/jca</a>.</p>
@@ -461,7 +461,7 @@ Allocated Java heap size: 402 653 184 bytes
 </div>
 
 
-<p>Ok, c'était un tableau intéressant, on voit clairement que dans une JVM il n&rsquo;y a pas que de la Heap (pour ceux qui ne le savait pas), en effet on voit donc les sections suivantes (les passages surlignés viennent de moi, malheureusement l&rsquo;outil d&rsquo;IBM ne nous aide pas là dessus) :</p>
+<p>Ok, c&rsquo;était un tableau intéressant, on voit clairement que dans une JVM il n&rsquo;y a pas que de la Heap (pour ceux qui ne le savait pas), en effet on voit donc les sections suivantes (les passages surlignés viennent de moi, malheureusement l&rsquo;outil d&rsquo;IBM ne nous aide pas là dessus) :</p>
 <ul>
 <li>la mémoire interne de la JVM (les objets internes, les structure de thread, et autres objets natifs) : bonne utilisation</li>
 <li>les objets, en une seule section de mémoire, c&rsquo;est la Heap, et là ben effectivement elle utilisée à 100%.</li>
@@ -600,7 +600,7 @@ Allocated Java heap size: 402 653 184 bytes
 <h3 id="avec--pattern-modeling-and-analysis-tool-for-java-garbage-collector">Avec : Pattern Modeling and Analysis Tool for Java Garbage Collector</h3>
 <p>Un petit graphique pour regarder ce qu&rsquo;il se passe.</p>
 <p><img src="/assets/gclog.png" alt="gclog"></p>
-<p>En rouge l&rsquo;usage de la Heap, en bleu le marquage des objets à virer, et en vert les temps de compression de la mémoire. Effectivement le GC à l&rsquo;air de bien s&rsquo;amuser dans la mémoire, et d'être appelé assez souvent.</p>
+<p>En rouge l&rsquo;usage de la Heap, en bleu le marquage des objets à virer, et en vert les temps de compression de la mémoire. Effectivement le GC à l&rsquo;air de bien s&rsquo;amuser dans la mémoire, et d&rsquo;être appelé assez souvent.</p>
 <p>Bon celà dit je ne suis pas convaincu par l&rsquo;outil IBM, il manque des informations que j&rsquo;avais vu en texte dans le log GC ; un évènement GC à  cette tête là :</p>
 <pre><code class="language-xml">&lt;af type=&quot;tenured&quot; id=&quot;388571&quot; timestamp=&quot;Jun 21 03:01:11 2010&quot; intervalms=&quot;228.858&quot;&gt;
   &lt;minimum requested_bytes=&quot;168&quot; /&gt;
@@ -625,9 +625,9 @@ Allocated Java heap size: 402 653 184 bytes
   &lt;time totalms=&quot;417.431&quot; /&gt;
 &lt;/af&gt;
 </code></pre>
-<p>Vu l&rsquo;allure du log, on a pas l&rsquo;impression d'être sur un GC de type generationnel, mais je ne suis pas encore sûr, c&rsquo;est une JVM IBM. Bon revenons à nos moutons:</p>
+<p>Vu l&rsquo;allure du log, on a pas l&rsquo;impression d&rsquo;être sur un GC de type generationnel, mais je ne suis pas encore sûr, c&rsquo;est une JVM IBM. Bon revenons à nos moutons:</p>
 <ul>
-<li>il y a eu 230 ms d'écoulées avant le dernier GC.</li>
+<li>il y a eu 230 ms d&rsquo;écoulées avant le dernier GC.</li>
 <li>la tenured indique directement qu&rsquo;il n&rsquo;y a plus de place dans la mémoire,</li>
 <li>on voit que le GC est de type global, ce qui veut dire que c&rsquo;est toute la zone mémoire qui est affectée par le GC, c&rsquo;est long</li>
 <li>la tenured libère environ 200 MB, soit 51%!</li>
@@ -793,10 +793,10 @@ wasadmin 393262 401580         - A 188  60 203        *   2020
 <p>Bingo, il y a une race condition dans une des boucles, et celle-ci part en boucle infinie. Ceci explique la très forte utilisation de la mémoire et les lenteurs remarquées.</p>
 <h1 id="bilan">Bilan</h1>
 <p>Un problème peut en cacher un autre, ou plus exactement un problème peut en provoquer d&rsquo;autres. Il faut juste avoir des moyens de mesurer les changements qu&rsquo;on apporte si on veut isoler / écarter des catégorie de problèmes.</p>
-<p>L&rsquo;outillage on l&rsquo;a vu est essentiel, Introscope apporte des choses, mais il ne permet pas tout. Qui plus est, on ne sait pas précisément ce qu&rsquo;il mesure et ou! Les temps de réponses SQL, n'étaient par exemple pas crédible, car Introscope mesurait également les GC.</p>
+<p>L&rsquo;outillage on l&rsquo;a vu est essentiel, Introscope apporte des choses, mais il ne permet pas tout. Qui plus est, on ne sait pas précisément ce qu&rsquo;il mesure et ou! Les temps de réponses SQL, n&rsquo;étaient par exemple pas crédible, car Introscope mesurait également les GC.</p>
 <p>Dans notre cas ici, j&rsquo;aurais aussi bien aimé avoir une JVM IBM sur mon poste histoire de jouer plus facilement avec. C&rsquo;est dommage que IBM ne fournisse pas gratuitement sa JVM au moins pour le développement.</p>
 <p>Accessoirement ce serait bien un jour d&rsquo;avoir des format de log normalisé entre les JVM, ainsi que certaines des options afférentes.</p>
-<p>Finalement ce qui a pris le plus de temps était d&rsquo;obtenir les bonnes données, pour prendre les meilleurs choix. L&rsquo;impression de travailler les mains dans le noir n'était pas l&rsquo;idéal pour résoudre le problème, mais c&rsquo;est au moins formateur. Je peux dire que j&rsquo;ai bien apprécié certains retours et recommandations des  développeurs. L'équipe système étant surchargée n&rsquo;a pas pu nous donné un support optimal, et cette carence s&rsquo;est ressentie notamment pour avoir les données à temps. Mais leur vu du problème a permis d&rsquo;orienter la recherche sur les parties qui pouvait poser problème.</p>
+<p>Finalement ce qui a pris le plus de temps était d&rsquo;obtenir les bonnes données, pour prendre les meilleurs choix. L&rsquo;impression de travailler les mains dans le noir n&rsquo;était pas l&rsquo;idéal pour résoudre le problème, mais c&rsquo;est au moins formateur. Je peux dire que j&rsquo;ai bien apprécié certains retours et recommandations des  développeurs. L&rsquo;équipe système étant surchargée n&rsquo;a pas pu nous donné un support optimal, et cette carence s&rsquo;est ressentie notamment pour avoir les données à temps. Mais leur vu du problème a permis d&rsquo;orienter la recherche sur les parties qui pouvait poser problème.</p>
 <h1 id="références--documentation">Références &amp; Documentation</h1>
 <ul>
 <li><a href="http://websphere.sys-con.com/node/921279?page=0,1">http://websphere.sys-con.com/node/921279?page=0,1</a></li>
@@ -837,7 +837,7 @@ wasadmin 393262 401580         - A 188  60 203        *   2020
         
         
         this.page.identifier = 'https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/';
-        this.page.title = 'Lenteur d\x27une appli Web sur une JVM IBM';
+        this.page.title = 'Lenteur d\u0027une appli Web sur une JVM IBM';
         this.page.url = 'https://blog.arkey.fr/2010/08/09/lenteur-dune-appli-web-sur-une-jvm-ibm/';
     };
     (function() {

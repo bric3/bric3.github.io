@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -403,7 +403,7 @@ Enfin notez quand même l&rsquo;utilisation de l&rsquo;appel <code>matches()</co
 L&rsquo;exemple qui suit montre un <code>Pattern</code> qui compile, mais qui ne fonctionnera pas:</p>
 <pre><code class="language-java">assertTrue(Pattern.compile(&quot;(?:[0-9]+) \\1&quot;).matcher(&quot;123 123&quot;).matches()); // fail
 </code></pre>
-<p>Le simple fait que ce pattern compile m'étonne, j&rsquo;aurais plutôt choisi une approche <em>fail-fast</em> dans ce cas, c&rsquo;est peut-être un oubli.</p>
+<p>Le simple fait que ce pattern compile m&rsquo;étonne, j&rsquo;aurais plutôt choisi une approche <em>fail-fast</em> dans ce cas, c&rsquo;est peut-être un oubli.</p>
 <p>Ce genre de construction est assez pratique si on veut vérifier un élément d&rsquo;un langage comme le XML. (Pas de le parser !)</p>
 <pre><code class="language-java">assertTrue(Pattern.compile(&quot;&lt;([a-z]+)&gt;.*&lt;/\\1&gt;&quot;).matcher(&quot;**dude!**&quot;).matches()); // fail
 assertTrue(Pattern.compile(&quot;&lt;([a-z]+)[^&gt;]*&gt;.*&lt;/\\1&gt;&quot;).matcher(&quot;&lt;strong style=\&quot;\&quot;&gt;dude!&lt;/strong&gt;&quot;).matches()); // ok
@@ -430,7 +430,7 @@ voilà ce qu&rsquo;il se passe :</p>
 <p>il n&rsquo;y arrive pas donc il <em>reviens en arrière</em> pour tenter d&rsquo;autres combinaisons qui marche</p>
 </li>
 <li>
-<p>Le moteur essaie jusqu'à trouver cette combinaison :</p>
+<p>Le moteur essaie jusqu&rsquo;à trouver cette combinaison :</p>
 <p>le <em>groupe 1</em> a pour valeur <code>s</code>, ce qui permet à la backreference de matcher.
 Le reste du texte <code>trong</code> est alors matchée par cette partie de l&rsquo;expression <code>[^&gt;]*</code>.</p>
 </li>
@@ -440,7 +440,7 @@ Le reste du texte <code>trong</code> est alors matchée par cette partie de l&rs
                    .matcher(&quot;&lt;strong&gt;dude!&lt;/s&gt;&quot;)
                    .matches());
 </code></pre>
-<p>De cette façon le <em>groupe 1</em> <code>([a-z]+\b)</code> est littéralement obligé d'être suivi par autre chose qu&rsquo;un caractère
+<p>De cette façon le <em>groupe 1</em> <code>([a-z]+\b)</code> est littéralement obligé d&rsquo;être suivi par autre chose qu&rsquo;un caractère
 de mot (classe <code>\w</code>). Avec cette expression la balise fermante ne peut plus être matché par la backreference.</p>
 <p>Utilisation sympa des backreferences est de chercher dans un texte les mots répétés dans un texte :</p>
 <pre><code class="language-java">assertTrue(Pattern.compile(&quot;\\b(\\w+)\\s+\\1\\b&quot;).matcher(&quot;the the is repeated&quot;).find());
@@ -519,10 +519,10 @@ n&rsquo;a pas déjà été validée.</p>
 assertEquals(&quot;abc1abc2&quot;, regexFirstMatch(&quot;abc1abc2abc3&quot;, &quot;(?:abc\\d){2,3}?&quot;)); // lazyness
 assertEquals(&quot;didnt found match&quot;, regexFirstMatch(&quot;abc1&quot;, &quot;(?:abc\\d){2,3}?&quot;));
 </code></pre>
-<p>À la ligne 2, le quantificateur paresseux est obligé d'être exécuté une fois au moins pour matcher, mais il en fait
+<p>À la ligne 2, le quantificateur paresseux est obligé d&rsquo;être exécuté une fois au moins pour matcher, mais il en fait
 le moins possible.</p>
 <h2 id="les-quantificateurs-possessifs-possessive-quantifiers">Les quantificateurs possessifs (possessive quantifiers)</h2>
-<p>Les quantificateurs gourmands et paresseux, utilisent intelligement la capacité de backtracking afin d'évaluer
+<p>Les quantificateurs gourmands et paresseux, utilisent intelligement la capacité de backtracking afin d&rsquo;évaluer
 les permutations possible qui permettent de valider l&rsquo;expression régulière suivant leur stratégies respectives
 (<em>en faire le plus</em> ou <em>en faire le moins</em>). Cette propriété permet d&rsquo;avoir des expressions assez souples pour
 matcher un grand nombre de séquence de caractère.</p>
@@ -601,7 +601,7 @@ la construction <code>.*</code> devrait matcher, mais des lettres auraient pu fa
 ressemble à la fois au pattern <em>Chain of Responsability</em> et au pattern <em>Composite</em> (pour les groupes ou pour les
 quantificateurs notamment). Le moteur ajoute ses propres nœud au début et à la fin de l&rsquo;arbre pour travailler avec
 cette représentation.</p>
-<p>Dans le diagramme suivant chaque cadre correspond à l'état de la consommation de la séquence de caractère et à
+<p>Dans le diagramme suivant chaque cadre correspond à l&rsquo;état de la consommation de la séquence de caractère et à
 celui de l&rsquo;expression régulière ainsi découpée en nœuds.</p>
 <p><img src="/assets/backtracking.png" alt="backtracking"></p>
 <p>On comprend immédiatement le problèmes potentiels sur des expressions qui utilisent énormément les quantificateurs non-possessifs :</p>
@@ -612,7 +612,7 @@ celui de l&rsquo;expression régulière ainsi découpée en nœuds.</p>
 <p>La solution c&rsquo;est de faire attention quand on construit une expression rationnelle. En particulier si elle est critique,
 l&rsquo;idée serait de la benchmarquée, mais bon il faut pas tomber non plus dans ce qu&rsquo;on appelle <strong>Premature Optimisation</strong>.</p>
 <h1 id="bilan">Bilan</h1>
-<p>Le backtracking c&rsquo;est bien ; c&rsquo;est ce qui permet à la regex d'être souple, mais clairement il faut faire attention à
+<p>Le backtracking c&rsquo;est bien ; c&rsquo;est ce qui permet à la regex d&rsquo;être souple, mais clairement il faut faire attention à
 ce mécanisme. Il sera intéressant du coup d&rsquo;utiliser des groupes non-capturants et indépendants si l&rsquo;opportunité le permet.</p>
 <p>Cette série s&rsquo;achèvera par une troisième et dernière partie ou j&rsquo;aborderaie les possibilité de travailler avec Unicode,
 et surtout comment indiquer dans une regex qu&rsquo;on ne veut pas d&rsquo;une construction complète.</p>

@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -318,7 +318,7 @@ qui ne permettent pas de faire des microbenchmarks correctes.</strong></p>
 <li>Guava 13.0 réduit la consommation en mémoire de plusieurs structures [<a href="http://code.google.com/p/guava-libraries/wiki/Release13">source</a>]</li>
 <li>J&rsquo;ai passé des tests d&rsquo;algorithmie [<a href="#">source</a>]</li>
 </ul>
-<p>Premier point, on sait que Google est attentif sur les performances de ses librairies. Sur le deuxième point, ben j&rsquo;ai finalement loupé un des exercices &ldquo;timeboxés&rdquo;, je n&rsquo;ai pas eu le temps de le finir a temps, du coup le code soumis était 100 % foireux. Mais bon ce n&rsquo;est pas le sujet du billet, ce qui est important c&rsquo;est que j&rsquo;ai fini après cet algo, puis je me suis rendu compte que celui-ci n'était pas optimal, il ressemblait à un algo en <del>O(n²)</del> O(n log n) (<a href="#comment-834"><em>Merci Sam pour cette correction</em></a>). Du coup j&rsquo;ai repris le papier et le crayon, et je me suis rendu compte que je pouvais utiliser une technique similaire à celle que j&rsquo;ai utilisé sur le premier algo du test (comment n&rsquo;ai-je pas pu y penser à ce moment d&rsquo;ailleurs ?).</p>
+<p>Premier point, on sait que Google est attentif sur les performances de ses librairies. Sur le deuxième point, ben j&rsquo;ai finalement loupé un des exercices &ldquo;timeboxés&rdquo;, je n&rsquo;ai pas eu le temps de le finir a temps, du coup le code soumis était 100 % foireux. Mais bon ce n&rsquo;est pas le sujet du billet, ce qui est important c&rsquo;est que j&rsquo;ai fini après cet algo, puis je me suis rendu compte que celui-ci n&rsquo;était pas optimal, il ressemblait à un algo en <del>O(n²)</del> O(n log n) (<a href="#comment-834"><em>Merci Sam pour cette correction</em></a>). Du coup j&rsquo;ai repris le papier et le crayon, et je me suis rendu compte que je pouvais utiliser une technique similaire à celle que j&rsquo;ai utilisé sur le premier algo du test (comment n&rsquo;ai-je pas pu y penser à ce moment d&rsquo;ailleurs ?).</p>
 <p>De mémoire l&rsquo;algo porte grosso modo sur le comptage de paires d&rsquo;entier distante d&rsquo;un nombre K dans un tableau A.</p>
 <p>Ma première version :</p>
 <pre><code class="language-java">class PairCounts_V1 {
@@ -400,11 +400,11 @@ public int countPairsWithKDistance(int K, int[] A) {
     &lt;version&gt;0.5-rc1&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p>Pour écrire un benchmark caliper il suffit d'étendre la classe <code>[@Param](http://caliper.googlecode.com/svn/static/api/reference/com/google/caliper/Param.html)</code>.</p>
+<p>Pour écrire un benchmark caliper il suffit d&rsquo;étendre la classe <code>[@Param](http://caliper.googlecode.com/svn/static/api/reference/com/google/caliper/Param.html)</code>.</p>
 <p>Enfin comme Caliper lance une nouvelle VM, fait quelques travaux pour chauffer la VM (warmup), etc, il faut pour l&rsquo;instant lancer ces tests avec une commande manuelle :</p>
 <pre><code class="language-sh">java -classpath $THE_CLASSPATH com.google.caliper.Runner PairCountsBenchmark
 </code></pre>
-<p>La ligne de commande pourra varier suivant les besoins ; on peut notamment se rendre sur leur site pour y voir les <a href="http://code.google.com/p/caliper/source/browse/caliper/src/main/java/com/google/caliper/Runner.java?name=v0.5-rc1">code</a>) à passer au <code>Runner</code> Caliper. Malgré la jeunesse du framework sa documentation parfois spartiate, le projet a de réelles forces et s&rsquo;avère de plus en plus populaire dans le domaine. Bien que le développement de ce projet avance lentement, ce projet est aujourd&rsquo;hui maintenu par des membres de l'équipe Guava.</p>
+<p>La ligne de commande pourra varier suivant les besoins ; on peut notamment se rendre sur leur site pour y voir les <a href="http://code.google.com/p/caliper/source/browse/caliper/src/main/java/com/google/caliper/Runner.java?name=v0.5-rc1">code</a>) à passer au <code>Runner</code> Caliper. Malgré la jeunesse du framework sa documentation parfois spartiate, le projet a de réelles forces et s&rsquo;avère de plus en plus populaire dans le domaine. Bien que le développement de ce projet avance lentement, ce projet est aujourd&rsquo;hui maintenu par des membres de l&rsquo;équipe Guava.</p>
 <p>Donc le benchmark que j&rsquo;ai mis en place :</p>
 <pre><code class="language-java">public class PairCountsBenchmark extends SimpleBenchmark {
 
@@ -637,11 +637,11 @@ trial: 0
 Process finished with exit code 0
 </code></pre>
 <p>Donc en fait Caliper créé une matrice multi-dimensionnelle des différents paramètres et pour chaque coordonnée dans cette matrice lance le test, bref un Scénario.</p>
-<p>On voit dans les mesures faites par Caliper le temps pris par chaque méthode, l'écart type, et le nombre d&rsquo;essai. Enfin dans une deuxième partie Caliper donne un synopsis des différents run et en particulier une colonne très intéressante &lsquo;<strong>linear time</strong>'.</p>
-<p>En observant le temps pris en fonction du nombre d'éléments pour chaque algo, on s&rsquo;aperçoit que le temps pris par le premier algo augmente en effet par rapport au deuxième algo d&rsquo;un facteur 5 qui augmente avec la taille du tableau. Bref on est loin d&rsquo;un temps linéaire aka O(n).</p>
-<p>Ce qui est aussi intéressant, c&rsquo;est que le premier algo est plus efficace tant que le nombre d'élément dans le tableau d&rsquo;entrée est inférieur à 100. Alors que la deuxième  qui utilise une structure plus élaboré ne montre des signes avantageux qu'à partir d&rsquo;une centaine d'éléments. Ca me rappelle étrangement l'électronique ou les comportements des capacités et inductances changeant de nature lorsqu&rsquo;on passe en haute fréquence.</p>
+<p>On voit dans les mesures faites par Caliper le temps pris par chaque méthode, l&rsquo;écart type, et le nombre d&rsquo;essai. Enfin dans une deuxième partie Caliper donne un synopsis des différents run et en particulier une colonne très intéressante &lsquo;<strong>linear time</strong>&rsquo;.</p>
+<p>En observant le temps pris en fonction du nombre d&rsquo;éléments pour chaque algo, on s&rsquo;aperçoit que le temps pris par le premier algo augmente en effet par rapport au deuxième algo d&rsquo;un facteur 5 qui augmente avec la taille du tableau. Bref on est loin d&rsquo;un temps linéaire aka O(n).</p>
+<p>Ce qui est aussi intéressant, c&rsquo;est que le premier algo est plus efficace tant que le nombre d&rsquo;élément dans le tableau d&rsquo;entrée est inférieur à 100. Alors que la deuxième  qui utilise une structure plus élaboré ne montre des signes avantageux qu&rsquo;à partir d&rsquo;une centaine d&rsquo;éléments. Ca me rappelle étrangement l&rsquo;électronique ou les comportements des capacités et inductances changeant de nature lorsqu&rsquo;on passe en haute fréquence.</p>
 <h2 id="dans-lespace">Dans l&rsquo;espace</h2>
-<p>Alors pour faire les mesures des allocations, on peut aussi utiliser caliper, mais à l&rsquo;heure de l'écriture de ce blog, il faut faire quelques petites choses en plus.</p>
+<p>Alors pour faire les mesures des allocations, on peut aussi utiliser caliper, mais à l&rsquo;heure de l&rsquo;écriture de ce blog, il faut faire quelques petites choses en plus.</p>
 <ol>
 <li>Caliper 0.5 RC1 vient avec le jar <code>java-allocation-instrumenter-2.0.jar</code> qui est sensé servir d&rsquo;agent, cependant ce jar n&rsquo;a pas été généré correctement pour servir d&rsquo;agent. En fait il faut télécharger le jar <code>allocation.jar</code> de ce projet : <a href="http://code.google.com/p/java-allocation-instrumenter/downloads/detail?name=allocation.jar&amp;can=2&amp;q=">1 er février 2012</a>.</li>
 <li>Avant de lancer le Runner en ligne de commande il faut ajouter la variable d&rsquo;environnement <code>ALLOCATION_JAR</code></li>

@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -314,7 +314,7 @@ Identifiers (IRIs) [RFC3987], and is comprised of:</p>
 </ul>
 <p><strong>A link can be viewed as a statement of the form &ldquo;{context IRI} has a
 {relation type} resource at {target IRI}, which has {target
-attributes}&quot;.</strong></p>
+attributes}&rdquo;.</strong></p>
 </blockquote>
 <p>La RFC donne cet exemple :</p>
 <pre><code>Link: &lt;http://example.com/TheBook/chapter2&gt;; rel=&quot;previous&quot;; title=&quot;previous chapter&quot;
@@ -455,7 +455,7 @@ public class QueryParams {
 }
 </code></pre>
 <p>Enfin il faut remarquer que s&rsquo;il y a beaucoup de resources paginées, alors
-il y a un problème de design. En effet, le code a plus de chance d'être cassé,
+il y a un problème de design. En effet, le code a plus de chance d&rsquo;être cassé,
 ou d&rsquo;avoir des différences s&rsquo;il est dupliqué à plusieurs endroits.
 Il y a moyen de faire mieux.</p>
 <h2 id="jax-rs-une-solution-plus-générique">JAX-RS, une solution plus générique</h2>
@@ -508,7 +508,7 @@ la requête HTTP, il n&rsquo;y a pas par exemple de symétrie avec le <code>.lin
 </code></pre>
 <pre><code class="language-java">public class SomePaginated implements Paginated&lt;Page&gt; { /* ... */ }
 </code></pre>
-<p>Puis il suffira d'écrire :</p>
+<p>Puis il suffira d&rsquo;écrire :</p>
 <pre><code class="language-java">@GET @Path(&quot;search&quot;)
 public void search(@BeanParam QueryParams queryParams,
                    @Suspended AsyncResponse asyncResponse) {
@@ -517,7 +517,7 @@ public void search(@BeanParam QueryParams queryParams,
     asyncResponse.resume(results);
 }
 </code></pre>
-<p>Ce qui permet d'être simple à mettre en place pour des resources ultérieures.
+<p>Ce qui permet d&rsquo;être simple à mettre en place pour des resources ultérieures.
 Le code technique est géré à un seul endroit et évite donc les détériorations
 possibles si le code était dupliqué sur plusieurs resources.</p>
 <h1 id="éléments-à-prendre-en-compte">Éléments à prendre en compte</h1>
@@ -529,7 +529,7 @@ sur un autre domaine, rendant l&rsquo;exploitation de ces liens délicate.</p>
 </li>
 <li>
 <p>Faut-il pour la payload utiliser un type collection ou un type objet?</p>
-<p>Un tableau a l&rsquo;avantage de représenter une collection d'éléments directement.
+<p>Un tableau a l&rsquo;avantage de représenter une collection d&rsquo;éléments directement.
 Cependant pour des raisons métier il pourrait être voulu que le serveur
 retourne également des méta-données métiers sur cette collection :
 un flag d&rsquo;A/B testing, pour une recherche quelles options étaient actives,

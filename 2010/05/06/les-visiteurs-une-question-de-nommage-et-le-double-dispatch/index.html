@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.69.0" />
+<meta name="generator" content="Hugo 0.73.0" />
 
     
     
@@ -279,7 +279,7 @@
   <div class="post md">
     <h1 id="une-histoire-qui-commence-mal">Une histoire qui commence mal</h1>
 <p>OK, je tranche le malheureux pattern Visiteur a la vie dure; on ne l&rsquo;aime pas trop, il est mal compris, et le pauvre est sous utilisé. Alors bon même s&rsquo;il a ses défauts, pourquoi lui en vouloir autant, alors qu&rsquo;il apporte justement ses avantages au <strong>code orienté objet</strong>.</p>
-<p>Et oui vous avez bien lu orienté objet. Jusqu'à aujourd&rsquo;hui j&rsquo;ai vu du code qui ressemble à ça?</p>
+<p>Et oui vous avez bien lu orienté objet. Jusqu&rsquo;à aujourd&rsquo;hui j&rsquo;ai vu du code qui ressemble à ça?</p>
 <ul>
 <li>On a soit des objets très complexes, avec des comportements qu&rsquo;il n&rsquo;est pas forcément intéressant de mettre dans l&rsquo;objet même. Le code ci-dessous montre un objet ou les méthodes qui permettent de récupérer les livres d&rsquo;un certain genre ne sont pas forcément appropriées dans cette partie du code. Pourquoi parce qu&rsquo;il est envisageable (selon le bon sens) que d&rsquo;autres genres serait apprécié. Et s&rsquo;il faut ajouter d&rsquo;autres méthodes encore.</li>
 </ul>
@@ -413,7 +413,7 @@ private Iterable&lt;Book&gt; books;
 }
 </code></pre>
 <p>On voit vite le problème ou le visiteur est forcé d&rsquo;implémenter des opérations pour des objets qui ne l&rsquo;intéresse pas forcément. Le problème est contournable en utilisant intelligemment les interfaces, mais cette solution palliative a également des limites; on ne va faire implémenter 45 interfaces à nos objets.</p>
-<p>Pour cela il y a une solution un peu plus complexe qui est également un pattern, c&rsquo;est le <a href="http://www.objectmentor.com/resources/articles/acv.pdf">Visiteur Acyclique</a>. Je n&rsquo;approfondie pas trop, mais l&rsquo;idée est d&rsquo;avoir pour chaque sous type du domaine une interface de visiteur qui permet de vérifier que l&rsquo;instance du visiteur est acceptable. Evidemment vous pourrez adapter le comportement, et vous n'êtes non plus obligé d&rsquo;implémenter toutes les méthodes, c&rsquo;est le but de ce pattern acyclique.</p>
+<p>Pour cela il y a une solution un peu plus complexe qui est également un pattern, c&rsquo;est le <a href="http://www.objectmentor.com/resources/articles/acv.pdf">Visiteur Acyclique</a>. Je n&rsquo;approfondie pas trop, mais l&rsquo;idée est d&rsquo;avoir pour chaque sous type du domaine une interface de visiteur qui permet de vérifier que l&rsquo;instance du visiteur est acceptable. Evidemment vous pourrez adapter le comportement, et vous n&rsquo;êtes non plus obligé d&rsquo;implémenter toutes les méthodes, c&rsquo;est le but de ce pattern acyclique.</p>
 <p><img src="/assets/VisiteurAcyclique.png" alt="VisiteurAcyclique"></p>
 <p>Et typiquement le code du accept pour chaque sous-type de collection aurait une tête du genre :</p>
 <pre><code class="language-java">public void accept(DomainOperation operation) {
@@ -492,7 +492,7 @@ theGiantSpaceShip.collideWith(theAsteroid);
 <p>Et on aura le code correcte utilisé.</p>
 <p>Cette technique est utilisée par le visiteur, mais nous ne somme pas obligé d&rsquo;avoir des visiteurs pour l&rsquo;utiliser (la preuve par l&rsquo;exemple grâce à wikipédia). C&rsquo;est utilisé régulièrement dans la JDK, typiquement pour la sérialisation (même si c&rsquo;est caché). Coté performance si on a le choix, le double dispatch sera toujours plus rapide qu&rsquo;un instanceof. Coté design c&rsquo;est pratique quand on a des branches d&rsquo;objets qui travaillent ensemble.</p>
 <p>Certains langages proposent nativement un support pour ces problèmes de résolution de type d&rsquo;opérande, comme Nice.</p>
-<p>A regarder aussi, c&rsquo;est le multi dispatch ou les multi-méthodes, il y a notamment une implémentation de Rémy Forax de l&rsquo;université de Marne-la-Vallée, cette implémentation a le mérite d'être standard Java, c&rsquo;est à dire qu&rsquo;elle n'étends pas le langage lui-même.</p>
+<p>A regarder aussi, c&rsquo;est le multi dispatch ou les multi-méthodes, il y a notamment une implémentation de Rémy Forax de l&rsquo;université de Marne-la-Vallée, cette implémentation a le mérite d&rsquo;être standard Java, c&rsquo;est à dire qu&rsquo;elle n&rsquo;étends pas le langage lui-même.</p>
 <p>Pour y jeter un œil : <a href="http://www-igm.univ-mlv.fr/~forax/works/jmmf/index.html">http://www-igm.univ-mlv.fr/~forax/works/jmmf/index.html</a></p>
 <h1 id="récapitulatif-sur-le-visiteur">Récapitulatif sur le visiteur</h1>
 <p>Le visiteur est bien un ami, mais comme tous les potes, il ne sait pas tous faire non plus.</p>
