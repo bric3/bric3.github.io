@@ -482,15 +482,15 @@ https://openjdk.java.net/jeps/271[JEP 271: Unified GC Logging]
 
 |===
 
-.log on demand
+.log on demand, with G1 region tracing
 [source,bash]
 ----
-env -u JAVA_TOOL_OPTIONS jcmd $(pidof java) \
+jcmd $(pidof java) \
   VM.log \
-    what="gc*,gc+heap=debug,gc+ref=debug,gc+ergo*=trace,gc+age*=trace,gc+phases*,safepoint*,os*,gc+region=trace,gc+liveness=trace" \
-    decorators=uptime,tags,level \
-    output="file=/gclogs/%t-gc-trace.log"
-    \output_options="filecount=10,filesize=20M"
+    what="gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*,os*" \
+    decorators=uptime,time,tags,level \
+    output="file=/gclogs/%t-gc-trace.log" \
+    output_options="filecount=10,filesize=20M"
 ----
 
 From https://twitter.com/poonam_bajaj[Poonam Bajaj Parhar],s talk on
@@ -498,6 +498,7 @@ https://www.slideshare.net/PoonamBajaj5/lets-learn-to-talk-to-gc-logs-in-java-9[
 
 https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092
 https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3
+log prefixes : https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3#l120.8
 
 https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5
 
