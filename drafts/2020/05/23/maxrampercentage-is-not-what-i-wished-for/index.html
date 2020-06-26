@@ -1136,8 +1136,9 @@ available, but the JVM isn&#8217;t yet using the whole reserved space.</p></td>
 same committed and reserved memory values while other zones have the ability to
 shrink or grow for example <code>thread stacks</code> zone reports
 <code>85455 KiB</code> but could be reduced to <code>696395 KiB</code> if necessary, the heap has theoretically the
-possibility to shrink as well, however I never saw that in practice, maybe in JDK 12 with
-<a href="https://openjdk.java.net/jeps/346">JEP-346</a>.</p>
+possibility to shrink as well ; however I never saw that in practice, maybe in JDK 12 with
+<a href="https://openjdk.java.net/jeps/346">JEP-346</a>, alhough even the JEP mention if there is very low
+activity, which is improbable on this workload.</p>
 </div>
 </li>
 <li>
@@ -1439,7 +1440,7 @@ environment variable for more flexibility and remove the RAM percentage in the <
 <div class="sect2">
 <h3 id="_run_the_container_locally_with_the_java_app"><a class="anchor" href="#_run_the_container_locally_with_the_java_app"></a><a class="link" href="#_run_the_container_locally_with_the_java_app">Run the container locally with the Java app</a></h3>
 <div class="paragraph">
-<p>In this local test serie, I&#8217;m using 3GB as a memory limit and I chose 70% for the heap percengtage.</p>
+<p>In this local test series, I&#8217;m using <code>3 GiB</code> as a memory limit and I chose 70% for the heap percentage.</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
@@ -1469,26 +1470,11 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
 6:
--XX:CICompilerCount=3
--XX:ConcGCThreads=1
--XX:G1ConcRefinementThreads=4
--XX:G1HeapRegionSize=1048576
--XX:GCDrainStackTargetSize=64
--XX:InitialHeapSize=50331648
--XX:MarkStackSize=4194304
+...
 -XX:MaxHeapSize=805306368 <i class="conum" data-value="1"></i><b>(1)</b>
 -XX:MaxNewSize=482344960
 -XX:MinHeapDeltaBytes=1048576
--XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5830732
--XX:NonProfiledCodeHeapSize=122913754
--XX:ProfiledCodeHeapSize=122913754
--XX:ReservedCodeCacheSize=251658240
--XX:+SegmentedCodeCache
--XX:+UseCompressedClassPointers
--XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps
--XX:+UseG1GC</code></pre>
+...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1504,28 +1490,14 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
 6:
--XX:CICompilerCount=3
--XX:ConcGCThreads=1
--XX:G1ConcRefinementThreads=4
--XX:G1HeapRegionSize=1048576
--XX:GCDrainStackTargetSize=64
+...
 -XX:InitialHeapSize=2256535552
 -XX:InitialRAMPercentage=70.000000
 -XX:MarkStackSize=4194304
 -XX:MaxHeapSize=2256535552 <i class="conum" data-value="1"></i><b>(1)</b>
 -XX:MaxNewSize=1353711616
 -XX:MaxRAMPercentage=70.000000
--XX:MinHeapDeltaBytes=1048576
--XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5830732
--XX:NonProfiledCodeHeapSize=122913754
--XX:ProfiledCodeHeapSize=122913754
--XX:ReservedCodeCacheSize=251658240
--XX:+SegmentedCodeCache
--XX:+UseCompressedClassPointers
--XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps
--XX:+UseG1GC</code></pre>
+...</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1538,9 +1510,8 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 </div>
 <div class="paragraph">
 <p>Notice when there&#8217;s no RAM settings the JVM computed the max heap size at 25%
-of memory constraints <code>3 GiB</code>. And at 80%, <code>2.1 GiB</code>, of the same limit when
-passing the RAM percentages. Also, the heap values are the only one affected,
-other memory areas default values kept the same values.</p>
+of <code>3 GiB</code> memory limit, and at 70% the jvm uses <code>2.1 GiB</code>. Also, the heap values
+are the only one affected.</p>
 </div>
 </div>
 </div>
@@ -2257,8 +2228,8 @@ And anyway the official documentation is <a href="https://kubernetes.io/docs/con
     </a>
     
     
-    <a href="/drafts/2020/05/24/using-java-flight-recorder/" class="navigation-next">
-      <span class="navigation-tittle">Using Java FlightRecorder</span>
+    <a href="/drafts/2020/05/24/using-java-flight-recorder-and-jdk-mission-control/" class="navigation-next">
+      <span class="navigation-tittle">Using Java FlightRecorder and JDK Mission Control</span>
       <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     

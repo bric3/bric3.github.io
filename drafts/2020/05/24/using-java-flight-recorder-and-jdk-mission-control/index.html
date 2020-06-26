@@ -17,7 +17,7 @@
     
     
 
-<title>Using Java FlightRecorder • The Coffee Workshop</title>
+<title>Using Java FlightRecorder and JDK Mission Control • The Coffee Workshop</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="The Coffee Workshop">
-<meta property="og:title" content="Using Java FlightRecorder">
+<meta property="og:title" content="Using Java FlightRecorder and JDK Mission Control">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/05/24/using-java-flight-recorder/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/05/24/using-java-flight-recorder-and-jdk-mission-control/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -53,7 +53,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Using Java FlightRecorder">
+<meta name="twitter:title" content="Using Java FlightRecorder and JDK Mission Control">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -234,7 +234,7 @@
 
 <article>
   <header>
-    <h1>Using Java FlightRecorder</h1>
+    <h1>Using Java FlightRecorder and JDK Mission Control</h1>
     
     
 <div class="post__meta">
@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 33 min read
+    <i class="fas fa-clock"></i> 48 min read
 
     
     
@@ -261,57 +261,119 @@
   
   
   <div class="post adoc">
-    <div class="admonitionblock note">
+    <div class="paragraph">
+<p>Java Flight Recorder, the profiler you can use in production, continuously.
+Flight Recorder has been available before in the JDK, e.g. it shipped as part of the JDK 8,
+but to use it, it demanded a to set specific commercial VM flags to unlock
+FlightRecorder, this is not anymore necessary with Java 11.</p>
+</div>
+<div class="admonitionblock note">
 <table>
 <tr>
 <td class="icon">
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-This page assumes JDK 11, not JDK 8, that means there is no need to
-<code>-XX:+UnlockCommercialFeatures</code>, <code>-XX:+FlightRecorder</code>. Or the use of
-<code>-XX:+UnlockDiagnosticVMOptions</code> and <code>-XX:+DebugNonSafepoints</code> <a href="https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60">source</a>
+This page assumes JDK 11, that means there is no need to set
+<code>-XX:+UnlockCommercialFeatures</code>, <code>-XX:+FlightRecorder</code> flags. Or more particular to JFR
+ the use of <code>-XX:+UnlockDiagnosticVMOptions</code> and <code>-XX:+DebugNonSafepoints</code> <a href="https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60">source</a>
 </td>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>Also this article uses a lot the <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/environment-variables-and-system-properties.html#GUID-BE6E7B7F-A4BE-45C0-9078-AA8A66754B97"><code>JAVA_TOOL_OPTIONS</code></a>
-environment variable because most scenarios happens in a container.</p>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Also this article uses a lot the <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
+environment variable.
+</td>
+</tr>
+</table>
 </div>
 <div class="sect1">
-<h2 id="_introduction_to_java_flight_recorder"><a class="anchor" href="#_introduction_to_java_flight_recorder"></a><a class="link" href="#_introduction_to_java_flight_recorder">Introduction to Java Flight Recorder</a></h2>
+<h2 id="_brief_introduction_to_java_flight_recorder"><a class="anchor" href="#_brief_introduction_to_java_flight_recorder"></a><a class="link" href="#_brief_introduction_to_java_flight_recorder">Brief introduction to Java Flight Recorder</a></h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>Flight Recorder is a feature backed in the JVM that <strong>traces</strong> what&#8217;s happening inside the JVM with <strong>events</strong>.
+FlightRecorder development started a long time ago in the early 2000 in a company name BEA, for their own
+JVM implementation, JRockit. Oracle acquired BEA, then acquired Sun, and merged the source of JRockit to Hotspot.</p>
+</div>
+<div class="paragraph">
+<p>At some BEA engineers needed insight in their JVM, in production, logging was not an option as it had too much
+overhead, so they designed an event based system to work in production.</p>
+</div>
+<div class="paragraph">
+<p>JDK Mission Control on the other end is a software that will analyze these events and build consolidated views
+for us to analyze.</p>
+</div>
+<div class="paragraph">
+<p>JFR with JDK Mission Control together are similar to system architectured as
+<a href="https://martinfowler.com/eaaDev/EventSourcing.html"><em>Event Sourcing</em></a> system.</p>
+</div>
 <div class="imageblock text-center">
 <div class="content">
-<img src="/assets/jfr/java-flight-recorder-big-picture.svg" alt="java flight recorder big picture">
+<img src="./../static/assets/jfr/java-flight-recorder-big-picture.svg" alt="java flight recorder big picture">
 </div>
 <div class="title">JFR big picture</div>
 </div>
+<div class="sect2">
+<h3 id="_how_to_start_a_recording"><a class="anchor" href="#_how_to_start_a_recording"></a><a class="link" href="#_how_to_start_a_recording">How to start a recording ?</a></h3>
 <div class="paragraph">
-<p>Before in Java 8 we needed to set specific commercial VM flags to unlock
-FlightRecorder, this is not anymore necessary with Java 11.</p>
+<p>One of the first interesting thing you can do is to start a recording at runtime ;
+<code>jcmd</code> is the tool for this job, it&#8217;s the Swiss Army knife tool for to service your Java app.
+If you don&#8217;t know it, use it&#8217;s great !</p>
 </div>
 <div class="paragraph">
-<p>Even if the flag is false it&#8217;s possible to <em>start</em> a JFR session.</p>
-</div>
-<div class="paragraph">
-<p>So just checking the actual VM flags to make sure it&#8217;s possible with the current VM
-is not anymore necessary with Java 11.</p>
+<p>Prior Java 11 FlightRecorder had to be enabled before. Now it&#8217;s not anymore necessary
+it&#8217;s possible to <em>start</em> a JFR session.</p>
 </div>
 <div class="listingblock">
+<div class="title">FlightRecorder is on by default</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ unset --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
      bool FlightRecorder                           = true                                      {product} {management}
     ccstr FlightRecorderOptions                    =                                           {product} {default}</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>To explore possible arguments, use the <code>help</code> command.</p>
+<p>Just runt <code>JFR.start</code> on the running java pid.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.start
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) JFR.start
+6:
+Started recording 2. No limit specified, using maxsize=250MB as default.
+
+Use jcmd 6 JFR.dump name=2 filename=FILEPATH to copy recording data to file.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The output guides the user to the next useful commands, in particular <code>JFR.dump</code>.
+Also, this commands tells you that a recording by default is limited to 250Mb.
+<code>jcmd</code> provides an <code>help</code> command that describes document for each command options.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">JFR.start example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) JFR.start \
+  name=app-profile \
+  duration=300s \
+  filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr \
+  settings=profile
+6:
+Started recording 2. The result will be written to:
+
+/tmp/app-profile-2020-03-26T16-41-48.jfr</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">JFR.start help</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.start
 6:
 JFR.start
 Starts a new JFR recording
@@ -336,11 +398,264 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 </div>
 </div>
 <div class="paragraph">
-<p>TODO look at <code>-XX:FlightRecorderOptions</code> options more specically, e.g. <code>stackdepth</code>, <code>maxchunksize</code>, <code>memorysize</code>, <code>repository</code></p>
+<p>In production you&#8217;ll be most likely using <code>duration</code>, <code>maxsize</code>, <code>filename</code> and <code>settings</code> options.
+We&#8217;ll briefly look at other JFR commands after discussing the <code>settings</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Later in this article we&#8217;ll see how to start recording from the command line
+using <code>-XX:StartFlightRecording</code>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_setting_files"><a class="anchor" href="#_setting_files"></a><a class="link" href="#_setting_files">Setting files</a></h3>
+<div class="paragraph">
+<p>The <code>settings</code> option refers to a configuration of the FlightRecorder,
+the JDK ships with two : <code>default</code> and <code>profile</code>. A configuration is an XML file, with
+<code>event</code> elements that describe how JFR in the JVM will handle events, if they
+are enabled, their threshold, if stacktraces are recorded, etc. And there is also a
+<code>control</code> element that is used by JDK Mission Control.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s is the first few line of the <code>default</code> settings. As its name impies, this is the configuration
+that is used when the command is run without a <code>settings</code> option.</p>
 </div>
 <div class="listingblock">
+<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">jcmd 80657 help JFR.configure
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+
+&lt;!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -&gt; Flight Recorder Template Manager.
+--&gt;
+
+&lt;configuration version="2.0"
+               label="Continuous"
+               description="Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead."
+               provider="Oracle"&gt;
+
+    &lt;event name="jdk.ThreadAllocationStatistics"&gt;
+      &lt;setting name="enabled"&gt;true&lt;/setting&gt;
+      &lt;setting name="period"&gt;everyChunk&lt;/setting&gt;
+    &lt;/event&gt;
+
+    &lt;!-- a lot more events --&gt;
+
+    &lt;!-- then the control element --&gt;
+&lt;/configuration&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In terms of file size magnitude on a pretty busy web application server using the <code>default</code> settings and for a
+duration of 5 minutes, the resulting dumped file weighs 15 MiB. With this profile you&#8217;ll get more than
+basic information, IO, GC events, locking behavior, thread events, method profiling, etc.</p>
+</div>
+<div class="paragraph">
+<p>The announced overhead is maximum 1% !</p>
+</div>
+<div class="listingblock">
+<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -&gt; Flight Recorder Template Manager.
+--&gt;
+
+&lt;configuration version="2.0"
+               label="Profiling"
+               description="Low overhead configuration for profiling, typically around 2 % overhead."
+               provider="Oracle"&gt;
+
+    &lt;event name="jdk.ThreadAllocationStatistics"&gt;
+      &lt;setting name="enabled"&gt;true&lt;/setting&gt;
+      &lt;setting name="period"&gt;everyChunk&lt;/setting&gt;
+    &lt;/event&gt;
+
+    &lt;!-- a lot more event --&gt;
+&lt;/configuration&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With the <code>profile</code> settings, the dumped file takes around 35mb for a 5min duration. And it will
+get access to additional events like the <code>OldObjectSample</code> stacktraces, or TLS events
+like TLS handshakes, X509 validation, Classloading events, etc.</p>
+</div>
+<div class="paragraph">
+<p>It actually has a tad more overhead, 2%. But in most workload this should be ok.</p>
+</div>
+<div class="paragraph">
+<p>To value of the <code>settings</code> option is file name of these files <code>default</code> or <code>profile</code>. In addition
+it&#8217;s also possible to pass an absolute file path, in other words it&#8217;s possible to use configuration
+of our own stored elsewhere.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_dumping_a_recording"><a class="anchor" href="#_dumping_a_recording"></a><a class="link" href="#_dumping_a_recording">Dumping a recording</a></h3>
+<div class="paragraph">
+<p>If it&#8217;s needed to acquire the recording, it&#8217;s possible to dump it at anytime.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">JFR.dump example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) JFR.dump filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
+6:
+Dumped recording, 239.5 MB written to:
+
+/tmp/app-profile-2020-06-26T15-16-57.jfr</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">JFR.dump help</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.dump
+6:
+JFR.dump
+Copies contents of a JFR recording to file. Either the name or the recording id must be specified.
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.dump [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" (STRING, no default value)
+	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
+	maxage : [optional] Maximum duration to dump, in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
+	maxsize : [optional] Maximum amount of bytes to dump, in (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
+	begin : [optional] Point in time to dump data from, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	end : [optional] Point in time to dump data to, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If there is a single recording at the time it&#8217;s possible to just use <code>JFR.dump</code>, but JFR is
+powerful enough to support multiple concomitant recordings, in this case you need to specify
+which recording to dump, obviously.
+Some of the options override those defined in the start command like <code>filename</code> or <code>maxage</code>
+for the current dump in particular. THe other options are certainly interesting but
+I found them a bit less useful in practice.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_details_of_the_active_recordings"><a class="anchor" href="#_details_of_the_active_recordings"></a><a class="link" href="#_details_of_the_active_recordings">Details of the active recording(s)</a></h3>
+<div class="paragraph">
+<p>If they are multiple active recordings or if it&#8217;s necessary to check the event configuration
+of the active recording <code>jcmd</code> comes with the <code>JFR.check</code>.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">JFR.check example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) JFR.check
+6:
+Recording 2: name=2 maxsize=250.0MB (running)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">JFR.check help</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.check
+6:
+JFR.check
+Checks running JFR recording(s)
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.check [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" or omit to see all recordings (STRING, no default value)
+	verbose : [optional] Print event settings for the recording(s) (BOOLEAN, false)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>verbose</code> option allows examining which event are enabled for a recording.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_stopping_a_active_recording"><a class="anchor" href="#_stopping_a_active_recording"></a><a class="link" href="#_stopping_a_active_recording">Stopping a active recording</a></h3>
+<div class="paragraph">
+<p>When the recording session is deemed over, then one can stop it providing a different
+file name than the one set in the start command.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">JFR.stop example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) JFR.stop \
+  name=app-profile \
+  filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">JFR.stop help</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.stop
+6:
+JFR.stop
+Stops a JFR recording
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.stop [options]
+
+Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
+	name :  Recording text,.e.g \"My Recording\" (STRING, no default value)
+	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_system_flight_recorder_configuration"><a class="anchor" href="#_system_flight_recorder_configuration"></a><a class="link" href="#_system_flight_recorder_configuration">System Flight Recorder configuration</a></h3>
+<div class="paragraph">
+<p>What we saw before is how to start a recording and how to configure this specific recording.
+But there is another class of options that modifies aspects of the JFR internals.
+As a reminder those affects all recording in some way.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">JFR.configure example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) JFR.configure \
+  stackdepth=96 \
+  repositorypath=/tmp/jfr-repo
+6:
+Repository path: /tmp/jfr-repo/2020_06_26_16_01_58_6
+
+Dump path: /gclogs
+
+Stack depth: 96
+
+$ jcmd $(pidof java) JFR.configure
+6:
+Current configuration:
+
+Repository path: /tmp/jfr-repo/2020_06_26_16_03_41_6
+
+Stack depth: 96
+Global buffer count: 20
+Global buffer size: 512.0 kB
+Thread buffer size: 8.0 kB
+Memory size: 10.0 MB
+Max chunk size: 12.0 MB
+Sample threads: true</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">JFR.configure help</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) help JFR.configure
 80657:
 JFR.configure
 Configure JFR
@@ -363,156 +678,72 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 	samplethreads : [optional] Activate Thread sampling (BOOLEAN, true)</code></pre>
 </div>
 </div>
-<div class="listingblock">
-<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-
-&lt;!--
-     Recommended way to edit .jfc files is to use Java Mission Control,
-     see Window -&gt; Flight Recorder Template Manager.
---&gt;
-
-&lt;configuration version="2.0" label="Continuous" description="Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead." provider="Oracle"&gt;
-
-    &lt;event name="jdk.ThreadAllocationStatistics"&gt;
-      &lt;setting name="enabled"&gt;true&lt;/setting&gt;
-      &lt;setting name="period"&gt;everyChunk&lt;/setting&gt;
-    &lt;/event&gt;
-
-    &lt;!-- a lot more event --&gt;
-&lt;/configuration&gt;</code></pre>
-</div>
+<div class="paragraph">
+<p>Here I&#8217;m increasing the <code>stackdepth</code>, this might be useful to generate more accurate flamegraphs,
+or for some other analysis like with the <code>OldObjectSample</code>.</p>
 </div>
 <div class="paragraph">
-<p>With the <code>default</code> settings, the dumped file takes around 15mb for a 5min duration. With
-this profile you&#8217;ll get basic information on IO, GC events, simple method</p>
+<p>The <code>repositorypath</code> is where JFR dumps regularly slices or chunks of jfr events, they have
+maximum size of <code>maxchunksize</code>. These files behave like a log rolling appender.
+By default these chunks are stored in the temporary directory and in a subfolder with a timestamp.</p>
 </div>
 <div class="listingblock">
-<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc</div>
+<div class="title">JFR repository</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;!--
-     Recommended way to edit .jfc files is to use Java Mission Control,
-     see Window -&gt; Flight Recorder Template Manager.
---&gt;
-
-&lt;configuration version="2.0" label="Profiling" description="Low overhead configuration for profiling, typically around 2 % overhead." provider="Oracle"&gt;
-
-    &lt;event name="jdk.ThreadAllocationStatistics"&gt;
-      &lt;setting name="enabled"&gt;true&lt;/setting&gt;
-      &lt;setting name="period"&gt;everyChunk&lt;/setting&gt;
-    &lt;/event&gt;
-
-    &lt;!-- a lot more event --&gt;
-&lt;/configuration&gt;</code></pre>
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ ls -lah /tmp/jfr-repo/2020_06_26_16_03_41_6/
+total 71M
+drwxr-xr-x 2 43514 root 4.0K Jun 26 16:21 .
+drwxr-xr-x 3 43514 root 4.0K Jun 26 16:03 ..
+-rw-r--r-- 1 43514 root 2.4M Jun 26 16:04 2020_06_26_16_04_02.jfr
+-rw-r--r-- 1 43514 root 3.6M Jun 26 16:04 2020_06_26_16_04_12.jfr
+-rw-r--r-- 1 43514 root  18M Jun 26 16:10 2020_06_26_16_04_47.jfr
+-rw-r--r-- 1 43514 root 2.5M Jun 26 16:10 2020_06_26_16_10_18.jfr
+-rw-r--r-- 1 43514 root  19M Jun 26 16:16 2020_06_26_16_10_26.jfr
+-rw-r--r-- 1 43514 root  18M Jun 26 16:21 2020_06_26_16_16_16.jfr
+-rw-r--r-- 1 43514 root    0 Jun 26 16:21 2020_06_26_16_21_50.jfr
+-rw-r--r-- 1 43514 root 8.7M Jun 26 16:25 2020_06_26_16_21_50.part</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>With the <code>profile</code> settings, the dumped file takes around 35mb for a 5min duration.</p>
+<p><em>I&#8217;m not sure why some chunks are over 12M (the default chunk size) at this time.</em></p>
 </div>
 <div class="paragraph">
-<p>It&#8217;s also possible to create our own settings file and pass the absolute file path to the <code>settings</code> option.</p>
+<p>Careful however as some of these options are not well documented, and may not expose
+what we&#8217;d expect, e.g. <code>dumppath</code> only affects dump created when the app crashes and only
+if the <code>dumponexit</code> recording option is true.</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.dump
-6:
-JFR.dump
-Copies contents of a JFR recording to file. Either the name or the recording id must be specified.
-
-Impact: Low
-
-Permission: java.lang.management.ManagementPermission(monitor)
-
-Syntax : JFR.dump [options]
-
-Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
-	name : [optional] Recording name, e.g. \"My Recording\" (STRING, no default value)
-	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
-	maxage : [optional] Maximum duration to dump, in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
-	maxsize : [optional] Maximum amount of bytes to dump, in (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
-	begin : [optional] Point in time to dump data from, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
-	end : [optional] Point in time to dump data to, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
-	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)</code></pre>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+These options are also available at startup via <code>-XX:FlightRecorderOptions</code>,
+we&#8217;ll see later how to use this option.
+</td>
+</tr>
+</table>
 </div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.check
-6:
-JFR.check
-Checks running JFR recording(s)
-
-Impact: Low
-
-Permission: java.lang.management.ManagementPermission(monitor)
-
-Syntax : JFR.check [options]
-
-Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
-	name : [optional] Recording name, e.g. \"My Recording\" or omit to see all recordings (STRING, no default value)
-	verbose : [optional] Print event settings for the recording(s) (BOOLEAN, false)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>So what we would like to do is</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.start name=app-profile duration=300s filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr settings=profile
-6:
-Started recording 2. The result will be written to:
-
-/tmp/app-profile-2020-03-26T16-41-48.jfr</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Check if there&#8217;s any recording at this time, they can be several.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
-6:
-Recording 2: name=app-profile duration=5m (running)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Also it&#8217;s possible to stop manually any recording</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.stop name=app-profile filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Then get the file locally for analysis</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">kubectl cp app-pod-579664d4f7-7dxsq:/tmp/app-profile-2020-03-26T16-57-14.jfr ./app-profile-2020-03-26T16-57-14.jfr --container=app-container</code></pre>
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_jdk_mission_control"><a class="anchor" href="#_jdk_mission_control"></a><a class="link" href="#_jdk_mission_control">JDK Mission Control</a></h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Then analyze the file in JDK Mission Control, (e.g. the one from <code>brew cask install jdk-mission-control</code>)</p>
-</div>
-<div class="paragraph">
-<p>It&#8217;s also possible to get very qui information using the <code>jfr</code> command line tool
-(which is not always exported a symlink)</p>
 </div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_analyze_with_jfr"><a class="anchor" href="#_analyze_with_jfr"></a><a class="link" href="#_analyze_with_jfr">Analyze with <code>jfr</code></a></h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>Now to exploit the recording, we have a tool named <code>jfr</code> that ships with the JDK.
+On Linux the <em>alternative</em> jdk management may not be aware of <code>jfr</code>, which means
+you may need to use the full path to this executable.</p>
+</div>
+<div class="paragraph">
+<p>The first interesting thing to do is to get an overview of the recording,
+the <code>summary</code> sub-command displays an histogram of the events.</p>
+</div>
 <div class="listingblock">
 <div class="title">events type histogram (summary)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ /usr/lib/jvm/java-11-amazon-corretto/bin/jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
 
  Version: 2.0
  Chunks: 1
@@ -661,11 +892,62 @@ Recording 2: name=app-profile duration=5m (running)</code></pre>
  jdk.TLSHandshake                          0             0</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>But other interesting things could be done using this tool.
+The <code>print</code> subcomand can extract these events, like in json, from there
+it&#8217;s possible to perform other type of aggregation.</p>
+</div>
+<div class="listingblock">
+<div class="title">extract data from using <code>jfr</code> and <code>jq</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jfr print \
+  --json \
+  --events jdk.ThreadPark \
+  /gclogs/startup.jfr \
+  | jq '.recording.events[] | .values.duration'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s also possible to assemble <code>jfr</code> files or break them in smaller parts.
+By the way the files in the <em>repository</em> can be exploited this way.
+Keep in mind these files may be removed as soon as they are expired or as
+soon as every recording stops.</p>
+</div>
+<div class="listingblock">
+<div class="title">summary on a chunk in the repository</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jfr summary /tmp/jfr-repo/2020_06_26_16_03_41_6/2020_06_26_16_04_12.jfr
+Version: 2.0
+Chunks: 1
+Start: 2020-06-26 16:04:12 (UTC)
+Duration: 35 s
+
+ Event Type                            Count  Size (bytes)
+===========================================================
+ jdk.ThreadPark                        19853        918218
+ jdk.SocketRead                         6459        325796
+ jdk.JavaMonitorWait                    5581        200005
+ jdk.ClassLoaderStatistics              2620         81098
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Although <code>jfr</code> is a nice tool a which you can build upon, the next section
+presents the other elephant in the room (in a positive way), JDK Mission Control
+which empowers its user with remarkable diagnosis skills.</p>
+</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_inspect_with_jdk_mission_control"><a class="anchor" href="#_inspect_with_jdk_mission_control"></a><a class="link" href="#_inspect_with_jdk_mission_control">Inspect with JDK Mission Control</a></h2>
+<h2 id="_jdk_mission_control"><a class="anchor" href="#_jdk_mission_control"></a><a class="link" href="#_jdk_mission_control">JDK Mission Control</a></h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>Then analyze the file in JDK Mission Control, (e.g. the one from <code>brew cask install jdk-mission-control</code>)</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s also possible to get very qui information using the <code>jfr</code> command line tool
+(which is not always exported a symlink)</p>
+</div>
 <div class="paragraph">
 <p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8</a></p>
 </div>
