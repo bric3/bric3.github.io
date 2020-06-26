@@ -4,8 +4,8 @@ date: "2020-05-24T01:54:58+02:00"
 language: en
 draft: true
 #tags: ["jfr","profiling","java flight recorder", "java"]
-slug: "using-java-flight-recorder"
-title: "Using Java FlightRecorder"
+slug: "using-java-flight-recorder-and-jdk-mission-control"
+title: "Using Java FlightRecorder and JDK Mission Control"
 #series: ["Flight Recorder"]
 #_build:
 #  list: never
@@ -46,49 +46,93 @@ https://psy-lob-saw.blogspot.com/2016/06/the-pros-and-cons-of-agct.html[The Pros
 ////
 
 
-NOTE: This page assumes JDK 11, not JDK 8, that means there is no need to
-`-XX:+UnlockCommercialFeatures`, `-XX:+FlightRecorder`. Or the use of
-`-XX:+UnlockDiagnosticVMOptions` and `-XX:+DebugNonSafepoints` https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60[source]
+Java Flight Recorder, the profiler you can use in production, continuously.
+Flight Recorder has been available before in the JDK, e.g. it shipped as part of the JDK 8,
+but to use it, it demanded a to set specific commercial VM flags to unlock
+FlightRecorder, this is not anymore necessary with Java 11.
+
+NOTE: This page assumes JDK 11, that means there is no need to set
+`-XX:+UnlockCommercialFeatures`, `-XX:+FlightRecorder` flags. Or more particular to JFR
+ the use of `-XX:+UnlockDiagnosticVMOptions` and `-XX:+DebugNonSafepoints` https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60[source]
 
 ////
 Cannot find public access to JDK-8036749, the only reference found by google is
 https://bugs.openjdk.java.net/browse/JMC-6554
 ////
 
-Also this article uses a lot the https://docs.oracle.com/en/java/javase/11/troubleshoot/environment-variables-and-system-properties.html#GUID-BE6E7B7F-A4BE-45C0-9078-AA8A66754B97[`JAVA_TOOL_OPTIONS`]
-environment variable because most scenarios happens in a container.
+TIP: Also this article uses a lot the https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
+environment variable.
 
-== Introduction to Java Flight Recorder
+== Brief introduction to Java Flight Recorder
+
+Flight Recorder is a feature backed in the JVM that *traces* what's happening inside the JVM with *events*.
+FlightRecorder development started a long time ago in the early 2000 in a company name BEA, for their own
+JVM implementation, JRockit. Oracle acquired BEA, then acquired Sun, and merged the source of JRockit to Hotspot.
+
+At some BEA engineers needed insight in their JVM, in production, logging was not an option as it had too much
+overhead, so they designed an event based system to work in production.
+
+JDK Mission Control on the other end is a software that will analyze these events and build consolidated views
+for us to analyze.
+
+JFR with JDK Mission Control together are similar to system architectured as
+https://martinfowler.com/eaaDev/EventSourcing.html[_Event Sourcing_] system.
 
 
 .JFR big picture
-image::/assets/jfr/java-flight-recorder-big-picture.svg[align="center"]
+image::../../static/assets/jfr/java-flight-recorder-big-picture.svg[align="center"]
 
 
+=== How to start a recording ?
 
+One of the first interesting thing you can do is to start a recording at runtime ;
+`jcmd` is the tool for this job, it's the Swiss Army knife tool for to service your Java app.
+If you don't know it, use it's great !
 
-Before in Java 8 we needed to set specific commercial VM flags to unlock
-FlightRecorder, this is not anymore necessary with Java 11.
+Prior Java 11 FlightRecorder had to be enabled before. Now it's not anymore necessary
+it's possible to _start_ a JFR session.
 
-Even if the flag is false it's possible to _start_ a JFR session.
-
-So just checking the actual VM flags to make sure it's possible with the current VM
-is not anymore necessary with Java 11.
-
+.FlightRecorder is on by default
 [source, bash]
 ----
-$ unset --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
+$ jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
      bool FlightRecorder                           = true                                      {product} {management}
     ccstr FlightRecorderOptions                    =                                           {product} {default}
-
 ----
 
+Just runt `JFR.start` on the running java pid.
 
-To explore possible arguments, use the `help` command.
-
-[source, bash]
+[source,bash]
 ----
-$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.start
+$ jcmd $(pidof java) JFR.start
+6:
+Started recording 2. No limit specified, using maxsize=250MB as default.
+
+Use jcmd 6 JFR.dump name=2 filename=FILEPATH to copy recording data to file.
+----
+
+The output guides the user to the next useful commands, in particular `JFR.dump`.
+Also, this commands tells you that a recording by default is limited to 250Mb.
+`jcmd` provides an `help` command that describes document for each command options.
+
+.JFR.start example
+[source, bash, role="primary"]
+----
+$ jcmd $(pgrep java) JFR.start \
+  name=app-profile \
+  duration=300s \
+  filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr \
+  settings=profile
+6:
+Started recording 2. The result will be written to:
+
+/tmp/app-profile-2020-03-26T16-41-48.jfr
+----
+
+.JFR.start help
+[source, bash, role="secondary"]
+----
+$ jcmd $(pgrep java) help JFR.start
 6:
 JFR.start
 Starts a new JFR recording
@@ -112,12 +156,236 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)
 ----
 
+In production you'll be most likely using `duration`, `maxsize`, `filename` and `settings` options.
+We'll briefly look at other JFR commands after discussing the `settings`.
 
-TODO look at `-XX:FlightRecorderOptions` options more specically, e.g. `stackdepth`, `maxchunksize`, `memorysize`, `repository`
+NOTE: Later in this article we'll see how to start recording from the command line
+using `-XX:StartFlightRecording`.
 
-[source]
+=== Setting files
+
+The `settings` option refers to a configuration of the FlightRecorder,
+the JDK ships with two : `default` and `profile`. A configuration is an XML file, with
+`event` elements that describe how JFR in the JVM will handle events, if they
+are enabled, their threshold, if stacktraces are recorded, etc. And there is also a
+`control` element that is used by JDK Mission Control.
+
+Here's is the first few line of the `default` settings. As its name impies, this is the configuration
+that is used when the command is run without a `settings` option.
+
+./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc
+[source,xml]
 ----
-jcmd 80657 help JFR.configure
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -> Flight Recorder Template Manager.
+-->
+
+<configuration version="2.0"
+               label="Continuous"
+               description="Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead."
+               provider="Oracle">
+
+    <event name="jdk.ThreadAllocationStatistics">
+      <setting name="enabled">true</setting>
+      <setting name="period">everyChunk</setting>
+    </event>
+
+    <!-- a lot more events -->
+
+    <!-- then the control element -->
+</configuration>
+----
+
+In terms of file size magnitude on a pretty busy web application server using the `default` settings and for a
+duration of 5 minutes, the resulting dumped file weighs 15 MiB. With this profile you'll get more than
+basic information, IO, GC events, locking behavior, thread events, method profiling, etc.
+
+The announced overhead is maximum 1% !
+
+./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc
+[source, xml]
+----
+<!--
+     Recommended way to edit .jfc files is to use Java Mission Control,
+     see Window -> Flight Recorder Template Manager.
+-->
+
+<configuration version="2.0"
+               label="Profiling"
+               description="Low overhead configuration for profiling, typically around 2 % overhead."
+               provider="Oracle">
+
+    <event name="jdk.ThreadAllocationStatistics">
+      <setting name="enabled">true</setting>
+      <setting name="period">everyChunk</setting>
+    </event>
+
+    <!-- a lot more event -->
+</configuration>
+----
+
+With the `profile` settings, the dumped file takes around 35mb for a 5min duration. And it will
+get access to additional events like the `OldObjectSample` stacktraces, or TLS events
+like TLS handshakes, X509 validation, Classloading events, etc.
+
+It actually has a tad more overhead, 2%. But in most workload this should be ok.
+
+To value of the `settings` option is file name of these files `default` or `profile`. In addition
+it's also possible to pass an absolute file path, in other words it's possible to use configuration
+of our own stored elsewhere.
+
+=== Dumping a recording
+
+If it's needed to acquire the recording, it's possible to dump it at anytime.
+
+.JFR.dump example
+[source, bash, role="primary"]
+----
+$ jcmd $(pidof java) JFR.dump filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
+6:
+Dumped recording, 239.5 MB written to:
+
+/tmp/app-profile-2020-06-26T15-16-57.jfr
+----
+
+.JFR.dump help
+[source, bash, role="secondary"]
+----
+$ jcmd $(pgrep java) help JFR.dump
+6:
+JFR.dump
+Copies contents of a JFR recording to file. Either the name or the recording id must be specified.
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.dump [options]
+
+Options: (options must be specified using the <key> or <key>=<value> syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" (STRING, no default value)
+	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
+	maxage : [optional] Maximum duration to dump, in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
+	maxsize : [optional] Maximum amount of bytes to dump, in (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
+	begin : [optional] Point in time to dump data from, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	end : [optional] Point in time to dump data to, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
+	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)
+----
+
+If there is a single recording at the time it's possible to just use `JFR.dump`, but JFR is
+powerful enough to support multiple concomitant recordings, in this case you need to specify
+which recording to dump, obviously.
+Some of the options override those defined in the start command like `filename` or `maxage`
+for the current dump in particular. THe other options are certainly interesting but
+I found them a bit less useful in practice.
+
+=== Details of the active recording(s)
+
+If they are multiple active recordings or if it's necessary to check the event configuration
+of the active recording `jcmd` comes with the `JFR.check`.
+
+.JFR.check example
+[source, bash, role="primary"]
+----
+$ jcmd $(pgrep java) JFR.check
+6:
+Recording 2: name=2 maxsize=250.0MB (running)
+----
+
+.JFR.check help
+[source, bash]
+----
+$ jcmd $(pgrep java) help JFR.check
+6:
+JFR.check
+Checks running JFR recording(s)
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.check [options]
+
+Options: (options must be specified using the <key> or <key>=<value> syntax)
+	name : [optional] Recording name, e.g. \"My Recording\" or omit to see all recordings (STRING, no default value)
+	verbose : [optional] Print event settings for the recording(s) (BOOLEAN, false)
+----
+
+The `verbose` option allows examining which event are enabled for a recording.
+
+=== Stopping a active recording
+
+When the recording session is deemed over, then one can stop it providing a different
+file name than the one set in the start command.
+
+.JFR.stop example
+[source, bash, role="primary"]
+----
+$ jcmd $(pgrep java) JFR.stop \
+  name=app-profile \
+  filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
+----
+
+.JFR.stop help
+[source, bash, role="secondary"]
+----
+$ jcmd $(pgrep java) help JFR.stop
+6:
+JFR.stop
+Stops a JFR recording
+
+Impact: Low
+
+Permission: java.lang.management.ManagementPermission(monitor)
+
+Syntax : JFR.stop [options]
+
+Options: (options must be specified using the <key> or <key>=<value> syntax)
+	name :  Recording text,.e.g \"My Recording\" (STRING, no default value)
+	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
+----
+
+=== System Flight Recorder configuration
+
+What we saw before is how to start a recording and how to configure this specific recording.
+But there is another class of options that modifies aspects of the JFR internals.
+As a reminder those affects all recording in some way.
+
+.JFR.configure example
+[source, bash, role="primary"]
+----
+$ jcmd $(pidof java) JFR.configure \
+  stackdepth=96 \
+  repositorypath=/tmp/jfr-repo
+6:
+Repository path: /tmp/jfr-repo/2020_06_26_16_01_58_6
+
+Dump path: /gclogs
+
+Stack depth: 96
+
+$ jcmd $(pidof java) JFR.configure
+6:
+Current configuration:
+
+Repository path: /tmp/jfr-repo/2020_06_26_16_03_41_6
+
+Stack depth: 96
+Global buffer count: 20
+Global buffer size: 512.0 kB
+Thread buffer size: 8.0 kB
+Memory size: 10.0 MB
+Max chunk size: 12.0 MB
+Sample threads: true
+----
+
+.JFR.configure help
+[source, bash, role="secondary"]
+----
+$ jcmd $(pidof java) help JFR.configure
 80657:
 JFR.configure
 Configure JFR
@@ -140,145 +408,53 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 	samplethreads : [optional] Activate Thread sampling (BOOLEAN, true)
 ----
 
+Here I'm increasing the `stackdepth`, this might be useful to generate more accurate flamegraphs,
+or for some other analysis like with the `OldObjectSample`.
 
-./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc
-[source,xml]
-----
-<?xml version="1.0" encoding="UTF-8"?>
+The `repositorypath` is where JFR dumps regularly slices or chunks of jfr events, they have
+maximum size of `maxchunksize`. These files behave like a log rolling appender.
+By default these chunks are stored in the temporary directory and in a subfolder with a timestamp.
 
-<!--
-     Recommended way to edit .jfc files is to use Java Mission Control,
-     see Window -> Flight Recorder Template Manager.
--->
-
-<configuration version="2.0" label="Continuous" description="Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead." provider="Oracle">
-
-    <event name="jdk.ThreadAllocationStatistics">
-      <setting name="enabled">true</setting>
-      <setting name="period">everyChunk</setting>
-    </event>
-
-    <!-- a lot more event -->
-</configuration>
-----
-
-With the `default` settings, the dumped file takes around 15mb for a 5min duration. With
-this profile you'll get basic information on IO, GC events, simple method
-
-
-./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc
-[source, xml]
-----
-<!--
-     Recommended way to edit .jfc files is to use Java Mission Control,
-     see Window -> Flight Recorder Template Manager.
--->
-
-<configuration version="2.0" label="Profiling" description="Low overhead configuration for profiling, typically around 2 % overhead." provider="Oracle">
-
-    <event name="jdk.ThreadAllocationStatistics">
-      <setting name="enabled">true</setting>
-      <setting name="period">everyChunk</setting>
-    </event>
-
-    <!-- a lot more event -->
-</configuration>
-----
-
-With the `profile` settings, the dumped file takes around 35mb for a 5min duration.
-
-It's also possible to create our own settings file and pass the absolute file path to the `settings` option.
-
-
+.JFR repository
 [source, bash]
 ----
-$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.dump
-6:
-JFR.dump
-Copies contents of a JFR recording to file. Either the name or the recording id must be specified.
-
-Impact: Low
-
-Permission: java.lang.management.ManagementPermission(monitor)
-
-Syntax : JFR.dump [options]
-
-Options: (options must be specified using the <key> or <key>=<value> syntax)
-	name : [optional] Recording name, e.g. \"My Recording\" (STRING, no default value)
-	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
-	maxage : [optional] Maximum duration to dump, in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
-	maxsize : [optional] Maximum amount of bytes to dump, in (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
-	begin : [optional] Point in time to dump data from, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
-	end : [optional] Point in time to dump data to, e.g. 09:00, 21:35:00, 2018-06-03T18:12:56.827Z, 2018-06-03T20:13:46.832, -10m, -3h, or -1d (STRING, no default value)
-	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)
+$ ls -lah /tmp/jfr-repo/2020_06_26_16_03_41_6/
+total 71M
+drwxr-xr-x 2 43514 root 4.0K Jun 26 16:21 .
+drwxr-xr-x 3 43514 root 4.0K Jun 26 16:03 ..
+-rw-r--r-- 1 43514 root 2.4M Jun 26 16:04 2020_06_26_16_04_02.jfr
+-rw-r--r-- 1 43514 root 3.6M Jun 26 16:04 2020_06_26_16_04_12.jfr
+-rw-r--r-- 1 43514 root  18M Jun 26 16:10 2020_06_26_16_04_47.jfr
+-rw-r--r-- 1 43514 root 2.5M Jun 26 16:10 2020_06_26_16_10_18.jfr
+-rw-r--r-- 1 43514 root  19M Jun 26 16:16 2020_06_26_16_10_26.jfr
+-rw-r--r-- 1 43514 root  18M Jun 26 16:21 2020_06_26_16_16_16.jfr
+-rw-r--r-- 1 43514 root    0 Jun 26 16:21 2020_06_26_16_21_50.jfr
+-rw-r--r-- 1 43514 root 8.7M Jun 26 16:25 2020_06_26_16_21_50.part
 ----
 
-[source, bash]
-----
-env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) help JFR.check
-6:
-JFR.check
-Checks running JFR recording(s)
+_I'm not sure why some chunks are over 12M (the default chunk size) at this time._
 
-Impact: Low
+Careful however as some of these options are not well documented, and may not expose
+what we'd expect, e.g. `dumppath` only affects dump created when the app crashes and only
+if the `dumponexit` recording option is true.
 
-Permission: java.lang.management.ManagementPermission(monitor)
+NOTE: These options are also available at startup via `-XX:FlightRecorderOptions`,
+we'll see later how to use this option.
 
-Syntax : JFR.check [options]
-
-Options: (options must be specified using the <key> or <key>=<value> syntax)
-	name : [optional] Recording name, e.g. \"My Recording\" or omit to see all recordings (STRING, no default value)
-	verbose : [optional] Print event settings for the recording(s) (BOOLEAN, false)
-----
-
-So what we would like to do is
-
-[source, bash]
-----
-$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.start name=app-profile duration=300s filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr settings=profile
-6:
-Started recording 2. The result will be written to:
-
-/tmp/app-profile-2020-03-26T16-41-48.jfr
-----
-
-Check if there's any recording at this time, they can be several.
-
-[source, bash]
-----
-$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
-6:
-Recording 2: name=app-profile duration=5m (running)
-----
-
-Also it's possible to stop manually any recording
-
-[source, bash]
-----
-$ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.stop name=app-profile filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
-----
-
-
-Then get the file locally for analysis
-
-[source, bash]
-----
-kubectl cp app-pod-579664d4f7-7dxsq:/tmp/app-profile-2020-03-26T16-57-14.jfr ./app-profile-2020-03-26T16-57-14.jfr --container=app-container
-----
-
-== JDK Mission Control
-Then analyze the file in JDK Mission Control, (e.g. the one from `brew cask install jdk-mission-control`)
-
-
-It's also possible to get very qui information using the `jfr` command line tool
-(which is not always exported a symlink)
 
 == Analyze with `jfr`
+
+Now to exploit the recording, we have a tool named `jfr` that ships with the JDK.
+On Linux the _alternative_ jdk management may not be aware of `jfr`, which means
+you may need to use the full path to this executable.
+
+The first interesting thing to do is to get an overview of the recording,
+the `summary` sub-command displays an histogram of the events.
 
 .events type histogram (summary)
 [source, bash]
 ----
-$ /usr/lib/jvm/java-11-amazon-corretto/bin/jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
+$ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
 
  Version: 2.0
  Chunks: 1
@@ -427,8 +603,54 @@ $ /usr/lib/jvm/java-11-amazon-corretto/bin/jfr summary /tmp/app-profile-2020-03-
  jdk.TLSHandshake                          0             0
 ----
 
+But other interesting things could be done using this tool.
+The `print` subcomand can extract these events, like in json, from there
+it's possible to perform other type of aggregation.
 
-== Inspect with JDK Mission Control
+.extract data from using `jfr` and `jq`
+[source, bash]
+----
+$ jfr print \
+  --json \
+  --events jdk.ThreadPark \
+  /gclogs/startup.jfr \
+  | jq '.recording.events[] | .values.duration'
+----
+
+It's also possible to assemble `jfr` files or break them in smaller parts.
+By the way the files in the _repository_ can be exploited this way.
+Keep in mind these files may be removed as soon as they are expired or as
+soon as every recording stops.
+
+.summary on a chunk in the repository
+[source, bash]
+----
+$ jfr summary /tmp/jfr-repo/2020_06_26_16_03_41_6/2020_06_26_16_04_12.jfr
+Version: 2.0
+Chunks: 1
+Start: 2020-06-26 16:04:12 (UTC)
+Duration: 35 s
+
+ Event Type                            Count  Size (bytes)
+===========================================================
+ jdk.ThreadPark                        19853        918218
+ jdk.SocketRead                         6459        325796
+ jdk.JavaMonitorWait                    5581        200005
+ jdk.ClassLoaderStatistics              2620         81098
+...
+----
+
+Although `jfr` is a nice tool a which you can build upon, the next section
+presents the other elephant in the room (in a positive way), JDK Mission Control
+which empowers its user with remarkable diagnosis skills.
+
+== JDK Mission Control
+Then analyze the file in JDK Mission Control, (e.g. the one from `brew cask install jdk-mission-control`)
+
+
+It's also possible to get very qui information using the `jfr` command line tool
+(which is not always exported a symlink)
+
 
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8
 
