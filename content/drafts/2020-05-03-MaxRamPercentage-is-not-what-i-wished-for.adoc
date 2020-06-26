@@ -630,8 +630,9 @@ Each of these memory zones are managed differently: `GC`, `Compiler` have the
 same committed and reserved memory values while other zones have the ability to
 shrink or grow for example `thread stacks` zone reports
 `85455 KiB` but could be reduced to `696395 KiB` if necessary, the heap has theoretically the
-possibility to shrink as well, however I never saw that in practice, maybe in JDK 12 with
-https://openjdk.java.net/jeps/346[JEP-346].
+possibility to shrink as well ; however I never saw that in practice, maybe in JDK 12 with
+https://openjdk.java.net/jeps/346[JEP-346], alhough even the JEP mention if there is very low
+activity, which is improbable on this workload.
 
 . While the JVM did allocate this memory, Linux on x86 hardware uses virtual
 memory with paging. More specifically Linux optimizes actual physical memory
@@ -849,7 +850,7 @@ Now let's test this locally.
 
 === Run the container locally with the Java app
 
-In this local test serie, I'm using 3GB as a memory limit and I chose 70% for the heap percengtage.
+In this local test series, I'm using `3 GiB` as a memory limit and I chose 70% for the heap percentage.
 
 .*Without* `JDK_JAVA_OPTIONS`
 [source,role="primary"]
@@ -879,27 +880,11 @@ Then we can make sure we have the correct flags.
 ----
 ❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
 6:
--XX:CICompilerCount=3
--XX:ConcGCThreads=1
--XX:G1ConcRefinementThreads=4
--XX:G1HeapRegionSize=1048576
--XX:GCDrainStackTargetSize=64
--XX:InitialHeapSize=50331648
--XX:MarkStackSize=4194304
+...
 -XX:MaxHeapSize=805306368 <1>
 -XX:MaxNewSize=482344960
 -XX:MinHeapDeltaBytes=1048576
--XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5830732
--XX:NonProfiledCodeHeapSize=122913754
--XX:ProfiledCodeHeapSize=122913754
--XX:ReservedCodeCacheSize=251658240
--XX:+SegmentedCodeCache
--XX:+UseCompressedClassPointers
--XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps
--XX:+UseG1GC
-
+...
 ----
 <1> Max heap is about `768 MiB`
 
@@ -908,37 +893,21 @@ Then we can make sure we have the correct flags.
 ----
 ❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
 6:
--XX:CICompilerCount=3
--XX:ConcGCThreads=1
--XX:G1ConcRefinementThreads=4
--XX:G1HeapRegionSize=1048576
--XX:GCDrainStackTargetSize=64
+...
 -XX:InitialHeapSize=2256535552
 -XX:InitialRAMPercentage=70.000000
 -XX:MarkStackSize=4194304
 -XX:MaxHeapSize=2256535552 <1>
 -XX:MaxNewSize=1353711616
 -XX:MaxRAMPercentage=70.000000
--XX:MinHeapDeltaBytes=1048576
--XX:NativeMemoryTracking=summary
--XX:NonNMethodCodeHeapSize=5830732
--XX:NonProfiledCodeHeapSize=122913754
--XX:ProfiledCodeHeapSize=122913754
--XX:ReservedCodeCacheSize=251658240
--XX:+SegmentedCodeCache
--XX:+UseCompressedClassPointers
--XX:+UseCompressedOops
--XX:+UseFastUnorderedTimeStamps
--XX:+UseG1GC
-
+...
 ----
 <1> Max heap is about `2.1 GiB`
 
 
 Notice when there's no RAM settings the JVM computed the max heap size at 25%
-of memory constraints `3 GiB`. And at 80%, `2.1 GiB`, of the same limit when
-passing the RAM percentages. Also, the heap values are the only one affected,
-other memory areas default values kept the same values.
+of `3 GiB` memory limit, and at 70% the jvm uses `2.1 GiB`. Also, the heap values
+are the only one affected.
 
 
 == Going further
