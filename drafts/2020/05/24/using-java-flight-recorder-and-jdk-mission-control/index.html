@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 48 min read
+    <i class="fas fa-clock"></i> 50 min read
 
     
     
@@ -277,19 +277,6 @@ FlightRecorder, this is not anymore necessary with Java 11.</p>
 This page assumes JDK 11, that means there is no need to set
 <code>-XX:+UnlockCommercialFeatures</code>, <code>-XX:+FlightRecorder</code> flags. Or more particular to JFR
  the use of <code>-XX:+UnlockDiagnosticVMOptions</code> and <code>-XX:+DebugNonSafepoints</code> <a href="https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60">source</a>
-</td>
-</tr>
-</table>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-Also this article uses a lot the <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
-environment variable.
 </td>
 </tr>
 </table>
@@ -726,6 +713,61 @@ we&#8217;ll see later how to use this option.
 </table>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_memory_usage_in_the_process"><a class="anchor" href="#_memory_usage_in_the_process"></a><a class="link" href="#_memory_usage_in_the_process">Memory usage in the process</a></h3>
+<div class="paragraph">
+<p>The section above describes where the actual data is saved for long or large
+(<code>duration</code>, <code>maxage</code>, <code>maxsize</code>) profiling sessions, e.g. the reposotory, on disk,
+will grow within these constraints. JFR is safe to enable in prod but there&#8217;s an
+overhead in memory as well, although it&#8217;s usually minimal compared to the heap
+or other native memory sections, but it&#8217;s worth mentioning.</p>
+</div>
+<div class="paragraph">
+<p>If NMT is enabled, you can just display the summary:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ jcmd $(pidof java) VM.native_memory
+6:
+
+Native Memory Tracking:
+
+Total: reserved=5324939KB, committed=3600539KB
+-                 Java Heap (reserved=2793472KB, committed=2793472KB)
+                            (mmap: reserved=2793472KB, committed=2793472KB)
+
+...
+
+-                   Tracing (reserved=75866KB, committed=75866KB) <i class="conum" data-value="1"></i><b>(1)</b>
+                            (malloc=75866KB #85438)
+
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>JFR&#8217;s <code>Tracing</code> memory zone uses ~74MB</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>This was taken on a very active application, with custom events, you mileage
+may vary.</p>
+</div>
+<div class="paragraph">
+<p>The next output shows the committed memory for tracing, <strong>after</strong> a 6 min recording,
+which means JFR will keep a memory zone any. That is the minimal JFR footprint
+I experienced.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-                   Tracing (reserved=21041KB, committed=21041KB)
+                            (malloc=21041KB #2783)</code></pre>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -931,75 +973,153 @@ Duration: 35 s
 ...</code></pre>
 </div>
 </div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_controlling_jfr_programmatically"><a class="anchor" href="#_controlling_jfr_programmatically"></a><a class="link" href="#_controlling_jfr_programmatically">Controlling JFR programmatically</a></h2>
+<div class="sectionbody">
 <div class="paragraph">
-<p>Although <code>jfr</code> is a nice tool a which you can build upon, the next section
-presents the other elephant in the room (in a positive way), JDK Mission Control
-which empowers its user with remarkable diagnosis skills.</p>
+<p>While JDK 14 allows consuming events on the fly, previous JDK versions (from JDK 11)
+offer a public API useful enough to control Flight Recorder programmatically or to
+read events from a JFR file.</p>
+</div>
+<div class="listingblock">
+<div class="title">Start JFR programmatically</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">Configuration c = Configuration.getConfiguration("profile"); <i class="conum" data-value="1"></i><b>(1)</b>
+Recording r = new Recording(c);
+r.setName("monitor jvm");
+r.enable("jdk.*"); <i class="conum" data-value="2"></i><b>(2)</b>
+r.setMaxAge(java.time.Duration.ofMinutes(4)); <i class="conum" data-value="3"></i><b>(3)</b>
+r.start(); <i class="conum" data-value="4"></i><b>(4)</b>
+
+// to be profiled
+
+r.stop(); <i class="conum" data-value="5"></i><b>(5)</b>
+r.dump(Files.createFile("/var/jfr/app-initiated.jfr")); <i class="conum" data-value="6"></i><b>(6)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>As shown above choose the JFR configuration.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Choose which events the recording should be interested in. Another signature accepts classes,
+it&#8217;s unlikely to be helpful for JDK events, but it may get interesting for custom events, your classes.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Eventually set recording constraints, like the maximum age of the records.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Hit record</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>When the recording session is over, stop JFR.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Then store the results in the location of your choosing.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The above snippet creates a continuous profiling session with a 4 minute window.
+Now the API allows to read emiited <code>.jfr</code> files. The API represents what&#8217;s actually
+in a file, a schema of the events and the events themselves.</p>
+</div>
+<div class="listingblock">
+<div class="title">Read JFR files yourself</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">try(RecordingFile rf = new RecordingFile(Paths.get("/var/jfr/app-initiated.jfr"))( { <i class="conum" data-value="1"></i><b>(1)</b>
+    // read the schema
+    rf.readEventTypes().forEach((EventType et) -&gt; { <i class="conum" data-value="2"></i><b>(2)</b>
+        System.out.println(et.getName());
+        et.getFields()
+          .stream()
+          .map((ValueDescriptor vd) -&gt; vd.getName())
+          .forEach(System.out::println);
+    });
+
+    // actual events
+    for(jdk.jfr.consumer.RecordedEvent e = rf.readEvent(); rf.hasMoreEvents(); e = rf.readEvent()) { <i class="conum" data-value="3"></i><b>(3)</b>
+        System.out.println(e.getEventType().getName()); <i class="conum" data-value="4"></i><b>(4)</b>
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Open the JFR file, it&#8217;s a <code>Closeable</code> and it reads a file, so be sure to use
+it in a try-with-resources block.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>readEventTypes()</code> gets you the schema of the events, fields name, labels, thresholds, etc.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Then there&#8217;s this weird enumeration style api to read the events <code>hasMoreEvents()</code> and <code>readEvent()</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Access details on the event type.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>RecordingFile</code> api is a bit akward to work with, more specifically parsing each events
+requires to look at the event descriptor (via <code>getEventType()</code>, or getFileds()), and interrogate
+the event as fields presence may evolve with each JDK revision. The javadoc advises to
+program defensively on that regard :</p>
+</div>
+<div class="listingblock">
+<div class="title">snippet form javadoc</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">if (event.hasField("intValue")) {
+   int intValue = event.getValue("intValue");
+   System.out.println("Int value: " + intValue);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This API is complemented by streaming live events in JDK 14, but that&#8217;s out of scope
+for this article.</p>
+</div>
+<div class="paragraph">
+<p>While such facilities are useful especially as custom Spring Actuators. When there are
+not around or they are just too late the most actionable way to get recording is from
+the command line.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_jdk_mission_control"><a class="anchor" href="#_jdk_mission_control"></a><a class="link" href="#_jdk_mission_control">JDK Mission Control</a></h2>
+<h2 id="_how_and_what_to_profile_in_production"><a class="anchor" href="#_how_and_what_to_profile_in_production"></a><a class="link" href="#_how_and_what_to_profile_in_production">How and what to profile in production</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Then analyze the file in JDK Mission Control, (e.g. the one from <code>brew cask install jdk-mission-control</code>)</p>
+<p>The next items will present command line flags to setup JFR.</p>
 </div>
-<div class="paragraph">
-<p>It&#8217;s also possible to get very qui information using the <code>jfr</code> command line tool
-(which is not always exported a symlink)</p>
-</div>
-<div class="paragraph">
-<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8</a></p>
-</div>
-<div class="sect2">
-<h3 id="_memory_leaks"><a class="anchor" href="#_memory_leaks"></a><a class="link" href="#_memory_leaks">Memory LEaks</a></h3>
-<div class="paragraph">
-<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75</a></p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_performance_issues"><a class="anchor" href="#_performance_issues"></a><a class="link" href="#_performance_issues">Performance Issues</a></h3>
-<div class="paragraph">
-<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-performance-issues-using-jfr.html#GUID-0FE29092-18B5-4BEB-8D8D-0CBA7A4FEA1D" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-performance-issues-using-jfr.html#GUID-0FE29092-18B5-4BEB-8D8D-0CBA7A4FEA1D</a></p>
-</div>
-<div class="paragraph">
-<p>Finding the options</p>
-</div>
-<div class="paragraph">
-<p>Un practical to have meaningful help from the usual
-<code>java -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+PrintFlagsFinal -version</code>, I found that
-using <code>jcmd</code> to be quite useful to help me pass arguments to <code>-XX:StartFlightRecording</code>.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd 90091 VM.version
-90091:
-OpenJDK 64-Bit Server VM version 11.0.7+10-LTS
-JDK 11.0.7
-❯ jcmd 90091 help JFR.start
-90091:
-JFR.start
-Starts a new JFR recording
-
-Impact: Medium: Depending on the settings for a recording, the impact can range from low to high.
-
-Permission: java.lang.management.ManagementPermission(monitor)
-
-Syntax : JFR.start [options]
-
-Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;value&gt; syntax)
-       name : [optional] Name that can be used to identify recording, e.g. \"My Recording\" (STRING, no default value)
-       settings : [optional] Settings file(s), e.g. profile or default. See JRE_HOME/lib/jfr (STRING SET, no default value)
-       delay : [optional] Delay recording start with (s)econds, (m)inutes), (h)ours), or (d)ays, e.g. 5h. (NANOTIME, 0)
-       duration : [optional] Duration of recording in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 300s. (NANOTIME, 0)
-       disk : [optional] Recording should be persisted to disk (BOOLEAN, no default value)
-       filename : [optional] Resulting recording filename, e.g. \"/Users/user/My Recording.jfr\" (STRING, no default value)
-       maxage : [optional] Maximum time to keep recorded data (on disk) in (s)econds, (m)inutes, (h)ours, or (d)ays, e.g. 60m, or 0 for no limit (NANOTIME, 0)
-       maxsize : [optional] Maximum amount of bytes to keep (on disk) in (k)B, (M)B or (G)B, e.g. 500M, or 0 for no limit (MEMORY SIZE, 0)
-       dumponexit : [optional] Dump running recording when JVM shuts down (BOOLEAN, no default value)
-       path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)</code></pre>
-</div>
-</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+On JDK 11 there is the <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
+environment variable. I found this variable particularly useful to tweak JVM parameters
+in a containerized environment without having to rebuild the image. This environment variable
+only affects <code>java</code> while JAVA_TOOL_OPTIONS affects any binary in the JDK <code>java</code>, <code>jps</code>, <code>jcmd</code>, etc.
+</td>
+</tr>
+</table>
 </div>
 <div class="sect2">
 <h3 id="_profile_startup"><a class="anchor" href="#_profile_startup"></a><a class="link" href="#_profile_startup">Profile startup</a></h3>
@@ -1012,10 +1132,10 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 <div class="listingblock">
 <div class="title">In the container, checking JFR</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd $(pgrep java) JFR.check
 6:
 Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="1"></i><b>(1)</b>
-❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+❯ jcmd $(pgrep java) JFR.check
 6:
 No available recordings.
 
@@ -1048,13 +1168,13 @@ Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="2"></i><
 <div class="listingblock">
 <div class="title">In the container, checking JFR</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd $(pgrep java) JFR.check
 6:
 Recording 1: name=post-startup duration=60s (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
-❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+❯ jcmd $(pgrep java) JFR.check
 6:
 Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="2"></i><b>(2)</b>
-❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+❯ jcmd $(pgrep java) JFR.check
 6:
 No available recordings.
 
@@ -1098,13 +1218,13 @@ unless the maxsize option is set the default is <code>maxsize=250MB</code>.</p>
 <div class="listingblock">
 <div class="title">In the container, checking JFR</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd $(pgrep java) JFR.check
 6:
 Recording 1: name=post-startup duration=60s (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
-❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+❯ jcmd $(pgrep java) JFR.check
 6:
 Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="2"></i><b>(2)</b>
-❯ env --unset JAVA_TOOL_OPTIONS jcmd $(pgrep java) JFR.check
+❯ jcmd $(pgrep java) JFR.check
 6:
 No available recordings.
 
@@ -1138,6 +1258,46 @@ Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="3"></i><
 <pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=duration=30s,settings=profile,name=app-startup,filename=app-startup.jfr \
 -XX:StartFlightRecording=delay=31s,maxsize=100mb,settings=profile,name=continuous,filename=continuous.jfr</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Although <code>jfr</code> is a nice tool a which you can build upon, the next section
+briefly presents the other elephant in the room (in a positive way), JDK Mission Control
+which empowers its user with remarkable diagnosis skills.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_jdk_mission_control"><a class="anchor" href="#_jdk_mission_control"></a><a class="link" href="#_jdk_mission_control">JDK Mission Control</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>JDK Mission Control, is the tool that will make sense of all these events.</p>
+</div>
+<div class="paragraph">
+<p>In an event sourcing system, the query part of the system is what empowers the view,
+JDK Mission Control uses these events to present several consolidated views tailored
+to diagnose several part of the JVM runtime, and more if using <em>custom events</em>.</p>
+</div>
+<div class="paragraph">
+<p>On macOs you can install it via Homebrew (brew cask install jdk-mission-control`).</p>
+</div>
+<div class="paragraph">
+<p>As mentioned earlier Mission Control was present before in the JDK, however it&#8217;s
+user interface evolved quite a bunch. Concretely following the official
+<a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8">Oracle troubleshooting guide for Java 11</a>
+to learn how to inspect a recording you may be a bit lost.</p>
+</div>
+<div class="paragraph">
+<p>At this time the JDK Mission Control 7.1 is available, and the 8 snapshot are also
+available for the edge users. I&#8217;m using the 8 snapshots but the 7.1 does the job very fine.</p>
+</div>
+<div class="paragraph">
+<p>Enough text, let&#8217;s see how to use JDK Mission Control on a concrete issue.</p>
+</div>
+<div class="sect2">
+<h3 id="_memory_leaks"><a class="anchor" href="#_memory_leaks"></a><a class="link" href="#_memory_leaks">Memory Leaks</a></h3>
+<div class="paragraph">
+<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75</a></p>
 </div>
 </div>
 <div class="sect2">
@@ -1292,92 +1452,8 @@ and manage them with the "<em>template manager</em>"</p>
 </div>
 </div>
 <div class="paragraph">
-<p>env --unset JAVA_TOOL_OPTIONS jcmd $(pidof java) JFR.start name=app-profile path-to-gc-roots=true maxsize=200mb settings=profile name=continuous-profile stackdepth=128 disk=true dumponexit=true filename=/gclogs/app-profile-$(date +%FT%H-%M-%S).jfr
-env --unset JAVA_TOOL_OPTIONS jcmd $(pidof java) JFR.dump filename=/gclogs/hotspot-pid-6-2020_05_28_11_13_52.jfr</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ env --unset JAVA_TOOL_OPTIONS jcmd $(pidof java) VM.native_memory
-6:
-
-Native Memory Tracking:
-
-Total: reserved=5324939KB, committed=3600539KB
--                 Java Heap (reserved=2793472KB, committed=2793472KB)
-                            (mmap: reserved=2793472KB, committed=2793472KB)
-
--                     Class (reserved=1202747KB, committed=174583KB)
-                            (classes #30836)
-                            (  instance classes #28978, array classes #1858)
-                            (malloc=6715KB #103633)
-                            (mmap: reserved=1196032KB, committed=167868KB)
-                            (  Metadata:   )
-                            (    reserved=147456KB, committed=145988KB)
-                            (    used=141426KB)
-                            (    free=4562KB)
-                            (    waste=0KB =0.00%)
-                            (  Class space:)
-                            (    reserved=1048576KB, committed=21880KB)
-                            (    used=19330KB)
-                            (    free=2550KB)
-                            (    waste=0KB =0.00%)
-
--                    Thread (reserved=636185KB, committed=93205KB)
-                            (thread #616)
-                            (stack: reserved=633176KB, committed=90196KB)
-                            (malloc=2222KB #3697)
-                            (arena=787KB #1231)
-
--                      Code (reserved=255120KB, committed=101864KB)
-                            (malloc=7432KB #29664)
-                            (mmap: reserved=247688KB, committed=94432KB)
-
--                        GC (reserved=166886KB, committed=166886KB)
-                            (malloc=29750KB #67554)
-                            (mmap: reserved=137136KB, committed=137136KB)
-
--                  Compiler (reserved=4913KB, committed=4913KB)
-                            (malloc=4847KB #2888)
-                            (arena=66KB #5)
-
--                  Internal (reserved=9799KB, committed=9799KB)
-                            (malloc=9799KB #16775)
-
--                     Other (reserved=135800KB, committed=135800KB)
-                            (malloc=135800KB #552)
-
--                    Symbol (reserved=30719KB, committed=30719KB)
-                            (malloc=25916KB #330226)
-                            (arena=4803KB #1)
-
--    Native Memory Tracking (reserved=10409KB, committed=10409KB)
-                            (malloc=108KB #1385)
-                            (tracking overhead=10300KB)
-
--               Arena Chunk (reserved=217KB, committed=217KB)
-                            (malloc=217KB)
-
--                   Tracing (reserved=75866KB, committed=75866KB)
-                            (malloc=75866KB #85438)
-
--                   Logging (reserved=7KB, committed=7KB)
-                            (malloc=7KB #269)
-
--                 Arguments (reserved=18KB, committed=18KB)
-                            (malloc=18KB #507)
-
--                    Module (reserved=1856KB, committed=1856KB)
-                            (malloc=1856KB #7920)
-
--              Synchronizer (reserved=885KB, committed=885KB)
-                            (malloc=885KB #7308)
-
--                 Safepoint (reserved=8KB, committed=8KB)
-                            (mmap: reserved=8KB, committed=8KB)
-
--                   Unknown (reserved=32KB, committed=32KB)
-                            (mmap: reserved=32KB, committed=32KB)</code></pre>
-</div>
+<p>jcmd $(pidof java) JFR.start name=app-profile path-to-gc-roots=true maxsize=200mb settings=profile name=continuous-profile stackdepth=128 disk=true dumponexit=true filename=/gclogs/app-profile-$(date +%FT%H-%M-%S).jfr
+jcmd $(pidof java) JFR.dump filename=/gclogs/hotspot-pid-6-2020_05_28_11_13_52.jfr</p>
 </div>
 </div>
 </div>
@@ -1414,28 +1490,6 @@ Total: reserved=5324939KB, committed=3600539KB
 <span class="image"><img src="/assets/jfr/startup-9-gc-pause-1.png" alt="startup 9 gc pause 1"></span>
 <span class="image"><img src="/assets/jfr/startup-9-gc-pause-2.png" alt="startup 9 gc pause 2"></span>
 <span class="image"><img src="/assets/jfr/startup-9-thread-lanes-gc-pauses-effect.png" alt="startup 9 thread lanes gc pauses effect"></span></p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_controlling_jfr_programmatically"><a class="anchor" href="#_controlling_jfr_programmatically"></a><a class="link" href="#_controlling_jfr_programmatically">Controlling JFR programmatically</a></h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>While JDK 14 allows to consume events on the fly, previous JDK versions (from JDK 11)
-offer a public API to control Flight Recorder programmatically.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">Configuration c = Configuration.getConfiguration("profile");
-Recording r = new Recording(c);
-r.setName("contunuous jaxrs");
-r.enable(JaxRsIncovation.class);
-r.setMaxAge(Duration.of(...));
-r.start();
-...
-r.stop();
-r.dump(Files.createTempFile("my-jaxrs", ".jfr"));</code></pre>
-</div>
 </div>
 </div>
 </div>
