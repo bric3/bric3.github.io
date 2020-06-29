@@ -80,6 +80,8 @@ https://martinfowler.com/eaaDev/EventSourcing.html[_Event Sourcing_] system.
 .JFR big picture
 image::../../static/assets/jfr/java-flight-recorder-big-picture.svg[align="center"]
 
+// TODO updates diagram as slightly incorrect regarding circular buffer
+// source https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#JFRUH172
 
 === How to start a recording ?
 
@@ -523,19 +525,7 @@ $ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
  jdk.ExceptionStatistics                 298          6258
  jdk.ActiveSetting                       285         10497
  jdk.BiasedLockRevocation                275          7831
- jdk.NativeLibrary                       252         18564
- jdk.LongFlag                            229          8875
- jdk.UnsignedLongFlag                    182          7168
- jdk.InitialEnvironmentVariable          167         10243
- jdk.NetworkUtilization                  120          2640
- jdk.TenuringDistribution                 75          1437
- jdk.ThreadContextSwitchRate              30           510
- jdk.ThreadSleep                          29           696
- jdk.StringFlag                           26           880
- jdk.GCPhasePauseLevel2                   25          1080
- jdk.InitialSystemProperty                23          1316
- jdk.MetaspaceChunkFreeListSummary        20           520
- jdk.GCReferenceStatistics                20           350
+...
  jdk.GCPhasePauseLevel1                   20           965
  jdk.CheckPoint                           17       1631868
  jdk.ExecuteVMOperation                   15           391
@@ -545,20 +535,7 @@ $ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
  jdk.MetaspaceSummary                     10           580
  jdk.G1HeapSummary                        10           300
  jdk.OldObjectSample                      10           367
- jdk.UnsignedIntFlag                       8           300
- jdk.CodeCacheStatistics                   6           232
- jdk.ThreadStart                           6           102
- jdk.GarbageCollection                     5           145
- jdk.YoungGarbageCollection                5           100
- jdk.G1GarbageCollection                   5           100
- jdk.G1MMU                                 5           100
- jdk.EvacuationInformation                 5           185
- jdk.G1EvacuationYoungStatistics           5           160
- jdk.G1EvacuationOldStatistics             5           152
- jdk.G1BasicIHOP                           5           243
- jdk.G1AdaptiveIHOP                        5           240
- jdk.GCPhasePause                          5           150
- jdk.IntFlag                               3           107
+...
  jdk.BiasedLockSelfRevocation              2            45
  jdk.PhysicalMemory                        2            46
  jdk.ThreadDump                            2       1389568
@@ -575,79 +552,14 @@ $ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
  jdk.CPUTimeStampCounter                   1            25
  jdk.CompilerConfiguration                 1            15
  jdk.CodeCacheConfiguration                1            51
- jdk.CodeSweeperConfiguration              1            15
- jdk.GCSurvivorConfiguration               1            15
- jdk.GCTLABConfiguration                   1            17
- jdk.GCHeapConfiguration                   1            31
- jdk.YoungGenerationConfiguration          1            22
- jdk.ActiveRecording                       1            87
- jdk.JavaMonitorInflate                    0             0
- jdk.ReservedStackActivation               0             0
- jdk.ClassLoad                             0             0
- jdk.ClassDefine                           0             0
- jdk.ClassUnload                           0             0
- jdk.IntFlagChanged                        0             0
- jdk.UnsignedIntFlagChanged                0             0
- jdk.LongFlagChanged                       0             0
- jdk.UnsignedLongFlagChanged               0             0
- jdk.DoubleFlagChanged                     0             0
- jdk.BooleanFlagChanged                    0             0
- jdk.StringFlagChanged                     0             0
- jdk.MetaspaceGCThreshold                  0             0
- jdk.MetaspaceAllocationFailure            0             0
- jdk.MetaspaceOOM                          0             0
- jdk.PSHeapSummary                         0             0
- jdk.ParallelOldGarbageCollection          0             0
- jdk.OldGarbageCollection                  0             0
- jdk.ObjectCountAfterGC                    0             0
- jdk.PromoteObjectInNewPLAB                0             0
- jdk.PromoteObjectOutsidePLAB              0             0
- jdk.PromotionFailed                       0             0
- jdk.EvacuationFailed                      0             0
- jdk.ConcurrentModeFailure                 0             0
- jdk.GCPhasePauseLevel3                    0             0
- jdk.GCPhasePauseLevel4                    0             0
- jdk.GCPhaseConcurrent                     0             0
- jdk.AllocationRequiringGC                 0             0
- jdk.G1HeapRegionTypeChange                0             0
- jdk.Compilation                           0             0
- jdk.CompilerPhase                         0             0
- jdk.CompilationFailure                    0             0
- jdk.CompilerInlining                      0             0
- jdk.SweepCodeCache                        0             0
- jdk.CodeCacheFull                         0             0
- jdk.SafepointStateSynchronization         0             0
- jdk.SafepointWaitBlocked                  0             0
- jdk.SafepointCleanup                      0             0
- jdk.SafepointCleanupTask                  0             0
- jdk.SafepointEnd                          0             0
- jdk.Shutdown                              0             0
- jdk.ObjectAllocationInNewTLAB             0             0
- jdk.ObjectAllocationOutsideTLAB           0             0
- jdk.DumpReason                            0             0
- jdk.DataLoss                              0             0
- jdk.SystemProcess                         0             0
- jdk.X509Validation                        0             0
- jdk.ObjectCount                           0             0
- jdk.G1HeapRegionInformation               0             0
- jdk.ZPageAllocation                       0             0
- jdk.ZThreadPhase                          0             0
- jdk.ZStatisticsCounter                    0             0
- jdk.ZStatisticsSampler                    0             0
- jdk.FileForce                             0             0
- jdk.FileRead                              0             0
- jdk.FileWrite                             0             0
- jdk.SocketWrite                           0             0
- jdk.JavaExceptionThrow                    0             0
- jdk.JavaErrorThrow                        0             0
- jdk.SecurityPropertyModification          0             0
+...
  jdk.X509Certificate                       0             0
  jdk.TLSHandshake                          0             0
 ----
 
 But other interesting things could be done using this tool.
-The `print` subcomand can extract these events, like in json, from there
-it's possible to perform other type of aggregation.
+The `print` sub-command can extract these events, in XML or in JSON. From there
+it's possible to perform other type of aggregation using other tools.
 
 .extract data from using `jfr` and `jq`
 [source, bash]
@@ -660,7 +572,7 @@ $ jfr print \
 ----
 
 It's also possible to assemble `jfr` files or break them in smaller parts.
-By the way the files in the _repository_ can be exploited this way.
+As a side note, the files in the _repository_ can be exploited this way.
 Keep in mind these files may be removed as soon as they are expired or as
 soon as every recording stops.
 
@@ -703,7 +615,7 @@ r.start(); // <4>
 // to be profiled
 
 r.stop(); // <5>
-r.dump(Files.createFile("/var/jfr/app-initiated.jfr")); // <6>
+r.dump(Files.createFile("/var/log/jfr/app-initiated.jfr")); // <6>
 ----
 <1> As shown above choose the JFR configuration.
 <2> Choose which events the recording should be interested in. Another signature accepts classes,
@@ -714,13 +626,13 @@ it's unlikely to be helpful for JDK events, but it may get interesting for custo
 <6> Then store the results in the location of your choosing.
 
 The above snippet creates a continuous profiling session with a 4 minute window.
-Now the API allows to read emiited `.jfr` files. The API represents what's actually
+Now the API allows reading emitted `.jfr` files. The API represents what's actually
 in a file, a schema of the events and the events themselves.
 
 .Read JFR files yourself
 [source, java]
 ----
-try(RecordingFile rf = new RecordingFile(Paths.get("/var/jfr/app-initiated.jfr"))( { // <1>
+try(RecordingFile rf = new RecordingFile(Paths.get("/var/log/jfr/app-initiated.jfr"))( { // <1>
     // read the schema
     rf.readEventTypes().forEach((EventType et) -> { // <2>
         System.out.println(et.getName());
@@ -742,10 +654,10 @@ it in a try-with-resources block.
 <3> Then there's this weird enumeration style api to read the events `hasMoreEvents()` and `readEvent()`
 <4> Access details on the event type.
 
-`RecordingFile` api is a bit akward to work with, more specifically parsing each events
-requires to look at the event descriptor (via `getEventType()`, or getFileds()), and interrogate
-the event as fields presence may evolve with each JDK revision. The javadoc advises to
-program defensively on that regard :
+`RecordingFile` api is a bit awkward to work with, more specifically parsing each event
+requires looking at the event descriptor (via `getEventType()`, or getFields()), and interrogate
+the event as fields presence may evolve with each JDK revision. The javadoc advises defensive
+programming style when reading a JFR file :
 
 .snippet form javadoc
 [source, java]
@@ -756,17 +668,18 @@ if (event.hasField("intValue")) {
 }
 ----
 
-This API is complemented by streaming live events in JDK 14, but that's out of scope
-for this article.
+This API is now complemented by streaming live events https://openjdk.java.net/jeps/349[JEP-349]
+in JDK 14 using an API `RecordingStream` that is mix of the above, that's out of scope for
+this article. But that's yet another reason to make the effort to upgrade our JDK.
 
-While such facilities are useful especially as custom Spring Actuators. When there are
-not around or they are just too late the most actionable way to get recording is from
-the command line.
+Such API facilities are useful especially when combined with other technologies like Spring Actuators.
+Yet when there's available integration or when using these integrations is too late, like recording startup
+the most actionable way to get recording is from the command line.
 
 
-== How and what to profile in production
+== How and when to record in production
 
-The next items will present command line flags to setup JFR.
+The next points will present command line flags to set up JFR.
 
 
 TIP: On JDK 11 there is the https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
@@ -774,241 +687,128 @@ environment variable. I found this variable particularly useful to tweak JVM par
 in a containerized environment without having to rebuild the image. This environment variable
 only affects `java` while JAVA_TOOL_OPTIONS affects any binary in the JDK `java`, `jps`, `jcmd`, etc.
 
-// XXX
-// XXX
-// XXX
-// XXX
-// XXX
-// XXX
-// TODO READ https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-performance-issues-using-jfr.html#GUID-0FE29092-18B5-4BEB-8D8D-0CBA7A4FEA1D
+// More on https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-performance-issues-using-jfr.html#GUID-0FE29092-18B5-4BEB-8D8D-0CBA7A4FEA1D
 
 
+While it would certainly be useful to record the whole lifetime, this is unpractical, even plane
+Flight Data Recorder (and Cockpit Voice Recorder) only keep recent history. Instead,
+it's possible to aim at specific time frames where a recording could be useful:
 
-=== Profile startup
+* At *startup*, the JVM does a lot of things, so does the application, it generally initialize a lot
+of long lived objects, generally services, threads, etc.
 
-.Time bound profiling at JVM startup (https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65[source])
+* *Continuously* at *runtime*, this is likely a sliding time window in which one can access what's
+happened in last _X <time unit>_ (this is either limited by age or by size). It this case the dump
+could be done when required.
+
+* At *shutdown* whether the JVM was *killed* or *crashed*. It this case the JFR files are an alternative
+to heap dumps for the autopsy.
+
+=== Record application startup
+
+I mentioned startup as a separate window, because it's useful to inspect startup recording.
+During this time, the JVM intialize a lot of things, most code has yet to be warmed up,
+depending on the worload there may be a lot of allocations.
+
+I found that having these startup recording very useful to tune the readyness of an application, as we'll see after.
+
+
+.Time bound recording at JVM startup
 [source]
 ----
--XX:StartFlightRecording=settings=profile,delay=20s,duration=60s,name=app-startup,filename=/app-startup.jfr
+-XX:StartFlightRecording=settings=profile,duration=6m,name=app-startup,filename=/var/log/jfr/app-startup.jfr
 ----
+
+Eventually it's possible to tweak this recording with, other parameters like
+
+* `path-to-gc-roots=true`, which allows to identify leaks using the `OldObjectSample` (enabled in
+the `profile` settings)
+* `maxsize` to set a size threshold to the recording
+* `disk=false` if you want to keep the event in memory only before dumping to the configured `filename`.
+Otherwise the JVM will use it's default strategy which is to evacuate chunks of event to disk, in the JFR
+`repository` (by default a folder in the temporary folder).
+
+In addition to these recording parameter, it can be useful to set a few JFR wide options, i.e. that affects all
+recordings, e.g. `-XX:FlightRecorderOptions=stackdepth=96`, which augments the size of the _captured_ stack,
+be advised, that the bigger the number the higher the impact.
 
 .In the container, checking JFR
 [source]
 ----
 ❯ jcmd $(pgrep java) JFR.check
 6:
-Recording 1: name=app-startup duration=60s (running) <1>
+Recording 1: name=app-startup duration=6m (running) <1>
 ❯ jcmd $(pgrep java) JFR.check
 6:
-No available recordings.
+No available recordings. <2>
 
-Use jcmd 6 JFR.start to start a recording. <2>
-❯ ls -lah
--rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr
+Use jcmd 6 JFR.start to start a recording.
+❯ ls -lah /var/log/jfr/app-startup.jfr
+-rw-r--r--   1 root root 57M May  6 22:35 /var/log/jfr/app-startup.jfr
 ----
 <1> Indicates the configured 30s recording is ongoing.
 <2> No more recording once the duration is over.
 
-=== Profile post-startup
+I'll show how to use this recording later in this article.
 
-.Delayed and time bound profiling at JVM startup (https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65[source])
+
+=== Record application post-startup or continuous recording
+
+Once startup has been recording, it's useful to set up a continuous recording.
+The good thing is that the JVM allows to define multiple recording
+in the command line. Let's add another `-XX:StartFlightRecording`
+with the `delay` parameter.
+
+.Delayed continuous recording
 [source]
 ----
--XX:StartFlightRecording=settings=profile,delay=20s,duration=60s,name=post-startup,filename=/post-startup.jfr
+-XX:StartFlightRecording=settings=profile,delay=5m,maxage=10m,name=post-startup,filename=/var/log/jfr/post-startup.jfr
 ----
+
+This will register a continuous profiling that will start 5m after the JVM starts. And
+it sets a retention of 10 minutes, or a retention of the default maximum size which is `250 MiB` in JDK11.
+
+If this is the only recording, `JFR.check` will output something like that.
 
 .In the container, checking JFR
 [source]
 ----
 ❯ jcmd $(pgrep java) JFR.check
 6:
-Recording 1: name=post-startup duration=60s (delayed) <1>
+Recording 1: name=post-startup maxage=10m (delayed) <1>
 ❯ jcmd $(pgrep java) JFR.check
 6:
-Recording 1: name=app-startup duration=60s (running) <2>
-❯ jcmd $(pgrep java) JFR.check
-6:
-No available recordings.
-
-Use jcmd 6 JFR.start to start a recording. <3>
-❯ ls -lah
--rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr
+Recording 1: name=app-startup maxage=10m (running) <2>
 ----
 <1> Indicates there's a recording that will start at some point in the future.
-<2> Indicates the configured 30s recording is ongoing.
-<3> No more recording once the duration is over.
+<2> Indicates the configured continuous recording is ongoing.
+
+Note that in the case of the continuous recording it's necessary to dump the recording
+via `JFR.dump`.
 
 
-=== Continuous profiling
+=== Recording for shutdown
 
+The only thing to do is to set the recording parameter `dumponexit=true` (on each recording).
+The record will be stored in the configured `filename` otherwise JFR will create a file similar
+to this the working directory of the process `hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr`
 
-Started recording 1. No limit specified, using maxsize=250MB as default.
-
-
-.Delayed and time bound profiling at JVM startup (https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65[source])
-[source]
-----
--XX:StartFlightRecording=settings=profile,delay=20s,maxage=30s,name=post-startup,filename=post-startup.jfr
-----
-
-This would create a rolling buffer of 30 seconds duration. There is no stipulation on how big this file could get,
-unless the maxsize option is set the default is `maxsize=250MB`.
-
-.In the container, checking JFR
-[source]
-----
-❯ jcmd $(pgrep java) JFR.check
-6:
-Recording 1: name=post-startup duration=60s (delayed) <1>
-❯ jcmd $(pgrep java) JFR.check
-6:
-Recording 1: name=app-startup duration=60s (running) <2>
-❯ jcmd $(pgrep java) JFR.check
-6:
-No available recordings.
-
-Use jcmd 6 JFR.start to start a recording. <3>
-❯ ls -lah
--rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr
-----
-<1> Indicates there's a recording that will start at some point in the future.
-<2> Indicates the configured 30s recording is ongoing.
-<3> No more recording once the duration is over.
-
-=== Profiling the startup then profile continuously
-
-.Start to recording
-[source]
-----
--XX:StartFlightRecording=duration=30s,settings=profile,name=app-startup,filename=app-startup.jfr \
--XX:StartFlightRecording=delay=31s,maxsize=100mb,settings=profile,name=continuous,filename=continuous.jfr
-----
-
-
-
-
-
-
-
-Although `jfr` is a nice tool a which you can build upon, the next section
-briefly presents the other elephant in the room (in a positive way), JDK Mission Control
-which empowers its user with remarkable diagnosis skills.
-
-
-
-
-
-== JDK Mission Control
-
-JDK Mission Control, is the tool that will make sense of all these events.
-
-In an event sourcing system, the query part of the system is what empowers the view,
-JDK Mission Control uses these events to present several consolidated views tailored
-to diagnose several part of the JVM runtime, and more if using _custom events_.
-
-On macOs you can install it via Homebrew (brew cask install jdk-mission-control`).
-
-As mentioned earlier Mission Control was present before in the JDK, however it's
-user interface evolved quite a bunch. Concretely following the official
-https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8[Oracle troubleshooting guide for Java 11]
-to learn how to inspect a recording you may be a bit lost.
-
-At this time the JDK Mission Control 7.1 is available, and the 8 snapshot are also
-available for the edge users. I'm using the 8 snapshots but the 7.1 does the job very fine.
-
-
-Enough text, let's see how to use JDK Mission Control on a concrete issue.
-
-
-=== Memory Leaks
-
-https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75
-
-
-=== Notes from JMC
-
-// TODO help page from jdk mission control (JMC) ?
-
-> Could not find a usable recording running in the JVM! You can get an automatically started
-> continuous flight recording by using the JVM option `-XX:FlightRecorderOptions=defaultrecording=true`
-> (also requires the options `-XX:+UnlockCommercialFeatures` `-XX:+FlightRecorder`).
-
-// TODO commercial options not anymore
-
-.JMC Help - § Managing Flight Recording Templates
+[NOTE]
 ====
-1. Right-click a JVM in the JVM Browser and select Start Flight Recording
-2. Click Template Manager in the Start Flight Recording Wizard.
-JFR includes two pre-configured server-side recording templates:
+The JVM source code, suggest that JFR has the notion of
+https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/jfr/recorder/repository/jfrEmergencyDump.cpp#L250[emergency JFR dump],
+but the mechanism is different as it seems those are dumped in the
+working directory of the process, which may not be writable in a container. I don't
+think it's currently possible to change the location. But
+from what I've seen SOE or OOM are dumped fine via `dumponexit=true` and `filename=...`.
 
-** Continuous: A pre-configured template for continuous use in production environments with less than one percent overhead. This template is used for the default recording
-** Profiling: A pre-configured template for profiling with around two percent overhead.
+1. OutOfMemory => `hs_oom_pid<pid>.jfr`
+2. StackOverflowError => `hs_soe_pid<pid>.jfr`
+3. Other error => `hs_err_pid<pid>.jfr`
 ====
 
-menu:JVM Browser>[Select a JVM>Start Flight Recording]
 
-And from the _Start Flight Recording_ window, you can select configurations.
-
-menu:Start Flight Recording[Event Settings]
-
-At this time two configurations by default should appear.
-
-* "Continuous _on server_"
-* "Profiling _on server_"
-
-I'm not sure yet but I believe the _on server_ mention means those are taken from the JVM shipped configurations
-mentioned above, plus the description and label are similar.
-
-* _Continuous_ refer to the `$JAVA_HOME/lib/jfr/default.jfc` (~1% overhead)
-* _Profiling_ refer to the `$JAVA_HOME/lib/jfr/profile.jfc` (~2% overhead)
-
-And anyway if these do not match your need it's possible to use your own configuration (`.jfc` files)
-and manage them with the "_template manager_"
-
-menu:Window[Flight Recoding Template Manager]
-
-
-
-https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java
-
-
-== Memory Leak
-
-Old Object Sample Event added in JDK 10 to profile memory leak, http://hirt.se/blog/?p=1055[blog from Marcus Hirt]
-
-[source]
-----
--XX:StartFlightRecording=settings=profile,path-to-gc-roots=true,...
-----
-
-.Difference in stacktrace setting
-[source]
-----
-❯ cat ~/.asdf/installs/java/amazon-corretto-11.0.7.10.1/lib/jfr/profile.jfc | grep -A5 OldObjectSample
-    <event name="jdk.OldObjectSample">
-      <setting name="enabled" control="memory-leak-detection-enabled">true</setting>
-      <setting name="stackTrace" control="memory-leak-detection-stack-trace">true</setting>
-      <setting name="cutoff" control="memory-leak-detection-cutoff">0 ns</setting>
-    </event>
-
-❯ cat ~/.asdf/installs/java/amazon-corretto-11.0.7.10.1/lib/jfr/default.jfc | grep -A5 OldObjectSample
-    <event name="jdk.OldObjectSample">
-      <setting name="enabled" control="memory-leak-detection-enabled">true</setting>
-      <setting name="stackTrace" control="memory-leak-detection-stack-trace">false</setting>
-      <setting name="cutoff" control="memory-leak-detection-cutoff">0 ns</setting>
-    </event>
-
-----
-
-
-
-=== Dump on exit
-
-1. VM Crash => `hs_err<pid>.jfr`
-2. OOM => `hs_oom<pid>.jfr`
-
-add these options `dumponexit=true`, and override the filename if the above arent suited `dumponexitpath=/vm-exit.jfr`
-
+////
 .jfrOptionSet.cpp
 [source]
 ----
@@ -1024,6 +824,82 @@ static const ObsoleteOption OBSOLETE_OPTIONS[] = {
   {"loglevel",             "Use -Xlog:jfr=... instead."}
 };
 ----
+////
+
+=== Putting it all together
+
+Putting it all together, let's put these in the `JDK_JAVA_OPTIONS`.
+
+.record startup then record continuously, and dump on exit
+[source]
+----
+-XX:StartFlightRecording=settings=profile,duration=6m,name=app-startup,dumponexit=true,filename=/var/log/jfr/app-startup.jfr
+-XX:StartFlightRecording=settings=profile,delay=5m,maxage=10m,name=post-startup,dumponexit=true,filename=/var/log/jfr/post-startup.jfr
+-XX:FlightRecorderOptions=stackdepth=96
+----
+
+
+After acquiring the record files, you are ready to exploit them. We've seen `jfr` on which
+it's possible to build upon, now the next section briefly presents the other elephant in the room
+(in a positive way), *JDK Mission Control* which empowers its user with remarkable diagnosis skills.
+
+
+== JDK Mission Control
+
+JDK Mission Control, is a tool that will make sense of all these events, and it excels at that.
+
+In an event sourcing system, the query part of the system is what empowers the view,
+JDK Mission Control uses these events to present several consolidated views tailored
+to diagnose several part of the JVM runtime, and more if using _custom events_.
+
+On macOs you can install it via Homebrew (`brew cask install jdk-mission-control`).
+
+As mentioned earlier Mission Control was present before in the JDK, however it's
+user interface evolved quite a bunch and following the official
+https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8[Oracle troubleshooting guide for Java 11]
+to inspect a recording may get be a bit confusing. And even the shipped help pages
+of JMC are sometime outdated, or explicit about which version of the JDK the help section makes
+references to.
+
+TIP: At this time the JDK Mission Control 7.1 is available, and the 8 snapshot are also
+available for the edge users. I'm using the 8 snapshots but the 7.1 does the job very fine.
+
+
+Enough text, let's see how to use JDK Mission Control on a concrete issue.
+
+
+=== Memory Leaks
+
+// https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75
+
+Old Object Sample Event added in JDK 10 to profile memory leak, http://hirt.se/blog/?p=1055[blog from Marcus Hirt]
+
+[source]
+----
+-XX:StartFlightRecording=settings=profile,path-to-gc-roots=true,...
+----
+
+.Difference in stacktrace setting
+[source]
+----
+❯ cat $JAVA_HOME/lib/jfr/profile.jfc | grep -A5 OldObjectSample
+    <event name="jdk.OldObjectSample">
+      <setting name="enabled" control="memory-leak-detection-enabled">true</setting>
+      <setting name="stackTrace" control="memory-leak-detection-stack-trace">true</setting>
+      <setting name="cutoff" control="memory-leak-detection-cutoff">0 ns</setting>
+    </event>
+
+❯ cat $JAVA_HOME/lib/jfr/default.jfc | grep -A5 OldObjectSample
+    <event name="jdk.OldObjectSample">
+      <setting name="enabled" control="memory-leak-detection-enabled">true</setting>
+      <setting name="stackTrace" control="memory-leak-detection-stack-trace">false</setting>
+      <setting name="cutoff" control="memory-leak-detection-cutoff">0 ns</setting>
+    </event>
+
+----
+
+
+
 
 
 [source]
