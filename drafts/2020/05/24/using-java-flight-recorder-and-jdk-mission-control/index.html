@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 50 min read
+    <i class="fas fa-clock"></i> 68 min read
 
     
     
@@ -276,7 +276,8 @@ FlightRecorder, this is not anymore necessary with Java 11.</p>
 <td class="content">
 This page assumes JDK 11, that means there is no need to set
 <code>-XX:+UnlockCommercialFeatures</code>, <code>-XX:+FlightRecorder</code> flags. Or more particular to JFR
- the use of <code>-XX:+UnlockDiagnosticVMOptions</code> and <code>-XX:+DebugNonSafepoints</code> <a href="https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60">source</a>
+the use of <code>-XX:+UnlockDiagnosticVMOptions</code> and <code>-XX:+DebugNonSafepoints</code>
+<a href="https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60">source</a>
 </td>
 </tr>
 </table>
@@ -303,10 +304,37 @@ for us to analyze.</p>
 </div>
 <div class="imageblock text-center">
 <div class="content">
-<img src="./../static/assets/jfr/java-flight-recorder-big-picture.svg" alt="java flight recorder big picture">
+<img src="/assets/jfr/java-flight-recorder-big-picture2.svg" alt="java flight recorder big picture2">
 </div>
 <div class="title">JFR big picture</div>
 </div>
+<div class="paragraph">
+<p>I won&#8217;t dive in, but most profiler do have a bias when profiling and don&#8217;t report accurate results.
+The issue lies in how profiler handle JVM safepoints, most don&#8217;t account properly the time spent in
+safepoints. Some great profiler like the great <a href="https://github.com/jvm-profiling-tools/async-profiler">async-profiler</a>,
+are not subject to these biases, JFR is also not subject to it.</p>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s great material provided by <a href="https://twitter.com/nitsanw">Nitsan Wakart</a> :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://psy-lob-saw.blogspot.com/2016/02/why-most-sampling-java-profilers-are.html">Why (Most) Sampling Java Profilers Are Fucking Terrible</a></p>
+</li>
+<li>
+<p><a href="https://psy-lob-saw.blogspot.com/2015/12/safepoints.html">Safepoints: Meaning, Side Effects and Overheads</a></p>
+</li>
+<li>
+<p><a href="https://psy-lob-saw.blogspot.com/2016/06/the-pros-and-cons-of-agct.html">The Pros and Cons of AsyncGetCallTrace Profilers</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_using_jfr"><a class="anchor" href="#_using_jfr"></a><a class="link" href="#_using_jfr">Using JFR</a></h2>
+<div class="sectionbody">
 <div class="sect2">
 <h3 id="_how_to_start_a_recording"><a class="anchor" href="#_how_to_start_a_recording"></a><a class="link" href="#_how_to_start_a_recording">How to start a recording ?</a></h3>
 <div class="paragraph">
@@ -315,7 +343,7 @@ for us to analyze.</p>
 If you don&#8217;t know it, use it&#8217;s great !</p>
 </div>
 <div class="paragraph">
-<p>Prior Java 11 FlightRecorder had to be enabled before. Now it&#8217;s not anymore necessary
+<p>Prior Java 11 FlightRecorder had to be enabled before use. Now it&#8217;s not anymore necessary
 it&#8217;s possible to <em>start</em> a JFR session.</p>
 </div>
 <div class="listingblock">
@@ -605,7 +633,7 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 </div>
 </div>
 <div class="sect2">
-<h3 id="_system_flight_recorder_configuration"><a class="anchor" href="#_system_flight_recorder_configuration"></a><a class="link" href="#_system_flight_recorder_configuration">System Flight Recorder configuration</a></h3>
+<h3 id="_global_flight_recorder_configuration"><a class="anchor" href="#_global_flight_recorder_configuration"></a><a class="link" href="#_global_flight_recorder_configuration">Global Flight Recorder configuration</a></h3>
 <div class="paragraph">
 <p>What we saw before is how to start a recording and how to configure this specific recording.
 But there is another class of options that modifies aspects of the JFR internals.
@@ -714,6 +742,39 @@ we&#8217;ll see later how to use this option.
 </div>
 </div>
 <div class="sect2">
+<h3 id="_jfr_logs"><a class="anchor" href="#_jfr_logs"></a><a class="link" href="#_jfr_logs">JFR logs</a></h3>
+<div class="paragraph">
+<p>Thanks to unified logging, it&#8217;s easy to open the hood on any JVM runtime feature.
+In order to follow JFR, it&#8217;s possible to JFR component, to understand how it works and
+how options affect recordings.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:jfr</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">[0.337s][info][jfr] Flight Recorder initialized
+[0.338s][info][jfr] Created repository /tmp/2020_06_19_13_08_28_6
+[0.367s][info][jfr] Creating thread sampler for java:20 ms, native 0 ms
+[0.367s][info][jfr] Enrolling thread sampler
+[0.367s][info][jfr] Enrolling thread sampler
+[0.367s][info][jfr] Updated thread sampler for java: 20  ms, native 0 ms
+[0.367s][info][jfr] Updated thread sampler for java: 20  ms, native 0 ms
+[0.367s][info][jfr] Updated thread sampler for java: 20  ms, native 20 ms
+[0.373s][info][jfr] Started recording "startup" (1) {maxsize=200.0MB, dumponexit=true, duration=6m, filename=/var/log/jfr/startup.jfr}
+...
+[0.847s][info][jfr] Updated thread sampler for java: 0  ms, native 20 ms
+[0.847s][info][jfr] Disenrolling thread sampler
+[0.848s][info][jfr] Stopped recording "1" (1). Reason "Dump on exit".
+[0.862s][info][jfr] Wrote recording "1" (1) to /var/log/jfr/startup.jfr
+[0.864s][info][jfr] Closed recording "1" (1)
+[0.866s][info][jfr] Removed repository /tmp/2020_06_19_13_08_28_6</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
 <h3 id="_memory_usage_in_the_process"><a class="anchor" href="#_memory_usage_in_the_process"></a><a class="link" href="#_memory_usage_in_the_process">Memory usage in the process</a></h3>
 <div class="paragraph">
 <p>The section above describes where the actual data is saved for long or large
@@ -812,19 +873,7 @@ the <code>summary</code> sub-command displays an histogram of the events.</p>
  jdk.ExceptionStatistics                 298          6258
  jdk.ActiveSetting                       285         10497
  jdk.BiasedLockRevocation                275          7831
- jdk.NativeLibrary                       252         18564
- jdk.LongFlag                            229          8875
- jdk.UnsignedLongFlag                    182          7168
- jdk.InitialEnvironmentVariable          167         10243
- jdk.NetworkUtilization                  120          2640
- jdk.TenuringDistribution                 75          1437
- jdk.ThreadContextSwitchRate              30           510
- jdk.ThreadSleep                          29           696
- jdk.StringFlag                           26           880
- jdk.GCPhasePauseLevel2                   25          1080
- jdk.InitialSystemProperty                23          1316
- jdk.MetaspaceChunkFreeListSummary        20           520
- jdk.GCReferenceStatistics                20           350
+...
  jdk.GCPhasePauseLevel1                   20           965
  jdk.CheckPoint                           17       1631868
  jdk.ExecuteVMOperation                   15           391
@@ -834,20 +883,7 @@ the <code>summary</code> sub-command displays an histogram of the events.</p>
  jdk.MetaspaceSummary                     10           580
  jdk.G1HeapSummary                        10           300
  jdk.OldObjectSample                      10           367
- jdk.UnsignedIntFlag                       8           300
- jdk.CodeCacheStatistics                   6           232
- jdk.ThreadStart                           6           102
- jdk.GarbageCollection                     5           145
- jdk.YoungGarbageCollection                5           100
- jdk.G1GarbageCollection                   5           100
- jdk.G1MMU                                 5           100
- jdk.EvacuationInformation                 5           185
- jdk.G1EvacuationYoungStatistics           5           160
- jdk.G1EvacuationOldStatistics             5           152
- jdk.G1BasicIHOP                           5           243
- jdk.G1AdaptiveIHOP                        5           240
- jdk.GCPhasePause                          5           150
- jdk.IntFlag                               3           107
+...
  jdk.BiasedLockSelfRevocation              2            45
  jdk.PhysicalMemory                        2            46
  jdk.ThreadDump                            2       1389568
@@ -864,80 +900,15 @@ the <code>summary</code> sub-command displays an histogram of the events.</p>
  jdk.CPUTimeStampCounter                   1            25
  jdk.CompilerConfiguration                 1            15
  jdk.CodeCacheConfiguration                1            51
- jdk.CodeSweeperConfiguration              1            15
- jdk.GCSurvivorConfiguration               1            15
- jdk.GCTLABConfiguration                   1            17
- jdk.GCHeapConfiguration                   1            31
- jdk.YoungGenerationConfiguration          1            22
- jdk.ActiveRecording                       1            87
- jdk.JavaMonitorInflate                    0             0
- jdk.ReservedStackActivation               0             0
- jdk.ClassLoad                             0             0
- jdk.ClassDefine                           0             0
- jdk.ClassUnload                           0             0
- jdk.IntFlagChanged                        0             0
- jdk.UnsignedIntFlagChanged                0             0
- jdk.LongFlagChanged                       0             0
- jdk.UnsignedLongFlagChanged               0             0
- jdk.DoubleFlagChanged                     0             0
- jdk.BooleanFlagChanged                    0             0
- jdk.StringFlagChanged                     0             0
- jdk.MetaspaceGCThreshold                  0             0
- jdk.MetaspaceAllocationFailure            0             0
- jdk.MetaspaceOOM                          0             0
- jdk.PSHeapSummary                         0             0
- jdk.ParallelOldGarbageCollection          0             0
- jdk.OldGarbageCollection                  0             0
- jdk.ObjectCountAfterGC                    0             0
- jdk.PromoteObjectInNewPLAB                0             0
- jdk.PromoteObjectOutsidePLAB              0             0
- jdk.PromotionFailed                       0             0
- jdk.EvacuationFailed                      0             0
- jdk.ConcurrentModeFailure                 0             0
- jdk.GCPhasePauseLevel3                    0             0
- jdk.GCPhasePauseLevel4                    0             0
- jdk.GCPhaseConcurrent                     0             0
- jdk.AllocationRequiringGC                 0             0
- jdk.G1HeapRegionTypeChange                0             0
- jdk.Compilation                           0             0
- jdk.CompilerPhase                         0             0
- jdk.CompilationFailure                    0             0
- jdk.CompilerInlining                      0             0
- jdk.SweepCodeCache                        0             0
- jdk.CodeCacheFull                         0             0
- jdk.SafepointStateSynchronization         0             0
- jdk.SafepointWaitBlocked                  0             0
- jdk.SafepointCleanup                      0             0
- jdk.SafepointCleanupTask                  0             0
- jdk.SafepointEnd                          0             0
- jdk.Shutdown                              0             0
- jdk.ObjectAllocationInNewTLAB             0             0
- jdk.ObjectAllocationOutsideTLAB           0             0
- jdk.DumpReason                            0             0
- jdk.DataLoss                              0             0
- jdk.SystemProcess                         0             0
- jdk.X509Validation                        0             0
- jdk.ObjectCount                           0             0
- jdk.G1HeapRegionInformation               0             0
- jdk.ZPageAllocation                       0             0
- jdk.ZThreadPhase                          0             0
- jdk.ZStatisticsCounter                    0             0
- jdk.ZStatisticsSampler                    0             0
- jdk.FileForce                             0             0
- jdk.FileRead                              0             0
- jdk.FileWrite                             0             0
- jdk.SocketWrite                           0             0
- jdk.JavaExceptionThrow                    0             0
- jdk.JavaErrorThrow                        0             0
- jdk.SecurityPropertyModification          0             0
+...
  jdk.X509Certificate                       0             0
  jdk.TLSHandshake                          0             0</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>But other interesting things could be done using this tool.
-The <code>print</code> subcomand can extract these events, like in json, from there
-it&#8217;s possible to perform other type of aggregation.</p>
+The <code>print</code> sub-command can extract these events, in XML or in JSON. From there
+it&#8217;s possible to perform other type of aggregation using other tools.</p>
 </div>
 <div class="listingblock">
 <div class="title">extract data from using <code>jfr</code> and <code>jq</code></div>
@@ -951,7 +922,7 @@ it&#8217;s possible to perform other type of aggregation.</p>
 </div>
 <div class="paragraph">
 <p>It&#8217;s also possible to assemble <code>jfr</code> files or break them in smaller parts.
-By the way the files in the <em>repository</em> can be exploited this way.
+As a side note, the files in the <em>repository</em> can be exploited this way.
 Keep in mind these files may be removed as soon as they are expired or as
 soon as every recording stops.</p>
 </div>
@@ -996,7 +967,7 @@ r.start(); <i class="conum" data-value="4"></i><b>(4)</b>
 // to be profiled
 
 r.stop(); <i class="conum" data-value="5"></i><b>(5)</b>
-r.dump(Files.createFile("/var/jfr/app-initiated.jfr")); <i class="conum" data-value="6"></i><b>(6)</b></code></pre>
+r.dump(Files.createFile("/var/log/jfr/app-initiated.jfr")); <i class="conum" data-value="6"></i><b>(6)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1030,13 +1001,13 @@ it&#8217;s unlikely to be helpful for JDK events, but it may get interesting for
 </div>
 <div class="paragraph">
 <p>The above snippet creates a continuous profiling session with a 4 minute window.
-Now the API allows to read emiited <code>.jfr</code> files. The API represents what&#8217;s actually
+Now the API allows reading emitted <code>.jfr</code> files. The API represents what&#8217;s actually
 in a file, a schema of the events and the events themselves.</p>
 </div>
 <div class="listingblock">
 <div class="title">Read JFR files yourself</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">try(RecordingFile rf = new RecordingFile(Paths.get("/var/jfr/app-initiated.jfr"))( { <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">try(RecordingFile rf = new RecordingFile(Paths.get("/var/log/jfr/app-initiated.jfr"))( { <i class="conum" data-value="1"></i><b>(1)</b>
     // read the schema
     rf.readEventTypes().forEach((EventType et) -&gt; { <i class="conum" data-value="2"></i><b>(2)</b>
         System.out.println(et.getName());
@@ -1075,10 +1046,10 @@ it in a try-with-resources block.</td>
 </table>
 </div>
 <div class="paragraph">
-<p><code>RecordingFile</code> api is a bit akward to work with, more specifically parsing each events
-requires to look at the event descriptor (via <code>getEventType()</code>, or getFileds()), and interrogate
-the event as fields presence may evolve with each JDK revision. The javadoc advises to
-program defensively on that regard :</p>
+<p><code>RecordingFile</code> api is a bit awkward to work with, more specifically parsing each event
+requires looking at the event descriptor (via <code>getEventType()</code>, or getFields()), and interrogate
+the event as fields presence may evolve with each JDK revision. The javadoc advises defensive
+programming style when reading a JFR file :</p>
 </div>
 <div class="listingblock">
 <div class="title">snippet form javadoc</div>
@@ -1090,21 +1061,22 @@ program defensively on that regard :</p>
 </div>
 </div>
 <div class="paragraph">
-<p>This API is complemented by streaming live events in JDK 14, but that&#8217;s out of scope
-for this article.</p>
+<p>This API is now complemented by streaming live events <a href="https://openjdk.java.net/jeps/349">JEP-349</a>
+in JDK 14 using an API <code>RecordingStream</code> that is mix of the above, that&#8217;s out of scope for
+this article. But that&#8217;s yet another reason to make the effort to upgrade our JDK.</p>
 </div>
 <div class="paragraph">
-<p>While such facilities are useful especially as custom Spring Actuators. When there are
-not around or they are just too late the most actionable way to get recording is from
-the command line.</p>
+<p>Such API facilities are useful especially when combined with other technologies like Spring Actuators.
+Yet when there&#8217;s available integration or when using these integrations is too late, like recording startup
+the most actionable way to get recording is from the command line.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_how_and_what_to_profile_in_production"><a class="anchor" href="#_how_and_what_to_profile_in_production"></a><a class="link" href="#_how_and_what_to_profile_in_production">How and what to profile in production</a></h2>
+<h2 id="_how_and_when_to_record_in_production"><a class="anchor" href="#_how_and_when_to_record_in_production"></a><a class="link" href="#_how_and_when_to_record_in_production">How and when to record in production</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The next items will present command line flags to setup JFR.</p>
+<p>The next points will present command line flags to set up JFR.</p>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -1121,27 +1093,81 @@ only affects <code>java</code> while JAVA_TOOL_OPTIONS affects any binary in the
 </tr>
 </table>
 </div>
-<div class="sect2">
-<h3 id="_profile_startup"><a class="anchor" href="#_profile_startup"></a><a class="link" href="#_profile_startup">Profile startup</a></h3>
-<div class="listingblock">
-<div class="title">Time bound profiling at JVM startup (<a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65">source</a>)</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,delay=20s,duration=60s,name=app-startup,filename=/app-startup.jfr</code></pre>
+<div class="paragraph">
+<p>While it would certainly be useful to record the whole lifetime, this is unpractical, even plane
+Flight Data Recorder (and Cockpit Voice Recorder) only keep recent history. Instead,
+it&#8217;s possible to aim at specific time frames where a recording could be useful:</p>
 </div>
+<div class="ulist">
+<ul>
+<li>
+<p>At <strong>startup</strong>, the JVM does a lot of things, so does the application, it generally initialize a lot
+of long lived objects, generally services, threads, etc.</p>
+</li>
+<li>
+<p><strong>Continuously</strong> at <strong>runtime</strong>, this is likely a sliding time window in which one can access what&#8217;s
+happened in last <em>X &lt;time unit&gt;</em> (this is either limited by age or by size). It this case the dump
+could be done when required.</p>
+</li>
+<li>
+<p>At <strong>shutdown</strong> whether the JVM was <strong>killed</strong> or <strong>crashed</strong>. It this case the JFR files are an alternative
+to heap dumps for the autopsy.</p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="_record_application_startup"><a class="anchor" href="#_record_application_startup"></a><a class="link" href="#_record_application_startup">Record application startup</a></h3>
+<div class="paragraph">
+<p>I mentioned startup as a separate window, because it&#8217;s useful to inspect startup recording.
+During this time, the JVM intialize a lot of things, most code has yet to be warmed up,
+depending on the worload there may be a lot of allocations.</p>
+</div>
+<div class="paragraph">
+<p>I found that having these startup recording very useful to tune the readyness of an application, as we&#8217;ll see after.</p>
+</div>
+<div class="listingblock">
+<div class="title">Time bound recording at JVM startup</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,duration=6m,name=app-startup,filename=/var/log/jfr/app-startup.jfr</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Eventually it&#8217;s possible to tweak this recording with, other parameters like</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>path-to-gc-roots=true</code>, which allows to identify leaks using the <code>OldObjectSample</code> (enabled in
+the <code>profile</code> settings)</p>
+</li>
+<li>
+<p><code>maxsize</code> to set a size threshold to the recording</p>
+</li>
+<li>
+<p><code>disk=false</code> if you want to keep the event in memory only before dumping to the configured <code>filename</code>.
+Otherwise the JVM will use it&#8217;s default strategy which is to evacuate chunks of event to disk, in the JFR
+<code>repository</code> (by default a folder in the temporary folder).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In addition to these recording parameter, it can be useful to set a few JFR wide options, i.e. that affects all
+recordings, e.g. <code>-XX:FlightRecorderOptions=stackdepth=96</code>, which augments the size of the <em>captured</em> stack,
+be advised, that the bigger the number the higher the impact.</p>
 </div>
 <div class="listingblock">
 <div class="title">In the container, checking JFR</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd $(pgrep java) JFR.check
 6:
-Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="1"></i><b>(1)</b>
+Recording 1: name=app-startup duration=6m (running) <i class="conum" data-value="1"></i><b>(1)</b>
 ❯ jcmd $(pgrep java) JFR.check
 6:
-No available recordings.
+No available recordings. <i class="conum" data-value="2"></i><b>(2)</b>
 
-Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="2"></i><b>(2)</b>
-❯ ls -lah
--rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr</code></pre>
+Use jcmd 6 JFR.start to start a recording.
+❯ ls -lah /var/log/jfr/app-startup.jfr
+-rw-r--r--   1 root root 57M May  6 22:35 /var/log/jfr/app-startup.jfr</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1156,31 +1182,40 @@ Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="2"></i><
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>I&#8217;ll show how to use this recording later in this article.</p>
+</div>
 </div>
 <div class="sect2">
-<h3 id="_profile_post_startup"><a class="anchor" href="#_profile_post_startup"></a><a class="link" href="#_profile_post_startup">Profile post-startup</a></h3>
-<div class="listingblock">
-<div class="title">Delayed and time bound profiling at JVM startup (<a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65">source</a>)</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,delay=20s,duration=60s,name=post-startup,filename=/post-startup.jfr</code></pre>
+<h3 id="_record_application_post_startup_or_continuous_recording"><a class="anchor" href="#_record_application_post_startup_or_continuous_recording"></a><a class="link" href="#_record_application_post_startup_or_continuous_recording">Record application post-startup or continuous recording</a></h3>
+<div class="paragraph">
+<p>Once startup has been recording, it&#8217;s useful to set up a continuous recording.
+The good thing is that the JVM allows to define multiple recording
+in the command line. Let&#8217;s add another <code>-XX:StartFlightRecording</code>
+with the <code>delay</code> parameter.</p>
 </div>
+<div class="listingblock">
+<div class="title">Delayed continuous recording</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,delay=5m,maxage=10m,name=post-startup,filename=/var/log/jfr/post-startup.jfr</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will register a continuous profiling that will start 5m after the JVM starts. And
+it sets a retention of 10 minutes, or a retention of the default maximum size which is <code>250 MiB</code> in JDK11.</p>
+</div>
+<div class="paragraph">
+<p>If this is the only recording, <code>JFR.check</code> will output something like that.</p>
 </div>
 <div class="listingblock">
 <div class="title">In the container, checking JFR</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd $(pgrep java) JFR.check
 6:
-Recording 1: name=post-startup duration=60s (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
+Recording 1: name=post-startup maxage=10m (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
 ❯ jcmd $(pgrep java) JFR.check
 6:
-Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="2"></i><b>(2)</b>
-❯ jcmd $(pgrep java) JFR.check
-6:
-No available recordings.
-
-Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="3"></i><b>(3)</b>
-❯ ls -lah
--rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr</code></pre>
+Recording 1: name=app-startup maxage=10m (running) <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1191,78 +1226,72 @@ Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="3"></i><
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Indicates the configured 30s recording is ongoing.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>No more recording once the duration is over.</td>
+<td>Indicates the configured continuous recording is ongoing.</td>
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p>Note that in the case of the continuous recording it&#8217;s necessary to dump the recording
+via <code>JFR.dump</code>.</p>
+</div>
 </div>
 <div class="sect2">
-<h3 id="_continuous_profiling"><a class="anchor" href="#_continuous_profiling"></a><a class="link" href="#_continuous_profiling">Continuous profiling</a></h3>
+<h3 id="_recording_for_shutdown"><a class="anchor" href="#_recording_for_shutdown"></a><a class="link" href="#_recording_for_shutdown">Recording for shutdown</a></h3>
 <div class="paragraph">
-<p>Started recording 1. No limit specified, using maxsize=250MB as default.</p>
+<p>The only thing to do is to set the recording parameter <code>dumponexit=true</code> (on each recording).
+The record will be stored in the configured <code>filename</code> otherwise JFR will create a file similar
+to this the working directory of the process <code>hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr</code></p>
 </div>
-<div class="listingblock">
-<div class="title">Delayed and time bound profiling at JVM startup (<a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java#L65">source</a>)</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,delay=20s,maxage=30s,name=post-startup,filename=post-startup.jfr</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This would create a rolling buffer of 30 seconds duration. There is no stipulation on how big this file could get,
-unless the maxsize option is set the default is <code>maxsize=250MB</code>.</p>
-</div>
-<div class="listingblock">
-<div class="title">In the container, checking JFR</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd $(pgrep java) JFR.check
-6:
-Recording 1: name=post-startup duration=60s (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
-❯ jcmd $(pgrep java) JFR.check
-6:
-Recording 1: name=app-startup duration=60s (running) <i class="conum" data-value="2"></i><b>(2)</b>
-❯ jcmd $(pgrep java) JFR.check
-6:
-No available recordings.
-
-Use jcmd 6 JFR.start to start a recording. <i class="conum" data-value="3"></i><b>(3)</b>
-❯ ls -lah
--rw-r--r--   1 root root 3.3M May  6 22:35 rec.jfr</code></pre>
-</div>
-</div>
-<div class="colist arabic">
+<div class="admonitionblock note">
 <table>
 <tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Indicates there&#8217;s a recording that will start at some point in the future.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Indicates the configured 30s recording is ongoing.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>No more recording once the duration is over.</td>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>The JVM source code, suggest that JFR has the notion of
+<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/jfr/recorder/repository/jfrEmergencyDump.cpp#L250">emergency JFR dump</a>,
+but the mechanism is different as it seems those are dumped in the
+working directory of the process, which may not be writable in a container. I don&#8217;t
+think it&#8217;s currently possible to change the location. But
+from what I&#8217;ve seen SOE or OOM are dumped fine via <code>dumponexit=true</code> and <code>filename=&#8230;&#8203;</code>.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>OutOfMemory &#8658; <code>hs_oom_pid&lt;pid&gt;.jfr</code></p>
+</li>
+<li>
+<p>StackOverflowError &#8658; <code>hs_soe_pid&lt;pid&gt;.jfr</code></p>
+</li>
+<li>
+<p>Other error &#8658; <code>hs_err_pid&lt;pid&gt;.jfr</code></p>
+</li>
+</ol>
+</div>
+</td>
 </tr>
 </table>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_profiling_the_startup_then_profile_continuously"><a class="anchor" href="#_profiling_the_startup_then_profile_continuously"></a><a class="link" href="#_profiling_the_startup_then_profile_continuously">Profiling the startup then profile continuously</a></h3>
+<h3 id="_putting_it_all_together"><a class="anchor" href="#_putting_it_all_together"></a><a class="link" href="#_putting_it_all_together">Putting it all together</a></h3>
+<div class="paragraph">
+<p>Putting it all together, let&#8217;s put these in the <code>JDK_JAVA_OPTIONS</code>.</p>
+</div>
 <div class="listingblock">
-<div class="title">Start to recording</div>
+<div class="title">record startup then record continuously, and dump on exit</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=duration=30s,settings=profile,name=app-startup,filename=app-startup.jfr \
--XX:StartFlightRecording=delay=31s,maxsize=100mb,settings=profile,name=continuous,filename=continuous.jfr</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,duration=6m,name=app-startup,dumponexit=true,filename=/var/log/jfr/app-startup.jfr
+-XX:StartFlightRecording=settings=profile,delay=5m,maxage=10m,name=post-startup,dumponexit=true,filename=/var/log/jfr/post-startup.jfr
+-XX:FlightRecorderOptions=stackdepth=96</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Although <code>jfr</code> is a nice tool a which you can build upon, the next section
-briefly presents the other elephant in the room (in a positive way), JDK Mission Control
-which empowers its user with remarkable diagnosis skills.</p>
+<p>After acquiring the record files, you are ready to exploit them. We&#8217;ve seen <code>jfr</code> on which
+it&#8217;s possible to build upon, now the next section briefly presents the other elephant in the room
+(in a positive way), <strong>JDK Mission Control</strong> which empowers its user with remarkable diagnosis skills.</p>
 </div>
 </div>
 </div>
@@ -1271,7 +1300,7 @@ which empowers its user with remarkable diagnosis skills.</p>
 <h2 id="_jdk_mission_control"><a class="anchor" href="#_jdk_mission_control"></a><a class="link" href="#_jdk_mission_control">JDK Mission Control</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>JDK Mission Control, is the tool that will make sense of all these events.</p>
+<p>JDK Mission Control, is a tool that will make sense of all these events, and it excels at that.</p>
 </div>
 <div class="paragraph">
 <p>In an event sourcing system, the query part of the system is what empowers the view,
@@ -1279,182 +1308,44 @@ JDK Mission Control uses these events to present several consolidated views tail
 to diagnose several part of the JVM runtime, and more if using <em>custom events</em>.</p>
 </div>
 <div class="paragraph">
-<p>On macOs you can install it via Homebrew (brew cask install jdk-mission-control`).</p>
+<p>On macOs you can install it via Homebrew (<code>brew cask install jdk-mission-control</code>).</p>
 </div>
 <div class="paragraph">
 <p>As mentioned earlier Mission Control was present before in the JDK, however it&#8217;s
-user interface evolved quite a bunch. Concretely following the official
+user interface evolved quite a bunch and following the official
 <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-7E8058D0-249E-44DB-8714-3AA9DA6A4DB8">Oracle troubleshooting guide for Java 11</a>
-to learn how to inspect a recording you may be a bit lost.</p>
+to inspect a recording may get be a bit confusing. And even the shipped help pages
+of JMC are sometime outdated, or explicit about which version of the JDK the help section makes
+references to.</p>
 </div>
-<div class="paragraph">
-<p>At this time the JDK Mission Control 7.1 is available, and the 8 snapshot are also
-available for the edge users. I&#8217;m using the 8 snapshots but the 7.1 does the job very fine.</p>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+At this time the JDK Mission Control 7.1 is available, and the 8 snapshot are also
+available for the edge users. I&#8217;m using the 8 snapshots but the 7.1 does the job very fine.
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>Enough text, let&#8217;s see how to use JDK Mission Control on a concrete issue.</p>
 </div>
-<div class="sect2">
-<h3 id="_memory_leaks"><a class="anchor" href="#_memory_leaks"></a><a class="link" href="#_memory_leaks">Memory Leaks</a></h3>
-<div class="paragraph">
-<p><a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75" class="bare">https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75</a></p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_notes_from_jmc"><a class="anchor" href="#_notes_from_jmc"></a><a class="link" href="#_notes_from_jmc">Notes from JMC</a></h3>
-<div class="quoteblock">
-<blockquote>
-<div class="paragraph">
-<p>Could not find a usable recording running in the JVM! You can get an automatically started
-continuous flight recording by using the JVM option <code>-XX:FlightRecorderOptions=defaultrecording=true</code>
-(also requires the options <code>-XX:+UnlockCommercialFeatures</code> <code>-XX:+FlightRecorder</code>).</p>
-</div>
-</blockquote>
-</div>
-<div class="exampleblock">
-<div class="title">Example 1. JMC Help - § Managing Flight Recording Templates</div>
-<div class="content">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Right-click a JVM in the JVM Browser and select Start Flight Recording</p>
-</li>
-<li>
-<p>Click Template Manager in the Start Flight Recording Wizard.
-JFR includes two pre-configured server-side recording templates:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Continuous: A pre-configured template for continuous use in production environments with less than one percent overhead. This template is used for the default recording</p>
-</li>
-<li>
-<p>Profiling: A pre-configured template for profiling with around two percent overhead.</p>
-</li>
-</ul>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p><span class="menuseq"><b class="menu">JVM Browser&gt;</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="submenu">Select a JVM</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="menuitem">Start Flight Recording</b></span></p>
-</div>
-<div class="paragraph">
-<p>And from the <em>Start Flight Recording</em> window, you can select configurations.</p>
-</div>
-<div class="paragraph">
-<p><span class="menuseq"><b class="menu">Start Flight Recording</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="menuitem">Event Settings</b></span></p>
-</div>
-<div class="paragraph">
-<p>At this time two configurations by default should appear.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>"Continuous <em>on server</em>"</p>
-</li>
-<li>
-<p>"Profiling <em>on server</em>"</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>I&#8217;m not sure yet but I believe the <em>on server</em> mention means those are taken from the JVM shipped configurations
-mentioned above, plus the description and label are similar.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><em>Continuous</em> refer to the <code>$JAVA_HOME/lib/jfr/default.jfc</code> (~1% overhead)</p>
-</li>
-<li>
-<p><em>Profiling</em> refer to the <code>$JAVA_HOME/lib/jfr/profile.jfc</code> (~2% overhead)</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>And anyway if these do not match your need it&#8217;s possible to use your own configuration (<code>.jfc</code> files)
-and manage them with the "<em>template manager</em>"</p>
-</div>
-<div class="paragraph">
-<p><span class="menuseq"><b class="menu">Window</b>&#160;<i class="fa fa-angle-right caret"></i> <b class="menuitem">Flight Recoding Template Manager</b></span></p>
-</div>
-<div class="paragraph">
-<p><a href="https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java" class="bare">https://github.com/openjdk/jmc/blob/a07f3a28e65993909f6281ca5617f0ecc2b152a9/application/org.openjdk.jmc.ide.launch/src/main/java/org/openjdk/jmc/ide/launch/model/JfrArgsBuilder.java</a></p>
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_memory_leak"><a class="anchor" href="#_memory_leak"></a><a class="link" href="#_memory_leak">Memory Leak</a></h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Old Object Sample Event added in JDK 10 to profile memory leak, <a href="http://hirt.se/blog/?p=1055">blog from Marcus Hirt</a></p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-XX:StartFlightRecording=settings=profile,path-to-gc-roots=true,...</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">Difference in stacktrace setting</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ cat ~/.asdf/installs/java/amazon-corretto-11.0.7.10.1/lib/jfr/profile.jfc | grep -A5 OldObjectSample
-    &lt;event name="jdk.OldObjectSample"&gt;
-      &lt;setting name="enabled" control="memory-leak-detection-enabled"&gt;true&lt;/setting&gt;
-      &lt;setting name="stackTrace" control="memory-leak-detection-stack-trace"&gt;true&lt;/setting&gt;
-      &lt;setting name="cutoff" control="memory-leak-detection-cutoff"&gt;0 ns&lt;/setting&gt;
-    &lt;/event&gt;
-
-❯ cat ~/.asdf/installs/java/amazon-corretto-11.0.7.10.1/lib/jfr/default.jfc | grep -A5 OldObjectSample
-    &lt;event name="jdk.OldObjectSample"&gt;
-      &lt;setting name="enabled" control="memory-leak-detection-enabled"&gt;true&lt;/setting&gt;
-      &lt;setting name="stackTrace" control="memory-leak-detection-stack-trace"&gt;false&lt;/setting&gt;
-      &lt;setting name="cutoff" control="memory-leak-detection-cutoff"&gt;0 ns&lt;/setting&gt;
-    &lt;/event&gt;</code></pre>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_dump_on_exit"><a class="anchor" href="#_dump_on_exit"></a><a class="link" href="#_dump_on_exit">Dump on exit</a></h3>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>VM Crash &#8658; <code>hs_err&lt;pid&gt;.jfr</code></p>
-</li>
-<li>
-<p>OOM &#8658; <code>hs_oom&lt;pid&gt;.jfr</code></p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>add these options <code>dumponexit=true</code>, and override the filename if the above arent suited <code>dumponexitpath=/vm-exit.jfr</code></p>
-</div>
-<div class="listingblock">
-<div class="title">jfrOptionSet.cpp</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">static const ObsoleteOption OBSOLETE_OPTIONS[] = {
-  {"checkpointbuffersize", ""},
-  {"maxsize",              "Use -XX:StartFlightRecording=maxsize=... instead."},
-  {"maxage",               "Use -XX:StartFlightRecording=maxage=... instead."},
-  {"settings",             "Use -XX:StartFlightRecording=settings=... instead."},
-  {"defaultrecording",     "Use -XX:StartFlightRecording=disk=false to create an in-memory recording."},
-  {"disk",                 "Use -XX:StartFlightRecording=disk=... instead."},
-  {"dumponexit",           "Use -XX:StartFlightRecording=dumponexit=... instead."},
-  {"dumponexitpath",       "Use -XX:StartFlightRecording=filename=... instead."},
-  {"loglevel",             "Use -Xlog:jfr=... instead."}
-};</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:jfr</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>jcmd $(pidof java) JFR.start name=app-profile path-to-gc-roots=true maxsize=200mb settings=profile name=continuous-profile stackdepth=128 disk=true dumponexit=true filename=/gclogs/app-profile-$(date +%FT%H-%M-%S).jfr
-jcmd $(pidof java) JFR.dump filename=/gclogs/hotspot-pid-6-2020_05_28_11_13_52.jfr</p>
-</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+A large screen will be really appreciated when looking at JMC. My 13 inches laptop
+is way too narrow in my opinion, using a 27 inches monitor really adds to usability.
+</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -1462,34 +1353,400 @@ jcmd $(pidof java) JFR.dump filename=/gclogs/hotspot-pid-6-2020_05_28_11_13_52.j
 <h2 id="_real_case_startup_request_latencies"><a class="anchor" href="#_real_case_startup_request_latencies"></a><a class="link" href="#_real_case_startup_request_latencies">Real case startup request latencies</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><span class="image"><img src="/assets/jfr/startup-0-thread-lanes.png" alt="startup 0 thread lanes"></span>
-<span class="image"><img src="/assets/jfr/startup-0-threads-lanes-closer.png" alt="startup 0 threads lanes closer"></span>
-<span class="image"><img src="/assets/jfr/startup-1-threads-jedis-lock-event.png" alt="startup 1 threads jedis lock event"></span>
-<span class="image"><img src="/assets/jfr/startup-1-threads-jedis-monitor-acquire-blocked.png" alt="startup 1 threads jedis monitor acquire blocked"></span>
-<span class="image"><img src="/assets/jfr/startup-1-threads-jedis-monitor-blocked-stack.png" alt="startup 1 threads jedis monitor blocked stack"></span></p>
+<p>At some point we had an issue with application startup performance.
+For a bit of context this app runs in a Kubernetes cluster, with k8s it&#8217;s possible
+to define a <em>rollout policy</em> to avoid service distruption, that what we had, so there&#8217;s a
+rollout, new pods (a pod is composed of the application container) get created,
+new application are started, then Kubernetes has a mean to check when the application is
+<strong>ready</strong>, it&#8217;s called the readyness probe. This probe can be a call to http endpoint or a script,
+ours is an HTTP endpoint.</p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/jfr/startup-2-stack-01.png" alt="startup 2 stack 01"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-02.png" alt="startup 2 stack 02"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-03.png" alt="startup 2 stack 03"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-04.png" alt="startup 2 stack 04"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-05.png" alt="startup 2 stack 05"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-06.png" alt="startup 2 stack 06"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-07.png" alt="startup 2 stack 07"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-08.png" alt="startup 2 stack 08"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-09.png" alt="startup 2 stack 09"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-10.png" alt="startup 2 stack 10"></span>
-<span class="image"><img src="/assets/jfr/startup-2-stack-11.png" alt="startup 2 stack 11"></span></p>
+<p>WHen the probe indicates the application is ready, the application starts receiving traffic,
+from this moment latencies increased from 10-20 milliseconds to seconds.</p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/jfr/startup-2-thread-lanes.png" alt="startup 2 thread lanes"></span>
-<span class="image"><img src="/assets/jfr/startup-3-C2-compiler.png" alt="startup 3 C2 compiler"></span>
-<span class="image"><img src="/assets/jfr/startup-3-grafana.png" alt="startup 3 grafana"></span>
-<span class="image"><img src="/assets/jfr/startup-4-threads-revoke-biased-locks.png" alt="startup 4 threads revoke biased locks"></span>
-<span class="image"><img src="/assets/jfr/startup-5-before-after.png" alt="startup 5 before after"></span>
-<span class="image"><img src="/assets/jfr/startup-9-gc-pause-1.png" alt="startup 9 gc pause 1"></span>
-<span class="image"><img src="/assets/jfr/startup-9-gc-pause-2.png" alt="startup 9 gc pause 2"></span>
-<span class="image"><img src="/assets/jfr/startup-9-thread-lanes-gc-pauses-effect.png" alt="startup 9 thread lanes gc pauses effect"></span></p>
+<p>Opening the recording JMC, it will start an automated analysis. Sometime it&#8217;s helpful
+and warning should be looked at. In this case the issue was elsewhere.</p>
+</div>
+<div class="paragraph">
+<p>To help in our case, we need to go in the thread view, which as a <em>thread lanes</em>
+which displays each thread as an horizontal bar, and JFR event are painted on the bar
+at the time they happened and for how long. At the bottom there&#8217;s a the time axis.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-0-thread-lanes.png" alt="startup 0 thread lanes">
+</div>
+<div class="title">Thread Lanes</div>
+</div>
+<div class="paragraph">
+<p>The first things that catch our eyes will be the vertical patterns, especially the one with
+yellow and red around 12:51:15. Let&#8217;s zoom (you can select and right click, or use arrow keys.).</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-0-threads-lanes-closer.png" alt="startup 0 threads lanes closer">
+</div>
+<div class="title">Zooming on the problematic</div>
+</div>
+<div class="paragraph">
+<p>The vertical pattern is more precise, these vertical pattern indicates a <em>cross
+threads phenomena</em>. And we can notice that all thread are not affected the same way.</p>
+</div>
+<div class="paragraph">
+<p>The lanes in green at the top indicates these threads are progressing normally, nothing&#8217;s
+wrong with them. However is we go down there especially, the pattern materialize around
+12:51:11.</p>
+</div>
+<div class="paragraph">
+<p>Each color indicate some events</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Gray &#8658; the thread does nothing, it&#8217;s parked</p>
+</li>
+<li>
+<p>Small dark point &#8658; The park event, the thread was scheduled but was eventually parked</p>
+</li>
+<li>
+<p>Red &#8658; In this case it&#8217;s a <em>blocked lock</em></p>
+</li>
+<li>
+<p>Yellow &#8658; Here the yellow events that intrests us are thread waiting on a lock</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I&#8217;m not well versed in desfribing colors, so know that there are other events that use
+a slightly different tone / shade of red, yellow or else. Just click on the event
+to see what&#8217;s going on.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-1-threads-jedis-lock-event.png" alt="startup 1 threads jedis lock event">
+</div>
+<div class="title">monitor blocked</div>
+</div>
+<div class="paragraph">
+<p>The UI could be improved but going over the events shows a popup with it&#8217;s details,
+for the Monitor Blocked event, there&#8217;s the duration this monitor was block, who held
+this monitor before, and the monitor address in the heap.</p>
+</div>
+<div class="paragraph">
+<p>This monitor was held for ~9s, that&#8217;s a big bottleneck !</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-1-threads-jedis-monitor-acquire-blocked.png" alt="startup 1 threads jedis monitor acquire blocked">
+</div>
+</div>
+<div class="paragraph">
+<p>In this case we had ~200 thread competing for this lock in particular. And finding the thread that
+acquired it is not automated, it&#8217;s a bit tedious, but in the end didn&#8217;t revealed anything.</p>
+</div>
+<div class="paragraph">
+<p>However the Monitor Blocked event has another interesting element, the stacktrace. In the lower
+pane of JMC, if the event is selected, we can see the stack trace where this event was emmitted.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-1-threads-jedis-monitor-blocked-stack.png" alt="startup 1 threads jedis monitor blocked stack">
+</div>
+<div class="title">jedis classloading</div>
+</div>
+<div class="paragraph">
+<p>Here that&#8217;s the JDK classloader. I would never have thought that the JDK code would cause ~9s
+contention. But looking at the stacktrace, there <em>jedis</em> (a Redis client) connection pool involved.
+Maybe the class have static initialization that does IO, maybe it&#8217;s the agent that runs in production
+that introduces latencies during this specific classlaoding.</p>
+</div>
+<div class="paragraph">
+<p>But all the threads starts working again around 12:51:22, and redis bottle neck is not anymore an issue
+afterward. Let&#8217;s look at the story on the IO side, open the Socket IO view.</p>
+</div>
+<div class="paragraph">
+<p>Identify which one is related to redis, either via IP or via port (Redis is <code>6379</code>).</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-1-socketio-redis-port.png" alt="startup 1 socketio redis port">
+</div>
+<div class="title">Socket IO with redis port selected</div>
+</div>
+<div class="paragraph">
+<p>While we see a total time of 30s, it&#8217;s the accumulated time for all thread for the recording duration (6m).
+So nothing fancy here. However we see that actual IO happens really late, around 12:51:22.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-1-socketio-redis.png" alt="startup 1 socketio redis">
+</div>
+<div class="title">Socket IO actual Redis read / write</div>
+</div>
+<div class="paragraph">
+<p>I&#8217;m not sure of the cause, we can definitely rule out Redis, the is either in the network, during
+connection establishment, or actually during classloading.</p>
+</div>
+<div class="paragraph">
+<p>In order to remediate that, we noticed this code is called once the application is ready.
+So in order to avoid the contention the code was changed to pre-connect to redis during the
+application startup before the the application is considedred ready. And it worked, this
+specific issue disappeared.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-thread-lanes.png" alt="startup 2 thread lanes">
+</div>
+</div>
+<div class="paragraph">
+<p>However as knew from the first recording, and now the second iteration this was not the only issue
+identified when flying over the yellow and red events.</p>
+</div>
+<div class="exampleblock primary">
+<div class="title">Incriminating stack traces 1</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-01.png" alt="startup 2 stack 01">
+</div>
+<div class="title">Jersey&#8217;s <code>ListMultiMap</code> classloading</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">2</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-02.png" alt="startup 2 stack 02">
+</div>
+<div class="title">Jackson&#8217;s <code>SerializerCache</code> initialization</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">3</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-03.png" alt="startup 2 stack 03">
+</div>
+<div class="title">Jersey&#8217;s <code>ImprovedAbstractMap</code> classloading</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">4</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-04.png" alt="startup 2 stack 04">
+</div>
+<div class="title">Jackson&#8217;s <code>PropertySerializerMap</code> initialization</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">5</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-05.png" alt="startup 2 stack 05">
+</div>
+<div class="title">Jackson&#8217;s <code>TypeFactory</code> initialization</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">6</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-06.png" alt="startup 2 stack 06">
+</div>
+<div class="title">Jackson&#8217;s <code>DeserializerCache</code> initialization</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">7</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-07.png" alt="startup 2 stack 07">
+</div>
+<div class="title">Guava&#8217;s <code>hash</code> function involving classloading</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">8</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-08.png" alt="startup 2 stack 08">
+</div>
+<div class="title">Newrelic&#8217;s <code>SynchronizedCollection.size()</code></div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">9</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-09.png" alt="startup 2 stack 09">
+</div>
+<div class="title">Jackson&#8217;s <code>PropertySerializerMap</code> initialization</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">10</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-10.png" alt="startup 2 stack 10">
+</div>
+<div class="title">Datastax cassandra driver&#8217;s <code>ChainedResultSetFuture</code> involving classloading</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">11</div>
+<div class="content">
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-2-stack-11.png" alt="startup 2 stack 11">
+</div>
+<div class="title">Jersey&#8217;s <code>AbstractMapBasedMultimap</code> involving classloading</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>All the stacktraces above have one thing in common, a contention on a lock.
+As thread wer blocked, and new request appeared, this had the effects of increase the
+queuing, and made tomcat creates new http nio worked threads until the maximum is reached
+(200 by default). So applied the same trick, i.e exercise code path that are lazy
+initialized befre readyness. And it worked too. Most contention disappeared.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-3-C2-compiler.png" alt="startup 3 C2 compiler">
+</div>
+<div class="title">Better startup / C2 compiler event</div>
+</div>
+<div class="paragraph">
+<p>There was still some potential gain however. We noticed a few C2 compiler events,
+If you don&#8217;t know C1 and C2, it&#8217;s the compilers that transform bytecode to assembly.
+While C1 is somewhat superficial in optimizing the assembly, but it requires few
+CPU and it allows code to be executed asap yet not as efficient as possible. In a
+second phase C2 may kick in, this one outputs highly optimized code for hot code path
+(code that is executed very, very often), but it requires resources.</p>
+</div>
+<div class="paragraph">
+<p>Note however this event is not blocking threads !</p>
+</div>
+<div class="paragraph">
+<p>As an experiment I decided to use the Graal compiler, which I believe is the new
+generation, Graal compiler is part of the GraalVM project.
+It ships as an experimental option : <code>-XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler</code>.</p>
+</div>
+<div class="paragraph">
+<p>And the result for this work load in particular.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-3-grafana.png" alt="startup 3 grafana">
+</div>
+<div class="title">Improved P99</div>
+</div>
+<div class="paragraph">
+<p>It&#8217;s a <em>percentlie</em> but it&#8217;s a still visible improvement.</p>
+</div>
+<div class="paragraph">
+<p>Now when we analyzed the new profile we noticed that JVM was using a lot of time to
+revoke bias locking. Note the events in fushia are custom JFR events that track HTTP requests.
+(<a href="https://twitter.com/gunnarmorling">Gunnar Morling</a> has an inspiring
+<a href="https://www.morling.dev/blog/rest-api-monitoring-with-custom-jdk-flight-recorder-events/">write up</a> about it).</p>
+</div>
+<div class="paragraph">
+<p>This VM operation is done during safepoint during which the JVM is paused. At this time a lot of
+of bias revocation event appears, so we removed them, and it works too.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-4-threads-revoke-biased-locks.png" alt="startup 4 threads revoke biased locks">
+</div>
+<div class="title">Revoke Bias locking</div>
+</div>
+<div class="paragraph">
+<p>The graphic shows the difference in startup time. Other consuming backend services had to timeout
+and eventually perform retries during rollouts which increased the pressure on the application.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-5-before-after.png" alt="startup 5 before after">
+</div>
+<div class="title">Before &#8658; after</div>
+</div>
+<div class="paragraph">
+<p>Other smaller issues can be handled, for example I noticed a few gaps 200ms wide at 30/1min intervals
+that were related to GC pauses.</p>
+</div>
+<div class="paragraph">
+<div class="title">GC gaps</div>
+<p><span class="image"><img src="/assets/jfr/startup-9-gc-pause-1.png" alt="startup 9 gc pause 1" title="GC gap 1"></span> <span class="image"><img src="/assets/jfr/startup-9-gc-pause-2.png" alt="startup 9 gc pause 2" title="GC gap 2"></span></p>
+</div>
+<div class="paragraph">
+<p>GC is working within 20ms excepts for a few pauses during the early minutes:</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/startup-9-thread-lanes-gc-pauses-effect.png" alt="startup 9 thread lanes gc pauses effect">
+</div>
+<div class="title">GC pauses causes new HTTP worker threads</div>
+</div>
+<div class="paragraph">
+<p>Tuning GC is out of scope for this article, but JMC presents a nice view that could help identify GC
+causes. In my opinion it&#8217;s currently a bit less powerful as GC logs as events may lack
+useful information found in GC logs.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/jmc-java-application-view.png" alt="jmc java application view">
+</div>
+<div class="title">Java Application view</div>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="/assets/jfr/jmc-garbage-collection-view.png" alt="jmc garbage collection view">
+</div>
+<div class="title">Garbage Collection view</div>
+</div>
+<div class="paragraph">
+<p>Anyway from there we could imagine a setting file in the JDK dedicated for GC events.
+Instead of parsing log files that may change a bit over releases (even with unified logging)
+GC events could be analyzed leveraging the included JFR schema.</p>
+</div>
+<div class="paragraph">
+<p>It&#8217;s even possible to record memory leak, I never tried that in a real situation though,
+but if this avoids the need to make a heap dump and parse in I&#8217;m all in.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_wrap_up"><a class="anchor" href="#_wrap_up"></a><a class="link" href="#_wrap_up">Wrap up</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Use JFR in production, use JDK Mission Control !</p>
+</div>
+<div class="paragraph">
+<p>I' amazed by the professionalism and the quality of the work BEA put in their JVM (JRockit) in
+the early 2000s, thanks to these talented engineer, we have JFR and <code>jcmd</code> (which was named <code>jrcmd</code>).
+And thanks to Oracle for making these available for all !.</p>
 </div>
 </div>
 </div>
