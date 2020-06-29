@@ -53,7 +53,8 @@ FlightRecorder, this is not anymore necessary with Java 11.
 
 NOTE: This page assumes JDK 11, that means there is no need to set
 `-XX:+UnlockCommercialFeatures`, `-XX:+FlightRecorder` flags. Or more particular to JFR
- the use of `-XX:+UnlockDiagnosticVMOptions` and `-XX:+DebugNonSafepoints` https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60[source]
+the use of `-XX:+UnlockDiagnosticVMOptions` and `-XX:+DebugNonSafepoints`
+https://github.com/openjdk/jmc/blob/bacb448fd4ed1a9a5d887c50aebff4e854d3512a/core/org.openjdk.jmc.common/src/main/java/org/openjdk/jmc/common/version/JavaVersionSupport.java#L59-L60[source]
 
 ////
 Cannot find public access to JDK-8036749, the only reference found by google is
@@ -78,10 +79,17 @@ https://martinfowler.com/eaaDev/EventSourcing.html[_Event Sourcing_] system.
 
 
 .JFR big picture
-image::../../static/assets/jfr/java-flight-recorder-big-picture.svg[align="center"]
+image::/assets/jfr/java-flight-recorder-big-picture.svg[align="center"]
 
 // TODO updates diagram as slightly incorrect regarding circular buffer
 // source https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#JFRUH172
+
+===
+
+// TODO sampling bias
+
+
+== Using JFR
 
 === How to start a recording ?
 
@@ -89,7 +97,7 @@ One of the first interesting thing you can do is to start a recording at runtime
 `jcmd` is the tool for this job, it's the Swiss Army knife tool for to service your Java app.
 If you don't know it, use it's great !
 
-Prior Java 11 FlightRecorder had to be enabled before. Now it's not anymore necessary
+Prior Java 11 FlightRecorder had to be enabled before use. Now it's not anymore necessary
 it's possible to _start_ a JFR session.
 
 .FlightRecorder is on by default
@@ -348,7 +356,7 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 	filename : [optional] Copy recording data to file, e.g. \"/home/user/My Recording.jfr\" (STRING, no default value)
 ----
 
-=== System Flight Recorder configuration
+=== Global Flight Recorder configuration
 
 What we saw before is how to start a recording and how to configure this specific recording.
 But there is another class of options that modifies aspects of the JFR internals.
@@ -440,6 +448,38 @@ if the `dumponexit` recording option is true.
 
 NOTE: These options are also available at startup via `-XX:FlightRecorderOptions`,
 we'll see later how to use this option.
+
+
+=== JFR logs
+
+Thanks to unified logging, it's easy to open the hood on any JVM runtime feature.
+In order to follow JFR, it's possible to JFR component, to understand how it works and
+how options affect recordings.
+
+[source]
+----
+-Xlog:jfr
+----
+
+[source]
+----
+[0.337s][info][jfr] Flight Recorder initialized
+[0.338s][info][jfr] Created repository /tmp/2020_06_19_13_08_28_6
+[0.367s][info][jfr] Creating thread sampler for java:20 ms, native 0 ms
+[0.367s][info][jfr] Enrolling thread sampler
+[0.367s][info][jfr] Enrolling thread sampler
+[0.367s][info][jfr] Updated thread sampler for java: 20  ms, native 0 ms
+[0.367s][info][jfr] Updated thread sampler for java: 20  ms, native 0 ms
+[0.367s][info][jfr] Updated thread sampler for java: 20  ms, native 20 ms
+[0.373s][info][jfr] Started recording "startup" (1) {maxsize=200.0MB, dumponexit=true, duration=6m, filename=/var/log/jfr/startup.jfr}
+...
+[0.847s][info][jfr] Updated thread sampler for java: 0  ms, native 20 ms
+[0.847s][info][jfr] Disenrolling thread sampler
+[0.848s][info][jfr] Stopped recording "1" (1). Reason "Dump on exit".
+[0.862s][info][jfr] Wrote recording "1" (1) to /var/log/jfr/startup.jfr
+[0.864s][info][jfr] Closed recording "1" (1)
+[0.866s][info][jfr] Removed repository /tmp/2020_06_19_13_08_28_6
+----
 
 
 === Memory usage in the process
@@ -867,7 +907,271 @@ available for the edge users. I'm using the 8 snapshots but the 7.1 does the job
 
 Enough text, let's see how to use JDK Mission Control on a concrete issue.
 
+TIP: A large screen will be really appreciated when looking at JMC. My 13 inches laptop
+is way too narrow in my opinion, using a 27 inches monitor really adds to usability.
 
+
+== Real case startup request latencies
+
+At some point we had an issue with application startup performance.
+For a bit of context this app runs in a Kubernetes cluster, with k8s it's possible
+to define a _rollout policy_ to avoid service distruption, that what we had, so there's a
+rollout, new pods (a pod is composed of the application container) get created,
+new application are started, then Kubernetes has a mean to check when the application is
+*ready*, it's called the readyness probe. This probe can be a call to http endpoint or a script,
+ours is an HTTP endpoint.
+
+WHen the probe indicates the application is ready, the application starts receiving traffic,
+from this moment latencies increased from 10-20 milliseconds to seconds.
+
+Opening the recording JMC, it will start an automated analysis. Sometime it's helpful
+and warning should be looked at. In this case the issue was elsewhere.
+
+To help in our case, we need to go in the thread view, which as a _thread lanes_
+which displays each thread as an horizontal bar, and JFR event are painted on the bar
+at the time they happened and for how long. At the bottom there's a the time axis.
+
+.Thread Lanes
+image::/assets/jfr/startup-0-thread-lanes.png[align="center"]
+
+The first things that catch our eyes will be the vertical patterns, especially the one with
+yellow and red around 12:51:15. Let's zoom (you can select and right click, or use arrow keys.).
+
+.Zooming on the problematic
+image::/assets/jfr/startup-0-threads-lanes-closer.png[align="center"]
+
+The vertical pattern is more precise, these vertical pattern indicates a _cross
+threads phenomena_. And we can notice that all thread are not affected the same way.
+
+The lanes in green at the top indicates these threads are progressing normally, nothing's
+wrong with them. However is we go down there especially, the pattern materialize around
+12:51:11.
+
+Each color indicate some events
+
+* Gray => the thread does nothing, it's parked
+* Small dark point => The park event, the thread was scheduled but was eventually parked
+* Red => In this case it's a _blocked lock_
+* Yellow => Here the yellow events that intrests us are thread waiting on a lock
+
+I'm not well versed in desfribing colors, so know that there are other events that use
+a slightly different tone / shade of red, yellow or else. Just click on the event
+to see what's going on.
+
+.monitor blocked
+image::/assets/jfr/startup-1-threads-jedis-lock-event.png[align="center"]
+
+The UI could be improved but going over the events shows a popup with it's details,
+for the Monitor Blocked event, there's the duration this monitor was block, who held
+this monitor before, and the monitor address in the heap.
+
+This monitor was held for ~9s, that's a big bottleneck !
+
+image::/assets/jfr/startup-1-threads-jedis-monitor-acquire-blocked.png[align="center"]
+
+In this case we had ~200 thread competing for this lock in particular. And finding the thread that
+acquired it is not automated, it's a bit tedious, but in the end didn't revealed anything.
+
+However the Monitor Blocked event has another interesting element, the stacktrace. In the lower
+pane of JMC, if the event is selected, we can see the stack trace where this event was emmitted.
+
+.jedis classloading
+image::/assets/jfr/startup-1-threads-jedis-monitor-blocked-stack.png[align="center"]
+
+Here that's the JDK classloader. I would never have thought that the JDK code would cause ~9s
+contention. But looking at the stacktrace, there _jedis_ (a Redis client) connection pool involved.
+Maybe the class have static initialization that does IO, maybe it's the agent that runs in production
+that introduces latencies during this specific classlaoding.
+
+But all the threads starts working again around 12:51:22, and redis bottle neck is not anymore an issue
+afterward. Let's look at the story on the IO side, open the Socket IO view.
+
+Identify which one is related to redis, either via IP or via port (Redis is `6379`).
+
+.Socket IO with redis port selected
+image::/assets/jfr/startup-1-socketio-redis-port.png[align="center"]
+
+While we see a total time of 30s, it's the accumulated time for all thread for the recording duration (6m).
+So nothing fancy here. However we see that actual IO happens really late, around 12:51:22.
+
+.Socket IO actual Redis read / write
+image::/assets/jfr/startup-1-socketio-redis.png[align="center"]
+
+I'm not sure of the cause, we can definitely rule out Redis, the is either in the network, during
+connection establishment, or actually during classloading.
+
+In order to remediate that, we noticed this code is called once the application is ready.
+So in order to avoid the contention the code was changed to pre-connect to redis during the
+application startup before the the application is considedred ready. And it worked, this
+specific issue disappeared.
+
+image::/assets/jfr/startup-2-thread-lanes.png[align="center"]
+
+However as knew from the first recording, and now the second iteration this was not the only issue
+identified when flying over the yellow and red events.
+
+
+.Incriminating stack traces 1
+[caption="",role="primary"]
+====
+.Jersey's `ListMultiMap` classloading
+image::/assets/jfr/startup-2-stack-01.png[align="center"]
+====
+
+.2
+[caption="",role="secondary"]
+====
+.Jackson's `SerializerCache` initialization
+image::/assets/jfr/startup-2-stack-02.png[align="center"]
+====
+
+.3
+[caption="",role="secondary"]
+====
+.Jersey's `ImprovedAbstractMap` classloading
+image::/assets/jfr/startup-2-stack-03.png[align="center"]
+====
+
+.4
+[caption="",role="secondary"]
+====
+.Jackson's `PropertySerializerMap` initialization
+image::/assets/jfr/startup-2-stack-04.png[align="center"]
+====
+
+.5
+[caption="",role="secondary"]
+====
+.Jackson's `TypeFactory` initialization
+image::/assets/jfr/startup-2-stack-05.png[align="center"]
+====
+
+.6
+[caption="",role="secondary"]
+====
+.Jackson's `DeserializerCache` initialization
+image::/assets/jfr/startup-2-stack-06.png[align="center"]
+====
+
+.7
+[caption="",role="secondary"]
+====
+.Guava's `hash` function involving classloading
+image::/assets/jfr/startup-2-stack-07.png[align="center"]
+====
+
+.8
+[caption="",role="secondary"]
+====
+.Newrelic's `SynchronizedCollection.size()`
+image::/assets/jfr/startup-2-stack-08.png[align="center"]
+====
+
+.9
+[caption="",role="secondary"]
+====
+.Jackson's `PropertySerializerMap` initialization
+image::/assets/jfr/startup-2-stack-09.png[align="center"]
+====
+
+.10
+[caption="",role="secondary"]
+====
+.Datastax cassandra driver's `ChainedResultSetFuture` involving classloading
+image::/assets/jfr/startup-2-stack-10.png[align="center"]
+====
+
+.11
+[caption="",role="secondary"]
+====
+.Jersey's `AbstractMapBasedMultimap` involving classloading
+image::/assets/jfr/startup-2-stack-11.png[align="center"]
+====
+
+All the stacktraces above have one thing in common, a contention on a lock.
+As thread wer blocked, and new request appeared, this had the effects of increase the
+queuing, and made tomcat creates new http nio worked threads until the maximum is reached
+(200 by default). So applied the same trick, i.e exercise code path that are lazy
+initialized befre readyness. And it worked too. Most contention disappeared.
+
+.Better startup / C2 compiler event
+image::/assets/jfr/startup-3-C2-compiler.png[align="center"]
+
+There was still some potential gain however. We noticed a few C2 compiler events,
+If you don't know C1 and C2, it's the compilers that transform bytecode to assembly.
+While C1 is somewhat superficial in optimizing the assembly, but it requires few
+CPU and it allows code to be executed asap yet not as efficient as possible. In a
+second phase C2 may kick in, this one outputs highly optimized code for hot code path
+(code that is executed very, very often), but it requires resources.
+
+Note however this event is not blocking threads !
+
+As an experiment I decided to use the Graal compiler, which I believe is the new
+generation, Graal compiler is part of the GraalVM project.
+It ships as an experimental option : `-XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler`.
+
+And the result for this work load in particular.
+
+.Improved P99
+image::/assets/jfr/startup-3-grafana.png[align="center"]
+
+It's a _percentlie_ but it's a still visible improvement.
+
+Now when we analyzed the new profile we noticed that JVM was using a lot of time to
+revoke bias locking. Note the events in fushia are custom JFR events that track HTTP requests.
+(https://twitter.com/gunnarmorling[Gunnar Morling] has an inspiring
+https://www.morling.dev/blog/rest-api-monitoring-with-custom-jdk-flight-recorder-events/[write up] about it).
+
+This VM operation is done during safepoint during which the JVM is paused. At this time a lot of
+of bias revocation event appears, so we removed them, and it works too.
+
+.Revoke Bias locking
+image::/assets/jfr/startup-4-threads-revoke-biased-locks.png[align="center"]
+
+The graphic shows the difference in startup time. Other consuming backend services had to timeout
+and eventually perform retries during rollouts which increased the pressure on the application.
+
+.Before => after
+image::/assets/jfr/startup-5-before-after.png[align="center"]
+
+Other smaller issues can be handled, for example I noticed a few gaps 200ms wide at 30/1min intervals
+that were related to GC pauses.
+
+.GC gaps
+image:/assets/jfr/startup-9-gc-pause-1.png[title="GC gap 1"] image:/assets/jfr/startup-9-gc-pause-2.png[title="GC gap 2"]
+
+GC is working within 20ms excepts for a few pauses during the early minutes:
+
+.GC pauses causes new HTTP worker threads
+image::/assets/jfr/startup-9-thread-lanes-gc-pauses-effect.png[align="center"]
+
+Tuning GC is out of scope for this article, but JMC presents a nice view that could help identify GC
+causes. In my opinion it's currently a bit less powerful as GC logs as events may lack
+useful information found in GC logs.
+
+.Java Application view
+image::/assets/jfr/jmc-java-application-view.png[align="center"]
+
+.Garbage Collection view
+image::/assets/jfr/jmc-garbage-collection-view.png[align="center"]
+
+Anyway from there we could imagine a setting file in the JDK dedicated for GC events.
+Instead of parsing log files that may change a bit over releases (even with unified logging)
+GC events could be analyzed leveraging the included JFR schema.
+
+It's even possible to record memory leak, I never tried that in a real situation though,
+but if this avoids the need to make a heap dump and parse in I'm all in.
+
+== Wrap up
+
+Use JFR in production, use JDK Mission Control !
+
+I' amazed by the professionalism and the quality of the work BEA put in their JVM (JRockit) in
+the early 2000s, thanks to these talented engineer, we have JFR and `jcmd` (which was named `jrcmd`).
+And thanks to Oracle for making these available for all !.
+
+
+////
 === Memory Leaks
 
 // https://docs.oracle.com/en/java/javase/11/troubleshoot/troubleshoot-memory-leaks.html#GUID-8090B138-6E0C-4926-9659-BE739062AB75
@@ -898,53 +1202,17 @@ Old Object Sample Event added in JDK 10 to profile memory leak, http://hirt.se/b
 
 ----
 
+////
 
 
 
 
-[source]
-----
--Xlog:jfr
-----
 
-
-
+////
 jcmd $(pidof java) JFR.start name=app-profile path-to-gc-roots=true maxsize=200mb settings=profile name=continuous-profile stackdepth=128 disk=true dumponexit=true filename=/gclogs/app-profile-$(date +%FT%H-%M-%S).jfr
 jcmd $(pidof java) JFR.dump filename=/gclogs/hotspot-pid-6-2020_05_28_11_13_52.jfr
+////
 
 
-
-
-
-
-
-== Real case startup request latencies
-
-image:/assets/jfr/startup-0-thread-lanes.png[align="center"]
-image:/assets/jfr/startup-0-threads-lanes-closer.png[align="center"]
-image:/assets/jfr/startup-1-threads-jedis-lock-event.png[align="center"]
-image:/assets/jfr/startup-1-threads-jedis-monitor-acquire-blocked.png[align="center"]
-image:/assets/jfr/startup-1-threads-jedis-monitor-blocked-stack.png[align="center"]
-
-image:/assets/jfr/startup-2-stack-01.png[align="center"]
-image:/assets/jfr/startup-2-stack-02.png[align="center"]
-image:/assets/jfr/startup-2-stack-03.png[align="center"]
-image:/assets/jfr/startup-2-stack-04.png[align="center"]
-image:/assets/jfr/startup-2-stack-05.png[align="center"]
-image:/assets/jfr/startup-2-stack-06.png[align="center"]
-image:/assets/jfr/startup-2-stack-07.png[align="center"]
-image:/assets/jfr/startup-2-stack-08.png[align="center"]
-image:/assets/jfr/startup-2-stack-09.png[align="center"]
-image:/assets/jfr/startup-2-stack-10.png[align="center"]
-image:/assets/jfr/startup-2-stack-11.png[align="center"]
-
-image:/assets/jfr/startup-2-thread-lanes.png[align="center"]
-image:/assets/jfr/startup-3-C2-compiler.png[align="center"]
-image:/assets/jfr/startup-3-grafana.png[align="center"]
-image:/assets/jfr/startup-4-threads-revoke-biased-locks.png[align="center"]
-image:/assets/jfr/startup-5-before-after.png[align="center"]
-image:/assets/jfr/startup-9-gc-pause-1.png[align="center"]
-image:/assets/jfr/startup-9-gc-pause-2.png[align="center"]
-image:/assets/jfr/startup-9-thread-lanes-gc-pauses-effect.png[align="center"]
 
 
