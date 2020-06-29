@@ -79,14 +79,21 @@ https://martinfowler.com/eaaDev/EventSourcing.html[_Event Sourcing_] system.
 
 
 .JFR big picture
-image::/assets/jfr/java-flight-recorder-big-picture.svg[align="center"]
+image::/assets/jfr/java-flight-recorder-big-picture2.svg[align="center"]
 
-// TODO updates diagram as slightly incorrect regarding circular buffer
 // source https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#JFRUH172
 
-===
+I won't dive in, but most profiler do have a bias when profiling and don't report accurate results.
+The issue lies in how profiler handle JVM safepoints, most don't account properly the time spent in
+safepoints. Some great profiler like the great https://github.com/jvm-profiling-tools/async-profiler[async-profiler],
+are not subject to these biases, JFR is also not subject to it.
 
-// TODO sampling bias
+Here's great material provided by https://twitter.com/nitsanw[Nitsan Wakart] :
+
+* https://psy-lob-saw.blogspot.com/2016/02/why-most-sampling-java-profilers-are.html[Why (Most) Sampling Java Profilers Are Fucking Terrible]
+* https://psy-lob-saw.blogspot.com/2015/12/safepoints.html[Safepoints: Meaning, Side Effects and Overheads]
+* https://psy-lob-saw.blogspot.com/2016/06/the-pros-and-cons-of-agct.html[The Pros and Cons of AsyncGetCallTrace Profilers]
+
 
 
 == Using JFR
