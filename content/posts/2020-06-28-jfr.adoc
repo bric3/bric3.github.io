@@ -3,49 +3,18 @@ authors: ["brice.dutheil"]
 date: "2020-06-28T23:54:58+02:00"
 language: en
 tags: ["jfr","profiling","java flight recorder", "java"]
-slug: "using-java-flight-recorder-and-jdk-mission-control"
-title: "Using Java FlightRecorder and JDK Mission Control"
+slug: "using-jdk-flight-recorder-and-jdk-mission-control"
+title: "Using JDK FlightRecorder and JDK Mission Control"
 series: ["Flight Recorder"]
+# Error in the published slug ~~JDK Flight Recorder~~ => JDK Flight Recorder
+aliases:
+- "using-java-flight-recorder-and-jdk-mission-control"
 #_build:
 #  list: never
 ---
 
 
-
-
-////
-https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html[Official Troubleshooting guide for Java 11]
-
-https://blogs.oracle.com/javamagazine/java-flight-recorder-and-jfr-event-streaming-in-java-14
-
-
-https://daniel.mitterdorfer.name/talks/2017/Java%20Flight%20Recorder.pdf
-https://www.dariawan.com/tutorials/java/java-11-flight-recorder-jep-328/
-
-https://github.com/lhotari/jfr-report-tool
-
-https://github.com/thegreystone/jmc-tutorial
-
-.Talks
-https://www.youtube.com/watch?v=E9K5m1HXMSc&list=WL&index=21&t=0s
-https://www.youtube.com/watch?v=_69wTZR6lis&list=WL&index=22&t=0s
-https://www.infoq.com/presentations/monitoring-jdk-jfr/[Continuous Monitoring with JDK Flight Recorder (JFR)]
-
-
-http://hirt.se/blog/?p=1055[Solving Memory Leaks without Heap Dumps]
-
-https://www.slideshare.net/PoonamBajaj5/jfr-174014342[CodeOne 2019 presentation on JFR]
-https://www.slideshare.net/koduki/performance-monitoring-with-java-flight-recorder-on-openjdk-dev2406[Performance Monitoring with Java Flight Recorder on OpenJDK [DEV2406] ]
-
-
-
-https://psy-lob-saw.blogspot.com/2016/02/why-most-sampling-java-profilers-are.html[Why (Most) Sampling Java Profilers Are Fucking Terrible]
-https://psy-lob-saw.blogspot.com/2015/12/safepoints.html[Safepoints: Meaning, Side Effects and Overheads]
-https://psy-lob-saw.blogspot.com/2016/06/the-pros-and-cons-of-agct.html[The Pros and Cons of AsyncGetCallTrace Profilers]
-////
-
-
-Java Flight Recorder, the profiler you can use in production, continuously.
+JDK Flight Recorder, the profiler you can use in production, continuously.
 Flight Recorder has been available before in the JDK, e.g. it shipped as part of the JDK 8,
 but to use it, it demanded a to set specific commercial VM flags to unlock
 FlightRecorder, this is not anymore necessary with Java 11.
@@ -61,14 +30,16 @@ https://bugs.openjdk.java.net/browse/JMC-6554
 ////
 
 
-== Brief introduction to Java Flight Recorder
+== Brief introduction to JDK Flight Recorder
 
 Flight Recorder is a feature backed in the JVM that *traces* what's happening inside the JVM with *events*.
-FlightRecorder development started a long time ago in the early 2000 in a company name BEA, for their own
-JVM implementation, JRockit. Oracle acquired BEA, then acquired Sun, and merged the source of JRockit to Hotspot.
+FlightRecorder development started a long time ago in the early 2000, on a JVM named JRockit.
 
-At some BEA engineers needed insight in their JVM, in production, logging was not an option as it had too much
-overhead, so they designed an event based system to work in production.
+_This JVM was first developed by a swedish company named Appeal, then Appeal got acquired by BEA.
+Oracle acquired BEA, then acquired Sun, and merged the source of JRockit to Hotspot._
+
+At some point BEA/Appeal engineers needed insight in their JVM, in production, logging was not an option
+as it had too much overhead, so they designed an event based system to work reliably in production.
 
 JDK Mission Control on the other end is a software that will analyze these events and build consolidated views
 for us to analyze.
@@ -1176,6 +1147,7 @@ I' amazed by the professionalism and the quality of the work BEA put in their JV
 the early 2000s, thanks to these talented engineer, we have JFR and `jcmd` (which was named `jrcmd`).
 And thanks to Oracle for making these available for all !.
 
+Quick thanks to https://twitter/delabasse[David Delabasse] on his comments.
 
 ////
 === Memory Leaks
@@ -1217,6 +1189,40 @@ Old Object Sample Event added in JDK 10 to profile memory leak, http://hirt.se/b
 ////
 jcmd $(pidof java) JFR.start name=app-profile path-to-gc-roots=true maxsize=200mb settings=profile name=continuous-profile stackdepth=128 disk=true dumponexit=true filename=/gclogs/app-profile-$(date +%FT%H-%M-%S).jfr
 jcmd $(pidof java) JFR.dump filename=/gclogs/hotspot-pid-6-2020_05_28_11_13_52.jfr
+////
+
+
+
+
+////
+https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html[Official Troubleshooting guide for Java 11]
+
+https://blogs.oracle.com/javamagazine/java-flight-recorder-and-jfr-event-streaming-in-java-14
+
+
+https://daniel.mitterdorfer.name/talks/2017/Java%20Flight%20Recorder.pdf
+https://www.dariawan.com/tutorials/java/java-11-flight-recorder-jep-328/
+
+https://github.com/lhotari/jfr-report-tool
+
+https://github.com/thegreystone/jmc-tutorial
+
+.Talks
+https://www.youtube.com/watch?v=E9K5m1HXMSc&list=WL&index=21&t=0s
+https://www.youtube.com/watch?v=_69wTZR6lis&list=WL&index=22&t=0s
+https://www.infoq.com/presentations/monitoring-jdk-jfr/[Continuous Monitoring with JDK Flight Recorder (JFR)]
+
+
+http://hirt.se/blog/?p=1055[Solving Memory Leaks without Heap Dumps]
+
+https://www.slideshare.net/PoonamBajaj5/jfr-174014342[CodeOne 2019 presentation on JFR]
+https://www.slideshare.net/koduki/performance-monitoring-with-java-flight-recorder-on-openjdk-dev2406[Performance Monitoring with JDK Flight Recorder on OpenJDK [DEV2406] ]
+
+
+
+https://psy-lob-saw.blogspot.com/2016/02/why-most-sampling-java-profilers-are.html[Why (Most) Sampling Java Profilers Are Fucking Terrible]
+https://psy-lob-saw.blogspot.com/2015/12/safepoints.html[Safepoints: Meaning, Side Effects and Overheads]
+https://psy-lob-saw.blogspot.com/2016/06/the-pros-and-cons-of-agct.html[The Pros and Cons of AsyncGetCallTrace Profilers]
 ////
 
 
