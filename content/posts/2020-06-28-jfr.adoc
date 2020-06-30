@@ -78,7 +78,7 @@ Prior Java 11 FlightRecorder had to be enabled before use. Now it's not anymore 
 it's possible to _start_ a JFR session.
 
 .FlightRecorder is on by default
-[source, bash]
+[source, shell]
 ----
 $ jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
      bool FlightRecorder                           = true                                      {product} {management}
@@ -87,7 +87,7 @@ $ jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
 
 Just runt `JFR.start` on the running java pid.
 
-[source,bash]
+[source, shell]
 ----
 $ jcmd $(pidof java) JFR.start
 6:
@@ -101,7 +101,7 @@ Also, this commands tells you that a recording by default is limited to 250Mb.
 `jcmd` provides an `help` command that describes document for each command options.
 
 .JFR.start example
-[source, bash, role="primary"]
+[source, shell, role="primary"]
 ----
 $ jcmd $(pgrep java) JFR.start \
   name=app-profile \
@@ -115,7 +115,7 @@ Started recording 2. The result will be written to:
 ----
 
 .JFR.start help
-[source, bash, role="secondary"]
+[source, shell, role="secondary"]
 ----
 $ jcmd $(pgrep java) help JFR.start
 6:
@@ -159,7 +159,7 @@ Here's is the first few line of the `default` settings. As its name impies, this
 that is used when the command is run without a `settings` option.
 
 .$JAVA_HOME/lib/jfr/default.jfc
-[source,xml]
+[source, xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
 
@@ -227,7 +227,7 @@ of our own stored elsewhere.
 If it's needed to acquire the recording, it's possible to dump it at anytime.
 
 .JFR.dump example
-[source, bash, role="primary"]
+[source, shell, role="primary"]
 ----
 $ jcmd $(pidof java) JFR.dump filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
 6:
@@ -237,7 +237,7 @@ Dumped recording, 239.5 MB written to:
 ----
 
 .JFR.dump help
-[source, bash, role="secondary"]
+[source, shell, role="secondary"]
 ----
 $ jcmd $(pgrep java) help JFR.dump
 6:
@@ -273,7 +273,7 @@ If they are multiple active recordings or if it's necessary to check the event c
 of the active recording `jcmd` comes with the `JFR.check`.
 
 .JFR.check example
-[source, bash, role="primary"]
+[source, shell, role="primary"]
 ----
 $ jcmd $(pgrep java) JFR.check
 6:
@@ -281,7 +281,7 @@ Recording 2: name=2 maxsize=250.0MB (running)
 ----
 
 .JFR.check help
-[source, bash]
+[source, shell]
 ----
 $ jcmd $(pgrep java) help JFR.check
 6:
@@ -307,7 +307,7 @@ When the recording session is deemed over, then one can stop it providing a diff
 file name than the one set in the start command.
 
 .JFR.stop example
-[source, bash, role="primary"]
+[source, shell, role="primary"]
 ----
 $ jcmd $(pgrep java) JFR.stop \
   name=app-profile \
@@ -315,7 +315,7 @@ $ jcmd $(pgrep java) JFR.stop \
 ----
 
 .JFR.stop help
-[source, bash, role="secondary"]
+[source, shell, role="secondary"]
 ----
 $ jcmd $(pgrep java) help JFR.stop
 6:
@@ -340,7 +340,7 @@ But there is another class of options that modifies aspects of the JFR internals
 As a reminder those affects all recording in some way.
 
 .JFR.configure example
-[source, bash, role="primary"]
+[source, shell, role="primary"]
 ----
 $ jcmd $(pidof java) JFR.configure \
   stackdepth=96 \
@@ -368,7 +368,7 @@ Sample threads: true
 ----
 
 .JFR.configure help
-[source, bash, role="secondary"]
+[source, shell, role="secondary"]
 ----
 $ jcmd $(pidof java) help JFR.configure
 80657:
@@ -401,7 +401,7 @@ maximum size of `maxchunksize`. These files behave like a log rolling appender.
 By default these chunks are stored in the temporary directory and in a subfolder with a timestamp.
 
 .JFR repository
-[source, bash]
+[source, shell]
 ----
 $ ls -lah /tmp/jfr-repo/2020_06_26_16_03_41_6/
 total 71M
@@ -458,6 +458,7 @@ how options affect recordings.
 [0.866s][info][jfr] Removed repository /tmp/2020_06_19_13_08_28_6
 ----
 
+Increasing the log level may reveal additional details.
 
 === Memory usage in the process
 
@@ -469,7 +470,7 @@ or other native memory sections, but it's worth mentioning.
 
 If NMT is enabled, you can just display the summary:
 
-[source]
+[source, shell]
 ----
 $ jcmd $(pidof java) VM.native_memory
 6:
@@ -513,7 +514,7 @@ The first interesting thing to do is to get an overview of the recording,
 the `summary` sub-command displays an histogram of the events.
 
 .events type histogram (summary)
-[source, bash]
+[source, shell]
 ----
 $ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
 
@@ -579,7 +580,7 @@ The `print` sub-command can extract these events, in XML or in JSON. From there
 it's possible to perform other type of aggregation using other tools.
 
 .extract data from using `jfr` and `jq`
-[source, bash]
+[source, shell]
 ----
 $ jfr print \
   --json \
@@ -594,7 +595,7 @@ Keep in mind these files may be removed as soon as they are expired or as
 soon as every recording stops.
 
 .summary on a chunk in the repository
-[source, bash]
+[source, shell]
 ----
 $ jfr summary /tmp/jfr-repo/2020_06_26_16_03_41_6/2020_06_26_16_04_12.jfr
 Version: 2.0
@@ -788,9 +789,9 @@ it sets a retention of 10 minutes, or a retention of the default maximum size wh
 If this is the only recording, `JFR.check` will output something like that.
 
 .In the container, checking JFR
-[source]
+[source, shell]
 ----
-❯ jcmd $(pgrep java) JFR.check
+$ jcmd $(pgrep java) JFR.check
 6:
 Recording 1: name=post-startup maxage=10m (delayed) <1>
 ❯ jcmd $(pgrep java) JFR.check
