@@ -477,7 +477,7 @@ are enabled, their threshold, if stacktraces are recorded, etc. And there is als
 that is used when the command is run without a <code>settings</code> option.</p>
 </div>
 <div class="listingblock">
-<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc</div>
+<div class="title">$JAVA_HOME/lib/jfr/default.jfc</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 
@@ -511,7 +511,7 @@ basic information, IO, GC events, locking behavior, thread events, method profil
 <p>The announced overhead is maximum 1% !</p>
 </div>
 <div class="listingblock">
-<div class="title">/usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc</div>
+<div class="title">$JAVA_HOME/lib/jfr/profile.jfc</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="xml" class="language-xml hljs">&lt;!--
      Recommended way to edit .jfc files is to use Java Mission Control,
@@ -1284,7 +1284,7 @@ to this the working directory of the process <code>hotspot-pid-6-id-1-2020_05_03
 <td class="content">
 <div class="paragraph">
 <p>The JVM source code, suggest that JFR has the notion of
-<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/jfr/recorder/repository/jfrEmergencyDump.cpp#L250">emergency JFR dump</a>,
+<a href="https://github.com/openjdk/jdk11u/blob/e81745c5c5e8194791047728a73b74a5262f1634/src/hotspot/share/jfr/recorder/repository/jfrEmergencyDump.cpp#L250-L289">emergency JFR dump</a>,
 but the mechanism is different as it seems those are dumped in the
 working directory of the process, which may not be writable in a container. I don&#8217;t
 think it&#8217;s currently possible to change the location. But
@@ -1684,7 +1684,8 @@ second phase C2 may kick in, this one outputs highly optimized code for hot code
 </div>
 <div class="paragraph">
 <p>As an experiment I decided to use the Graal compiler, which I believe is the new
-generation, Graal compiler is part of the GraalVM project.
+generation of compiler. <a href="https://github.com/oracle/graal/blob/master/compiler/README.md">Graal compiler</a>
+is part of the <a href="https://github.com/oracle/graal">GraalVM</a> project.
 It ships as an experimental option : <code>-XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler</code>.</p>
 </div>
 <div class="paragraph">
@@ -1697,7 +1698,8 @@ It ships as an experimental option : <code>-XX:+UnlockExperimentalVMOptions -XX:
 <div class="title">Improved P99</div>
 </div>
 <div class="paragraph">
-<p>It&#8217;s a <em>percentlie</em> but it&#8217;s a still visible improvement.</p>
+<p>This graph is falling under the <a href="https://latencytipoftheday.blogspot.com/2014/06/latencytipoftheday-most-page-loads.html"><em>percentlie</em></a>
+but the improvement is still visible.</p>
 </div>
 <div class="paragraph">
 <p>Now when we analyzed the new profile we noticed that JVM was using a lot of time to
