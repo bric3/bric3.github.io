@@ -158,7 +158,7 @@ are enabled, their threshold, if stacktraces are recorded, etc. And there is als
 Here's is the first few line of the `default` settings. As its name impies, this is the configuration
 that is used when the command is run without a `settings` option.
 
-./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/default.jfc
+.$JAVA_HOME/lib/jfr/default.jfc
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
@@ -190,7 +190,7 @@ basic information, IO, GC events, locking behavior, thread events, method profil
 
 The announced overhead is maximum 1% !
 
-./usr/lib/jvm/java-11-amazon-corretto/lib/jfr/profile.jfc
+.$JAVA_HOME/lib/jfr/profile.jfc
 [source, xml]
 ----
 <!--
@@ -1084,7 +1084,8 @@ second phase C2 may kick in, this one outputs highly optimized code for hot code
 Note however this event is not blocking threads !
 
 As an experiment I decided to use the Graal compiler, which I believe is the new
-generation, Graal compiler is part of the GraalVM project.
+generation of compiler. https://github.com/oracle/graal/blob/master/compiler/README.md[Graal compiler]
+is part of the https://github.com/oracle/graal[GraalVM] project.
 It ships as an experimental option : `-XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler`.
 
 And the result for this work load in particular.
@@ -1092,7 +1093,8 @@ And the result for this work load in particular.
 .Improved P99
 image::/assets/jfr/startup-3-grafana.png[align="center"]
 
-It's a _percentlie_ but it's a still visible improvement.
+This graph is falling under the https://latencytipoftheday.blogspot.com/2014/06/latencytipoftheday-most-page-loads.html[_percentlie_]
+but the improvement is still visible.
 
 Now when we analyzed the new profile we noticed that JVM was using a lot of time to
 revoke bias locking. Note the events in fushia are custom JFR events that track HTTP requests.
