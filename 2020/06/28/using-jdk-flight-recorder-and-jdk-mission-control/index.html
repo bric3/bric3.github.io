@@ -60,7 +60,7 @@
 <meta name="twitter:description" content="Java mostly, and general tech">
 <meta name="twitter:creator" content="@BriceDutheil">
     
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/github.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
 
 
 
@@ -382,7 +382,7 @@ it&#8217;s possible to <em>start</em> a JFR session.</p>
 <div class="listingblock">
 <div class="title">FlightRecorder is on by default</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
      bool FlightRecorder                           = true                                      {product} {management}
     ccstr FlightRecorderOptions                    =                                           {product} {default}</code></pre>
 </div>
@@ -392,7 +392,7 @@ it&#8217;s possible to <em>start</em> a JFR session.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) JFR.start
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) JFR.start
 6:
 Started recording 2. No limit specified, using maxsize=250MB as default.
 
@@ -407,7 +407,7 @@ Also, this commands tells you that a recording by default is limited to 250Mb.
 <div class="listingblock primary">
 <div class="title">JFR.start example</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) JFR.start \
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) JFR.start \
   name=app-profile \
   duration=300s \
   filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr \
@@ -421,7 +421,7 @@ Started recording 2. The result will be written to:
 <div class="listingblock secondary">
 <div class="title">JFR.start help</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.start
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) help JFR.start
 6:
 JFR.start
 Starts a new JFR recording
@@ -554,7 +554,7 @@ of our own stored elsewhere.</p>
 <div class="listingblock primary">
 <div class="title">JFR.dump example</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) JFR.dump filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) JFR.dump filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr
 6:
 Dumped recording, 239.5 MB written to:
 
@@ -564,7 +564,7 @@ Dumped recording, 239.5 MB written to:
 <div class="listingblock secondary">
 <div class="title">JFR.dump help</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.dump
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) help JFR.dump
 6:
 JFR.dump
 Copies contents of a JFR recording to file. Either the name or the recording id must be specified.
@@ -603,7 +603,7 @@ of the active recording <code>jcmd</code> comes with the <code>JFR.check</code>.
 <div class="listingblock primary">
 <div class="title">JFR.check example</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) JFR.check
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) JFR.check
 6:
 Recording 2: name=2 maxsize=250.0MB (running)</code></pre>
 </div>
@@ -611,7 +611,7 @@ Recording 2: name=2 maxsize=250.0MB (running)</code></pre>
 <div class="listingblock">
 <div class="title">JFR.check help</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.check
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) help JFR.check
 6:
 JFR.check
 Checks running JFR recording(s)
@@ -640,7 +640,7 @@ file name than the one set in the start command.</p>
 <div class="listingblock primary">
 <div class="title">JFR.stop example</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) JFR.stop \
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) JFR.stop \
   name=app-profile \
   filename=/tmp/app-profile-$(date +%FT%H-%M-%S).jfr</code></pre>
 </div>
@@ -648,7 +648,7 @@ file name than the one set in the start command.</p>
 <div class="listingblock secondary">
 <div class="title">JFR.stop help</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) help JFR.stop
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) help JFR.stop
 6:
 JFR.stop
 Stops a JFR recording
@@ -675,7 +675,7 @@ As a reminder those affects all recording in some way.</p>
 <div class="listingblock primary">
 <div class="title">JFR.configure example</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) JFR.configure \
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) JFR.configure \
   stackdepth=96 \
   repositorypath=/tmp/jfr-repo
 6:
@@ -703,7 +703,7 @@ Sample threads: true</code></pre>
 <div class="listingblock secondary">
 <div class="title">JFR.configure help</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) help JFR.configure
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) help JFR.configure
 80657:
 JFR.configure
 Configure JFR
@@ -738,7 +738,7 @@ By default these chunks are stored in the temporary directory and in a subfolder
 <div class="listingblock">
 <div class="title">JFR repository</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ ls -lah /tmp/jfr-repo/2020_06_26_16_03_41_6/
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ ls -lah /tmp/jfr-repo/2020_06_26_16_03_41_6/
 total 71M
 drwxr-xr-x 2 43514 root 4.0K Jun 26 16:21 .
 drwxr-xr-x 3 43514 root 4.0K Jun 26 16:03 ..
@@ -806,6 +806,9 @@ how options affect recordings.</p>
 [0.866s][info][jfr] Removed repository /tmp/2020_06_19_13_08_28_6</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Increasing the log level may reveal additional details.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_memory_usage_in_the_process"><a class="anchor" href="#_memory_usage_in_the_process"></a><a class="link" href="#_memory_usage_in_the_process">Memory usage in the process</a></h3>
@@ -821,7 +824,7 @@ or other native memory sections, but it&#8217;s worth mentioning.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ jcmd $(pidof java) VM.native_memory
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) VM.native_memory
 6:
 
 Native Memory Tracking:
@@ -879,7 +882,7 @@ the <code>summary</code> sub-command displays an histogram of the events.</p>
 <div class="listingblock">
 <div class="title">events type histogram (summary)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jfr summary /tmp/app-profile-2020-03-26T16-57-14.jfr
 
  Version: 2.0
  Chunks: 1
@@ -946,7 +949,7 @@ it&#8217;s possible to perform other type of aggregation using other tools.</p>
 <div class="listingblock">
 <div class="title">extract data from using <code>jfr</code> and <code>jq</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jfr print \
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jfr print \
   --json \
   --events jdk.ThreadPark \
   /gclogs/startup.jfr \
@@ -962,7 +965,7 @@ soon as every recording stops.</p>
 <div class="listingblock">
 <div class="title">summary on a chunk in the repository</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jfr summary /tmp/jfr-repo/2020_06_26_16_03_41_6/2020_06_26_16_04_12.jfr
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jfr summary /tmp/jfr-repo/2020_06_26_16_03_41_6/2020_06_26_16_04_12.jfr
 Version: 2.0
 Chunks: 1
 Start: 2020-06-26 16:04:12 (UTC)
@@ -1243,7 +1246,7 @@ it sets a retention of 10 minutes, or a retention of the default maximum size wh
 <div class="listingblock">
 <div class="title">In the container, checking JFR</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ jcmd $(pgrep java) JFR.check
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pgrep java) JFR.check
 6:
 Recording 1: name=post-startup maxage=10m (delayed) <i class="conum" data-value="1"></i><b>(1)</b>
 ❯ jcmd $(pgrep java) JFR.check
@@ -1852,7 +1855,13 @@ the JRockit), then continued his career at BEA then Oracle.</p>
 
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/languages/shell.min.js"></script><script type="text/javascript">
+        
+        hljs.configure({languages: ["shell"]});
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
     
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
