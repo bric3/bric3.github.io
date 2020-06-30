@@ -1660,10 +1660,10 @@ identified when flying over the yellow and red events.</p>
 </div>
 <div class="paragraph">
 <p>All the stacktraces above have one thing in common, a contention on a lock.
-As thread wer blocked, and new request appeared, this had the effects of increase the
-queuing, and made tomcat creates new http nio worked threads until the maximum is reached
-(200 by default). So applied the same trick, i.e exercise code path that are lazy
-initialized befre readyness. And it worked too. Most contention disappeared.</p>
+As thread were blocked, and new request appeared, this had the effects of increase the
+queuing, and made tomcat creates new <em>http nio</em> worked threads until the maximum is reached
+(200 by default). I applied the same trick: i.e before readyness, exercise code paths that
+are lazy initialized. And it worked too. Most contention disappeared afterward.</p>
 </div>
 <div class="imageblock text-center">
 <div class="content">
@@ -1680,7 +1680,7 @@ second phase C2 may kick in, this one outputs highly optimized code for hot code
 (code that is executed very, very often), but it requires resources.</p>
 </div>
 <div class="paragraph">
-<p>Note however this event is not blocking threads !</p>
+<p>Note this compilation event is not blocking threads !</p>
 </div>
 <div class="paragraph">
 <p>As an experiment I decided to use the Graal compiler, which I believe is the new
@@ -1718,7 +1718,7 @@ of bias revocation event appears, so we removed them, and it works too.</p>
 <div class="title">Revoke Bias locking</div>
 </div>
 <div class="paragraph">
-<p>The graphic shows the difference in startup time. Other consuming backend services had to timeout
+<p>The graphic below shows the difference in startup time. Other consuming backend services had to timeout
 and eventually perform retries during rollouts which increased the pressure on the application.</p>
 </div>
 <div class="imageblock text-center">
@@ -1728,15 +1728,16 @@ and eventually perform retries during rollouts which increased the pressure on t
 <div class="title">Before &#8658; after</div>
 </div>
 <div class="paragraph">
-<p>Other smaller issues can be handled, for example I noticed a few gaps 200ms wide at 30/1min intervals
-that were related to GC pauses.</p>
+<p>Other smaller issues could be discovered and tackled, for example I noticed a few gaps
+200ms wide at 30/1min intervals that were related to GC pauses.</p>
 </div>
 <div class="paragraph">
 <div class="title">GC gaps</div>
 <p><span class="image"><img src="/assets/jfr/startup-9-gc-pause-1.png" alt="startup 9 gc pause 1" title="GC gap 1"></span> <span class="image"><img src="/assets/jfr/startup-9-gc-pause-2.png" alt="startup 9 gc pause 2" title="GC gap 2"></span></p>
 </div>
 <div class="paragraph">
-<p>GC is working within 20ms excepts for a few pauses during the early minutes:</p>
+<p>For this application the GC is working within 20ms excepts for a few larger pauses
+during the early minutes of startup:</p>
 </div>
 <div class="imageblock text-center">
 <div class="content">
@@ -1784,7 +1785,12 @@ the early 2000s, thanks to these talented engineer, we have JFR and <code>jcmd</
 And thanks to Oracle for making these available for all !.</p>
 </div>
 <div class="paragraph">
-<p>Quick thanks to <a href="https://twitter/delabasse">David Delabasse</a> on his comments.</p>
+<p>You nay also want to follow <a href="http://hirt.se">Marcus Hirt&#8217;s blog</a>, he regularly updates it with useful
+information on JMC and JFR. As it happens Marucs was the co-founder of Appeal (the company that developed
+the JRockit), then continued his career at BEA then Oracle.</p>
+</div>
+<div class="paragraph">
+<p>Finally, here&#8217;s a quick thank to <a href="https://twitter/delabasse">David Delabasse</a> for his comments.</p>
 </div>
 </div>
 </div>
