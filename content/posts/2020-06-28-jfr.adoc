@@ -1066,10 +1066,10 @@ image::/assets/jfr/startup-2-stack-11.png[align="center"]
 ====
 
 All the stacktraces above have one thing in common, a contention on a lock.
-As thread wer blocked, and new request appeared, this had the effects of increase the
-queuing, and made tomcat creates new http nio worked threads until the maximum is reached
-(200 by default). So applied the same trick, i.e exercise code path that are lazy
-initialized befre readyness. And it worked too. Most contention disappeared.
+As thread were blocked, and new request appeared, this had the effects of increase the
+queuing, and made tomcat creates new _http nio_ worked threads until the maximum is reached
+(200 by default). I applied the same trick: i.e before readyness, exercise code paths that
+are lazy initialized. And it worked too. Most contention disappeared afterward.
 
 .Better startup / C2 compiler event
 image::/assets/jfr/startup-3-C2-compiler.png[align="center"]
@@ -1081,7 +1081,7 @@ CPU and it allows code to be executed asap yet not as efficient as possible. In 
 second phase C2 may kick in, this one outputs highly optimized code for hot code path
 (code that is executed very, very often), but it requires resources.
 
-Note however this event is not blocking threads !
+Note this compilation event is not blocking threads !
 
 As an experiment I decided to use the Graal compiler, which I believe is the new
 generation of compiler. https://github.com/oracle/graal/blob/master/compiler/README.md[Graal compiler]
@@ -1107,19 +1107,20 @@ of bias revocation event appears, so we removed them, and it works too.
 .Revoke Bias locking
 image::/assets/jfr/startup-4-threads-revoke-biased-locks.png[align="center"]
 
-The graphic shows the difference in startup time. Other consuming backend services had to timeout
+The graphic below shows the difference in startup time. Other consuming backend services had to timeout
 and eventually perform retries during rollouts which increased the pressure on the application.
 
 .Before => after
 image::/assets/jfr/startup-5-before-after.png[align="center"]
 
-Other smaller issues can be handled, for example I noticed a few gaps 200ms wide at 30/1min intervals
-that were related to GC pauses.
+Other smaller issues could be discovered and tackled, for example I noticed a few gaps
+200ms wide at 30/1min intervals that were related to GC pauses.
 
 .GC gaps
 image:/assets/jfr/startup-9-gc-pause-1.png[title="GC gap 1"] image:/assets/jfr/startup-9-gc-pause-2.png[title="GC gap 2"]
 
-GC is working within 20ms excepts for a few pauses during the early minutes:
+For this application the GC is working within 20ms excepts for a few larger pauses
+during the early minutes of startup:
 
 .GC pauses causes new HTTP worker threads
 image::/assets/jfr/startup-9-thread-lanes-gc-pauses-effect.png[align="center"]
@@ -1149,7 +1150,11 @@ I' amazed by the professionalism and the quality of the work BEA put in their JV
 the early 2000s, thanks to these talented engineer, we have JFR and `jcmd` (which was named `jrcmd`).
 And thanks to Oracle for making these available for all !.
 
-Quick thanks to https://twitter/delabasse[David Delabasse] on his comments.
+You nay also want to follow http://hirt.se[Marcus Hirt's blog], he regularly updates it with useful
+information on JMC and JFR. As it happens Marucs was the co-founder of Appeal (the company that developed
+the JRockit), then continued his career at BEA then Oracle.
+
+Finally, here's a quick thank to https://twitter/delabasse[David Delabasse] for his comments.
 
 ////
 === Memory Leaks
