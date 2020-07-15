@@ -8,6 +8,157 @@ slug: "exploring-jvm-unified-logs"
 title: "Exploring JVM unified logs"
 ---
 
+So you came this
+
+https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/logging/logTag.hpp[src/hotspot/share/logging/logTag.hpp]
+
+https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90[src/hotspot/share/logging/logPrefix.hpp#L45-L90]
+
+https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
+
+|===
+
+| add                   |               |
+| age                   | GC            |
+| alloc                 | GC            |
+| annotation            |               |
+| aot                   |               |
+| arguments             |               |
+| attach                |               |
+| barrier               | GC,xxx        |
+| biasedlocking         |               |
+| blocks                |               |
+| bot                   |               |
+| breakpoint            |               |
+| bytecode              |               |
+| cds                   | Classes       |
+| census                | GC            |
+| class                 | Classes       |
+| classhisto            | GC            |
+| cleanup               | Safe-points   |
+| codecache             |               |
+| compaction            | GC            |
+| compilation           |               |
+| constantpool          |               |
+| constraints           |               |
+| container             |               |
+| coops                 |               |
+| cpu                   | GC,xxx        |
+| cset                  | GC            |
+| data                  |               |
+| datacreation          |               |
+| dcmd                  | JFR           | Diagnostic command
+| decoder               |               |
+| defaultmethods        |               |
+| director              |               |
+| dump                  |               |
+| ergo                  | GC            |
+| event                 | JFR           |
+| exceptions            |               |
+| exit                  |               |
+| fingerprint           |               |
+| free                  |               |
+| freelist              | GC            |
+| gc                    | GC            |
+| handshake             | Threads       | https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/handshake.hpp#L35-L39
+| hashtables            |               |
+| heap                  | GC            |
+| humongous             | GC            |
+| ihop                  | GC            |
+| iklass                |               |
+| init                  |               |
+| inlining              |               |
+| interpreter           |               |
+| itables               |               |
+| jfr                   | JFR           |
+| jit                   |               |
+| jni                   | GC,xxx        |
+| jvmti                 |               |
+| liveness              | GC            |
+| load                  | GC,Classes    | Trace all classes loaded
+| loader                |               |
+| logging               |               |
+| malloc                |               |
+| mark                  |               |
+| marking               | GC            |
+| membername            |               |
+| memops                |               |
+| metadata              | JFR,Classes   |
+| metaspace             | GC            |
+| methodcomparator      |               |
+| mirror                |               |
+| mmu                   | GC,xxx        |
+| module                |               |
+| monitorinflation      |               |
+| monitormismatch       |               |
+| nestmates             |               |
+| nmethod               | GC,xxx        |
+| normalize             |               |
+| objecttagging         |               |
+| obsolete              |               |
+| oldobject             |               |
+| oom                   |               |
+| oopmap                |               |
+| oops                  |               |
+| oopstorage            |               |
+| os                    |               |
+| pagesize              |               |
+| parser                | JFR           |
+| patch                 |               |
+| path                  |               |
+| perf                  |               |
+| phases                | GC            |
+| plab                  | GC            |
+| preorder              | Classes       | Trace all classes loaded in order referenced (not loaded)
+| preview               |               | Trace loading of preview feature types
+| promotion             | GC ???        |
+| protectiondomain      | Classes       | Trace protection domain verification
+| purge                 |               |
+| redefine              |               |
+| ref                   | GC            |
+| refine                | GC            |
+| region                | GC            |
+| reloc                 | GC            |
+| remset                | GC            |
+| resolve               |               |
+| safepoint             | Safe-points   |
+| sampling              |               |
+| scavenge              | GC            |
+| setting               | JFR           |
+| smr                   |               |
+| stackmap              |               |
+| stacktrace            |               |
+| stackwalk             |               |
+| start                 |               |
+| startuptime           | GC,xxx        |
+| state                 |               |
+| stats                 | GC,xxx        |
+| stringdedup           | GC            |
+| stringtable           | GC            |
+| subclass              |               |
+| survivor              |               |
+| sweep                 |               |
+| system                | JFR           |
+| table                 |               |
+| task                  | GC,xxx        |
+| thread                |               |
+| time                  | GC            |
+| timer                 |               |
+| tlab                  | GC            |
+| tracking              | GC,xxx        |
+| unload                | Classes       |
+| unshareable           |               |
+| update                |               |
+| verification          |               |
+| verify                |               |
+| vmoperation           |               |
+| vmthread              |               |
+| vtables               |               |
+| vtablestubs           |               |
+| workgang              | GC            |
+
+|===
+
 
 == JEP-158 : Unified JVM Logging
 
@@ -563,3 +714,34 @@ https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A8
 | String Symbol Table                            | stringtable
 
 |===
+
+
+gc,age
+gc,alloc,region
+gc,cpu
+gc,ergo
+gc,ergo,cset
+gc,ergo,ihop
+gc,ergo,refine
+gc,heap
+gc,humongous
+gc,ihop
+gc,jni
+gc,marking
+gc,metaspace
+gc,mmu
+gc,phases
+gc,phases,ref
+gc,phases,start
+gc,plab
+gc,ref
+gc,ref,start
+gc,refine
+gc,remset,tracking
+gc,start
+gc,stats
+gc,stringdedup
+gc,stringtable
+gc,task
+gc,task,stats
+gc,tlab
