@@ -12,9 +12,8 @@ So you came this
 
 https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/logging/logTag.hpp[src/hotspot/share/logging/logTag.hpp]
 
-https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90[src/hotspot/share/logging/logPrefix.hpp#L45-L90]
 
-https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
+
 
 |===
 
@@ -22,7 +21,7 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | age                   | GC            |
 | alloc                 | GC            |
 | annotation            |               |
-| aot                   |               |
+| aot                   | AOT           |
 | arguments             |               |
 | attach                |               |
 | barrier               | GC,xxx        |
@@ -33,19 +32,19 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | bytecode              |               |
 | cds                   | Classes       |
 | census                | GC            |
-| class                 | Classes       |
+| class                 | Classes,AOT   |
 | classhisto            | GC            |
 | cleanup               | Safe-points   |
 | codecache             |               |
 | compaction            | GC            |
 | compilation           |               |
 | constantpool          |               |
-| constraints           |               |
+| constraints           | Classes       |
 | container             |               |
 | coops                 |               |
 | cpu                   | GC,xxx        |
 | cset                  | GC            |
-| data                  |               |
+| data                  | Classes       |
 | datacreation          |               |
 | dcmd                  | JFR           | Diagnostic command
 | decoder               |               |
@@ -56,17 +55,17 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | event                 | JFR           |
 | exceptions            |               |
 | exit                  |               |
-| fingerprint           |               |
+| fingerprint           | Classes,AOT   |
 | free                  |               |
 | freelist              | GC            |
 | gc                    | GC            |
-| handshake             | Threads       | https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/handshake.hpp#L35-L39
+| handshake             | Threads       | Thread local handlshakes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/handshake.hpp#L35-L39[src/hotspot/share/runtime/handshake.hpp]
 | hashtables            |               |
 | heap                  | GC            |
 | humongous             | GC            |
 | ihop                  | GC            |
 | iklass                |               |
-| init                  |               |
+| init                  | Classes              |
 | inlining              |               |
 | interpreter           |               |
 | itables               |               |
@@ -86,13 +85,13 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | metadata              | JFR,Classes   |
 | metaspace             | GC            |
 | methodcomparator      |               |
-| mirror                |               |
+| mirror                | CDS           |
 | mmu                   | GC,xxx        |
 | module                |               |
 | monitorinflation      |               |
 | monitormismatch       |               |
-| nestmates             |               |
-| nmethod               | GC,xxx        |
+| nestmates             | Classes       |
+| nmethod               | GC,Classes    |
 | normalize             |               |
 | objecttagging         |               |
 | obsolete              |               |
@@ -105,7 +104,7 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | pagesize              |               |
 | parser                | JFR           |
 | patch                 |               |
-| path                  |               |
+| path                  | Classes       |
 | perf                  |               |
 | phases                | GC            |
 | plab                  | GC            |
@@ -114,13 +113,13 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | promotion             | GC ???        |
 | protectiondomain      | Classes       | Trace protection domain verification
 | purge                 |               |
-| redefine              |               |
+| redefine              | Redefinition  |
 | ref                   | GC            |
 | refine                | GC            |
 | region                | GC            |
 | reloc                 | GC            |
 | remset                | GC            |
-| resolve               |               |
+| resolve               | Classes,AOT   |
 | safepoint             | Safe-points   |
 | sampling              |               |
 | scavenge              | GC            |
@@ -130,13 +129,13 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | stacktrace            |               |
 | stackwalk             |               |
 | start                 |               |
-| startuptime           | GC,xxx        |
+| startuptime           | GC,AOT,xxx    |
 | state                 |               |
 | stats                 | GC,xxx        |
 | stringdedup           | GC            |
 | stringtable           | GC            |
 | subclass              |               |
-| survivor              |               |
+| survivor              | GC            |
 | sweep                 |               |
 | system                | JFR           |
 | table                 |               |
@@ -147,7 +146,7 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 | tlab                  | GC            |
 | tracking              | GC,xxx        |
 | unload                | Classes       |
-| unshareable           |               |
+| unshareable           | CDS           |
 | update                |               |
 | verification          |               |
 | verify                |               |
@@ -159,6 +158,146 @@ https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd
 
 |===
 
+.JFR prefixes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
+[source, c++]
+----
+#define JFR_LOG_TAG_SET_LIST \
+  JFR_LOG_TAG(jfr) \
+  JFR_LOG_TAG(jfr, system) \
+  JFR_LOG_TAG(jfr, system, event) \
+  JFR_LOG_TAG(jfr, system, setting) \
+  JFR_LOG_TAG(jfr, system, bytecode) \
+  JFR_LOG_TAG(jfr, system, parser) \
+  JFR_LOG_TAG(jfr, system, metadata) \
+  JFR_LOG_TAG(jfr, metadata) \
+  JFR_LOG_TAG(jfr, event) \
+  JFR_LOG_TAG(jfr, setting) \
+  JFR_LOG_TAG(jfr, dcmd)
+  /* NEW TAGS, DONT FORGET TO UPDATE JAVA SIDE */
+----
+
+.CG prefixes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90[src/hotspot/share/logging/logPrefix.hpp#L45-L90]
+[source, cpp]
+----
+#define LOG_PREFIX_LIST \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, age)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, alloc)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, alloc, region)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, barrier)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, classhisto)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, compaction)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, cpu)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ergo)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ergo, cset)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ergo, heap)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ergo, ihop)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ergo, refine)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, heap)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, heap, region)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, freelist)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, humongous)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ihop)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, liveness)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, load)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, marking)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, metaspace)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, mmu)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, nmethod)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, phases)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, phases, ref)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, phases, start)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, phases, task)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, plab)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, region)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, remset)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, remset, tracking)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ref)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, ref, start)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, reloc)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, start)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, stringtable)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, sweep)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, task)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, task, start)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, task, stats)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, task, time)) \
+  DEBUG_ONLY(LOG_PREFIX(Test_log_prefix_prefixer, LOG_TAGS(logging, test))) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, tlab)) \
+  LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, workgang))
+----
+
+
+.AOT https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/aot/aotCodeHeap.cpp[src/hotspot/share/aot/aotCodeHeap.cpp]
+* `log_debug(aot, class, resolve)`
+* `log_info(aot, class, resolve)`
+* `log_trace(aot, class, fingerprint)`
+* `log_trace(aot, class, load)`
+
+
+.Classes
+* classfile
+** `log_error(class)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/javaClasses.cpp[src/hotspot/share/classfile/javaClasses.cpp]
+** `log_info(class, fingerprint)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
+** `log_info(class, preview)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
+** `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
+
+** `LogMessage(class, load)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+** `log_trace(class, nestmates)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+** `LogTarget(Info, class, init)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+** `log_trace(class, fingerprint)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+
+** `LogTarget(Debug, class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
+** `LogTarget(Trace, class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
+** `log_debug(class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
+
+** `log_info(class, load)` https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/classfile/classLoader.cpp[src/hotspot/share/classfile/classLoader.cpp]
+** `log_info(class, path)` https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/classfile/classLoader.cpp[src/hotspot/share/classfile/classLoader.cpp]
+
+** `LogTarget(Info, class, loader, constraints)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/classfile/loaderConstraints.cpp[src/hotspot/share/classfile/loaderConstraints.cpp]
+
+** `log_debug(class, init)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
+** `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
+** `log_info(verification)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
+
+* Native methods (compiled code versions of Java methods)
+** `LogTarget(Trace, class, unload, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
+
+* Memory
+** `log_info(class, path)` https://github.com/corretto/corretto-11/blob/6887ddf929a1baae5b4f73a3b6c255c4ee942f7c/src/src/hotspot/share/memory/filemap.cpp[src/hotspot/share/memory/filemap.cpp]
+
+* OOPS
+** `log_trace(class, unload)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
+
+* JNI
+** `log_is_enabled(Debug, class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jni.cpp[src/hotspot/share/prims/jni.cpp]
++
+`log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvm.cpp[src/hotspot/share/prims/jvm.cpp]
+
+* Reflection
+** `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/reflection.cpp[src/hotspot/share/runtime/reflection.cpp]
+
+
+.Class Data Sharing
+* `log_info(cds)` https://github.com/corretto/corretto-11/blob/6887ddf929a1baae5b4f73a3b6c255c4ee942f7c/src/src/hotspot/share/memory/filemap.cpp[src/hotspot/share/memory/filemap.cpp]
+* `log_trace(cds)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
+* `log_trace(cds, unshareable)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
+* `log_debug(cds, mirror)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
+
+
+.Redefine
+* Native methods (compiled code versions of Java methods)
+** `log_debug(redefine, class, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
+
+* Interpreter
+** `log_debug(redefine, class, interpreter, oopmap)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp[src/hotspot/share/interpreter/oopMapCache.cpp]
+
+* ``
+* ``
+* ``
+* ``
+
+* `log_debug(interpreter, oopmap)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp[src/hotspot/share/interpreter/oopMapCache.cpp]
 
 == JEP-158 : Unified JVM Logging
 
@@ -683,6 +822,47 @@ https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A8
 
 |===
 
+
+Source : https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/runtime/arguments.cpp#L602-L636[src/hotspot/share/runtime/arguments.cpp]
+
+[source, c++]
+----
+// NOTE: A compatibility request will be necessary for each alias to be removed.
+static AliasedLoggingFlag const aliased_logging_flags[] = {
+  { "PrintCompressedOopsMode",   LogLevel::Info,  true,  LOG_TAGS(gc, heap, coops) },
+  { "PrintSharedSpaces",         LogLevel::Info,  true,  LOG_TAGS(cds) },
+  { "TraceBiasedLocking",        LogLevel::Info,  true,  LOG_TAGS(biasedlocking) },
+  { "TraceClassLoading",         LogLevel::Info,  true,  LOG_TAGS(class, load) },
+  { "TraceClassLoadingPreorder", LogLevel::Debug, true,  LOG_TAGS(class, preorder) },
+  { "TraceClassPaths",           LogLevel::Info,  true,  LOG_TAGS(class, path) },
+  { "TraceClassResolution",      LogLevel::Debug, true,  LOG_TAGS(class, resolve) },
+  { "TraceClassUnloading",       LogLevel::Info,  true,  LOG_TAGS(class, unload) },
+  { "TraceExceptions",           LogLevel::Info,  true,  LOG_TAGS(exceptions) },
+  { "TraceLoaderConstraints",    LogLevel::Info,  true,  LOG_TAGS(class, loader, constraints) },
+  { "TraceMonitorInflation",     LogLevel::Debug, true,  LOG_TAGS(monitorinflation) },
+  { "TraceSafepointCleanupTime", LogLevel::Info,  true,  LOG_TAGS(safepoint, cleanup) },
+  { "TraceJVMTIObjectTagging",   LogLevel::Debug, true,  LOG_TAGS(jvmti, objecttagging) },
+  { "TraceRedefineClasses",      LogLevel::Info,  false, LOG_TAGS(redefine, class) },
+  { NULL,                        LogLevel::Off,   false, LOG_TAGS(_NO_TAG) }
+};
+
+#ifndef PRODUCT
+// These options are removed in jdk9. Remove this code for jdk10.
+static AliasedFlag const removed_develop_logging_flags[] = {
+  { "TraceClassInitialization",   "-Xlog:class+init" },
+  { "TraceClassLoaderData",       "-Xlog:class+loader+data" },
+  { "TraceDefaultMethods",        "-Xlog:defaultmethods=debug" },
+  { "TraceItables",               "-Xlog:itables=debug" },
+  { "TraceMonitorMismatch",       "-Xlog:monitormismatch=info" },
+  { "TraceSafepoint",             "-Xlog:safepoint=debug" },
+  { "TraceStartupTime",           "-Xlog:startuptime" },
+  { "TraceVMOperation",           "-Xlog:vmoperation=debug" },
+  { "PrintVtables",               "-Xlog:vtables=debug" },
+  { "VerboseVerification",        "-Xlog:verification" },
+  { NULL, NULL }
+};
+#endif //PRODUCT
+----
 
 
 ==== tags
