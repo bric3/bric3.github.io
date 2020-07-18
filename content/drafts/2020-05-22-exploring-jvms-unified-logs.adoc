@@ -80,38 +80,38 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 | malloc                | malloc                         | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
 | mark                  | Redefinition                   | Mark `obsolete` method during `redefine`
 | marking               | GC                             | Marking information for G1GC, CMS, ZGC
-| membername            |                                |
-| memops                |                                |
-| metadata              | JFR,Classes                    |
-| metaspace             | GC                             |
-| methodcomparator      |                                |
-| mirror                | CDS                            |
-| mmu                   | GC,xxx                         |
-| module                |                                |
-| monitorinflation      |                                |
-| monitormismatch       |                                |
-| nestmates             | Classes                        |
-| nmethod               | GC,Classes                     |
-| normalize             |                                |
-| objecttagging         | JVMTI                          |
-| obsolete              | Redefinition                   | obsolete method entry for redifinition
-| oldobject             |                                |
-| oom                   |                                |
-| oopmap                |                                |
-| oops                  |                                |
-| oopstorage            |                                |
-| os                    | OS                             |
-| pagesize              |                                |
-| parser                | JFR                            |
-| patch                 |                                |
-| path                  | Classes                        |
-| perf                  | perf                           |
-| phases                | GC                             |
-| plab                  | GC                             |
+| membername            | (Redefinition)                 | Hashtable used by redefinition to replace methods. Used in conjunction with `table`, but without `redefine` prefix.
+| memops                | perf                           | Memory operation logs `initialize` and `mmap_attach_shared`
+| metadata              | JFR,Redefinition               | Logs about class redefinition, or logs about JFR metadata (although I didn't found any jfr logs in the codebase)
+| metaspace             | GC                             | Logs about the metaspace memory space
+| methodcomparator      | redefinition                   | Logs about method equivalence during redefinition.
+| mirror                | CDS                            | Logs about `cds` processing of class mirror. A java mirror is an instance of a `java.lang.Class`.
+| mmu                   | GC                             | _Minimum Mutator Utilization_ is the (time) goal of GC work for G1GC and ZGC. G1GC defines this as a pause time goal (`MaxGCPauseMillis`) over a time slice (`GCPauseIntervalMillis`).
+| module                |                                | Module system
+| monitorinflation      |                                | Runtime synchronization support
+| monitormismatch       |                                | Monitor matching failures during OopMapGeneration
+| nestmates             | Classes                        | Nestmate logging
+| nmethod               | GC,Classes,Redefinition        | native methods (as in compiled code versions of Java methods) logs in various subsystems: `gc`, `class`, `redefine`
+| normalize             | Redefinition                   | Logs after method addition,deletion,replacement during redefinition
+| objecttagging         | JVMTI                          | JVMTI object tagging calls
+| obsolete              | Redefinition                   | Obsolete method entry mainly for redefinition (and JVMTI)
+| oldobject             | jfr                            | Old object sampling, currently only logging that sample was skipped due to lock contention.
+| oom                   | gc                             | Reported when `metaspace` is out of memory.
+| oopmap                | interpreter, redefinition      | Ordinary Object Pointer caching logs, prefixed by `interpreter` and `redefine`.
+| oops                  | gc                             | Ordinary Object Pointers logs in CMS and ZGC
+| oopstorage            |                                | Internal off-heap data structure for management of references to objects allocated in the Java heap
+| os                    | OS                             | Operating System interactions logs.
+| pagesize              |                                | Logs about page size. Not prefixed by `os`.
+| parser                | JFR                            | Part of jfr, but log instructions found in the code base.
+| patch                 | module                         | Logging `--patch-module`
+| path                  | Classes                        | Class path or module path processing
+| perf                  | perf                           | Logs about JVM perf counters, when prefixed by `stringtable` it's about interned strings (`String.intern()`).
+| phases                | GC                             | Logs that is part of phase of a GC, in particular for ZGC and G1GC.
+| plab                  | GC                             | Logs about per-GC-thread allocation buffer, those are used during GC to prevent thread competition on the same memory space.
 | preorder              | Classes                        | Trace all classes loaded in order referenced (not loaded)
 | preview               |                                | Trace loading of preview feature types
-| promotion             | GC ???                         |
-| protectiondomain      | Classes                        | Trace protection domain verification
+| promotion             | GC                             | Object promotion logs during GC.
+| protectiondomain      | Classes                        | Class protection domain verification.
 | purge                 | Redefinition                   |
 | redefine              | Redefinition                   |
 | ref                   | GC                             |
@@ -138,7 +138,7 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 | survivor              | GC                             |
 | sweep                 | Code cache                     |
 | system                | JFR                            |
-| table                 |                                |
+| table                 | membername                     | Only used with `membername`, about the hashtable to record methods, and replace them during redefinition.
 | task                  | GC,xxx                         |
 | thread                |                                |
 | time                  | GC                             |
@@ -307,6 +307,8 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 
 * `log_debug(interpreter, oopmap)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp[src/hotspot/share/interpreter/oopMapCache.cpp]
 
+
+.Java Virtual Machine Tool Interface (JVMTI, JSR-163)
 
 
 == JEP-158 : Unified JVM Logging
