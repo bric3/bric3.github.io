@@ -14,147 +14,147 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 
 
 .Log tags
-[]
+[%autowidth.stretch,cols="m,a,3a"]
 |===
 
-| add                   | Redefinition                   |
-| age                   | GC                             |
-| alloc                 | GC                             | GC region or space allocation
-| annotation            | Redefinition                   |
-| aot                   | AOT                            | Ahead of time logs
+| add                   | `redefine`                     |
+| age                   | `gc`                           |
+| alloc                 | `gc`                           | GC region or space allocation
+| annotation            | `redefine`                     |
+| aot                   | `aot`                          | Ahead of time logs
 | arguments             |                                | JVM options warnings or errors (only errors, unless level is `trace`)
 | attach                |                                | JVM attachment listener
-| barrier               | GC,xxx                         | GC Write barrier coverage
+| barrier               | `gc`,xxx                       | GC Write barrier coverage
 | biasedlocking         |                                | Biased Locking mechanism https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/biasedLocking.hpp[src/hotspot/share/runtime/biasedLocking.hpp]
-| blocks                | OOP Storage, GC                |
-| bot                   | GC                             | Block Offset Table (side data structure with offset information indicating how far back the GC needs to go to find the beginning of an object).
-| breakpoint            | JVMTI (Redefinition)           | Part of the JVMTI, but logged under `redefine` prefix.
-| bytecode              | JFR                            |
-| cds                   | Class Data sharing             | Class Data Sharing logs
-| census                | GC                             | CMS log about `freelist` information.
-| class                 | Classes,AOT                    | Class related information
-| classhisto            | GC                             |
-| cleanup               | Safe-points                    | Safepoint cleaning information
-| codecache             | Code cache, Compilation        | code cache for generated code: compiled java methods, runtime stubs, transition frames, etc. Segregated in 3 heaps (Non-nmethods like Buffers, Adapters and Runtime Stubs, nmethods that are profiled, nmethods that are not profiled). https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/code/codeCache.cpp[src/hotspot/share/code/codeCache.cpp]
-| compaction            | GC                             | GC compaction for G1GC and Parallel
-| compilation           | Compilation, jit               | Compilation
-| constantpool          | Classes,Redefinition           | Constant pool, logged mostly during `redefine`
-| constraints           | Classes                        | Class loader constraints
-| container             | OS                             | Container (CGroup) related (`cpu`, `cpuset`, `memory`, `mountinfo`, ...)
-| coops                 | GC                             | Compressed ordinary object pointers
-| cpu                   | GC,OS                          | CPU features when logged with `os`, CPU time ith `gc`
-| cset                  | GC                             | Collection Set in G1
-| data                  | Classes                        | Classloader data (allocation space, or metaspace)
-| datacreation          | perf                           | Related to perf data creation
-| dcmd                  | JFR                            | Diagnostic command, apparently only prefixed by `jfr`
+| blocks                | `oopstorage`, `gc`             |
+| bot                   | `gc`                           | Block Offset Table (side data structure with offset information indicating how far back the GC needs to go to find the beginning of an object).
+| breakpoint            | `jvmti` (Redefinition)         | Part of the JVMTI, but logged under `redefine` prefix.
+| bytecode              | `jfr`                          |
+| cds                   | `cds`                          | Class Data Sharing logs
+| census                | `gc`                           | CMS log about `freelist` information.
+| class                 | `class`,aot                    | Class related information
+| classhisto            | `gc`                           |
+| cleanup               | `safepoint`                    | Safepoint cleaning information
+| codecache             | `codecache`, `compilation`     | code cache for generated code: compiled java methods, runtime stubs, transition frames, etc. Segregated in 3 heaps (Non-nmethods like Buffers, Adapters and Runtime Stubs, nmethods that are profiled, nmethods that are not profiled). https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/code/codeCache.cpp[src/hotspot/share/code/codeCache.cpp]
+| compaction            | `gc`                           | GC compaction for G1GC and Parallel
+| compilation           | `compilation`, `jit`           | Compilation
+| constantpool          | `class`, `redefine`            | Constant pool, logged mostly during `redefine`
+| constraints           | `class`                        | Class loader constraints
+| container             | `OS`                           | Container (CGroup) related (`cpu`, `cpuset`, `memory`, `mountinfo`, ...)
+| coops                 | `gc`                           | Compressed ordinary object pointers
+| cpu                   | `gc`, `os`                     | CPU features when logged with `os`, CPU time ith `gc`
+| cset                  | `gc`                           | Collection Set in G1
+| data                  | `class`                        | Classloader data (allocation space, or metaspace)
+| datacreation          | `perf`                         | Related to perf data creation
+| dcmd                  | `jfr`                          | Diagnostic command, apparently only prefixed by `jfr`
 | decoder               |                                | Related to ELF decoding (Executable and Linkable Format)
 | defaultmethods        |                                | Runtime support for default method. Part of classes, but logged as a standalone tag.
-| director              | GC                             | Related to ZGC
-| dump                  | Redefinition                   |
-| ergo                  | GC                             | Ergonomics, usually prefixes by `gc`, but can be found alone (e.g. for 2 logs about thread local handshakes)
-| event                 | JFR                            | About JFR events
+| director              | `gc`                           | Related to ZGC
+| dump                  | `redefine`                     |
+| ergo                  | `gc`                           | Ergonomics, usually prefixes by `gc`, but can be found alone (e.g. for 2 logs about thread local handshakes)
+| event                 | `jfr`                          | About JFR events
 | exceptions            |                                | About Java exceptions handling in different parts (interpreter, during safepoint, compiler, ...). Specific exception handling during redefinition when prefixed by `redefine`.
-| exit                  | GC                             | GC/heap related information after GC. `LogStreamHandle(Debug, gc, heap, exit) lsh;` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/gc/shared/genCollectedHeap.cpp[src/hotspot/share/gc/shared/genCollectedHeap.cpp]
-| fingerprint           | Classes,AOT                    | Class fingerprinting
-| free                  | malloc                         | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
-| freelist              | GC                             | Chunks of memory that are supposed to be free, for CMS and metaspace
-| gc                    | GC                             | GC log prefix
-| handshake             | Threads                        | Thread local handshakes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/handshake.hpp#L35-L39[src/hotspot/share/runtime/handshake.hpp]
+| exit                  | `gc`                           | GC/heap related information after GC. `LogStreamHandle(Debug, gc, heap, exit) lsh;` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/gc/shared/genCollectedHeap.cpp[src/hotspot/share/gc/shared/genCollectedHeap.cpp]
+| fingerprint           | `class`, `aot`                 | Class fingerprinting
+| free                  | `malloc`                       | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
+| freelist              | `gc`                           | Chunks of memory that are supposed to be free, for CMS and metaspace
+| gc                    | `gc`                           | GC log prefix
+| handshake             | `thread`                       | Thread local handshakes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/handshake.hpp#L35-L39[src/hotspot/share/runtime/handshake.hpp]
 | hashtables            |                                | When standalone, it's the internal bucketed hash table, far cousin of a `HashMap`, Hotspot uses it for strings, and other symbols. CDS uses another internal implementation for statistics, hence this tag may be prefixed by `cds`.
-| heap                  | GC                             | Various GC heap related logs
-| humongous             | GC                             | Humongous objects in G1GC
-| ihop                  | GC                             | Heap occupancy (initial, current, target) in G1GC
-| iklass                | Classes,Redefinition           | Internal class instance representation, logged prefixes `redefine`, `classes`
-| init                  | GC,Classes                     | Mostly about class initialization when prefixed by `class`. About ZGC initialization when prefixed by `gc`.
-| inlining              | jit                            | Method inlining information
-| interpreter           | interpreter                    | Interpreter logs, only logs with `oopmap` and `safepoint` sub-tags.
+| heap                  | `gc`                           | Various GC heap related logs
+| humongous             | `gc`                           | Humongous objects in G1GC
+| ihop                  | `gc`                           | Heap occupancy (initial, current, target) in G1GC
+| iklass                | `class`, `redefine`            | Internal class instance representation, logged prefixes `redefine`, `classes`
+| init                  | `gc`, `class`                  | Mostly about class initialization when prefixed by `class`. About ZGC initialization when prefixed by `gc`.
+| inlining              | `jit`                          | Method inlining information
+| interpreter           | `interpreter`                  | Interpreter logs, only logs with `oopmap` and `safepoint` sub-tags.
 | itables               |                                | JVM virtual call mechanism for interface calls, during JVM development (non-product build needed). Also see `vtables` tag. https://wiki.openjdk.java.net/display/HotSpot/InterfaceCalls[Hotspot wiki, title=Interface calls]
-| jfr                   | JFR                            | JDK Flight Recorder
-| jit                   | jit                            | Logs about method `inlining` and `compilation`
-| jni                   | GC                             | Only logged during _GC locker_.
-| jvmti                 | JVMTI                          |
-| liveness              | GC                             | G1GC region liveness (dead objects vs live objects)
-| load                  | GC,Classes                     | Trace all classes loaded
-| loader                | Classes                        | Class loader `data` and `constraints`
+| jfr                   | `jfr`                          | JDK Flight Recorder
+| jit                   | `jit`                          | Logs about method `inlining` and `compilation`
+| jni                   | `gc`                           | Only logged during _GC locker_.
+| jvmti                 | `jvmti`                        |
+| liveness              | `gc`                           | G1GC region liveness (dead objects vs live objects)
+| load                  | `gc`, `class`                  | Trace all classes loaded
+| loader                | `class`                        | Class loader `data` and `constraints`
 | logging               |                                | About unified logging
-| malloc                | malloc                         | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
-| mark                  | Redefinition                   | Mark `obsolete` method during `redefine`
-| marking               | GC                             | Marking information for G1GC, CMS, ZGC
-| membername            | (Redefinition)                 | Hashtable used by redefinition to replace methods. Used in conjunction with `table`, but without `redefine` prefix.
-| memops                | perf                           | Memory operation logs `initialize` and `mmap_attach_shared`
-| metadata              | JFR,Redefinition               | Logs about class redefinition, or logs about JFR metadata (although I didn't found any jfr logs in the codebase)
-| metaspace             | GC                             | Logs about the metaspace memory space
-| methodcomparator      | redefinition                   | Logs about method equivalence during redefinition.
-| mirror                | CDS                            | Logs about `cds` processing of class mirror. A java mirror is an instance of a `java.lang.Class`.
-| mmu                   | GC                             | _Minimum Mutator Utilization_ is the (time) goal of GC work for G1GC and ZGC. G1GC defines this as a pause time goal (`MaxGCPauseMillis`) over a time slice (`GCPauseIntervalMillis`).
+| malloc                | `malloc`                       | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
+| mark                  | `redefine`                     | Mark `obsolete` method during `redefine`
+| marking               | `gc`                           | Marking information for G1GC, CMS, ZGC
+| membername            |                                | Hashtable used by redefinition to replace methods. Used in conjunction with `table`, but without `redefine` prefix.
+| memops                | `perf`                         | Memory operation logs `initialize` and `mmap_attach_shared`
+| metadata              | `jfr`, `redefine`              | Logs about class redefinition, or logs about JFR metadata (although I didn't found any jfr logs in the codebase)
+| metaspace             | `gc`                           | Logs about the metaspace memory space
+| methodcomparator      | `redefinition`                 | Logs about method equivalence during redefinition.
+| mirror                | `cds`                          | Logs about `cds` processing of class mirror. A java mirror is an instance of a `java.lang.Class`.
+| mmu                   | `gc`                           | _Minimum Mutator Utilization_ is the (time) goal of GC work for G1GC and ZGC. G1GC defines this as a pause time goal (`MaxGCPauseMillis`) over a time slice (`GCPauseIntervalMillis`).
 | module                |                                | Module system
 | monitorinflation      |                                | Runtime synchronization support
 | monitormismatch       |                                | Monitor matching failures during OopMapGeneration
-| nestmates             | Classes                        | Nestmate logging
-| nmethod               | GC,Classes,Redefinition        | native methods (as in compiled code versions of Java methods) logs in various subsystems: `gc`, `class`, `redefine`
-| normalize             | Redefinition                   | Logs after method addition,deletion,replacement during redefinition
-| objecttagging         | JVMTI                          | JVMTI object tagging calls
-| obsolete              | Redefinition                   | Obsolete method entry mainly for redefinition (and JVMTI)
-| oldobject             | jfr                            | Old object sampling, currently only logging that sample was skipped due to lock contention.
-| oom                   | gc                             | Reported when `metaspace` is out of memory.
-| oopmap                | interpreter, redefinition      | Ordinary Object Pointer caching logs, prefixed by `interpreter` and `redefine`.
-| oops                  | gc                             | Ordinary Object Pointers logs in CMS and ZGC
+| nestmates             | `class`                        | Nestmate logging
+| nmethod               | `gc`, `class`, `redefine`      | native methods (as in compiled code versions of Java methods) logs in various subsystems: `gc`, `class`, `redefine`
+| normalize             | `redefine`                     | Logs after method addition,deletion,replacement during redefinition
+| objecttagging         | `jvmti`                        | JVMTI object tagging calls
+| obsolete              | `redefine`                     | Obsolete method entry mainly for redefinition (and JVMTI)
+| oldobject             | `jfr`                          | Old object sampling, currently only logging that sample was skipped due to lock contention.
+| oom                   | `gc`                           | Reported when `metaspace` is out of memory.
+| oopmap                | `interpreter`, `redefine`      | Ordinary Object Pointer caching logs, prefixed by `interpreter` and `redefine`.
+| oops                  | `gc`                           | Ordinary Object Pointers logs in CMS and ZGC
 | oopstorage            |                                | Internal off-heap data structure for management of references to objects allocated in the Java heap
-| os                    | OS                             | Operating System interactions logs.
+| os                    | `OS`                           | Operating System interactions logs.
 | pagesize              |                                | Logs about page size. Not prefixed by `os`.
-| parser                | JFR                            | Part of jfr, but log instructions found in the code base.
-| patch                 | module                         | Logging `--patch-module`
-| path                  | Classes                        | Class path or module path processing
-| perf                  | perf                           | Logs about JVM perf counters, when prefixed by `stringtable` it's about interned strings (`String.intern()`).
-| phases                | GC                             | Logs that is part of phase of a GC, in particular for ZGC and G1GC.
-| plab                  | GC                             | Logs about per-GC-thread allocation buffer, those are used during GC to prevent thread competition on the same memory space.
-| preorder              | Classes                        | Trace all classes loaded in order referenced (not loaded)
+| parser                | `jfr`                          | Part of jfr, but log instructions found in the code base.
+| patch                 | `module`                       | Logging `--patch-module`
+| path                  | `class`                        | Class path or module path processing
+| perf                  | `perf`                         | Logs about JVM perf counters, when prefixed by `stringtable` it's about interned strings (`String.intern()`).
+| phases                | `gc`                           | Logs that is part of phase of a GC, in particular for ZGC and G1GC.
+| plab                  | `gc`                           | Logs about per-GC-thread allocation buffer, those are used during GC to prevent thread competition on the same memory space.
+| preorder              | `class`                        | Trace all classes loaded in order referenced (not loaded)
 | preview               |                                | Trace loading of preview feature types
-| promotion             | GC                             | Object promotion logs during GC.
-| protectiondomain      | Classes                        | Class protection domain verification.
-| purge                 | Redefinition                   | Logs about previous class version unloading during redefinition
-| redefine              | Redefinition                   | Class redefinition sub-subsystem, in particular for JVMTI (e.g. when debugging) and with Java agent doing class transformation / re-transformation.
-| ref                   | GC                             | GC object or class references related logs
-| refine                | GC                             | G1GC logs about refinement threads of the RSet (Remembered set)
-| region                | GC                             | G1GC logs about region. The `alloc` and `heap` tag prefixes at `debug` level will print region statistics. `trace` level logs the actions that the GC performs on a region.
-| reloc                 | GC                             | ZGC object set relocation.
-| remset                | GC                             | G1GC remembered set. The `tracking` and `exit` tag can come along if level is `trace`.
-| resolve               | Classes,AOT                    | Logs about constant pool resolutions, e.g. when loading classes, lambdas, doing reflection, jni
-| safepoint             | Safepoints                     | JVM stop-the-world operations Heap Dump, some GC tasks, deoptimization, revokebias, library loading, etc... (https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134[src/hotspot/share/runtime/vm_operations.hpp], the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone `vmoperation`.
-| sampling              | jfr                            | Old object sampling in JFR. `trace` level only.
-| scavenge              | GC                             | CMS, Parallel, and Serial GC scavenge traces.
-| setting               | JFR                            | Part of jfr, but log instructions found in the code base.
-| smr                   | thread                         | Thread Safe Memory Reclamation (Thread-SMR), https://en.wikipedia.org/wiki/Hazard_pointer[hazard pointers]. https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/threadSMR.cpp[src/hotspot/share/runtime/threadSMR.cpp].
-| stackmap              | redefine                       | Constant pool changes in method stackmap during redefinition
+| promotion             | `gc`                           | Object promotion logs during GC.
+| protectiondomain      | `class`                        | Class protection domain verification.
+| purge                 | `redefine`                     | Logs about previous class version unloading during redefinition
+| redefine              | `redefine`                     | Class redefinition sub-subsystem, in particular for JVMTI (e.g. when debugging) and with Java agent doing class transformation / re-transformation.
+| ref                   | `gc`                           | GC object or class references related logs
+| refine                | `gc`                           | G1GC logs about refinement threads of the RSet (Remembered set)
+| region                | `gc`                           | G1GC logs about region. The `alloc` and `heap` tag prefixes at `debug` level will print region statistics. `trace` level logs the actions that the GC performs on a region.
+| reloc                 | `gc`                           | ZGC object set relocation.
+| remset                | `gc`                           | G1GC remembered set. The `tracking` and `exit` tag can come along if level is `trace`.
+| resolve               | `class`,aot                    | Logs about constant pool resolutions, e.g. when loading classes, lambdas, doing reflection, jni
+| safepoint             | `safepoint`                    | JVM stop-the-world operations Heap Dump, some GC tasks, deoptimization, revokebias, library loading, etc... (https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134[src/hotspot/share/runtime/vm_operations.hpp], the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone `vmoperation`.
+| sampling              | `jfr`                          | Old object sampling in JFR. `trace` level only.
+| scavenge              | `gc`                           | CMS, Parallel, and Serial GC scavenge traces.
+| setting               | `jfr`                          | Part of jfr, but log instructions found in the code base.
+| smr                   | `thread`                       | Thread Safe Memory Reclamation (Thread-SMR), https://en.wikipedia.org/wiki/Hazard_pointer[hazard pointers]. https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/threadSMR.cpp[src/hotspot/share/runtime/threadSMR.cpp].
+| stackmap              | `redefine`                     | Constant pool changes in method stackmap during redefinition
 | stacktrace            |                                | Logged during `Throwable.fillInStackTrace()`.
 | stackwalk             |                                | Logs when using `StackWalker`.
-| start                 | gc,codecache                   | Indicates a ZGC phase start, it's thus prefixed by `gc`, But can also indicate other operation start, like for `codecache`.
+| start                 | `gc`, `codecache`              | Indicates a ZGC phase start, it's thus prefixed by `gc`, But can also indicate other operation start, like for `codecache`.
 | startuptime           |                                | Logs the JVM subsystems startup time (interpreter, GC, module systems, class loading, aot, genesis which is about memory zones ...)
-| state                 | gc                             | CMS GC states.
-| stats                 | GC                             | GC stats logs. Also seen with (`oopstorage, blocks` tag prefixes).
-| stringdedup           | GC                             | G1GC string deduplication (for old generation)
+| state                 | `gc`                           | CMS GC states.
+| stats                 | `gc`                           | GC stats logs. Also seen with (`oopstorage, blocks` tag prefixes).
+| stringdedup           | `gc`                           | G1GC string deduplication (for old generation)
 | stringtable           |                                | About interned strings (`String.intern()`), can be seen with the `gc` tag prefix when G1GC is in use to log string and symbol cleanups.
-| subclass              | class,redefine                 | Sub-class unloading. Affected subclasses during redefinition.
-| survivor              | GC                             | CMS GC survivor informations.
-| sweep                 | gc,codecache                   | CMS GC sweeping activity. And codecache native methods flushing.
-| system                | JFR                            | JFR system logging, recordind start/stop, emergency dump, etc.
-| table                 | membername                     | Only used with `membername`, about the hashtable to record methods, and replace them during redefinition.
-| task                  | GC                             | Mostly related to GC tasks, useful to see the `phases` tag. Also appears with `handshake` tag prefix for thread local handshakes.
-| thread                | os                             | When used as a tag prefix, it's about `smr`, when the tag prefix is `os` it's about the thread lifecycle and guards.
-| time                  | GC                             | Timed Parallel GC operations
-| timer                 | thread,redefine                | Timed redefine operation, and thread exit
-| tlab                  | GC                             | Thread local allocation buffers statistics (`trace`)
-| tracking              | GC                             | G1GC remembered set tracking
-| unload                | Classes                        | Class or module unloading
-| unshareable           | CDS                            | For classes that cannot be shared, especially interesting during CDS archive creation
-| update                | redefine                       | Logs about redefinition changes in classes or methods.
+| subclass              | `class`, `redefine`            | Sub-class unloading. Affected subclasses during redefinition.
+| survivor              | `gc`                           | CMS GC survivor informations.
+| sweep                 | `gc`, `codecache`              | CMS GC sweeping activity. And codecache native methods flushing.
+| system                | `jfr`                          | JFR system logging, recordind start/stop, emergency dump, etc.
+| table                 | `membername`                   | Only used with `membername`, about the hashtable to record methods, and replace them during redefinition.
+| task                  | `gc`                           | Mostly related to GC tasks, useful to see the `phases` tag. Also appears with `handshake` tag prefix for thread local handshakes.
+| thread                | `os`                           | When used as a tag prefix, it's about `smr`, when the tag prefix is `os` it's about the thread lifecycle and guards.
+| time                  | `gc`                           | Timed Parallel GC operations
+| timer                 | `thread`, `redefine`           | Timed redefine operation, and thread exit
+| tlab                  | `gc`                           | Thread local allocation buffers statistics (`trace`)
+| tracking              | `gc`                           | G1GC remembered set tracking
+| unload                | `class`                        | Class or module unloading
+| unshareable           | `cds`                          | For classes that cannot be shared, especially interesting during CDS archive creation
+| update                | `redefine`                     | Logs about redefinition changes in classes or methods.
 | verification          |                                | Classes bytecode verification, when to tag prefix. Same for classes in CDS archive when prefixed by `cds`.
-| verify                | GC                             | Verifications operations done during GC operations.
+| verify                | `gc`                           | Verifications operations done during GC operations.
 | vmoperation           |                                | Logs VM operations
 | vmthread              |                                | JVM threads that perform the VM operations (usually during safepoints)
 | vtables               |                                | Java's virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes).
 | vtablestubs           |                                | Java's virtual calls mechanism that is used for megamorphic call sites (i.e. when the method to execute is not the same on successive executions because the object hierarchy differ). Hotspot wiki https://wiki.openjdk.java.net/display/HotSpot/PerformanceTechniques[1,title=Performance technics] https://wiki.openjdk.java.net/display/HotSpot/VirtualCalls[2,title=Virtual calls]
-| workgang              | GC                             | GC worker threads
+| workgang              | `gc`                           | GC worker threads
 
 |===
 
@@ -291,7 +291,7 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 * `log_debug(cds, mirror)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
 * `log_trace(cds)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/constantPool.cpp[src/hotspot/share/oops/constantPool.cpp]
 
-.Redefine
+.Redefinition
 * Native methods (compiled code versions of Java methods)
 ** `log_debug(redefine, class, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
 
@@ -760,14 +760,14 @@ https://openjdk.java.net/jeps/271[JEP 271: Unified GC Logging]
 .translation
 [cols="m,a,a",options="headers"]
 |===
-| Old GC log flags usually set with `-XX:+...` | Equivalent tags with log level             | Definition of the the old flag
+| Old GC log flags usually set with `-XX:+...` | `Equivalent` tags with log level             | Definition of the the old flag
 
 | PrintGC -Xloggc:<gc-log-file-path>           | `gc`                                       | Print message at garbage collection
 | PrintGCDetails -Xloggc:<gc-log-file-path>    | `gc*`                                      | Print more details at garbage collection
 | -verbose:gc                                  | `gc=trace` `gc+heap=trace` `gc+heap+exit=trace` `gc+metaspace=trace` `gc+sweep=debug` `gc+heap+ergo=debug` | Verbose GC
 
-| PrintGCCause                                 | GC cause is now always logged              | Include GC cause in GC logging
-| PrintGCID                                    | GC ID is now always logged                 | Print an identifier for each garbage collection
+| PrintGCCause                                 | `GC` cause is now always logged              | Include GC cause in GC logging
+| PrintGCID                                    | `GC` ID is now always logged                 | Print an identifier for each garbage collection
 
 | PrintGCApplicationStoppedTime                | `safepoint`                                | Print the time the application has been stopped
 | PrintGCApplicationConcurrentTime             | `safepoint`                                | Print the time the application has been running
