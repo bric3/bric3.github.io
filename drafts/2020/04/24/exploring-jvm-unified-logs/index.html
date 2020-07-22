@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 53 min read
+    <i class="fas fa-clock"></i> 60 min read
 
     
     
@@ -303,7 +303,7 @@
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">arguments</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">JVM options warnings or errors</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JVM options warnings or errors (only errors, unless level is <code>trace</code>)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">attach</p></td>
@@ -322,7 +322,7 @@
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">blocks</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">OOP Strage, GC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OOP Storage, GC</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
@@ -533,7 +533,7 @@
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">itables</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Log interface calls, during JVM development (non-product build needed).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JVM virtual call mechanism for interface calls, during JVM development (non-product build needed). Also see <code>vtables</code> tag. <a href="https://wiki.openjdk.java.net/display/HotSpot/InterfaceCalls" title="Interface calls">Hotspot wiki</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">jfr</p></td>
@@ -753,132 +753,132 @@
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">purge</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Redefinition</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logs about previous class version unloading during redefinition</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">redefine</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Redefinition</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Class redefinition sub-subsystem, in particular for JVMTI (e.g. when debugging) and with Java agent doing class transformation / re-transformation.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">ref</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC object or class references related logs</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">refine</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">G1GC logs about refinement threads of the RSet (Remembered set)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">region</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">G1GC logs about region. The <code>alloc</code> and <code>heap</code> tag prefixes at <code>debug</code> level will print region statistics. <code>trace</code> level logs the actions that the GC performs on a region.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">reloc</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ZGC object set relocation.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">remset</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">G1GC remembered set. The <code>tracking</code> and <code>exit</code> tag can come along if level is <code>trace</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">resolve</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Classes,AOT</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logs about constant pool resolutions, e.g. when loading classes, lambdas, doing reflection, jni</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">safepoint</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Safe-points</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Safepoints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JVM stop-the-world operations Heap Dump, some GC tasks, deoptimization, revokebias, library loading, etc&#8230;&#8203; (<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134">src/hotspot/share/runtime/vm_operations.hpp</a>, the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone <code>vmoperation</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">sampling</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">jfr</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Old object sampling in JFR. <code>trace</code> level only.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">scavenge</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CMS, Parallel, and Serial GC scavenge traces.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">setting</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">JFR</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Part of jfr, but log instructions found in the code base.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">smr</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">thread</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread Safe Memory Reclamation (Thread-SMR), <a href="https://en.wikipedia.org/wiki/Hazard_pointer">hazard pointers</a>. <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/threadSMR.cpp">src/hotspot/share/runtime/threadSMR.cpp</a>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">stackmap</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">redefine</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Constant pool changes in method stackmap during redefinition</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">stacktrace</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logged during <code>Throwable.fillInStackTrace()</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">stackwalk</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logs when using <code>StackWalker</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">start</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">gc,codecache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Indicates a ZGC phase start, it&#8217;s thus prefixed by <code>gc</code>, But can also indicate other operation start, like for <code>codecache</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">startuptime</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">GC,AOT,xxx</p></td>
 <td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logs the JVM subsystems startup time (interpreter, GC, module systems, class loading, aot, genesis which is about memory zones &#8230;&#8203;)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">state</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">gc</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CMS GC states.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">stats</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">GC,xxx</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC stats logs. Also seen with (<code>oopstorage, blocks</code> tag prefixes).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">stringdedup</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">G1GC string deduplication (for old generation)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">stringtable</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
 <td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">About interned strings (<code>String.intern()</code>), can be seen with the <code>gc</code> tag prefix when G1GC is in use to log string and symbol cleanups.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">subclass</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">class,redefine</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sub-class unloading. Affected subclasses during redefinition.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">survivor</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CMS GC survivor informations.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">sweep</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Code cache</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">gc,codecache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CMS GC sweeping activity. And codecache native methods flushing.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">system</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">JFR</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JFR system logging, recordind start/stop, emergency dump, etc.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">table</p></td>
@@ -887,83 +887,83 @@
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">task</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">GC,xxx</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mostly related to GC tasks, useful to see the <code>phases</code> tag. Also appears with <code>handshake</code> tag prefix for thread local handshakes.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">thread</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">os</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When used as a tag prefix, it&#8217;s about <code>smr</code>, when the tag prefix is <code>os</code> it&#8217;s about the thread lifecycle and guards.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">time</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timed Parallel GC operations</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">timer</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">thread,redefine</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timed redefine operation, and thread exit</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tlab</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread local allocation buffers statistics (<code>trace</code>)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tracking</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">GC,xxx</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">G1GC remembered set tracking</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">unload</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Classes</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Class or module unloading</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">unshareable</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">CDS</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">For classes that cannot be shared, especially interesting during CDS archive creation</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">update</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">redefine</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logs about redefinition changes in classes or methods.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">verification</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Classes bytecode verification, when to tag prefix. Same for classes in CDS archive when prefixed by <code>cds</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">verify</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Verifications operations done during GC operations.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">vmoperation</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Logs VM operations</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">vmthread</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JVM threads that perform the VM operations (usually during safepoints)</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">vtables</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Java&#8217;s virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">vtablestubs</p></td>
 <td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Java&#8217;s virtual calls mechanism that is used for megamorphic call sites (i.e. when the method to execute is not the same on successive executions because the object hierarchy differ). Hotspot wiki <a href="https://wiki.openjdk.java.net/display/HotSpot/PerformanceTechniques" title="Performance technics">1</a> <a href="https://wiki.openjdk.java.net/display/HotSpot/VirtualCalls" title="Virtual calls">2</a></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">workgang</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC worker threads</p></td>
 </tr>
 </tbody>
 </table>
@@ -986,7 +986,7 @@
 </div>
 </div>
 <div class="listingblock">
-<div class="title">CG prefixes <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90">src/hotspot/share/logging/logPrefix.hpp#L45-L90</a></div>
+<div class="title">GC prefixes <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90">src/hotspot/share/logging/logPrefix.hpp#L45-L90</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="cpp" class="language-cpp hljs">#define LOG_PREFIX_LIST \
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc)) \
@@ -1653,6 +1653,59 @@ will output logs only during JVM bootstrap.</p>
 [8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
 [8014.238s][trace][os,container] Memory Usage is: 4093943808
 ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_class_redefinition"><a class="anchor" href="#_class_redefinition"></a><a class="link" href="#_class_redefinition">Class redefinition</a></h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class AgentTest {
+
+    public static void main(String[] args) {
+        Foo foo = new Foo();
+        System.out.printf("[%.3fs][stdout] m(): %s%n",
+                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
+                          foo.m());
+
+        ByteBuddyAgent.install();
+        new ByteBuddy()
+                .redefine(Bar.class)
+                .name(Foo.class.getName())
+                .make()
+                .load(Foo.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+
+        System.out.printf("[%.3fs][stdout] m(): %s%n",
+                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
+                          foo.m());
+    }
+
+    private static class Foo {
+        String m() { return "foo"; }
+    }
+    private static class Bar {
+        String m() { return "bar"; }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+[0.151s][stdout] m(): foo
+[0.688s][debug][redefine,class,load] loading name=AgentTest$Foo kind=101 (avail_mem=108304K)
+[0.688s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=29
+[0.688s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=25
+[0.688s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=31, scratch_i=25, index_map_len=6
+[0.688s][debug][redefine,class,constantpool] after pass 1b: merge_cp_len=31, scratch_i=29, index_map_len=10
+[0.688s][info ][redefine,class,constantpool] merge_cp_len=31, index_map_len=10
+[0.688s][debug][redefine,class,load        ] loaded name=AgentTest$Foo (avail_mem=108304K)
+[0.690s][info ][redefine,class,update      ] adjust: name=AgentTest$Foo
+[0.690s][debug][redefine,class,update,constantpool] cpc special, static or dynamic entry update: &lt;init&gt;(()V)
+[0.690s][info ][redefine,class,load               ] redefined name=AgentTest$Foo, count=1 (avail_mem=108304K)
+[0.690s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
+[0.690s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
+[0.690s][stdout] m(): bar</code></pre>
 </div>
 </div>
 </div>
