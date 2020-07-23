@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 68 min read
+    <i class="fas fa-clock"></i> 78 min read
 
     
     
@@ -287,7 +287,7 @@ the previous logging explicit and searchable JVM option.</p>
 which lays out the foundation of JVM unified logging.</p>
 </div>
 <div class="sect1">
-<h2 id="_jep_158_unified_jvm_logging"><a class="anchor" href="#_jep_158_unified_jvm_logging"></a><a class="link" href="#_jep_158_unified_jvm_logging">JEP-158 : Unified JVM Logging</a></h2>
+<h2 id="_unified_jvm_logging_jep_158"><a class="anchor" href="#_unified_jvm_logging_jep_158"></a><a class="link" href="#_unified_jvm_logging_jep_158">Unified JVM Logging (JEP-158)</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>The JEP describes how the logging configuration works in the command line :</p>
@@ -364,7 +364,7 @@ it will be possible to use JMX to change logging configuration in runtime.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_explore_unified_logging_in_a_useful_way"><a class="anchor" href="#_explore_unified_logging_in_a_useful_way"></a><a class="link" href="#_explore_unified_logging_in_a_useful_way">Explore unified logging in a useful way</a></h2>
+<h2 id="_useful_usage_of_unified_logging"><a class="anchor" href="#_useful_usage_of_unified_logging"></a><a class="link" href="#_useful_usage_of_unified_logging">Useful usage of unified logging</a></h2>
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_how_to_use_the_tool_help_from_the_command_line"><a class="anchor" href="#_how_to_use_the_tool_help_from_the_command_line"></a><a class="link" href="#_how_to_use_the_tool_help_from_the_command_line">How to use the tool, help from the command line</a></h3>
@@ -373,7 +373,7 @@ it will be possible to use JMX to change logging configuration in runtime.</p>
 command line help, which is describing just as well how to use on the command line.</p>
 </div>
 <div class="paragraph">
-<p>Also you may have to enable logs on a running VM, well in this case the <code>jcmd</code> sub-command <code>VM.log</code>
+<p>Also, you may have to enable logs on a running VM, well in this case the <code>jcmd</code> sub-command <code>VM.log</code>
 is your tool.</p>
 </div>
 <div class="listingblock primary">
@@ -567,6 +567,12 @@ may be less useful when enabled at a later time. In the above example in particu
 will output some interesting logs only during JVM startup.</p>
 </div>
 </div>
+<div class="sect3">
+<h4 id="_tag_prefixes_tag_set_todo"><a class="anchor" href="#_tag_prefixes_tag_set_todo"></a><a class="link" href="#_tag_prefixes_tag_set_todo">Tag prefixes / Tag set TODO</a></h4>
+<div class="paragraph">
+<p><a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9R30-R35" class="bare">https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9R30-R35</a></p>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_migrating_the_gc_log_configuration_jep_271"><a class="anchor" href="#_migrating_the_gc_log_configuration_jep_271"></a><a class="link" href="#_migrating_the_gc_log_configuration_jep_271">Migrating the GC log configuration (JEP-271)</a></h3>
@@ -606,11 +612,16 @@ everything is not there, for the poor souls that need to work with other GCs.</p
 </div>
 </div>
 <div class="paragraph">
-<p>These flags could be translated to the following configuration.
-Note the below snippet splits the log multiple lines and add spaces for clarity.</p>
+<p>These flags could be translated to the following configuration :</p>
 </div>
-<div class="listingblock">
-<div class="title">post-jdk9</div>
+<div class="listingblock primary">
+<div class="title">log config</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:gc*,gc+heap=debug,gc+ref=debug,gc+ergo*=trace,gc+age*=trace,gc+phases*=debug,safepoint*:file=/var/log/%t-gc.log:uptime,tags,level:filecount=10,filesize=20M</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">log config breakdown</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:
   gc*, <i class="conum" data-value="1"></i><b>(1)</b>
@@ -618,10 +629,10 @@ Note the below snippet splits the log multiple lines and add spaces for clarity.
   gc+ref=debug, <i class="conum" data-value="3"></i><b>(3)</b>
   gc+ergo*=trace, <i class="conum" data-value="4"></i><b>(4)</b>
   gc+age*=trace, <i class="conum" data-value="5"></i><b>(5)</b>
-  gc+phases*, <i class="conum" data-value="6"></i><b>(6)</b>
+  gc+phases*=debug, <i class="conum" data-value="6"></i><b>(6)</b>
   safepoint* <i class="conum" data-value="7"></i><b>(7)</b>
   :file=/var/log/%t-gc.log <i class="conum" data-value="8"></i><b>(8)</b>
-  :time,uptime,tags <i class="conum" data-value="9"></i><b>(9)</b>
+  :time,tags,level <i class="conum" data-value="9"></i><b>(9)</b>
   :filecount=5,filesize=10M <i class="conum" data-value="10"></i><b>(10)</b></code></pre>
 </div>
 </div>
@@ -629,7 +640,7 @@ Note the below snippet splits the log multiple lines and add spaces for clarity.
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td><code>PrintGCDetails</code></td>
+<td><code>PrintGCDetails</code> (remember that default level is <code>info</code>)</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -661,7 +672,7 @@ Note the below snippet splits the log multiple lines and add spaces for clarity.
 </tr>
 <tr>
 <td><i class="conum" data-value="9"></i><b>9</b></td>
-<td><code>PrintGCDateStamps</code></td>
+<td><code>PrintGCDateStamps</code> (but also decorates with tags and level, useful to know identify the source of the log).</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="10"></i><b>10</b></td>
@@ -670,18 +681,32 @@ Note the below snippet splits the log multiple lines and add spaces for clarity.
 </table>
 </div>
 <div class="paragraph">
-<p>Note that some options do not have equivalent in unified GC logging.
+<p>Note that some options do not have equivalents in unified GC logging.
 Either because the tag system is more precise, or because the log message
 themselves changed, e.g. the GC cause and the GC id are now always logged.</p>
 </div>
 <div class="paragraph">
-<p>Now it&#8217;s the right opportunity to warn a about the caveats of this log configuration.
-This configuration is fine and work reasonably well, BUT this configuration
-actually misses information like IHOP, which is not only logged with the <code>ergo</code> tag
+<p>Now it&#8217;s the right opportunity to warn about the slight caveats of this log configuration.</p>
+</div>
+<div class="paragraph">
+<p>This configuration is fine and work reasonably well, BUT this configuration
+actually may misses some log like some <code>ihop</code>, which is not only logged with the <code>ergo</code> tag
 as we&#8217;ll see.</p>
 </div>
+<div class="sect3">
+<h4 id="_exhaustive_translation_table"><a class="anchor" href="#_exhaustive_translation_table"></a><a class="link" href="#_exhaustive_translation_table">Exhaustive translation table</a></h4>
+<div class="paragraph">
+<p>I extracted the following table from the actual patches that implemented JEP-271, see
+<a href="https://bugs.openjdk.java.net/browse/JDK-8059805">JDK-8059805</a>,
+<a href="https://bugs.openjdk.java.net/browse/JDK-8145092">JDK-8145092</a>, and in particular the
+<a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3">related diff</a> <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">(on github)</a>.</p>
+</div>
+<div class="paragraph">
+<p>In a lesser way I sued the official <a href="https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5"><code>java</code> documentation</a>,
+which I found somewhat lacking in this regard.</p>
+</div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. exhaustive translation table with some caveats</caption>
+<caption class="title">Table 1. Exhaustive GC logging option translation table (with some caveats)</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -1076,7 +1101,7 @@ as we&#8217;ll see.</p>
 </tbody>
 </table>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 2. decorators</caption>
+<caption class="title">Table 2. old option are now decorators</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -1092,27 +1117,342 @@ as we&#8217;ll see.</p>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="sect3">
+<h4 id="_caveat_when_using_this_translation_table"><a class="anchor" href="#_caveat_when_using_this_translation_table"></a><a class="link" href="#_caveat_when_using_this_translation_table">Caveat when using this translation table</a></h4>
+<div class="paragraph">
+<p>I noticed while analyzing GC logs with the above unified logging configuration that some logs
+I expected were missing, and while doing this translation table I identified the logs I expected.
+They had a different <em>tag</em> prefixes.</p>
+</div>
+<div class="paragraph">
+<p>On the example of heap occupancy logs (IHOP), it was logged with <code>PrintAdaptiveSizePolicy</code>
+and now it&#8217;s supposed to be logged as part of the GC ergonomics by setting <code>gc+ergo*</code> to <code>trace</code>.
+Looking at the code, I noticed the <code>ihop</code> tag is not always prefixed by <code>gc</code> and <code>ergo</code>.</p>
+</div>
+<div class="paragraph">
+<p>This tag is not alone, in the <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">diff</a>
+I mentioned there&#8217;s an interesting file that describes GC log prefixes. The diff is huge and
+may take some time to load, search for the following file
+<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9">src/share/vm/logging/logPrefix.hpp</a>.</p>
+</div>
+<div class="paragraph">
+<p>Also, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
+This makes the tag selection hard to use properly and hard to maintain correctly. Very few will <em>grep</em> the
+JDK code base to track which tag they need to tune GCs which is already arcane enough.</p>
+</div>
+<div class="paragraph">
+<p>In this sense I believe that if we configure/select tags too restrictively it might be counter-productive.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_embracing_unified_logging_for_gc_logs"><a class="anchor" href="#_embracing_unified_logging_for_gc_logs"></a><a class="link" href="#_embracing_unified_logging_for_gc_logs">Embracing unified logging for GC logs</a></h4>
+<div class="paragraph">
+<p>This led to think that instead of trying to <em>mimic</em> old logging options, I should instead
+prefer to log more tags and simplify the overall logging configuration.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">log config</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:gc*=debug,gc+ergo*=trace,gc+age*=trace,safepoint*:file=/gclogs/%t-gc.log:uptime,tags,level:filecount=10,filesize=20M</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">log config breakdown</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:
+  gc*=debug, <i class="conum" data-value="1"></i><b>(1)</b>
+  gc+ergo*=trace, <i class="conum" data-value="2"></i><b>(2)</b>
+  gc+age*=trace, <i class="conum" data-value="3"></i><b>(3)</b>
+  safepoint*
+  :file=/gclogs/%t-gc.log:uptime,tags,level:filecount=10,filesize=20M</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Logs everything under <code>gc</code> at <code>debug</code> level.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Specific tagset level configuration for ergonomics.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Specific tagset level configuration for tenuring distribution.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The above configuration is simple at the expanse of possibly larger file size.
+Also, using <code>gc*=debug</code> allows to catch extra tags, and possibly new <code>gc</code> related tags
+that show up. In my opinion this configuration does not have any caveats.</p>
+</div>
+<div class="paragraph">
+<p>And as mentioned I benefited from other tags under <code>gc</code> that I wasn&#8217;t even looking
+at before because I simply didn&#8217;t think to enable the logging option,
+like <code>PrintJNIGCStalls</code> in pre-jdk9 <code>jni</code> tag in unified logging or dreaded humongous
+allocations in G1GC via the <code>humongous</code> tag.
+In short this simpler configuration enabled more logging, which means GC analysis tool
+can spot other useful information.</p>
+</div>
+<div class="ulist">
+<div class="title">GC tagsets with <code>gc*=debug</code> configuration</div>
+<ul>
+<li>
+<p><code>gc,age</code></p>
+</li>
+<li>
+<p><code>gc,alloc,region</code></p>
+</li>
+<li>
+<p><code>gc,cpu</code></p>
+</li>
+<li>
+<p><code>gc,ergo</code></p>
+</li>
+<li>
+<p><code>gc,ergo,cset</code></p>
+</li>
+<li>
+<p><code>gc,ergo,ihop</code></p>
+</li>
+<li>
+<p><code>gc,ergo,refine</code></p>
+</li>
+<li>
+<p><code>gc,heap</code></p>
+</li>
+<li>
+<p><code>gc,humongous</code></p>
+</li>
+<li>
+<p><code>gc,ihop</code></p>
+</li>
+<li>
+<p><code>gc,jni</code></p>
+</li>
+<li>
+<p><code>gc,marking</code></p>
+</li>
+<li>
+<p><code>gc,metaspace</code></p>
+</li>
+<li>
+<p><code>gc,mmu</code></p>
+</li>
+<li>
+<p><code>gc,phases</code></p>
+</li>
+<li>
+<p><code>gc,phases,ref</code></p>
+</li>
+<li>
+<p><code>gc,phases,start</code></p>
+</li>
+<li>
+<p><code>gc,plab</code></p>
+</li>
+<li>
+<p><code>gc,ref</code></p>
+</li>
+<li>
+<p><code>gc,ref,start</code></p>
+</li>
+<li>
+<p><code>gc,refine</code></p>
+</li>
+<li>
+<p><code>gc,remset,tracking</code></p>
+</li>
+<li>
+<p><code>gc,start</code></p>
+</li>
+<li>
+<p><code>gc,stats</code></p>
+</li>
+<li>
+<p><code>gc,stringdedup</code></p>
+</li>
+<li>
+<p><code>gc,stringtable</code></p>
+</li>
+<li>
+<p><code>gc,task</code></p>
+</li>
+<li>
+<p><code>gc,task,stats</code></p>
+</li>
+<li>
+<p><code>gc,tlab</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_try_gc_logging_configurations"><a class="anchor" href="#_try_gc_logging_configurations"></a><a class="link" href="#_try_gc_logging_configurations">Try GC logging configurations</a></h4>
+<div class="paragraph">
+<p>Unlike <code>os</code> and <code>container</code> logs, GC happens almost continuously this opens the opportunity
+to try log configurations at runtime using <code>jcmd</code>. In the example below I wanted to monitor
+more thoroughly G1GC regions:</p>
+</div>
 <div class="listingblock">
-<div class="title">log on demand, with G1 region tracing</div>
+<div class="title">Activate a new log configuration</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">jcmd $(pidof java) \
   VM.log \
-    what="gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*,os*" \
-    decorators=uptime,time,tags,level \
-    output="file=/gclogs/%t-gc-trace.log" \
+    what="gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*" \
+    decorators=time,tags,level \
+    output="file=/var/log/%t-gc-region-tracing.log" \
     output_options="filecount=10,filesize=20M"</code></pre>
 </div>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_exploring_other_tags"><a class="anchor" href="#_exploring_other_tags"></a><a class="link" href="#_exploring_other_tags">Exploring other tags</a></h3>
+<div class="sect3">
+<h4 id="_os_and_container_related"><a class="anchor" href="#_os_and_container_related"></a><a class="link" href="#_os_and_container_related">OS and container related</a></h4>
 <div class="paragraph">
-<p><a href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092" class="bare">https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092</a>
-<a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3" class="bare">https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3</a>
-log prefixes : <a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3#l120.8" class="bare">https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3#l120.8</a></p>
+<p>If the workload you are working on is running on containers you may have heard of the
+os and container tags :</p>
+</div>
+<div class="listingblock">
+<div class="title">os, container, pagesize logs</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ head -n 200 /var/log/2020-05-22_22-28-32-os-container-pagezise.log
+[0.003s][trace][os,container] OSContainer::init: Initializing Container Support
+[0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
+[0.003s][trace][os,container] Use Hierarchy is: 1
+[0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.003s][trace][os,container] Memory Limit is: 5368709120
+[0.003s][info ][os,container] Memory Limit is: 5368709120
+[0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.003s][trace][os,container] CPU Quota is: -1
+[0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.003s][trace][os,container] CPU Period is: 100000
+[0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.004s][trace][os,container] CPU Shares is: 1024
+[0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.004s][trace][os,container] CPU Quota is: -1
+[0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.004s][trace][os,container] CPU Period is: 100000
+[0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.004s][trace][os,container] CPU Shares is: 1024
+[0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
+[0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
+[0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
+[0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
+[0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
+[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
+[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
+[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
+[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
+[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
+[0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.008s][trace][os,container] CPU Quota is: -1
+[0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.008s][trace][os,container] CPU Period is: 100000
+[0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.008s][trace][os,container] CPU Shares is: 1024
+[0.009s][trace][os,container] OSContainer::active_processor_count: 4
+[0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
+[0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
+[0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
+[0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
+[0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
+[0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
+[0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
+[0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
+[0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
+[0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
+[0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
+[0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
+[0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
+[0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
+[0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
+[0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
+[0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.024s][trace][os,container] CPU Quota is: -1
+[0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.024s][trace][os,container] CPU Period is: 100000
+[0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.024s][trace][os,container] CPU Shares is: 1024
+[0.024s][trace][os,container] OSContainer::active_processor_count: 4
+[0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
+[0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
+[0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
+[0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.036s][trace][os,container] Memory Limit is: 5368709120
+[0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.036s][trace][os,container] Memory Usage is: 9551872
+[0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.037s][trace][os,container] Memory Usage is: 9682944
+...
+[0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.058s][trace][os,container] Memory Limit is: 5368709120
+[0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.058s][trace][os,container] Memory Usage is: 12820480
+...
+[0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
+...
+[8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[8005.132s][trace][os,container] Memory Limit is: 5368709120
+[8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[8005.132s][trace][os,container] Memory Usage is: 4093734912
+[8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[8014.238s][trace][os,container] Memory Limit is: 5368709120
+[8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[8014.238s][trace][os,container] Memory Usage is: 4093943808
+...</code></pre>
+</div>
 </div>
 <div class="paragraph">
-<p><a href="https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5" class="bare">https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5</a></p>
+<p>Ok nice, but <code>java -Xlog:help</code> list a lot more available tags.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_reference"><a class="anchor" href="#_tags_reference"></a><a class="link" href="#_tags_reference">Tags reference</a></h4>
+<div class="paragraph">
+<p>The issue with unified logging is the documentation, identifying the tag we want
+can be tedious. If I select the tag <code>dump</code> what will it output and when, is it about heap dump.
+Same if I select <code>system</code> is it about system calls, or else. Well it turns out there&#8217;s just
+no documentation whatsoever, you need to look at the code.</p>
+</div>
+<div class="paragraph">
+<p>The starting point for this job was <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">this commit</a>
+and what the JEP-158 proposed :</p>
 </div>
 <div class="quoteblock">
-<div class="title">In the JVM codebase</div>
+<div class="title">JEP-158</div>
 <blockquote>
 <div class="paragraph">
 <p><strong>JVM interface</strong></p>
@@ -1140,11 +1480,16 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </div>
 </blockquote>
 </div>
-</div>
-<div class="sect2">
-<h3 id="_tags_reference"><a class="anchor" href="#_tags_reference"></a><a class="link" href="#_tags_reference">tags reference</a></h3>
 <div class="paragraph">
-<p><a href="https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/logging/logTag.hpp">src/hotspot/share/logging/logTag.hpp</a></p>
+<p>The idea of this section is to <em>build</em> a logging tag reference. For that
+I needed grep and the hotspot repo. I build this reference on the code found in
+11.0.7, but I don&#8217;t think there was any change in 11.0.8; please keep in mind this is
+only a snapshot and it&#8217;s likely that tags get added or changed in later JVM revisions.</p>
+</div>
+<div class="paragraph">
+<p>In the commit above there&#8217;s an interesting file
+<a href="https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/logging/logTag.hpp">src/hotspot/share/logging/logTag.hpp</a>
+that declares all logging tags (138 in total). From there I searched where these tags where used.</p>
 </div>
 <table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 3. Log tags</caption>
@@ -2332,8 +2677,15 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>In building this reference we see that some JVM sub-systems can output a lot of logs.
+Two subsystems stands out in the way they describe their tagsets : JFR and the Garbage Collection</p>
+</div>
+<details>
+<summary class="title">JFR prefixes</summary>
+<div class="content">
 <div class="listingblock">
-<div class="title">JFR prefixes <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp">src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp</a></div>
+<div class="title"><a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp">src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="c++" class="language-c++ hljs">#define JFR_LOG_TAG_SET_LIST \
   JFR_LOG_TAG(jfr) \
@@ -2350,8 +2702,16 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
   /* NEW TAGS, DONT FORGET TO UPDATE JAVA SIDE */</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>However note that the tags seen above are not all used, in particular those under <code>system</code>.</p>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">GC prefixes</summary>
+<div class="content">
 <div class="listingblock">
-<div class="title">GC prefixes <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90">src/hotspot/share/logging/logPrefix.hpp#L45-L90</a></div>
+<div class="title"><a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90">src/hotspot/share/logging/logPrefix.hpp#L45-L90</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="cpp" class="language-cpp hljs">#define LOG_PREFIX_LIST \
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc)) \
@@ -2401,6 +2761,11 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, workgang))</code></pre>
 </div>
 </div>
+</div>
+</details>
+<div class="paragraph">
+<p>The other tagset or prefixes are not declared, so I rebuilt them in a non exhaustive way.</p>
+</div>
 <div class="ulist">
 <div class="title">AOT <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/aot/aotCodeHeap.cpp">src/hotspot/share/aot/aotCodeHeap.cpp</a></div>
 <ul>
@@ -2418,11 +2783,11 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-<div class="ulist">
+<div class="dlist">
 <div class="title">Classes</div>
-<ul>
-<li>
-<p>classfile</p>
+<dl>
+<dt class="hdlist1">Class file loading, linking</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2478,9 +2843,9 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>Class loding service</p>
+</dd>
+<dt class="hdlist1">Class loding service</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2488,9 +2853,9 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>Constant Pool</p>
+</dd>
+<dt class="hdlist1">Constant Pool</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2498,9 +2863,9 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>Native methods (compiled code versions of Java methods)</p>
+</dd>
+<dt class="hdlist1">Native methods (compiled code versions of Java methods)</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2508,9 +2873,9 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>Memory</p>
+</dd>
+<dt class="hdlist1">Memory</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2518,9 +2883,9 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>OOPS</p>
+</dd>
+<dt class="hdlist1">OOPS</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2528,9 +2893,9 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>JNI</p>
+</dd>
+<dt class="hdlist1">JNI</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2541,9 +2906,9 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>Reflection</p>
+</dd>
+<dt class="hdlist1">Reflection</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -2551,8 +2916,8 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </li>
 </ul>
 </div>
-</li>
-</ul>
+</dd>
+</dl>
 </div>
 <div class="ulist">
 <div class="title">Class Data Sharing</div>
@@ -2620,180 +2985,12 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 </ul>
 </div>
 </div>
+</div>
 <div class="sect2">
 <h3 id="_interesting_tags_combinations"><a class="anchor" href="#_interesting_tags_combinations"></a><a class="link" href="#_interesting_tags_combinations">Interesting tags combinations</a></h3>
-<div class="sect3">
-<h4 id="_os_and_container"><a class="anchor" href="#_os_and_container"></a><a class="link" href="#_os_and_container">os and container</a></h4>
-<div class="listingblock">
-<div class="title">output</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ head -n 200 /gclogs/2020-05-22_22-28-32-os-container-pagezise.log
-[0.003s][trace][os,container] OSContainer::init: Initializing Container Support
-[0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
-[0.003s][trace][os,container] Use Hierarchy is: 1
-[0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[0.003s][trace][os,container] Memory Limit is: 5368709120
-[0.003s][info ][os,container] Memory Limit is: 5368709120
-[0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.003s][trace][os,container] CPU Quota is: -1
-[0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.003s][trace][os,container] CPU Period is: 100000
-[0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.004s][trace][os,container] CPU Shares is: 1024
-[0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.004s][trace][os,container] CPU Quota is: -1
-[0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.004s][trace][os,container] CPU Period is: 100000
-[0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.004s][trace][os,container] CPU Shares is: 1024
-[0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
-[0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
-[0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
-[0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
-[0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
-[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
-[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
-[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
-[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
-[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
-[0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.008s][trace][os,container] CPU Quota is: -1
-[0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.008s][trace][os,container] CPU Period is: 100000
-[0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.008s][trace][os,container] CPU Shares is: 1024
-[0.009s][trace][os,container] OSContainer::active_processor_count: 4
-[0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
-[0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
-[0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
-[0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
-[0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
-[0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
-[0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
-[0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
-[0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
-[0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
-[0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
-[0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
-[0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
-[0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
-[0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
-[0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
-[0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
-[0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
-[0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
-[0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.024s][trace][os,container] CPU Quota is: -1
-[0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.024s][trace][os,container] CPU Period is: 100000
-[0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.024s][trace][os,container] CPU Shares is: 1024
-[0.024s][trace][os,container] OSContainer::active_processor_count: 4
-[0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
-[0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
-[0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
-[0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
-[0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
-[0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
-[0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[0.036s][trace][os,container] Memory Limit is: 5368709120
-[0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[0.036s][trace][os,container] Memory Usage is: 9551872
-[0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[0.037s][trace][os,container] Memory Usage is: 9682944
-...
-[0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[0.058s][trace][os,container] Memory Limit is: 5368709120
-[0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[0.058s][trace][os,container] Memory Usage is: 12820480
-...
-[0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
-...
-[8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[8005.132s][trace][os,container] Memory Limit is: 5368709120
-[8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[8005.132s][trace][os,container] Memory Usage is: 4093734912
-[8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[8014.238s][trace][os,container] Memory Limit is: 5368709120
-[8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[8014.238s][trace][os,container] Memory Usage is: 4093943808
-...</code></pre>
-</div>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_class_redefinition"><a class="anchor" href="#_class_redefinition"></a><a class="link" href="#_class_redefinition">Class redefinition</a></h4>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class AgentTest {
-
-    public static void main(String[] args) {
-        Foo foo = new Foo();
-        System.out.printf("[%.3fs][stdout] m(): %s%n",
-                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
-                          foo.m());
-
-        ByteBuddyAgent.install();
-        new ByteBuddy()
-                .redefine(Bar.class)
-                .name(Foo.class.getName())
-                .make()
-                .load(Foo.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
-
-        System.out.printf("[%.3fs][stdout] m(): %s%n",
-                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
-                          foo.m());
-    }
-
-    private static class Foo {
-        String m() { return "foo"; }
-    }
-    private static class Bar {
-        String m() { return "bar"; }
-    }
-}</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
-[0.151s][stdout] m(): foo
-[0.688s][debug][redefine,class,load] loading name=AgentTest$Foo kind=101 (avail_mem=108304K)
-[0.688s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=29
-[0.688s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=25
-[0.688s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=31, scratch_i=25, index_map_len=6
-[0.688s][debug][redefine,class,constantpool] after pass 1b: merge_cp_len=31, scratch_i=29, index_map_len=10
-[0.688s][info ][redefine,class,constantpool] merge_cp_len=31, index_map_len=10
-[0.688s][debug][redefine,class,load        ] loaded name=AgentTest$Foo (avail_mem=108304K)
-[0.690s][info ][redefine,class,update      ] adjust: name=AgentTest$Foo
-[0.690s][debug][redefine,class,update,constantpool] cpc special, static or dynamic entry update: &lt;init&gt;(()V)
-[0.690s][info ][redefine,class,load               ] redefined name=AgentTest$Foo, count=1 (avail_mem=108304K)
-[0.690s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
-[0.690s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
-[0.690s][stdout] m(): bar</code></pre>
-</div>
-</div>
+<div class="paragraph">
+<div class="title">Java Virtual Machine Tool Interface (JVMTI, JSR-163)</div>
+<p>From the above we can</p>
 </div>
 <div class="sect3">
 <h4 id="_classes"><a class="anchor" href="#_classes"></a><a class="link" href="#_classes">Classes</a></h4>
@@ -2939,6 +3136,59 @@ static AliasedFlag const removed_develop_logging_flags[] = {
 </div>
 </div>
 <div class="sect3">
+<h4 id="_class_redefinition"><a class="anchor" href="#_class_redefinition"></a><a class="link" href="#_class_redefinition">Class redefinition</a></h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class AgentTest {
+
+    public static void main(String[] args) {
+        Foo foo = new Foo();
+        System.out.printf("[%.3fs][stdout] m(): %s%n",
+                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
+                          foo.m());
+
+        ByteBuddyAgent.install();
+        new ByteBuddy()
+                .redefine(Bar.class)
+                .name(Foo.class.getName())
+                .make()
+                .load(Foo.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+
+        System.out.printf("[%.3fs][stdout] m(): %s%n",
+                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
+                          foo.m());
+    }
+
+    private static class Foo {
+        String m() { return "foo"; }
+    }
+    private static class Bar {
+        String m() { return "bar"; }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+[0.151s][stdout] m(): foo
+[0.688s][debug][redefine,class,load] loading name=AgentTest$Foo kind=101 (avail_mem=108304K)
+[0.688s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=29
+[0.688s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=25
+[0.688s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=31, scratch_i=25, index_map_len=6
+[0.688s][debug][redefine,class,constantpool] after pass 1b: merge_cp_len=31, scratch_i=29, index_map_len=10
+[0.688s][info ][redefine,class,constantpool] merge_cp_len=31, index_map_len=10
+[0.688s][debug][redefine,class,load        ] loaded name=AgentTest$Foo (avail_mem=108304K)
+[0.690s][info ][redefine,class,update      ] adjust: name=AgentTest$Foo
+[0.690s][debug][redefine,class,update,constantpool] cpc special, static or dynamic entry update: &lt;init&gt;(()V)
+[0.690s][info ][redefine,class,load               ] redefined name=AgentTest$Foo, count=1 (avail_mem=108304K)
+[0.690s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
+[0.690s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
+[0.690s][stdout] m(): bar</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
 <h4 id="_tags"><a class="anchor" href="#_tags"></a><a class="link" href="#_tags">tags</a></h4>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
@@ -3080,37 +3330,6 @@ static AliasedFlag const removed_develop_logging_flags[] = {
 </tr>
 </tbody>
 </table>
-<div class="paragraph">
-<p>gc,age
-gc,alloc,region
-gc,cpu
-gc,ergo
-gc,ergo,cset
-gc,ergo,ihop
-gc,ergo,refine
-gc,heap
-gc,humongous
-gc,ihop
-gc,jni
-gc,marking
-gc,metaspace
-gc,mmu
-gc,phases
-gc,phases,ref
-gc,phases,start
-gc,plab
-gc,ref
-gc,ref,start
-gc,refine
-gc,remset,tracking
-gc,start
-gc,stats
-gc,stringdedup
-gc,stringtable
-gc,task
-gc,task,stats
-gc,tlab</p>
-</div>
 </div>
 </div>
 </div>
