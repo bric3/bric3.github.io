@@ -29,7 +29,7 @@ the previous logging explicit and searchable JVM option.
 Anyway, let's begin ou exploration with a small recapitulation of https://openjdk.java.net/jeps/158[JEP-158]
 which lays out the foundation of JVM unified logging.
 
-== JEP-158 : Unified JVM Logging
+== Unified JVM Logging (JEP-158)
 
 The JEP describes how the logging configuration works in the command line :
 
@@ -97,14 +97,14 @@ ____
 
 Now let's explore unified logging
 
-== Explore unified logging in a useful way
+== Useful usage of unified logging
 
 === How to use the tool, help from the command line
 
 While the JEP explains things, it's usually not how we get the first contact, we use the
 command line help, which is describing just as well how to use on the command line.
 
-Also you may have to enable logs on a running VM, well in this case the `jcmd` sub-command `VM.log`
+Also, you may have to enable logs on a running VM, well in this case the `jcmd` sub-command `VM.log`
 is your tool.
 
 .`java` command
@@ -194,8 +194,8 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
         disable : [optional] Turns off all logging and clears the log configuration. (BOOLEAN, no default value)
         list : [optional] Lists current log configuration. (BOOLEAN, no default value)
         rotate : [optional] Rotates all logs. (BOOLEAN, no default value)
-
 ----
+
 
 ==== configuring unified logging
 
@@ -249,6 +249,10 @@ The above commands are equivalent, but note that depending on the specified tags
 may be less useful when enabled at a later time. In the above example in particular the `os+container=trace`
 will output some interesting logs only during JVM startup.
 
+==== Tag prefixes / Tag set TODO
+
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9R30-R35
+
 
 
 === Migrating the GC log configuration (JEP-271)
@@ -284,11 +288,16 @@ The basic translation of the following usual GC logging configuration :
 -Xloggc:/var/log/`date +%FT%H-%M-%S`-gc.log   \
 ----
 
-These flags could be translated to the following configuration.
-Note the below snippet splits the log multiple lines and add spaces for clarity.
+These flags could be translated to the following configuration :
 
-.post-jdk9
-[source]
+.log config
+[source,role="primary"]
+----
+-Xlog:gc*,gc+heap=debug,gc+ref=debug,gc+ergo*=trace,gc+age*=trace,gc+phases*=debug,safepoint*:file=/var/log/%t-gc.log:uptime,tags,level:filecount=10,filesize=20M
+----
+
+.log config breakdown
+[source,role="secondary"]
 ----
 -Xlog:
   gc*, <1>
@@ -296,13 +305,13 @@ Note the below snippet splits the log multiple lines and add spaces for clarity.
   gc+ref=debug, <3>
   gc+ergo*=trace, <4>
   gc+age*=trace, <5>
-  gc+phases*, <6>
+  gc+phases*=debug, <6>
   safepoint* <7>
   :file=/var/log/%t-gc.log <8>
-  :time,uptime,tags <9>
+  :time,tags,level <9>
   :filecount=5,filesize=10M <10>
 ----
-<1> `PrintGCDetails`
+<1> `PrintGCDetails` (remember that default level is `info`)
 <2> `PrintHeapAtGC`
 <3> `PrintReferenceGC`
 <4> `PrintAdaptiveSizePolicy`
@@ -310,20 +319,31 @@ Note the below snippet splits the log multiple lines and add spaces for clarity.
 <6> `PrintParallelOldGCPhaseTimes`
 <7> `PrintGCApplicationConcurrentTime` and `PrintGCApplicationStoppedTime`
 <8> `Xloggc`
-<9> `PrintGCDateStamps`
+<9> `PrintGCDateStamps` (but also decorates with tags and level, useful to know identify the source of the log).
 <10> `UseGCLogFileRotation`, `NumberOfGCLogFiles`, `GCLogFileSize`
 
-Note that some options do not have equivalent in unified GC logging.
+Note that some options do not have equivalents in unified GC logging.
 Either because the tag system is more precise, or because the log message
 themselves changed, e.g. the GC cause and the GC id are now always logged.
 
-Now it's the right opportunity to warn a about the caveats of this log configuration.
+Now it's the right opportunity to warn about the slight caveats of this log configuration.
+
 This configuration is fine and work reasonably well, BUT this configuration
-actually misses information like IHOP, which is not only logged with the `ergo` tag
+actually may misses some log like some `ihop`, which is not only logged with the `ergo` tag
 as we'll see.
 
+==== Exhaustive translation table
 
-.exhaustive translation table with some caveats
+I extracted the following table from the actual patches that implemented JEP-271, see
+https://bugs.openjdk.java.net/browse/JDK-8059805[JDK-8059805],
+https://bugs.openjdk.java.net/browse/JDK-8145092[JDK-8145092], and in particular the
+https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3[related diff] https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[(on github)].
+
+In a lesser way I sued the official https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5[`java` documentation],
+which I found somewhat lacking in this regard.
+
+
+.Exhaustive GC logging option translation table (with some caveats)
 [cols="m,a,a",options="headers"]
 |===
 | Old GC log flags usually set with `-XX:+...` | `Equivalent` tags with log level           | Definition of the the old flag
@@ -397,7 +417,7 @@ as we'll see.
 |===
 
 
-.decorators
+.old option are now decorators
 [cols="m,m"]
 |===
 
@@ -406,30 +426,255 @@ as we'll see.
 
 |===
 
-.log on demand, with G1 region tracing
+==== Caveat when using this translation table
+
+I noticed while analyzing GC logs with the above unified logging configuration that some logs
+I expected were missing, and while doing this translation table I identified the logs I expected.
+They had a different _tag_ prefixes.
+
+On the example of heap occupancy logs (IHOP), it was logged with `PrintAdaptiveSizePolicy`
+and now it's supposed to be logged as part of the GC ergonomics by setting `gc+ergo*` to `trace`.
+Looking at the code, I noticed the `ihop` tag is not always prefixed by `gc` and `ergo`.
+
+This tag is not alone, in the https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[diff]
+I mentioned there's an interesting file that describes GC log prefixes. The diff is huge and
+may take some time to load, search for the following file
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9[src/share/vm/logging/logPrefix.hpp].
+
+Also, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
+This makes the tag selection hard to use properly and hard to maintain correctly. Very few will _grep_ the
+JDK code base to track which tag they need to tune GCs which is already arcane enough.
+
+In this sense I believe that if we configure/select tags too restrictively it might be counter-productive.
+
+==== Embracing unified logging for GC logs
+
+This led to think that instead of trying to _mimic_ old logging options, I should instead
+prefer to log more tags and simplify the overall logging configuration.
+
+.log config
+[source, role="primary"]
+----
+-Xlog:gc*=debug,gc+ergo*=trace,gc+age*=trace,safepoint*:file=/gclogs/%t-gc.log:uptime,tags,level:filecount=10,filesize=20M
+----
+
+.log config breakdown
+[source, role="secondary"]
+----
+-Xlog:
+  gc*=debug, <1>
+  gc+ergo*=trace, <2>
+  gc+age*=trace, <3>
+  safepoint*
+  :file=/gclogs/%t-gc.log:uptime,tags,level:filecount=10,filesize=20M
+----
+<1> Logs everything under `gc` at `debug` level.
+<2> Specific tagset level configuration for ergonomics.
+<3> Specific tagset level configuration for tenuring distribution.
+
+The above configuration is simple at the expanse of possibly larger file size.
+Also, using `gc*=debug` allows to catch extra tags, and possibly new `gc` related tags
+that show up. In my opinion this configuration does not have any caveats.
+
+And as mentioned I benefited from other tags under `gc` that I wasn't even looking
+at before because I simply didn't think to enable the logging option,
+like `PrintJNIGCStalls` in pre-jdk9 `jni` tag in unified logging or dreaded humongous
+allocations in G1GC via the `humongous` tag.
+In short this simpler configuration enabled more logging, which means GC analysis tool
+can spot other useful information.
+
+.GC tagsets with `gc*=debug` configuration
+* `gc,age`
+* `gc,alloc,region`
+* `gc,cpu`
+* `gc,ergo`
+* `gc,ergo,cset`
+* `gc,ergo,ihop`
+* `gc,ergo,refine`
+* `gc,heap`
+* `gc,humongous`
+* `gc,ihop`
+* `gc,jni`
+* `gc,marking`
+* `gc,metaspace`
+* `gc,mmu`
+* `gc,phases`
+* `gc,phases,ref`
+* `gc,phases,start`
+* `gc,plab`
+* `gc,ref`
+* `gc,ref,start`
+* `gc,refine`
+* `gc,remset,tracking`
+* `gc,start`
+* `gc,stats`
+* `gc,stringdedup`
+* `gc,stringtable`
+* `gc,task`
+* `gc,task,stats`
+* `gc,tlab`
+
+
+==== Try GC logging configurations
+
+Unlike `os` and `container` logs, GC happens almost continuously this opens the opportunity
+to try log configurations at runtime using `jcmd`. In the example below I wanted to monitor
+more thoroughly G1GC regions:
+
+.Activate a new log configuration
 [source,bash]
 ----
 jcmd $(pidof java) \
   VM.log \
-    what="gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*,os*" \
-    decorators=uptime,time,tags,level \
-    output="file=/gclogs/%t-gc-trace.log" \
+    what="gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*" \
+    decorators=time,tags,level \
+    output="file=/var/log/%t-gc-region-tracing.log" \
     output_options="filecount=10,filesize=20M"
 ----
 
 
-https://bugs.java.com/bugdatabase/view_bug.do?bug_id=JDK-8145092
-https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3
-log prefixes : https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3#l120.8
-
-https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5
 
 
+=== Exploring other tags
+
+==== OS and container related
+
+If the workload you are working on is running on containers you may have heard of the
+os and container tags :
+
+.os, container, pagesize logs
+[source, shell]
+----
+$ head -n 200 /var/log/2020-05-22_22-28-32-os-container-pagezise.log
+[0.003s][trace][os,container] OSContainer::init: Initializing Container Support
+[0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
+[0.003s][trace][os,container] Use Hierarchy is: 1
+[0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.003s][trace][os,container] Memory Limit is: 5368709120
+[0.003s][info ][os,container] Memory Limit is: 5368709120
+[0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.003s][trace][os,container] CPU Quota is: -1
+[0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.003s][trace][os,container] CPU Period is: 100000
+[0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.004s][trace][os,container] CPU Shares is: 1024
+[0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.004s][trace][os,container] CPU Quota is: -1
+[0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.004s][trace][os,container] CPU Period is: 100000
+[0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.004s][trace][os,container] CPU Shares is: 1024
+[0.004s][trace][os,container] OSContainer::active_processor_count: 4
+[0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
+[0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
+[0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
+[0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
+[0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
+[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
+[0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
+[0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
+[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
+[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
+[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
+[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
+[0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.008s][trace][os,container] CPU Quota is: -1
+[0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.008s][trace][os,container] CPU Period is: 100000
+[0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.008s][trace][os,container] CPU Shares is: 1024
+[0.009s][trace][os,container] OSContainer::active_processor_count: 4
+[0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
+[0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
+[0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
+[0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
+[0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
+[0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
+[0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
+[0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
+[0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
+[0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
+[0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
+[0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
+[0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
+[0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
+[0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
+[0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
+[0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached).
+[0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
+[0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+[0.024s][trace][os,container] CPU Quota is: -1
+[0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
+[0.024s][trace][os,container] CPU Period is: 100000
+[0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
+[0.024s][trace][os,container] CPU Shares is: 1024
+[0.024s][trace][os,container] OSContainer::active_processor_count: 4
+[0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
+[0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
+[0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
+[0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
+[0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.036s][trace][os,container] Memory Limit is: 5368709120
+[0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.036s][trace][os,container] Memory Usage is: 9551872
+[0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.037s][trace][os,container] Memory Usage is: 9682944
+...
+[0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[0.058s][trace][os,container] Memory Limit is: 5368709120
+[0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[0.058s][trace][os,container] Memory Usage is: 12820480
+...
+[0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
+[0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
+...
+[8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[8005.132s][trace][os,container] Memory Limit is: 5368709120
+[8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[8005.132s][trace][os,container] Memory Usage is: 4093734912
+[8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
+[8014.238s][trace][os,container] Memory Limit is: 5368709120
+[8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
+[8014.238s][trace][os,container] Memory Usage is: 4093943808
+...
+----
+
+
+Ok nice, but `java -Xlog:help` list a lot more available tags.
+
+==== Tags reference
+
+The issue with unified logging is the documentation, identifying the tag we want
+can be tedious. If I select the tag `dump` what will it output and when, is it about heap dump.
+Same if I select `system` is it about system calls, or else. Well it turns out there's just
+no documentation whatsoever, you need to look at the code.
 
 
 
+The starting point for this job was https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[this commit]
+and what the JEP-158 proposed :
 
-.In the JVM codebase
+.JEP-158
 ____
 *JVM interface*
 
@@ -455,13 +700,14 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 ____
 
 
+The idea of this section is to _build_ a logging tag reference. For that
+I needed grep and the hotspot repo. I build this reference on the code found in
+11.0.7, but I don't think there was any change in 11.0.8; please keep in mind this is
+only a snapshot and it's likely that tags get added or changed in later JVM revisions.
 
-
-
-
-=== tags reference
-
+In the commit above there's an interesting file
 https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/logging/logTag.hpp[src/hotspot/share/logging/logTag.hpp]
+that declares all logging tags (138 in total). From there I searched where these tags where used.
 
 .Log tags
 [%autowidth.stretch,cols="m,a,3a"]
@@ -608,7 +854,14 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 
 |===
 
-.JFR prefixes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
+
+In building this reference we see that some JVM sub-systems can output a lot of logs.
+Two subsystems stands out in the way they describe their tagsets : JFR and the Garbage Collection
+
+.JFR prefixes
+[%collapsible]
+====
+.https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
 [source, c++]
 ----
 #define JFR_LOG_TAG_SET_LIST \
@@ -626,7 +879,13 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
   /* NEW TAGS, DONT FORGET TO UPDATE JAVA SIDE */
 ----
 
-.GC prefixes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90[src/hotspot/share/logging/logPrefix.hpp#L45-L90]
+However note that the tags seen above are not all used, in particular those under `system`.
+====
+
+.GC prefixes
+[%collapsible]
+====
+.https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90[src/hotspot/share/logging/logPrefix.hpp#L45-L90]
 [source, cpp]
 ----
 #define LOG_PREFIX_LIST \
@@ -676,7 +935,9 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, tlab)) \
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, workgang))
 ----
+====
 
+The other tagset or prefixes are not declared, so I rebuilt them in a non exhaustive way.
 
 .AOT https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/aot/aotCodeHeap.cpp[src/hotspot/share/aot/aotCodeHeap.cpp]
 * `log_debug(aot, class, resolve)`
@@ -686,52 +947,52 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 
 
 .Classes
-* classfile
-** `log_error(class)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/javaClasses.cpp[src/hotspot/share/classfile/javaClasses.cpp]
-** `log_info(class, fingerprint)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
-** `log_info(class, preview)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
-** `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
+Class file loading, linking::
+* `log_error(class)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/javaClasses.cpp[src/hotspot/share/classfile/javaClasses.cpp]
+* `log_info(class, fingerprint)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
+* `log_info(class, preview)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
+* `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/classFileParser.cpp[src/hotspot/share/classfile/classFileParser.cpp]
 
-** `LogMessage(class, load)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
-** `log_trace(class, nestmates)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
-** `LogTarget(Info, class, init)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
-** `log_trace(class, fingerprint)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+* `LogMessage(class, load)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+* `log_trace(class, nestmates)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+* `LogTarget(Info, class, init)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+* `log_trace(class, fingerprint)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
 
-** `LogTarget(Debug, class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
-** `LogTarget(Trace, class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
-** `log_debug(class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
+* `LogTarget(Debug, class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
+* `LogTarget(Trace, class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
+* `log_debug(class, loader, data)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/classfile/classLoaderData.cpp[src/hotspot/share/classfile/classLoaderData.cpp]
 
-** `log_info(class, load)` https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/classfile/classLoader.cpp[src/hotspot/share/classfile/classLoader.cpp]
-** `log_info(class, path)` https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/classfile/classLoader.cpp[src/hotspot/share/classfile/classLoader.cpp]
+* `log_info(class, load)` https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/classfile/classLoader.cpp[src/hotspot/share/classfile/classLoader.cpp]
+* `log_info(class, path)` https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/classfile/classLoader.cpp[src/hotspot/share/classfile/classLoader.cpp]
 
-** `LogTarget(Info, class, loader, constraints)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/classfile/loaderConstraints.cpp[src/hotspot/share/classfile/loaderConstraints.cpp]
+* `LogTarget(Info, class, loader, constraints)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/classfile/loaderConstraints.cpp[src/hotspot/share/classfile/loaderConstraints.cpp]
 
-** `log_debug(class, init)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
-** `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
-** `log_info(verification)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
+* `log_debug(class, init)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
+* `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
+* `log_info(verification)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
 
-* Class loding service
-** `log_info(class, unload)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/services/classLoadingService.cpp[src/hotspot/share/services/classLoadingService.cpp]
+Class loding service::
+* `log_info(class, unload)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/services/classLoadingService.cpp[src/hotspot/share/services/classLoadingService.cpp]
 
-* Constant Pool
-** `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/constantPool.cpp[src/hotspot/share/oops/constantPool.cpp]
+Constant Pool::
+* `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/constantPool.cpp[src/hotspot/share/oops/constantPool.cpp]
 
-* Native methods (compiled code versions of Java methods)
-** `LogTarget(Trace, class, unload, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
+Native methods (compiled code versions of Java methods)::
+* `LogTarget(Trace, class, unload, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
 
-* Memory
-** `log_info(class, path)` https://github.com/corretto/corretto-11/blob/6887ddf929a1baae5b4f73a3b6c255c4ee942f7c/src/src/hotspot/share/memory/filemap.cpp[src/hotspot/share/memory/filemap.cpp]
+Memory::
+* `log_info(class, path)` https://github.com/corretto/corretto-11/blob/6887ddf929a1baae5b4f73a3b6c255c4ee942f7c/src/src/hotspot/share/memory/filemap.cpp[src/hotspot/share/memory/filemap.cpp]
 
-* OOPS
-** `log_trace(class, unload)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
+OOPS::
+* `log_trace(class, unload)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
 
-* JNI
-** `log_is_enabled(Debug, class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jni.cpp[src/hotspot/share/prims/jni.cpp]
+JNI::
+* `log_is_enabled(Debug, class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jni.cpp[src/hotspot/share/prims/jni.cpp]
 +
 `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvm.cpp[src/hotspot/share/prims/jvm.cpp]
 
-* Reflection
-** `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/reflection.cpp[src/hotspot/share/runtime/reflection.cpp]
+Reflection::
+* `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/reflection.cpp[src/hotspot/share/runtime/reflection.cpp]
 
 
 .Class Data Sharing
@@ -761,183 +1022,10 @@ https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b7
 .Java Virtual Machine Tool Interface (JVMTI, JSR-163)
 
 
+
 === Interesting tags combinations
 
-==== os and container
-
-.output
-[source]
-----
-$ head -n 200 /gclogs/2020-05-22_22-28-32-os-container-pagezise.log
-[0.003s][trace][os,container] OSContainer::init: Initializing Container Support
-[0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
-[0.003s][trace][os,container] Use Hierarchy is: 1
-[0.003s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[0.003s][trace][os,container] Memory Limit is: 5368709120
-[0.003s][info ][os,container] Memory Limit is: 5368709120
-[0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.003s][trace][os,container] CPU Quota is: -1
-[0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.003s][trace][os,container] CPU Period is: 100000
-[0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.004s][trace][os,container] CPU Shares is: 1024
-[0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[0.004s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.004s][trace][os,container] CPU Quota is: -1
-[0.004s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.004s][trace][os,container] CPU Period is: 100000
-[0.004s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.004s][trace][os,container] CPU Shares is: 1024
-[0.004s][trace][os,container] OSContainer::active_processor_count: 4
-[0.004s][info ][os          ] Use of CLOCK_MONOTONIC is supported
-[0.004s][info ][os          ] Use of pthread_condattr_setclock is supported
-[0.004s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
-[0.004s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
-[0.005s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007fa25e8ee000, good (unprotected) page:0x00007fa25e8ef000
-[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[0.005s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[0.005s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[0.006s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so
-[0.006s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libinstrument.so was successful
-[0.008s][info ][os,thread   ] Thread attached (tid: 8, pthread id: 140335320479488).
-[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
-[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
-[0.008s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
-[0.008s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
-[0.008s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.008s][trace][os,container] CPU Quota is: -1
-[0.008s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.008s][trace][os,container] CPU Period is: 100000
-[0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.008s][trace][os,container] CPU Shares is: 1024
-[0.009s][trace][os,container] OSContainer::active_processor_count: 4
-[0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
-[0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
-[0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
-[0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
-[0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
-[0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
-[0.010s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht pbe syscall nx pdpe1gb lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq dtes64 ds_cpl ssse3 sdbg fma cx16 xtpr pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase bmi1 avx2 bmi2 erms xsaveopt arat
-[0.010s][info ][os,thread   ] Thread started (pthread id: 140335306258176, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.010s][info ][os,thread   ] Thread is alive (tid: 9, pthread id: 140335306258176).
-[0.011s][info ][pagesize    ] Heap:  min=8M max=768M base=0x00000000d0000000 page_size=4K size=768M
-[0.011s][info ][pagesize    ] Block Offset Table: req_size=1536K base=0x00007fa240389000 page_size=4K alignment=4K size=1536K
-[0.011s][info ][pagesize    ] Card Table: req_size=1536K base=0x00007fa240209000 page_size=4K alignment=4K size=1536K
-[0.011s][info ][pagesize    ] Card Counts Table: req_size=1536K base=0x00007fa240089000 page_size=4K alignment=4K size=1536K
-[0.011s][info ][pagesize    ] Prev Bitmap: req_size=12M base=0x00007fa23b400000 page_size=4K alignment=4K size=12M
-[0.011s][info ][pagesize    ] Next Bitmap: req_size=12M base=0x00007fa23a800000 page_size=4K alignment=4K size=12M
-[0.011s][info ][os,thread   ] Thread started (pthread id: 140334742894336, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.011s][info ][os,thread   ] Thread is alive (tid: 10, pthread id: 140334742894336).
-[0.011s][info ][os,thread   ] Thread started (pthread id: 140334741837568, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.011s][info ][os,thread   ] Thread is alive (tid: 11, pthread id: 140334741837568).
-[0.012s][info ][os,thread   ] Thread started (pthread id: 140334703015680, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.012s][info ][os,thread   ] Thread is alive (tid: 12, pthread id: 140334703015680).
-[0.012s][info ][os,thread   ] Thread started (pthread id: 140334499624704, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.012s][info ][os,thread   ] Thread is alive (tid: 13, pthread id: 140334499624704).
-[0.021s][info ][os,thread   ] Thread started (pthread id: 140334490179328, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[0.021s][info ][os,thread   ] Thread is alive (tid: 14, pthread id: 140334490179328).
-[0.024s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu/cpu.cfs_quota_us
-[0.024s][trace][os,container] CPU Quota is: -1
-[0.024s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu/cpu.cfs_period_us
-[0.024s][trace][os,container] CPU Period is: 100000
-[0.024s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
-[0.024s][trace][os,container] CPU Shares is: 1024
-[0.024s][trace][os,container] OSContainer::active_processor_count: 4
-[0.025s][info ][os,thread   ] Thread started (pthread id: 140334489122560, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.025s][info ][os,thread   ] Thread is alive (tid: 15, pthread id: 140334489122560).
-[0.025s][info ][os,thread   ] Thread started (pthread id: 140334488069888, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.025s][info ][os,thread   ] Thread is alive (tid: 16, pthread id: 140334488069888).
-[0.033s][info ][os,thread   ] Thread started (pthread id: 140334485497600, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.033s][info ][os,thread   ] Thread is alive (tid: 17, pthread id: 140334485497600).
-[0.033s][info ][os,thread   ] Thread started (pthread id: 140334484444928, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.033s][info ][os,thread   ] Thread is alive (tid: 18, pthread id: 140334484444928).
-[0.033s][info ][os,thread   ] Thread started (pthread id: 140334483392256, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.034s][info ][os,thread   ] Thread is alive (tid: 19, pthread id: 140334483392256).
-[0.034s][info ][os,thread   ] Thread started (pthread id: 140334482339584, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.035s][info ][os,thread   ] Thread is alive (tid: 20, pthread id: 140334482339584).
-[0.036s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[0.036s][trace][os,container] Memory Limit is: 5368709120
-[0.036s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[0.036s][trace][os,container] Memory Usage is: 9551872
-[0.037s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[0.037s][trace][os,container] Memory Usage is: 9682944
-...
-[0.058s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[0.058s][trace][os,container] Memory Limit is: 5368709120
-[0.058s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[0.058s][trace][os,container] Memory Usage is: 12820480
-...
-[0.064s][info ][os,thread   ] Thread started (pthread id: 140334481286912, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[0.064s][info ][os,thread   ] Thread is alive (tid: 21, pthread id: 140334481286912).
-...
-[8005.132s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[8005.132s][trace][os,container] Memory Limit is: 5368709120
-[8005.132s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[8005.132s][trace][os,container] Memory Usage is: 4093734912
-[8014.238s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[8014.238s][trace][os,container] Memory Limit is: 5368709120
-[8014.238s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[8014.238s][trace][os,container] Memory Usage is: 4093943808
-...
-----
-
-
-==== Class redefinition
-
-[source,java]
-----
-public class AgentTest {
-
-    public static void main(String[] args) {
-        Foo foo = new Foo();
-        System.out.printf("[%.3fs][stdout] m(): %s%n",
-                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
-                          foo.m());
-
-        ByteBuddyAgent.install();
-        new ByteBuddy()
-                .redefine(Bar.class)
-                .name(Foo.class.getName())
-                .make()
-                .load(Foo.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
-
-        System.out.printf("[%.3fs][stdout] m(): %s%n",
-                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
-                          foo.m());
-    }
-
-    private static class Foo {
-        String m() { return "foo"; }
-    }
-    private static class Bar {
-        String m() { return "bar"; }
-    }
-}
-----
-
-
-
-[source, shell]
-----
-$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
-[0.151s][stdout] m(): foo
-[0.688s][debug][redefine,class,load] loading name=AgentTest$Foo kind=101 (avail_mem=108304K)
-[0.688s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=29
-[0.688s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=25
-[0.688s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=31, scratch_i=25, index_map_len=6
-[0.688s][debug][redefine,class,constantpool] after pass 1b: merge_cp_len=31, scratch_i=29, index_map_len=10
-[0.688s][info ][redefine,class,constantpool] merge_cp_len=31, index_map_len=10
-[0.688s][debug][redefine,class,load        ] loaded name=AgentTest$Foo (avail_mem=108304K)
-[0.690s][info ][redefine,class,update      ] adjust: name=AgentTest$Foo
-[0.690s][debug][redefine,class,update,constantpool] cpc special, static or dynamic entry update: <init>(()V)
-[0.690s][info ][redefine,class,load               ] redefined name=AgentTest$Foo, count=1 (avail_mem=108304K)
-[0.690s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
-[0.690s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
-[0.690s][stdout] m(): bar
-----
-
-
+From the above we can
 
 ==== Classes
 
@@ -1009,6 +1097,66 @@ static AliasedFlag const removed_develop_logging_flags[] = {
 ----
 
 
+
+==== Class redefinition
+
+[source,java]
+----
+public class AgentTest {
+
+    public static void main(String[] args) {
+        Foo foo = new Foo();
+        System.out.printf("[%.3fs][stdout] m(): %s%n",
+                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
+                          foo.m());
+
+        ByteBuddyAgent.install();
+        new ByteBuddy()
+                .redefine(Bar.class)
+                .name(Foo.class.getName())
+                .make()
+                .load(Foo.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+
+        System.out.printf("[%.3fs][stdout] m(): %s%n",
+                          ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
+                          foo.m());
+    }
+
+    private static class Foo {
+        String m() { return "foo"; }
+    }
+    private static class Bar {
+        String m() { return "bar"; }
+    }
+}
+----
+
+
+
+[source, shell]
+----
+$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+[0.151s][stdout] m(): foo
+[0.688s][debug][redefine,class,load] loading name=AgentTest$Foo kind=101 (avail_mem=108304K)
+[0.688s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=29
+[0.688s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=25
+[0.688s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=31, scratch_i=25, index_map_len=6
+[0.688s][debug][redefine,class,constantpool] after pass 1b: merge_cp_len=31, scratch_i=29, index_map_len=10
+[0.688s][info ][redefine,class,constantpool] merge_cp_len=31, index_map_len=10
+[0.688s][debug][redefine,class,load        ] loaded name=AgentTest$Foo (avail_mem=108304K)
+[0.690s][info ][redefine,class,update      ] adjust: name=AgentTest$Foo
+[0.690s][debug][redefine,class,update,constantpool] cpc special, static or dynamic entry update: <init>(()V)
+[0.690s][info ][redefine,class,load               ] redefined name=AgentTest$Foo, count=1 (avail_mem=108304K)
+[0.690s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
+[0.690s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
+[0.690s][stdout] m(): bar
+----
+
+
+
+
+
+
 ==== tags
 
 [cols="a,m"]
@@ -1040,32 +1188,3 @@ static AliasedFlag const removed_develop_logging_flags[] = {
 |===
 
 
-gc,age
-gc,alloc,region
-gc,cpu
-gc,ergo
-gc,ergo,cset
-gc,ergo,ihop
-gc,ergo,refine
-gc,heap
-gc,humongous
-gc,ihop
-gc,jni
-gc,marking
-gc,metaspace
-gc,mmu
-gc,phases
-gc,phases,ref
-gc,phases,start
-gc,plab
-gc,ref
-gc,ref,start
-gc,refine
-gc,remset,tracking
-gc,start
-gc,stats
-gc,stringdedup
-gc,stringtable
-gc,task
-gc,task,stats
-gc,tlab
