@@ -342,6 +342,7 @@ https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3[related diff] htt
 In a lesser way I sued the official https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5[`java` documentation],
 which I found somewhat lacking in this regard.
 
+{{< wrapTable >}}
 
 .Exhaustive GC logging option translation table (with some caveats)
 [cols="m,a,a",options="headers"]
@@ -419,6 +420,7 @@ which I found somewhat lacking in this regard.
 
 |===
 
+{{< /wrapTable >}}
 
 .old option are now decorators
 [cols="m,m"]
@@ -543,6 +545,8 @@ and some application servers back in the days.
 
 Some of the `Trace*` options are still present, even in JDK 14, although they output a warning.
 
+{{< wrapTable >}}
+
 .Other tracing option translation
 [cols="m,a"]
 |===
@@ -567,6 +571,8 @@ Some of the `Trace*` options are still present, even in JDK 14, although they ou
 
 
 |===
+
+{{< /wrapTable >}}
 
 .Tracing option declaration in the JVM code base
 [%collapsible]
@@ -626,6 +632,8 @@ no documentation whatsoever, you need to look at the code.
 The starting point for this job was https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[this commit]
 and what the JEP-158 proposed :
 
+{{< wrapTable >}}
+
 .JEP-158
 ____
 *JVM interface*
@@ -648,9 +656,9 @@ log_info(gc, rt, classloading)("Loaded %d objects.", object_count)
 
 log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number)
 ----
-
 ____
 
+{{< /wrapTable >}}
 
 The idea of this section is to _build_ a logging tag reference. For that
 I needed grep and the hotspot repo. I build this reference on the code found in
@@ -660,6 +668,8 @@ only a snapshot and it's likely that tags get added or changed in later JVM revi
 In the commit above there's an interesting file
 https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/logging/logTag.hpp[src/hotspot/share/logging/logTag.hpp]
 that declares all logging tags (138 in total). From there I searched where these tags where used.
+
+{{< wrapTable >}}
 
 .Log tags
 [%autowidth.stretch,cols="m,a,3a"]
@@ -806,6 +816,7 @@ that declares all logging tags (138 in total). From there I searched where these
 
 |===
 
+{{< /wrapTable >}}
 
 In building this reference we see that some JVM sub-systems can output a lot of logs.
 Two subsystems stands out in the way they describe their tagsets : JFR and the Garbage Collection
