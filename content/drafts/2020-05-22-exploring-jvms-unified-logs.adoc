@@ -8,6 +8,7 @@ slug: "exploring-jvm-unified-logs-jep-158-jep-271"
 title: "Exploring JVM unified logs (JEP-158 / JEP-271)"
 ---
 
+// TODO rephrase
 For people that were used to pre-jdk8 options, we knew our via explicit options
 in particular for GC logging, but occasionally to other options like those that trace
 class loading and unloading, or even more _obscure_ options.
@@ -21,7 +22,7 @@ The official documentation only refer to old options and their unified logging c
 The issue I think unified logging has is do not account for the abundance of possibilities
 and especially how it can help you gain insight on the VM components.
 
-On the GC side for example some information like the IHOP can only be found
+On the GC side for example some information like the _IHOP_ can only be found
 if the proper logging tag at the right level are set. In my opinion the flexibility
 of this logging system make it's configuration even more obscure compared to
 the previous logging explicit and searchable JVM option.
@@ -95,7 +96,8 @@ it will be possible to use JMX to change logging configuration in runtime.
 ____
 
 
-Now let's explore unified logging
+Now let's see what we can do with unified logging and profit from the
+insight it can give in the JVM.
 
 == Useful usage of unified logging
 
@@ -197,7 +199,7 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 ----
 
 
-==== configuring unified logging
+==== Configuring unified logging
 
 From the help and the JEP above here's what to retain :
 
@@ -249,10 +251,42 @@ The above commands are equivalent, but note that depending on the specified tags
 may be less useful when enabled at a later time. In the above example in particular the `os+container=trace`
 will output some interesting logs only during JVM startup.
 
-==== Tag prefixes / Tag set TODO
+==== Tag set and tag prefixes
 
-https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9R30-R35
+In the rest of the article I will mention two related notions about tags.
+Tags are not hierarchic, however, when their use in the JDK code base suggests
+there is still some kind of _hierarchy_.
 
+As we'll see later some tags are standalone tags, but a large proportion of tags
+are always logged with other. We could say they are part of a group with a _root_
+tag like `gc`, `class`, etc. Those are my words, but looking at the JEP-158 diff.
+
+There's one file that caught attention, it's
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-7cb36a4a80175eed80c087a48e4f071f[logTagSet.hpp]
+
+> The tagset represents a combination of tags that occur in a log call somewhere.
+Tagsets are created automatically by the LogTagSetMappings and should never be
+instantiated directly somewhere else.
+
+
+So when one see `class, path` combination it's in fact a tag set, I will refer to
+these as _tag-set_, _tag set_, or _tagset_. And I'll use the term _log tag root_
+to indicate that a tag is used as the forst tag, it's generally about a JVM component
+like GC, classes, or JFR.
+
+There another construct on top of _tagsets_, that is called log prefix,
+we can learn about it in
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9[logPrefix.hpp]
+
+> Prefixes prepend each log message for a specified tagset with the given prefix.
+A prefix consists of a format string and a value or callback. Prefixes are added
+after the decorations but before the log message.
+
+Log prefixes allows to prepend the log message (that's the prefix) with something for
+declared tagsets. As we'll see later there is currently only one list of tagsets that uses
+the log prefix mechanism, GC logging to print the _GC id_:
+
+* https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/jdk-11.0.8%2B10/src/hotspot/share/logging/logPrefix.hpp[src/hotspot/share/logging/logPrefix.hpp]
 
 
 === Migrating the GC log configuration (JEP-271)
@@ -431,26 +465,28 @@ which I found somewhat lacking in this regard.
 
 |===
 
+
 ==== Caveat when using this translation table
 
 I noticed while analyzing GC logs with the above unified logging configuration that some logs
-I expected were missing, and while doing this translation table I identified the logs I expected.
-They had a different _tag_ prefixes.
+I expected were missing, and while doing this translation table I identified the log statements
+I expected. They had a different _tag set_.
 
 On the example of heap occupancy logs (IHOP), it was logged with `PrintAdaptiveSizePolicy`
 and now it's supposed to be logged as part of the GC ergonomics by setting `gc+ergo*` to `trace`.
-Looking at the code, I noticed the `ihop` tag is not always prefixed by `gc` and `ergo`.
+Looking at the code, I noticed the `ihop` tag is not always combined with `ergo`.
 
 This tag is not alone, in the https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[diff]
-I mentioned there's an interesting file that describes GC log prefixes. The diff is huge and
-may take some time to load, search for the following file
-https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9[src/share/vm/logging/logPrefix.hpp].
+I mentioned there's an interesting file that declares GC _log prefix_ for a list of _tag-sets_.
+_The diff is huge and may take some time to load, search for the following file
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9[src/share/vm/logging/logPrefix.hpp]._
 
-Also, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
-This makes the tag selection hard to use properly and hard to maintain correctly. Very few will _grep_ the
+Moreover, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
+This makes the tag selection hard to use properly and tedious to maintain. Very few will _grep_ the
 JDK code base to track which tag they need to tune GCs which is already arcane enough.
 
-In this sense I believe that if we configure/select tags too restrictively it might be counter-productive.
+I believe that if we configure/select tags too restrictively it might be counter-productive.
+
 
 ==== Embracing unified logging for GC logs
 
@@ -686,7 +722,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | biasedlocking         |                                | Biased Locking mechanism https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/biasedLocking.hpp[src/hotspot/share/runtime/biasedLocking.hpp]
 | blocks                | `oopstorage`, `gc`             |
 | bot                   | `gc`                           | Block Offset Table (side data structure with offset information indicating how far back the GC needs to go to find the beginning of an object).
-| breakpoint            | `jvmti` (Redefinition)         | Part of the JVMTI, but logged under `redefine` prefix.
+| breakpoint            | `jvmti` (Redefinition)         | Part of the JVMTI, but logged under `redefine` _log tag root_.
 | bytecode              | `jfr`                          |
 | cds                   | `cds`                          | Class Data Sharing logs
 | census                | `gc`                           | CMS log about `freelist` information.
@@ -704,26 +740,26 @@ that declares all logging tags (138 in total). From there I searched where these
 | cset                  | `gc`                           | Collection Set in G1
 | data                  | `class`                        | Classloader data (allocation space, or metaspace)
 | datacreation          | `perf`                         | Related to perf data creation
-| dcmd                  | `jfr`                          | Diagnostic command, apparently only prefixed by `jfr`
+| dcmd                  | `jfr`                          | Diagnostic command, apparently only used in combination with the _log tag root_ by `jfr`
 | decoder               |                                | Related to ELF decoding (Executable and Linkable Format)
 | defaultmethods        |                                | Runtime support for default method. Part of classes, but logged as a standalone tag.
 | director              | `gc`                           | Related to ZGC
 | dump                  | `redefine`                     |
-| ergo                  | `gc`                           | Ergonomics, usually prefixes by `gc`, but can be found alone (e.g. for 2 logs about thread local handshakes)
+| ergo                  | `gc`                           | Ergonomics, usually combined with `gc`, but can be found alone (e.g. for 2 logs about thread local handshakes)
 | event                 | `jfr`                          | About JFR events
-| exceptions            |                                | About Java exceptions handling in different parts (interpreter, during safepoint, compiler, ...). Specific exception handling during redefinition when prefixed by `redefine`.
+| exceptions            |                                | About Java exceptions handling in different parts (interpreter, during safepoint, compiler, ...). Specific exception handling during redefinition when combined with `redefine`.
 | exit                  | `gc`                           | GC/heap related information after GC. `LogStreamHandle(Debug, gc, heap, exit) lsh;` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/gc/shared/genCollectedHeap.cpp[src/hotspot/share/gc/shared/genCollectedHeap.cpp]
 | fingerprint           | `class`, `aot`                 | Class fingerprinting
 | free                  | `malloc`                       | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
 | freelist              | `gc`                           | Chunks of memory that are supposed to be free, for CMS and metaspace
-| gc                    | `gc`                           | GC log prefix
+| gc                    | `gc`                           | GC log tag _root_.
 | handshake             | `thread`                       | Thread local handshakes https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/handshake.hpp#L35-L39[src/hotspot/share/runtime/handshake.hpp]
-| hashtables            |                                | When standalone, it's the internal bucketed hash table, far cousin of a `HashMap`, Hotspot uses it for strings, and other symbols. CDS uses another internal implementation for statistics, hence this tag may be prefixed by `cds`.
+| hashtables            |                                | When standalone, it's the internal bucketed hash table, far cousin of a `HashMap`, Hotspot uses it for strings, and other symbols. CDS uses another internal implementation for statistics, hence this tag may be combined with `cds` _log tag root_.
 | heap                  | `gc`                           | Various GC heap related logs
 | humongous             | `gc`                           | Humongous objects in G1GC
 | ihop                  | `gc`                           | Heap occupancy (initial, current, target) in G1GC
-| iklass                | `class`, `redefine`            | Internal class instance representation, logged prefixes `redefine`, `classes`
-| init                  | `gc`, `class`                  | Mostly about class initialization when prefixed by `class`. About ZGC initialization when prefixed by `gc`.
+| iklass                | `class`, `redefine`            | Internal class instance representation, _log tag roots_ : `redefine`, `classes`
+| init                  | `gc`, `class`                  | Mostly about class initialization when `log tag root` is `class`. About ZGC initialization when combined with `gc`.
 | inlining              | `jit`                          | Method inlining information
 | interpreter           | `interpreter`                  | Interpreter logs, only logs with `oopmap` and `safepoint` sub-tags.
 | itables               |                                | JVM virtual call mechanism for interface calls, during JVM development (non-product build needed). Also see `vtables` tag. https://wiki.openjdk.java.net/display/HotSpot/InterfaceCalls[Hotspot wiki, title=Interface calls]
@@ -738,7 +774,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | malloc                | `malloc`                       | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
 | mark                  | `redefine`                     | Mark `obsolete` method during `redefine`
 | marking               | `gc`                           | Marking information for G1GC, CMS, ZGC
-| membername            |                                | Hashtable used by redefinition to replace methods. Used in conjunction with `table`, but without `redefine` prefix.
+| membername            |                                | Hashtable used by redefinition to replace methods. Used in conjunction with `table`, but without `redefine` _log tag root_.
 | memops                | `perf`                         | Memory operation logs `initialize` and `mmap_attach_shared`
 | metadata              | `jfr`, `redefine`              | Logs about class redefinition, or logs about JFR metadata (although I didn't found any jfr logs in the codebase)
 | metaspace             | `gc`                           | Logs about the metaspace memory space
@@ -755,15 +791,15 @@ that declares all logging tags (138 in total). From there I searched where these
 | obsolete              | `redefine`                     | Obsolete method entry mainly for redefinition (and JVMTI)
 | oldobject             | `jfr`                          | Old object sampling, currently only logging that sample was skipped due to lock contention.
 | oom                   | `gc`                           | Reported when `metaspace` is out of memory.
-| oopmap                | `interpreter`, `redefine`      | Ordinary Object Pointer caching logs, prefixed by `interpreter` and `redefine`.
+| oopmap                | `interpreter`, `redefine`      | Ordinary Object Pointer caching logs, combined with by `interpreter` and `redefine`.
 | oops                  | `gc`                           | Ordinary Object Pointers logs in CMS and ZGC
 | oopstorage            |                                | Internal off-heap data structure for management of references to objects allocated in the Java heap
 | os                    | `OS`                           | Operating System interactions logs.
-| pagesize              |                                | Logs about page size. Not prefixed by `os`.
+| pagesize              |                                | Logs about page size. Standalone tag.
 | parser                | `jfr`                          | Part of jfr, but log instructions found in the code base.
 | patch                 | `module`                       | Logging `--patch-module`
 | path                  | `class`                        | Class path or module path processing
-| perf                  | `perf`                         | Logs about JVM perf counters, when prefixed by `stringtable` it's about interned strings (`String.intern()`).
+| perf                  | `perf`                         | Logs about JVM perf counters. But when combined with `stringtable` it's about interned strings (`String.intern()`).
 | phases                | `gc`                           | Logs that is part of phase of a GC, in particular for ZGC and G1GC.
 | plab                  | `gc`                           | Logs about per-GC-thread allocation buffer, those are used during GC to prevent thread competition on the same memory space.
 | preorder              | `class`                        | Trace all classes loaded in order referenced (not loaded)
@@ -774,7 +810,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | redefine              | `redefine`                     | Class redefinition sub-subsystem, in particular for JVMTI (e.g. when debugging) and with Java agent doing class transformation / re-transformation.
 | ref                   | `gc`                           | GC object or class references related logs
 | refine                | `gc`                           | G1GC logs about refinement threads of the RSet (Remembered set)
-| region                | `gc`                           | G1GC logs about region. The `alloc` and `heap` tag prefixes at `debug` level will print region statistics. `trace` level logs the actions that the GC performs on a region.
+| region                | `gc`                           | G1GC logs about region. The `alloc` and `heap` combination at `debug` level will print region statistics, `trace` level logs the actions and more details that the GC performs on a region.
 | reloc                 | `gc`                           | ZGC object set relocation.
 | remset                | `gc`                           | G1GC remembered set. The `tracking` and `exit` tag can come along if level is `trace`.
 | resolve               | `class`,aot                    | Logs about constant pool resolutions, e.g. when loading classes, lambdas, doing reflection, jni
@@ -786,19 +822,19 @@ that declares all logging tags (138 in total). From there I searched where these
 | stackmap              | `redefine`                     | Constant pool changes in method stackmap during redefinition
 | stacktrace            |                                | Logged during `Throwable.fillInStackTrace()`.
 | stackwalk             |                                | Logs when using `StackWalker`.
-| start                 | `gc`, `codecache`              | Indicates a ZGC phase start, it's thus prefixed by `gc`, But can also indicate other operation start, like for `codecache`.
+| start                 | `gc`, `codecache`              | Indicates a ZGC phase start, thus it's combined with `gc`. But can also indicate other operation start, like for `codecache`.
 | startuptime           |                                | Logs the JVM subsystems startup time (interpreter, GC, module systems, class loading, aot, genesis which is about memory zones ...)
 | state                 | `gc`                           | CMS GC states.
-| stats                 | `gc`                           | GC stats logs. Also seen with (`oopstorage, blocks` tag prefixes).
+| stats                 | `gc`                           | GC stats logs. Also seen with (`oopstorage, blocks` _tag set_).
 | stringdedup           | `gc`                           | G1GC string deduplication (for old generation)
-| stringtable           |                                | About interned strings (`String.intern()`), can be seen with the `gc` tag prefix when G1GC is in use to log string and symbol cleanups.
+| stringtable           |                                | About interned strings (`String.intern()`), can be seen with the `gc` _log tag root_ when G1GC is in use to log string and symbol cleanups.
 | subclass              | `class`, `redefine`            | Sub-class unloading. Affected subclasses during redefinition.
 | survivor              | `gc`                           | CMS GC survivor informations.
-| sweep                 | `gc`, `codecache`              | CMS GC sweeping activity. And codecache native methods flushing.
+| sweep                 | `gc`, `codecache`              | CMS GC sweeping activity. And code cache native methods flushing depending on the _log tag root_.
 | system                | `jfr`                          | JFR system logging, recordind start/stop, emergency dump, etc.
 | table                 | `membername`                   | Only used with `membername`, about the hashtable to record methods, and replace them during redefinition.
-| task                  | `gc`                           | Mostly related to GC tasks, useful to see the `phases` tag. Also appears with `handshake` tag prefix for thread local handshakes.
-| thread                | `os`                           | When used as a tag prefix, it's about `smr`, when the tag prefix is `os` it's about the thread lifecycle and guards.
+| task                  | `gc`                           | Mostly related to GC tasks, useful to see the `phases` tag. Also appears combined with `handshake` for thread local handshakes.
+| thread                | `os`                           | When used as a _log tag root_, it's about `smr`, when it's combined with the `os` log tag root it's about the thread lifecycle and guards.
 | time                  | `gc`                           | Timed Parallel GC operations
 | timer                 | `thread`, `redefine`           | Timed redefine operation, and thread exit
 | tlab                  | `gc`                           | Thread local allocation buffers statistics (`trace`)
@@ -806,7 +842,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | unload                | `class`                        | Class or module unloading
 | unshareable           | `cds`                          | For classes that cannot be shared, especially interesting during CDS archive creation
 | update                | `redefine`                     | Logs about redefinition changes in classes or methods.
-| verification          |                                | Classes bytecode verification, when to tag prefix. Same for classes in CDS archive when prefixed by `cds`.
+| verification          |                                | Classes bytecode verifier, when standalone. Same for classes in CDS archive when combined with `cds`.
 | verify                | `gc`                           | Verifications operations done during GC operations.
 | vmoperation           |                                | Logs VM operations
 | vmthread              |                                | JVM threads that perform the VM operations (usually during safepoints)
@@ -821,7 +857,7 @@ that declares all logging tags (138 in total). From there I searched where these
 In building this reference we see that some JVM sub-systems can output a lot of logs.
 Two subsystems stands out in the way they describe their tagsets : JFR and the Garbage Collection
 
-.JFR prefixes
+.JFR tag sets
 [%collapsible]
 ====
 .https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
@@ -842,10 +878,10 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
   /* NEW TAGS, DONT FORGET TO UPDATE JAVA SIDE */
 ----
 
-However note that the tags seen above are not all used, in particular those under `system`.
+However, note that the tags seen above are not all used, in particular those under `system`.
 ====
 
-.GC prefixes
+.GC tag sets, declared to print the message prefix
 [%collapsible]
 ====
 .https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90[src/hotspot/share/logging/logPrefix.hpp#L45-L90]
@@ -900,7 +936,7 @@ However note that the tags seen above are not all used, in particular those unde
 ----
 ====
 
-The other tagset or prefixes are not declared, so I rebuilt them in a non exhaustive way.
+The other _tag-sets_ are not declared, so I rebuilt them in a non exhaustive way.
 
 .AOT https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/aot/aotCodeHeap.cpp[src/hotspot/share/aot/aotCodeHeap.cpp]
 * `log_debug(aot, class, resolve)`
@@ -965,11 +1001,12 @@ Reflection::
 * `log_debug(cds, mirror)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
 * `log_trace(cds)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/constantPool.cpp[src/hotspot/share/oops/constantPool.cpp]
 
+
 .Redefinition
-* Native methods (compiled code versions of Java methods)
+Native methods (compiled code versions of Java methods)::
 ** `log_debug(redefine, class, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
 
-* Interpreter
+Interpreter::
 ** `log_debug(redefine, class, interpreter, oopmap)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp[src/hotspot/share/interpreter/oopMapCache.cpp]
 
 
