@@ -725,7 +725,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | blocks                | `oopstorage`, `gc`             |
 | bot                   | `gc`                           | Block Offset Table (side data structure with offset information indicating how far back the GC needs to go to find the beginning of an object).
 | breakpoint            | `jvmti` (Redefinition)         | Part of the JVMTI, but logged under `redefine` _log tag root_.
-| bytecode              | `jfr`                          |
+| bytecode              | `jfr`                          | Logs about bytecode modifications performed by `JFR`, always combined with `jfr`.
 | cds                   | `cds`                          | Class Data Sharing logs
 | census                | `gc`                           | CMS log about `freelist` information.
 | class                 | `class`,aot                    | Class related information
@@ -742,13 +742,13 @@ that declares all logging tags (138 in total). From there I searched where these
 | cset                  | `gc`                           | Collection Set in G1
 | data                  | `class`                        | Classloader data (allocation space, or metaspace)
 | datacreation          | `perf`                         | Related to perf data creation
-| dcmd                  | `jfr`                          | Diagnostic command, apparently only used in combination with the _log tag root_ by `jfr`
+| dcmd                  | `jfr`                          | JFR Diagnostic commands logs always combined with the _log tag root_ by `jfr`
 | decoder               |                                | Related to ELF decoding (Executable and Linkable Format)
 | defaultmethods        |                                | Runtime support for default method. Part of classes, but logged as a standalone tag.
 | director              | `gc`                           | Related to ZGC
 | dump                  | `redefine`                     |
 | ergo                  | `gc`                           | Ergonomics, usually combined with `gc`, but can be found alone (e.g. for 2 logs about thread local handshakes)
-| event                 | `jfr`                          | About JFR events
+| event                 | `jfr`                          | About JFR events 
 | exceptions            |                                | About Java exceptions handling in different parts (interpreter, during safepoint, compiler, ...). Specific exception handling during redefinition when combined with `redefine`.
 | exit                  | `gc`                           | GC/heap related information after GC. `LogStreamHandle(Debug, gc, heap, exit) lsh;` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/gc/shared/genCollectedHeap.cpp[src/hotspot/share/gc/shared/genCollectedHeap.cpp]
 | fingerprint           | `class`, `aot`                 | Class fingerprinting
@@ -778,7 +778,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | marking               | `gc`                           | Marking information for G1GC, CMS, ZGC
 | membername            |                                | Hashtable used by redefinition to replace methods. Used in conjunction with `table`, but without `redefine` _log tag root_.
 | memops                | `perf`                         | Memory operation logs `initialize` and `mmap_attach_shared`
-| metadata              | `jfr`, `redefine`              | Logs about class redefinition, or logs about JFR metadata (although I didn't found any jfr logs in the codebase)
+| metadata              | `jfr`, `redefine`              | Logs about class redefinition when _log tag root_ is `redefine`. Or logs about JFR event metadata, when log tag root is `jfr`.
 | metaspace             | `gc`                           | Logs about the metaspace memory space
 | methodcomparator      | `redefinition`                 | Logs about method equivalence during redefinition.
 | mirror                | `cds`                          | Logs about `cds` processing of class mirror. A java mirror is an instance of a `java.lang.Class`.
@@ -791,14 +791,14 @@ that declares all logging tags (138 in total). From there I searched where these
 | normalize             | `redefine`                     | Logs after method addition,deletion,replacement during redefinition
 | objecttagging         | `jvmti`                        | JVMTI object tagging calls
 | obsolete              | `redefine`                     | Obsolete method entry mainly for redefinition (and JVMTI)
-| oldobject             | `jfr`                          | Old object sampling, currently only logging that sample was skipped due to lock contention.
+| oldobject             | `jfr`                          | Old object sampling, currently only logging that a sample was skipped due to lock contention. _Log tag root_ is `jfr`.
 | oom                   | `gc`                           | Reported when `metaspace` is out of memory.
 | oopmap                | `interpreter`, `redefine`      | Ordinary Object Pointer caching logs, combined with by `interpreter` and `redefine`.
 | oops                  | `gc`                           | Ordinary Object Pointers logs in CMS and ZGC
 | oopstorage            |                                | Internal off-heap data structure for management of references to objects allocated in the Java heap
 | os                    | `OS`                           | Operating System interactions logs.
 | pagesize              |                                | Logs about page size. Standalone tag.
-| parser                | `jfr`                          | Part of jfr, but log instructions found in the code base.
+| parser                | `jfr`                          | Event used in the JFR parser when reading a recording. _Log tag root_ is `jfr`.
 | patch                 | `module`                       | Logging `--patch-module`
 | path                  | `class`                        | Class path or module path processing
 | perf                  | `perf`                         | Logs about JVM perf counters. But when combined with `stringtable` it's about interned strings (`String.intern()`).
@@ -819,7 +819,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | safepoint             | `safepoint`                    | JVM stop-the-world operations Heap Dump, some GC tasks, deoptimization, revokebias, library loading, etc... (https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134[src/hotspot/share/runtime/vm_operations.hpp], the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone `vmoperation`.
 | sampling              | `jfr`                          | Old object sampling in JFR. `trace` level only.
 | scavenge              | `gc`                           | CMS, Parallel, and Serial GC scavenge traces.
-| setting               | `jfr`                          | Part of jfr, but log instructions found in the code base.
+| setting               | `jfr`                          | Part of `jfr`, mostly about JFR configuration.
 | smr                   | `thread`                       | Thread Safe Memory Reclamation (Thread-SMR), https://en.wikipedia.org/wiki/Hazard_pointer[hazard pointers]. https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/threadSMR.cpp[src/hotspot/share/runtime/threadSMR.cpp].
 | stackmap              | `redefine`                     | Constant pool changes in method stackmap during redefinition
 | stacktrace            |                                | Logged during `Throwable.fillInStackTrace()`.
@@ -862,7 +862,7 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
 .JFR tag sets
 [%collapsible]
 ====
-.https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
+.https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-d3a85490aacada1ec0d907692afcd069[src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp]
 [source, c++]
 ----
 #define JFR_LOG_TAG_SET_LIST \
@@ -880,7 +880,16 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
   /* NEW TAGS, DONT FORGET TO UPDATE JAVA SIDE */
 ----
 
-However, note that the tags seen above are not all used, in particular those under `system`.
+However, note that the tags seen above are not all used in the VM native code code, instead
+JFR is unique in its genre as it does it has it's own unified logging in Java.
+For that the above C++ enum is bound as Java enum
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-0e924ad42210746c2311151b92a2d61c[src/jdk.jfr/share/classes/jdk/jfr/internal/LogTag.java],
+and can call the native log method via this
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-db120cf46c6f014e0335e9c421b31911[src/jdk.jfr/share/classes/jdk/jfr/internal/JVM.java]
+class.
+
+
+
 ====
 
 .GC tag sets, declared to print the message prefix
