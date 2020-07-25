@@ -1213,3 +1213,50 @@ $ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./li
 [0.690s][stdout] m(): bar
 ----
 
+=== Programmatic access
+
+
+For those that played with `jcmd` before you may already know each command
+are available as MXBeans. This immediately suggests that it's possible to invoke
+these command programmatically.
+
+.Enable GC logging programmatically
+[source,java]
+----
+import javax.management.InstanceNotFoundException;
+import javax.management.IntrospectionException;
+import javax.management.MBeanException;
+import javax.management.MBeanInfo;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
+import java.lang.management.ManagementFactory;
+
+public class TriggerGcLogsProgrammatically {
+    public static void main(String[] args) throws Exception {
+        // jcmd $(pidof java) VM.log what=gc*=debug decorators=uptime,tags,level output=stderr
+        executeDcmd("vmLog", // <1>
+                    "what=gc*=trace", // <2>
+                    "decorators=uptime,tags,level", // <3>
+                    "output=stderr"); // <4>
+
+        // jcmd $(pidof java) VM.log list
+        System.out.printf("%s%n", executeDcmd("vmLog", "list"));
+    }
+
+    private static String executeDcmd(String operationName, String... params) throws Exception {
+        var objectName = new ObjectName("com.sun.management:type=DiagnosticCommand");
+        var mbeanServer = ManagementFactory.getPlatformMBeanServer();
+
+        return (String) mbeanServer.invoke(objectName,
+                                           operationName,
+                                           new Object[]{params},
+                                           new String[]{String[].class.getName()});
+    }
+}
+----
+<1> Equivalent to `VM.log`
+<2> Tag selection with their level configuration
+<3> Decorators
+<4> Output section
+
