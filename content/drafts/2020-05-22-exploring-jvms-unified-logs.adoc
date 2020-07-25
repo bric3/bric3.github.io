@@ -707,24 +707,22 @@ that declares all logging tags (138 in total). From there I searched where these
 
 {{< wrapTable >}}
 
-// TODO redefine
-
 .Log tags
 [%autowidth.stretch,cols="m,a,3a"]
 |===
 
-| add                   | `redefine`                     |
-| age                   | `gc`                           |
-| alloc                 | `gc`                           | GC region or space allocation
-| annotation            | `redefine`                     |
-| aot                   | `aot`                          | Ahead of time logs
-| arguments             |                                | JVM options warnings or errors (only errors, unless level is `trace`)
+| add                   | `redefine`                     | Logs when methods are redefined.
+| age                   | `gc`                           | GC tenuring distribution and related statistics.
+| alloc                 | `gc`                           | GC region or space allocation.
+| annotation            | `redefine`                     | Logs about annotation during redefinition, this tag appear to be only combined with `redefine`.
+| aot                   | `aot`                          | Ahead Of Time mechanism logs.
+| arguments             |                                | JVM options warnings or errors (only errors, unless level is `trace`), e.g. when using a deprecated logging option that should use unied logging instead.
 | attach                |                                | JVM attachment listener
 | barrier               | `gc`,xxx                       | GC Write barrier coverage
 | biasedlocking         |                                | Biased Locking mechanism https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/runtime/biasedLocking.hpp[src/hotspot/share/runtime/biasedLocking.hpp]
 | blocks                | `oopstorage`, `gc`             |
 | bot                   | `gc`                           | Block Offset Table (side data structure with offset information indicating how far back the GC needs to go to find the beginning of an object).
-| breakpoint            | `jvmti` (Redefinition)         | Part of the JVMTI, but logged under `redefine` _log tag root_.
+| breakpoint            | `jvmti` (Redefinition)         | Breakpoint setting or clearing Part of the JVMTI, but logged under `redefine` _log tag root_.
 | bytecode              | `jfr`                          | Logs about bytecode modifications performed by `JFR`, always combined with `jfr`.
 | cds                   | `cds`                          | Class Data Sharing logs
 | census                | `gc`                           | CMS log about `freelist` information.
@@ -743,13 +741,13 @@ that declares all logging tags (138 in total). From there I searched where these
 | data                  | `class`                        | Classloader data (allocation space, or metaspace)
 | datacreation          | `perf`                         | Related to perf data creation
 | dcmd                  | `jfr`                          | JFR Diagnostic commands logs always combined with the _log tag root_ by `jfr`
-| decoder               |                                | Related to ELF decoding (Executable and Linkable Format)
+| decoder               |                                | Related to ELF decoding (Executable and Linkable Format) on Linux.
 | defaultmethods        |                                | Runtime support for default method. Part of classes, but logged as a standalone tag.
 | director              | `gc`                           | Related to ZGC
-| dump                  | `redefine`                     |
+| dump                  | `redefine`                     | Redefinition debug logging about old or obsolete method after redefinition.
 | ergo                  | `gc`                           | Ergonomics, usually combined with `gc`, but can be found alone (e.g. for 2 logs about thread local handshakes)
 | event                 | `jfr`                          | About JFR events 
-| exceptions            |                                | About Java exceptions handling in different parts (interpreter, during safepoint, compiler, ...). Specific exception handling during redefinition when combined with `redefine`.
+| exceptions            | `exceptions`, `redefine`       | About Java exceptions handling in different parts (interpreter, during safepoint, compiler, ...). Specific exception handling during redefined class loading when combined with `redefine`.
 | exit                  | `gc`                           | GC/heap related information after GC. `LogStreamHandle(Debug, gc, heap, exit) lsh;` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/gc/shared/genCollectedHeap.cpp[src/hotspot/share/gc/shared/genCollectedHeap.cpp]
 | fingerprint           | `class`, `aot`                 | Class fingerprinting
 | free                  | `malloc`                       | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
@@ -770,7 +768,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | jni                   | `gc`                           | Only logged during _GC locker_.
 | jvmti                 | `jvmti`                        |
 | liveness              | `gc`                           | G1GC region liveness (dead objects vs live objects)
-| load                  | `gc`, `class`                  | Trace all classes loaded
+| load                  | `gc`, `class`, `redefine`      | Trace all classes loaded, including the redefined ones.
 | loader                | `class`                        | Class loader `data` and `constraints`
 | logging               |                                | About unified logging
 | malloc                | `malloc`                       | Log any C stdlib `malloc`, `realloc` or `free` calls, always logged via `malloc, free` tags.
@@ -780,20 +778,20 @@ that declares all logging tags (138 in total). From there I searched where these
 | memops                | `perf`                         | Memory operation logs `initialize` and `mmap_attach_shared`
 | metadata              | `jfr`, `redefine`              | Logs about class redefinition when _log tag root_ is `redefine`. Or logs about JFR event metadata, when log tag root is `jfr`.
 | metaspace             | `gc`                           | Logs about the metaspace memory space
-| methodcomparator      | `redefinition`                 | Logs about method equivalence during redefinition.
+| methodcomparator      | `redefine`                     | Logs about method equivalence during redefinition.
 | mirror                | `cds`                          | Logs about `cds` processing of class mirror. A java mirror is an instance of a `java.lang.Class`.
 | mmu                   | `gc`                           | _Minimum Mutator Utilization_ is the (time) goal of GC work for G1GC and ZGC. G1GC defines this as a pause time goal (`MaxGCPauseMillis`) over a time slice (`GCPauseIntervalMillis`).
 | module                |                                | Module system
 | monitorinflation      |                                | Runtime synchronization support
 | monitormismatch       |                                | Monitor matching failures during OopMapGeneration
-| nestmates             | `class`                        | Nestmate logging
-| nmethod               | `gc`, `class`, `redefine`      | native methods (as in compiled code versions of Java methods) logs in various subsystems: `gc`, `class`, `redefine`
-| normalize             | `redefine`                     | Logs after method addition,deletion,replacement during redefinition
+| nestmates             | `class`, `redefine`            | Nestmate attributes logging logging, seen with _log tag roots_ `class` or `redefine`.
+| nmethod               | `gc`, `class`, `redefine`      | Native methods (as in compiled code versions of Java methods) logs in various subsystems: `gc`, `class`, `redefine`
+| normalize             | `redefine`                     | Logs after method addition, deletion, replacement during redefinition
 | objecttagging         | `jvmti`                        | JVMTI object tagging calls
 | obsolete              | `redefine`                     | Obsolete method entry mainly for redefinition (and JVMTI)
 | oldobject             | `jfr`                          | Old object sampling, currently only logging that a sample was skipped due to lock contention. _Log tag root_ is `jfr`.
 | oom                   | `gc`                           | Reported when `metaspace` is out of memory.
-| oopmap                | `interpreter`, `redefine`      | Ordinary Object Pointer caching logs, combined with by `interpreter` and `redefine`.
+| oopmap                | `interpreter`, `redefine`      | Logs on Ordinary Object Pointer caching, combined with by `interpreter` and `redefine`.
 | oops                  | `gc`                           | Ordinary Object Pointers logs in CMS and ZGC
 | oopstorage            |                                | Internal off-heap data structure for management of references to objects allocated in the Java heap
 | os                    | `OS`                           | Operating System interactions logs.
@@ -808,7 +806,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | preview               |                                | Trace loading of preview feature types
 | promotion             | `gc`                           | Object promotion logs during GC.
 | protectiondomain      | `class`                        | Class protection domain verification.
-| purge                 | `redefine`                     | Logs about previous class version unloading during redefinition
+| purge                 | `redefine`                     | Logs about previous class version unloading during redefinition.
 | redefine              | `redefine`                     | Class redefinition sub-subsystem, in particular for JVMTI (e.g. when debugging) and with Java agent doing class transformation / re-transformation.
 | ref                   | `gc`                           | GC object or class references related logs
 | refine                | `gc`                           | G1GC logs about refinement threads of the RSet (Remembered set)
@@ -843,12 +841,12 @@ that declares all logging tags (138 in total). From there I searched where these
 | tracking              | `gc`                           | G1GC remembered set tracking
 | unload                | `class`                        | Class or module unloading
 | unshareable           | `cds`                          | For classes that cannot be shared, especially interesting during CDS archive creation
-| update                | `redefine`                     | Logs about redefinition changes in classes or methods.
+| update                | `redefine`                     | Logs about redefinition changes in classes, methods, constant pool, vtable, itable, etc.
 | verification          |                                | Classes bytecode verifier, when standalone. Same for classes in CDS archive when combined with `cds`.
 | verify                | `gc`                           | Verifications operations done during GC operations.
 | vmoperation           |                                | Logs VM operations
 | vmthread              |                                | JVM threads that perform the VM operations (usually during safepoints)
-| vtables               |                                | Java's virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes).
+| vtables               |                                | Java's virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes). Those that did C++ before will remember.
 | vtablestubs           |                                | Java's virtual calls mechanism that is used for megamorphic call sites (i.e. when the method to execute is not the same on successive executions because the object hierarchy differ). Hotspot wiki https://wiki.openjdk.java.net/display/HotSpot/PerformanceTechniques[1,title=Performance technics] https://wiki.openjdk.java.net/display/HotSpot/VirtualCalls[2,title=Virtual calls]
 | workgang              | `gc`                           | GC worker threads
 
@@ -1259,4 +1257,18 @@ public class TriggerGcLogsProgrammatically {
 <2> Tag selection with their level configuration
 <3> Decorators
 <4> Output section
+
+== Wrap up
+
+Unified logging is nice, but suffers from few drawbacks in discoverability.
+There's also this issue with the log tag stability.
+
+
+
+This article was written on the code base of JDK11u 11.0.8. Not everything is logged via the
+unified logging mechanism. For example if you need to work with the JVM compiler for some
+reason, then you'll need to use `-XX:+LogCompilation`, which by default will generate a file like
+`hotspot_pid{pid}.log` in the current directory, this can be changed using `-XX:LogFile=compilation-log.xml`.
+And this file is actually an XML document.
+
 
