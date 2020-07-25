@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 78 min read
+    <i class="fas fa-clock"></i> 85 min read
 
     
     
@@ -277,7 +277,7 @@ The issue I think unified logging has is do not account for the abundance of pos
 and especially how it can help you gain insight on the VM components.</p>
 </div>
 <div class="paragraph">
-<p>On the GC side for example some information like the IHOP can only be found
+<p>On the GC side for example some information like the <em>IHOP</em> can only be found
 if the proper logging tag at the right level are set. In my opinion the flexibility
 of this logging system make it&#8217;s configuration even more obscure compared to
 the previous logging explicit and searchable JVM option.</p>
@@ -359,7 +359,8 @@ it will be possible to use JMX to change logging configuration in runtime.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s explore unified logging</p>
+<p>Now let&#8217;s see what we can do with unified logging and profit from the
+insight it can give in the JVM.</p>
 </div>
 </div>
 </div>
@@ -466,7 +467,7 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 </div>
 </div>
 <div class="sect3">
-<h4 id="_configuring_unified_logging"><a class="anchor" href="#_configuring_unified_logging"></a><a class="link" href="#_configuring_unified_logging">configuring unified logging</a></h4>
+<h4 id="_configuring_unified_logging"><a class="anchor" href="#_configuring_unified_logging"></a><a class="link" href="#_configuring_unified_logging">Configuring unified logging</a></h4>
 <div class="paragraph">
 <p>From the help and the JEP above here&#8217;s what to retain :</p>
 </div>
@@ -568,9 +569,61 @@ will output some interesting logs only during JVM startup.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tag_prefixes_tag_set_todo"><a class="anchor" href="#_tag_prefixes_tag_set_todo"></a><a class="link" href="#_tag_prefixes_tag_set_todo">Tag prefixes / Tag set TODO</a></h4>
+<h4 id="_tag_set_and_tag_prefixes"><a class="anchor" href="#_tag_set_and_tag_prefixes"></a><a class="link" href="#_tag_set_and_tag_prefixes">Tag set and tag prefixes</a></h4>
 <div class="paragraph">
-<p><a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9R30-R35" class="bare">https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9R30-R35</a></p>
+<p>In the rest of the article I will mention two related notions about tags.
+Tags are not hierarchic, however, when their use in the JDK code base suggests
+there is still some kind of <em>hierarchy</em>.</p>
+</div>
+<div class="paragraph">
+<p>As we&#8217;ll see later some tags are standalone tags, but a large proportion of tags
+are always logged with other. We could say they are part of a group with a <em>root</em>
+tag like <code>gc</code>, <code>class</code>, etc. Those are my words, but looking at the JEP-158 diff.</p>
+</div>
+<div class="paragraph">
+<p>There&#8217;s one file that caught attention, it&#8217;s
+<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-7cb36a4a80175eed80c087a48e4f071f">logTagSet.hpp</a></p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>The tagset represents a combination of tags that occur in a log call somewhere.
+Tagsets are created automatically by the LogTagSetMappings and should never be
+instantiated directly somewhere else.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>So when one see <code>class, path</code> combination it&#8217;s in fact a tag set, I will refer to
+these as <em>tag-set</em>, <em>tag set</em>, or <em>tagset</em>. And I&#8217;ll use the term <em>log tag root</em>
+to indicate that a tag is used as the forst tag, it&#8217;s generally about a JVM component
+like GC, classes, or JFR.</p>
+</div>
+<div class="paragraph">
+<p>There another construct on top of <em>tagsets</em>, that is called log prefix,
+we can learn about it in
+<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9">logPrefix.hpp</a></p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Prefixes prepend each log message for a specified tagset with the given prefix.
+A prefix consists of a format string and a value or callback. Prefixes are added
+after the decorations but before the log message.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>Log prefixes allows to prepend the log message (that&#8217;s the prefix) with something for
+declared tagsets. As we&#8217;ll see later there is currently only one list of tagsets that uses
+the log prefix mechanism, GC logging to print the <em>GC id</em>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/jdk-11.0.8%2B10/src/hotspot/share/logging/logPrefix.hpp">src/hotspot/share/logging/logPrefix.hpp</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -1149,27 +1202,27 @@ which I found somewhat lacking in this regard.</p>
 <h4 id="_caveat_when_using_this_translation_table"><a class="anchor" href="#_caveat_when_using_this_translation_table"></a><a class="link" href="#_caveat_when_using_this_translation_table">Caveat when using this translation table</a></h4>
 <div class="paragraph">
 <p>I noticed while analyzing GC logs with the above unified logging configuration that some logs
-I expected were missing, and while doing this translation table I identified the logs I expected.
-They had a different <em>tag</em> prefixes.</p>
+I expected were missing, and while doing this translation table I identified the log statements
+I expected. They had a different <em>tag set</em>.</p>
 </div>
 <div class="paragraph">
 <p>On the example of heap occupancy logs (IHOP), it was logged with <code>PrintAdaptiveSizePolicy</code>
 and now it&#8217;s supposed to be logged as part of the GC ergonomics by setting <code>gc+ergo*</code> to <code>trace</code>.
-Looking at the code, I noticed the <code>ihop</code> tag is not always prefixed by <code>gc</code> and <code>ergo</code>.</p>
+Looking at the code, I noticed the <code>ihop</code> tag is not always combined with <code>ergo</code>.</p>
 </div>
 <div class="paragraph">
 <p>This tag is not alone, in the <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">diff</a>
-I mentioned there&#8217;s an interesting file that describes GC log prefixes. The diff is huge and
-may take some time to load, search for the following file
-<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9">src/share/vm/logging/logPrefix.hpp</a>.</p>
+I mentioned there&#8217;s an interesting file that declares GC <em>log prefix</em> for a list of <em>tag-sets</em>.
+<em>The diff is huge and may take some time to load, search for the following file
+<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9">src/share/vm/logging/logPrefix.hpp</a>.</em></p>
 </div>
 <div class="paragraph">
-<p>Also, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
-This makes the tag selection hard to use properly and hard to maintain correctly. Very few will <em>grep</em> the
+<p>Moreover, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
+This makes the tag selection hard to use properly and tedious to maintain. Very few will <em>grep</em> the
 JDK code base to track which tag they need to tune GCs which is already arcane enough.</p>
 </div>
 <div class="paragraph">
-<p>In this sense I believe that if we configure/select tags too restrictively it might be counter-productive.</p>
+<p>I believe that if we configure/select tags too restrictively it might be counter-productive.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1571,14 +1624,18 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><code>redefine</code></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Logs when methods are redefined.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>age</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><code>gc</code></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>GC tenuring distribution and related statistics.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>alloc</code></p></td>
@@ -1586,7 +1643,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>GC region or space allocation</p>
+<p>GC region or space allocation.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1594,7 +1651,9 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><code>redefine</code></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Logs about annotation during redefinition, this tag appear to be only combined with <code>redefine</code>.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>aot</code></p></td>
@@ -1602,14 +1661,14 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>aot</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Ahead of time logs</p>
+<p>Ahead Of Time mechanism logs.</p>
 </div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>arguments</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>JVM options warnings or errors (only errors, unless level is <code>trace</code>)</p>
+<p>JVM options warnings or errors (only errors, unless level is <code>trace</code>), e.g. when using a deprecated logging option that should use unied logging instead.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1657,7 +1716,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>jvmti</code> (Redefinition)</p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Part of the JVMTI, but logged under <code>redefine</code> prefix.</p>
+<p>Breakpoint setting or clearing Part of the JVMTI, but logged under <code>redefine</code> <em>log tag root</em>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1665,7 +1724,9 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><code>jfr</code></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Logs about bytecode modifications performed by <code>JFR</code>, always combined with <code>jfr</code>.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>cds</code></p></td>
@@ -1815,14 +1876,14 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>jfr</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Diagnostic command, apparently only prefixed by <code>jfr</code></p>
+<p>JFR Diagnostic commands logs always combined with the <em>log tag root</em> by <code>jfr</code></p>
 </div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>decoder</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Related to ELF decoding (Executable and Linkable Format)</p>
+<p>Related to ELF decoding (Executable and Linkable Format) on Linux.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1846,7 +1907,9 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><code>redefine</code></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Redefinition debug logging about old or obsolete method after redefinition.</p>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>ergo</code></p></td>
@@ -1854,7 +1917,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Ergonomics, usually prefixes by <code>gc</code>, but can be found alone (e.g. for 2 logs about thread local handshakes)</p>
+<p>Ergonomics, usually combined with <code>gc</code>, but can be found alone (e.g. for 2 logs about thread local handshakes)</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1868,9 +1931,11 @@ that declares all logging tags (138 in total). From there I searched where these
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>exceptions</code></p></td>
-<td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>About Java exceptions handling in different parts (interpreter, during safepoint, compiler, &#8230;&#8203;). Specific exception handling during redefinition when prefixed by <code>redefine</code>.</p>
+<p><code>exceptions</code>, <code>redefine</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>About Java exceptions handling in different parts (interpreter, during safepoint, compiler, &#8230;&#8203;). Specific exception handling during redefined class loading when combined with <code>redefine</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1915,7 +1980,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>GC log prefix</p>
+<p>GC log tag <em>root</em>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1931,7 +1996,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>hashtables</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>When standalone, it&#8217;s the internal bucketed hash table, far cousin of a <code>HashMap</code>, Hotspot uses it for strings, and other symbols. CDS uses another internal implementation for statistics, hence this tag may be prefixed by <code>cds</code>.</p>
+<p>When standalone, it&#8217;s the internal bucketed hash table, far cousin of a <code>HashMap</code>, Hotspot uses it for strings, and other symbols. CDS uses another internal implementation for statistics, hence this tag may be combined with <code>cds</code> <em>log tag root</em>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1967,7 +2032,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>class</code>, <code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Internal class instance representation, logged prefixes <code>redefine</code>, <code>classes</code></p>
+<p>Internal class instance representation, <em>log tag roots</em> : <code>redefine</code>, <code>classes</code></p>
 </div></div></td>
 </tr>
 <tr>
@@ -1976,7 +2041,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code>, <code>class</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Mostly about class initialization when prefixed by <code>class</code>. About ZGC initialization when prefixed by <code>gc</code>.</p>
+<p>Mostly about class initialization when <code>log tag root</code> is <code>class</code>. About ZGC initialization when combined with <code>gc</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2050,10 +2115,10 @@ that declares all logging tags (138 in total). From there I searched where these
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>load</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p><code>gc</code>, <code>class</code></p>
+<p><code>gc</code>, <code>class</code>, <code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Trace all classes loaded</p>
+<p>Trace all classes loaded, including the redefined ones.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2103,7 +2168,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>membername</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Hashtable used by redefinition to replace methods. Used in conjunction with <code>table</code>, but without <code>redefine</code> prefix.</p>
+<p>Hashtable used by redefinition to replace methods. Used in conjunction with <code>table</code>, but without <code>redefine</code> <em>log tag root</em>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2121,7 +2186,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>jfr</code>, <code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs about class redefinition, or logs about JFR metadata (although I didn&#8217;t found any jfr logs in the codebase)</p>
+<p>Logs about class redefinition when <em>log tag root</em> is <code>redefine</code>. Or logs about JFR event metadata, when log tag root is <code>jfr</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2136,7 +2201,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>methodcomparator</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p><code>redefinition</code></p>
+<p><code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p>Logs about method equivalence during redefinition.</p>
@@ -2184,10 +2249,10 @@ that declares all logging tags (138 in total). From there I searched where these
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>nestmates</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p><code>class</code></p>
+<p><code>class</code>, <code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Nestmate logging</p>
+<p>Nestmate attributes logging logging, seen with <em>log tag roots</em> <code>class</code> or <code>redefine</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2196,7 +2261,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code>, <code>class</code>, <code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>native methods (as in compiled code versions of Java methods) logs in various subsystems: <code>gc</code>, <code>class</code>, <code>redefine</code></p>
+<p>Native methods (as in compiled code versions of Java methods) logs in various subsystems: <code>gc</code>, <code>class</code>, <code>redefine</code></p>
 </div></div></td>
 </tr>
 <tr>
@@ -2205,7 +2270,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs after method addition,deletion,replacement during redefinition</p>
+<p>Logs after method addition, deletion, replacement during redefinition</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2232,7 +2297,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>jfr</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Old object sampling, currently only logging that sample was skipped due to lock contention.</p>
+<p>Old object sampling, currently only logging that a sample was skipped due to lock contention. <em>Log tag root</em> is <code>jfr</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2250,7 +2315,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>interpreter</code>, <code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Ordinary Object Pointer caching logs, prefixed by <code>interpreter</code> and <code>redefine</code>.</p>
+<p>Logs on Ordinary Object Pointer caching, combined with by <code>interpreter</code> and <code>redefine</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2282,7 +2347,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>pagesize</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs about page size. Not prefixed by <code>os</code>.</p>
+<p>Logs about page size. Standalone tag.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2291,7 +2356,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>jfr</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Part of jfr, but log instructions found in the code base.</p>
+<p>Event used in the JFR parser when reading a recording. <em>Log tag root</em> is <code>jfr</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2318,7 +2383,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>perf</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs about JVM perf counters, when prefixed by <code>stringtable</code> it&#8217;s about interned strings (<code>String.intern()</code>).</p>
+<p>Logs about JVM perf counters. But when combined with <code>stringtable</code> it&#8217;s about interned strings (<code>String.intern()</code>).</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2379,7 +2444,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs about previous class version unloading during redefinition</p>
+<p>Logs about previous class version unloading during redefinition.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2415,7 +2480,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>G1GC logs about region. The <code>alloc</code> and <code>heap</code> tag prefixes at <code>debug</code> level will print region statistics. <code>trace</code> level logs the actions that the GC performs on a region.</p>
+<p>G1GC logs about region. The <code>alloc</code> and <code>heap</code> combination at <code>debug</code> level will print region statistics, <code>trace</code> level logs the actions and more details that the GC performs on a region.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2478,7 +2543,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>jfr</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Part of jfr, but log instructions found in the code base.</p>
+<p>Part of <code>jfr</code>, mostly about JFR configuration.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2519,7 +2584,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code>, <code>codecache</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Indicates a ZGC phase start, it&#8217;s thus prefixed by <code>gc</code>, But can also indicate other operation start, like for <code>codecache</code>.</p>
+<p>Indicates a ZGC phase start, thus it&#8217;s combined with <code>gc</code>. But can also indicate other operation start, like for <code>codecache</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2544,7 +2609,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>GC stats logs. Also seen with (<code>oopstorage, blocks</code> tag prefixes).</p>
+<p>GC stats logs. Also seen with (<code>oopstorage, blocks</code> <em>tag set</em>).</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2560,7 +2625,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>stringtable</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>About interned strings (<code>String.intern()</code>), can be seen with the <code>gc</code> tag prefix when G1GC is in use to log string and symbol cleanups.</p>
+<p>About interned strings (<code>String.intern()</code>), can be seen with the <code>gc</code> <em>log tag root</em> when G1GC is in use to log string and symbol cleanups.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2587,7 +2652,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code>, <code>codecache</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>CMS GC sweeping activity. And codecache native methods flushing.</p>
+<p>CMS GC sweeping activity. And code cache native methods flushing depending on the <em>log tag root</em>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2614,7 +2679,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Mostly related to GC tasks, useful to see the <code>phases</code> tag. Also appears with <code>handshake</code> tag prefix for thread local handshakes.</p>
+<p>Mostly related to GC tasks, useful to see the <code>phases</code> tag. Also appears combined with <code>handshake</code> for thread local handshakes.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2623,7 +2688,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>os</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>When used as a tag prefix, it&#8217;s about <code>smr</code>, when the tag prefix is <code>os</code> it&#8217;s about the thread lifecycle and guards.</p>
+<p>When used as a <em>log tag root</em>, it&#8217;s about <code>smr</code>, when it&#8217;s combined with the <code>os</code> log tag root it&#8217;s about the thread lifecycle and guards.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2686,14 +2751,14 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs about redefinition changes in classes or methods.</p>
+<p>Logs about redefinition changes in classes, methods, constant pool, vtable, itable, etc.</p>
 </div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>verification</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Classes bytecode verification, when to tag prefix. Same for classes in CDS archive when prefixed by <code>cds</code>.</p>
+<p>Classes bytecode verifier, when standalone. Same for classes in CDS archive when combined with <code>cds</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2723,7 +2788,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vtables</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Java&#8217;s virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes).</p>
+<p>Java&#8217;s virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes). Those that did C++ before will remember.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2753,10 +2818,10 @@ that declares all logging tags (138 in total). From there I searched where these
 Two subsystems stands out in the way they describe their tagsets : JFR and the Garbage Collection</p>
 </div>
 <details>
-<summary class="title">JFR prefixes</summary>
+<summary class="title">JFR tag sets</summary>
 <div class="content">
 <div class="listingblock">
-<div class="title"><a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp">src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp</a></div>
+<div class="title"><a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-d3a85490aacada1ec0d907692afcd069">src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="c++" class="language-c++ hljs">#define JFR_LOG_TAG_SET_LIST \
   JFR_LOG_TAG(jfr) \
@@ -2774,12 +2839,18 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
 </div>
 </div>
 <div class="paragraph">
-<p>However note that the tags seen above are not all used, in particular those under <code>system</code>.</p>
+<p>However, note that the tags seen above are not all used in the VM native code code, instead
+JFR is unique in its genre as it does it has it&#8217;s own unified logging in Java.
+For that the above C++ enum is bound as Java enum
+<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-0e924ad42210746c2311151b92a2d61c">src/jdk.jfr/share/classes/jdk/jfr/internal/LogTag.java</a>,
+and can call the native log method via this
+<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-db120cf46c6f014e0335e9c421b31911">src/jdk.jfr/share/classes/jdk/jfr/internal/JVM.java</a>
+class.</p>
 </div>
 </div>
 </details>
 <details>
-<summary class="title">GC prefixes</summary>
+<summary class="title">GC tag sets, declared to print the message prefix</summary>
 <div class="content">
 <div class="listingblock">
 <div class="title"><a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90">src/hotspot/share/logging/logPrefix.hpp#L45-L90</a></div>
@@ -2835,7 +2906,7 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
 </div>
 </details>
 <div class="paragraph">
-<p>The other tagset or prefixes are not declared, so I rebuilt them in a non exhaustive way.</p>
+<p>The other <em>tag-sets</em> are not declared, so I rebuilt them in a non exhaustive way.</p>
 </div>
 <div class="ulist">
 <div class="title">AOT <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/aot/aotCodeHeap.cpp">src/hotspot/share/aot/aotCodeHeap.cpp</a></div>
@@ -3010,11 +3081,11 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
 </li>
 </ul>
 </div>
-<div class="ulist">
+<div class="dlist">
 <div class="title">Redefinition</div>
-<ul>
-<li>
-<p>Native methods (compiled code versions of Java methods)</p>
+<dl>
+<dt class="hdlist1">Native methods (compiled code versions of Java methods)</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -3022,9 +3093,9 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
 </li>
 </ul>
 </div>
-</li>
-<li>
-<p>Interpreter</p>
+</dd>
+<dt class="hdlist1">Interpreter</dt>
+<dd>
 <div class="ulist">
 <ul>
 <li>
@@ -3032,8 +3103,8 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
 </li>
 </ul>
 </div>
-</li>
-</ul>
+</dd>
+</dl>
 </div>
 <div class="ulist">
 <div class="title">Compilation, Just-in-Time</div>
@@ -3236,6 +3307,86 @@ os and container tags :</p>
 </div>
 </div>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_programmatic_access"><a class="anchor" href="#_programmatic_access"></a><a class="link" href="#_programmatic_access">Programmatic access</a></h3>
+<div class="paragraph">
+<p>For those that played with <code>jcmd</code> before you may already know each command
+are available as MXBeans. This immediately suggests that it&#8217;s possible to invoke
+these command programmatically.</p>
+</div>
+<div class="listingblock">
+<div class="title">Enable GC logging programmatically</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">import javax.management.InstanceNotFoundException;
+import javax.management.IntrospectionException;
+import javax.management.MBeanException;
+import javax.management.MBeanInfo;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
+import java.lang.management.ManagementFactory;
+
+public class TriggerGcLogsProgrammatically {
+    public static void main(String[] args) throws Exception {
+        // jcmd $(pidof java) VM.log what=gc*=debug decorators=uptime,tags,level output=stderr
+        executeDcmd("vmLog", <i class="conum" data-value="1"></i><b>(1)</b>
+                    "what=gc*=trace", <i class="conum" data-value="2"></i><b>(2)</b>
+                    "decorators=uptime,tags,level", <i class="conum" data-value="3"></i><b>(3)</b>
+                    "output=stderr"); <i class="conum" data-value="4"></i><b>(4)</b>
+
+        // jcmd $(pidof java) VM.log list
+        System.out.printf("%s%n", executeDcmd("vmLog", "list"));
+    }
+
+    private static String executeDcmd(String operationName, String... params) throws Exception {
+        var objectName = new ObjectName("com.sun.management:type=DiagnosticCommand");
+        var mbeanServer = ManagementFactory.getPlatformMBeanServer();
+
+        return (String) mbeanServer.invoke(objectName,
+                                           operationName,
+                                           new Object[]{params},
+                                           new String[]{String[].class.getName()});
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Equivalent to <code>VM.log</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Tag selection with their level configuration</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Decorators</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Output section</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_wrap_up"><a class="anchor" href="#_wrap_up"></a><a class="link" href="#_wrap_up">Wrap up</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Unified logging is nice, but suffers from few drawbacks in discoverability.
+There&#8217;s also this issue with the log tag stability.</p>
+</div>
+<div class="paragraph">
+<p>This article was written on the code base of JDK11u 11.0.8. Not everything is logged via the
+unified logging mechanism. For example if you need to work with the JVM compiler for some
+reason, then you&#8217;ll need to use <code>-XX:+LogCompilation</code>, which by default will generate a file like
+<code>hotspot_pid{pid}.log</code> in the current directory, this can be changed using <code>-XX:LogFile=compilation-log.xml</code>.
+And this file is actually an XML document.</p>
 </div>
 </div>
 </div>
