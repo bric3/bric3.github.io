@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 85 min read
+    <i class="fas fa-clock"></i> 93 min read
 
     
     
@@ -1215,6 +1215,13 @@ Looking at the code, I noticed the <code>ihop</code> tag is not always combined 
 I mentioned there&#8217;s an interesting file that declares GC <em>log prefix</em> for a list of <em>tag-sets</em>.
 <em>The diff is huge and may take some time to load, search for the following file
 <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9">src/share/vm/logging/logPrefix.hpp</a>.</em></p>
+</div>
+<div class="paragraph">
+<p>Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it&#8217;s easy
+to update the logging configuration when changing the GC algorythm, e.g. using CMS then switch to G1GC.
+I would have preferred an additional tag for each GC algorithms (<code>g1</code> for g1GC, <code>cms</code> for Concurrent Mark
+and Sweep,<code>shenandoah</code> for Shenandoah, etc) that would have allowed to configure logging this way
+<code>-Xlog:zgc=info*</code>, unfortunately this is only a dream at this time.</p>
 </div>
 <div class="paragraph">
 <p>Moreover, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
@@ -3084,12 +3091,65 @@ class.</p>
 <div class="dlist">
 <div class="title">Redefinition</div>
 <dl>
+<dt class="hdlist1">Method comparator (equivalent modulo constant pool or EMCP)</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>log_debug(redefine, class, methodcomparator)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/methodComparator.cpp">src/hotspot/share/prims/methodComparator.cpp</a></p>
+</li>
+</ul>
+</div>
+</dd>
 <dt class="hdlist1">Native methods (compiled code versions of Java methods)</dt>
 <dd>
 <div class="ulist">
 <ul>
 <li>
 <p><code>log_debug(redefine, class, nmethod)</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp">src/hotspot/share/code/nmethod.cpp</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">CPU specific</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>log_is_enabled(Trace, redefine, class, obsolete)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/cpu/x86/sharedRuntime_x86_64.cpp">src/hotspot/cpu/x86/sharedRuntime_x86_64.cpp</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Constant pool</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>log_info(redefine, class, update)</code> <a href="https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/oops/cpCache.cpp">src/hotspot/share/oops/cpCache.cpp</a></p>
+</li>
+<li>
+<p><code>redefine, class, update, constantpool</code> <a href="https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/oops/cpCache.cpp">src/hotspot/share/oops/cpCache.cpp</a>
+<a href="https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/prims/resolvedMethodTable.cpp">src/hotspot/share/prims/resolvedMethodTable.cpp</a></p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">Class, vtables, itables</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>log_trace(redefine, class, iklass, purge)</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp">src/hotspot/share/oops/instanceKlass.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, iklass, add)</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp">src/hotspot/share/oops/instanceKlass.cpp</a></p>
+</li>
+<li>
+<p><code>log_debug(redefine, class, update, vtables)</code> <a href="https://github.com/corretto/corretto-11/blob/4282d34d30b3e657ce8247c99806490b70426f6d/src/src/hotspot/share/oops/klassVtable.cpp">src/hotspot/share/oops/klassVtable.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, update, itables)</code> <a href="https://github.com/corretto/corretto-11/blob/4282d34d30b3e657ce8247c99806490b70426f6d/src/src/hotspot/share/oops/klassVtable.cpp">src/hotspot/share/oops/klassVtable.cpp</a></p>
 </li>
 </ul>
 </div>
@@ -3104,10 +3164,68 @@ class.</p>
 </ul>
 </div>
 </dd>
+<dt class="hdlist1">JVMTI</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><code>log_debug(redefine, class, breakpoint)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiImpl.cpp">src/hotspot/share/prims/jvmtiImpl.cpp</a></p>
+</li>
+<li>
+<p><code>log_info(redefine, class, timer)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, constantpool)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, nestmates)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, normalize)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, load, exceptions)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, annotation)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, stackmap)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, obsolete, mark)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, obsolete, metadata)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(redefine, class, dump)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp">src/hotspot/share/prims/jvmtiRedefineClasses.cpp</a></p>
+</li>
+</ul>
+</div>
+</dd>
 </dl>
 </div>
 <div class="ulist">
-<div class="title">Compilation, Just-in-Time</div>
+<div class="title">Java Virtual Machine Tool Interface (JVMTI, JSR-163)</div>
+<ul>
+<li>
+<p><code>TRACETIME_LOG(Debug, jvmti, objecttagging)</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jvmtiEnv.cpp">src/hotspot/share/prims/jvmtiEnv.cpp</a>
+<a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiTagMap.cpp">src/hotspot/share/prims/jvmtiTagMap.cpp</a></p>
+</li>
+<li>
+<p><code>LogTarget(Trace, jvmti) log</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jvmtiExport.cpp#L428" class="bare">https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jvmtiExport.cpp#L428</a></p>
+</li>
+<li>
+<p><code>log_trace(jvmti)("----- capabilities -----")</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiManageCapabilities.cpp">src/hotspot/share/prims/jvmtiManageCapabilities.cpp</a></p>
+</li>
+<li>
+<p><code>log_trace(jvmti)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiTrace.cpp">src/hotspot/share/prims/jvmtiTrace.cpp</a></p>
+</li>
+</ul>
+</div>
+<div class="ulist">
+<div class="title">Compilation, Just-in-Time, Interpreter</div>
 <ul>
 <li>
 <p><code>Log(compilation, codecache) log; if(log.is_debug())</code>  <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/compiler/compileBroker.cpp">src/hotspot/share/compiler/compileBroker.cpp</a></p>
@@ -3116,15 +3234,15 @@ class.</p>
 <p><code>LogTarget(Debug, jit, compilation)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/compiler/compileTask.cpp">src/hotspot/share/compiler/compileTask.cpp</a></p>
 </li>
 <li>
-<p>``</p>
-</li>
-<li>
-<p>``</p>
-</li>
-<li>
-<p><code>log_debug(interpreter, oopmap)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp">src/hotspot/share/interpreter/oopMapCache.cpp</a></p>
+<p><code>log_debug(jit, inlining)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/compiler/compileTask.cpp">src/hotspot/share/compiler/compileTask.cpp</a>
+<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/opto/library_call.cpp">src/hotspot/share/opto/library_call.cpp</a></p>
 </li>
 </ul>
+</div>
+<div class="paragraph">
+<p>Interpreter
+* <code>log_debug(interpreter, oopmap)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp">src/hotspot/share/interpreter/oopMapCache.cpp</a>
+* <code>log_debug(interpreter, safepoint)</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/interpreter/templateInterpreter.cpp">src/hotspot/share/interpreter/templateInterpreter.cpp</a></p>
 </div>
 </div>
 <div class="sect2">
@@ -3132,7 +3250,6 @@ class.</p>
 <div class="sect3">
 <h4 id="_os_and_container_related"><a class="anchor" href="#_os_and_container_related"></a><a class="link" href="#_os_and_container_related">OS and container related</a></h4>
 <div class="paragraph">
-<div class="title">Java Virtual Machine Tool Interface (JVMTI, JSR-163)</div>
 <p>If the workload you are working on is running on containers you may have heard of the
 os and container tags :</p>
 </div>
@@ -3378,15 +3495,62 @@ public class TriggerGcLogsProgrammatically {
 <h2 id="_wrap_up"><a class="anchor" href="#_wrap_up"></a><a class="link" href="#_wrap_up">Wrap up</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Unified logging is nice, but suffers from few drawbacks in discoverability.
-There&#8217;s also this issue with the log tag stability.</p>
+<p>Unified logging is a great change in the JVM, it&#8217;s flexibility and ubiquity
+gives great insight in the JVM. Also, a strong point of this implementation
+is dynamic configuration change, it is very useful when one doesn&#8217;t want to
+restart a process just to raise the logging levels, or to gain insight on
+another JVM component.</p>
 </div>
 <div class="paragraph">
-<p>This article was written on the code base of JDK11u 11.0.8. Not everything is logged via the
-unified logging mechanism. For example if you need to work with the JVM compiler for some
-reason, then you&#8217;ll need to use <code>-XX:+LogCompilation</code>, which by default will generate a file like
-<code>hotspot_pid{pid}.log</code> in the current directory, this can be changed using <code>-XX:LogFile=compilation-log.xml</code>.
-And this file is actually an XML document.</p>
+<p>Yet not everyone will be interested by most of these subsystems. I&#8217;m pretty sure
+GC logs will be the most used logs. On this in particular, I think JDK maintainers
+should add tags for the type of GC, cms for CMS, zgc for ZGC, g1 for G1GC, shenandoah
+for Shenandoah, etc.</p>
+</div>
+<div class="paragraph">
+<p>And in that regard I think the new system lacks good default options for logging.
+As seen above it&#8217;s easy to miss valuable information by being too restrictive with
+the tags. The removed GC logging flags were more explicit.</p>
+</div>
+<div class="paragraph">
+<p>In general I think unified logging suffers from few drawbacks</p>
+</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> discoverability, while anyone can peek at the available tags the mass of
+the tags makes the system hard to use if you don&#8217;t know already what is expected
+from these tags.</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> documentation, tags are not documented, most don&#8217;t auto-document themselves
+so if don&#8217;t know already what to expect from these tags you&#8217;ll need to take the
+long road to try each combination.</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> stability, while the JVM check if the selected tags exists it doesn&#8217;t check
+if the combination will log something. On each JDK version logs can change in subtle
+ways for whatever reasons (like bug-fixing). It&#8217;s best to verify on each new JDK version
+if things changed.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Command line flags provided a good user experience, they were discoverable because
+documented, they were explicit, and usually stable. These flags are gone for GC logging,
+but there are still some old <code>Trace*</code> flags that setup unified logging ; I think
+JDK maintainers should have kept the old flags or proposed alternative flags for GC.</p>
+</div>
+<div class="paragraph">
+<p>This article has been written using the code base of JDK11u 11.0.8. Not everything is
+logged via the unified logging mechanism.</p>
+</div>
+<div class="paragraph">
+<p>For example if you need to work with the JVM compiler for some reason then
+<code>-Xlog:compilation*=debug</code> might not be enough, instead you&#8217;ll need to use
+<code>-XX:+LogCompilation</code>, which by default will generate a file like <code>hotspot_pid{pid}.log</code>
+unless <code>-XX:LogFile=compilation-log.xml</code> is specified. And the content of this file is
+actually an XML document.</p>
 </div>
 </div>
 </div>
