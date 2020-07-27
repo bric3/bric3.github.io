@@ -1010,25 +1010,63 @@ Reflection::
 * `log_debug(cds, mirror)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/klass.cpp[src/hotspot/share/oops/klass.cpp]
 * `log_trace(cds)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/oops/constantPool.cpp[src/hotspot/share/oops/constantPool.cpp]
 
-// TODO redefine jvmti
 .Redefinition
+Method comparator (equivalent modulo constant pool or EMCP)::
+* `log_debug(redefine, class, methodcomparator)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/methodComparator.cpp[src/hotspot/share/prims/methodComparator.cpp]
+
 Native methods (compiled code versions of Java methods)::
-** `log_debug(redefine, class, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
+* `log_debug(redefine, class, nmethod)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/code/nmethod.cpp[src/hotspot/share/code/nmethod.cpp]
+
+CPU specific::
+* `log_is_enabled(Trace, redefine, class, obsolete)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/cpu/x86/sharedRuntime_x86_64.cpp[src/hotspot/cpu/x86/sharedRuntime_x86_64.cpp]
+
+Constant pool::
+* `log_info(redefine, class, update)` https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/oops/cpCache.cpp[src/hotspot/share/oops/cpCache.cpp]
+* `redefine, class, update, constantpool` https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/oops/cpCache.cpp[src/hotspot/share/oops/cpCache.cpp]
+https://github.com/corretto/corretto-11/blob/0fb85ec862711e6daa4db7d7fab819c0e7a1273d/src/src/hotspot/share/prims/resolvedMethodTable.cpp[src/hotspot/share/prims/resolvedMethodTable.cpp]
+
+Class, vtables, itables::
+* `log_trace(redefine, class, iklass, purge)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+* `log_trace(redefine, class, iklass, add)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/oops/instanceKlass.cpp[src/hotspot/share/oops/instanceKlass.cpp]
+* `log_debug(redefine, class, update, vtables)` https://github.com/corretto/corretto-11/blob/4282d34d30b3e657ce8247c99806490b70426f6d/src/src/hotspot/share/oops/klassVtable.cpp[src/hotspot/share/oops/klassVtable.cpp]
+* `log_trace(redefine, class, update, itables)` https://github.com/corretto/corretto-11/blob/4282d34d30b3e657ce8247c99806490b70426f6d/src/src/hotspot/share/oops/klassVtable.cpp[src/hotspot/share/oops/klassVtable.cpp]
 
 Interpreter::
 ** `log_debug(redefine, class, interpreter, oopmap)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp[src/hotspot/share/interpreter/oopMapCache.cpp]
 
 
-.Compilation, Just-in-Time
+JVMTI::
+* `log_debug(redefine, class, breakpoint)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiImpl.cpp[src/hotspot/share/prims/jvmtiImpl.cpp]
+* `log_info(redefine, class, timer)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, constantpool)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, nestmates)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, normalize)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, load, exceptions)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, annotation)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, stackmap)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, obsolete, mark)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, obsolete, metadata)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+* `log_trace(redefine, class, dump)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiRedefineClasses.cpp[src/hotspot/share/prims/jvmtiRedefineClasses.cpp]
+
+
+
+.Java Virtual Machine Tool Interface (JVMTI, JSR-163)
+* `TRACETIME_LOG(Debug, jvmti, objecttagging)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jvmtiEnv.cpp[src/hotspot/share/prims/jvmtiEnv.cpp]
+https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvmtiTagMap.cpp[src/hotspot/share/prims/jvmtiTagMap.cpp]
+* `LogTarget(Trace, jvmti) log` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jvmtiExport.cpp#L428
+* `log_trace(jvmti)("----- capabilities -----")` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiManageCapabilities.cpp[src/hotspot/share/prims/jvmtiManageCapabilities.cpp]
+* `log_trace(jvmti)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiTrace.cpp[src/hotspot/share/prims/jvmtiTrace.cpp]
+
+
+.Compilation, Just-in-Time, Interpreter
 * `Log(compilation, codecache) log; if(log.is_debug())`  https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/compiler/compileBroker.cpp[src/hotspot/share/compiler/compileBroker.cpp]
 * `LogTarget(Debug, jit, compilation)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/compiler/compileTask.cpp[src/hotspot/share/compiler/compileTask.cpp]
-* ``
-* ``
+* `log_debug(jit, inlining)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/compiler/compileTask.cpp[src/hotspot/share/compiler/compileTask.cpp]
+https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/opto/library_call.cpp[src/hotspot/share/opto/library_call.cpp]
 
+Interpreter
 * `log_debug(interpreter, oopmap)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp[src/hotspot/share/interpreter/oopMapCache.cpp]
-
-// TODO redefine jvmti
-.Java Virtual Machine Tool Interface (JVMTI, JSR-163)
+* `log_debug(interpreter, safepoint)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/interpreter/templateInterpreter.cpp[src/hotspot/share/interpreter/templateInterpreter.cpp]
 
 
 
@@ -1260,15 +1298,54 @@ public class TriggerGcLogsProgrammatically {
 
 == Wrap up
 
-Unified logging is nice, but suffers from few drawbacks in discoverability.
-There's also this issue with the log tag stability.
+
+Unified logging is a great change in the JVM, it's flexibility and ubiquity
+gives great insight in the JVM. Also, a strong point of this implementation
+is dynamic configuration change, it is very useful when one doesn't want to
+restart a process just to raise the logging levels, or to gain insight on
+another JVM component.
+
+Yet not everyone will be interested by most of these subsystems. I'm pretty sure
+GC logs will be the most used logs. On this in particular, I think JDK maintainers
+should add tags for the type of GC, cms for CMS, zgc for ZGC, g1 for G1GC, shenandoah
+for Shenandoah, etc.
+
+And in that regard I think the new system lacks good default options for logging.
+As seen above it's easy to miss valuable information by being too restrictive with
+the tags. The removed GC logging flags were more explicit.
+
+In general I think unified logging suffers from few drawbacks
+
+* [ ] discoverability, while anyone can peek at the available tags the mass of
+the tags makes the system hard to use if you don't know already what is expected
+from these tags.
+
+* [ ] documentation, tags are not documented, most don't auto-document themselves
+so if don't know already what to expect from these tags you'll need to take the
+long road to try each combination.
+
+* [ ] stability, while the JVM check if the selected tags exists it doesn't check
+if the combination will log something. On each JDK version logs can change in subtle
+ways for whatever reasons (like bug-fixing). It's best to verify on each new JDK version
+if things changed.
+
+Command line flags provided a good user experience, they were discoverable because
+documented, they were explicit, and usually stable. These flags are gone for GC logging,
+but there are still some old `Trace*` flags that setup unified logging ; I think
+JDK maintainers should have kept the old flags or proposed alternative flags for GC.
 
 
 
-This article was written on the code base of JDK11u 11.0.8. Not everything is logged via the
-unified logging mechanism. For example if you need to work with the JVM compiler for some
-reason, then you'll need to use `-XX:+LogCompilation`, which by default will generate a file like
-`hotspot_pid{pid}.log` in the current directory, this can be changed using `-XX:LogFile=compilation-log.xml`.
-And this file is actually an XML document.
+
+
+This article has been written using the code base of JDK11u 11.0.8. Not everything is
+logged via the unified logging mechanism.
+
+For example if you need to work with the JVM compiler for some reason then
+`-Xlog:compilation*=debug` might not be enough, instead you'll need to use
+`-XX:+LogCompilation`, which by default will generate a file like `hotspot_pid{pid}.log`
+unless `-XX:LogFile=compilation-log.xml` is specified. And the content of this file is
+actually an XML document.
+
 
 
