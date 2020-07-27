@@ -1244,8 +1244,7 @@ public class AgentTest {
 }
 ----
 
-
-
+.Logs when running the code snippet
 [source, shell]
 ----
 $ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
@@ -1264,6 +1263,65 @@ $ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./li
 [0.690s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
 [0.690s][stdout] m(): bar
 ----
+
+==== During debug
+
+.Reload `Foo` class after instantiation during debug
+[source,shell]
+----
+$ java -Xlog:redefine*=debug,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+[83.772s][debug][redefine,class,load] loading name=sandbox.AgentTest$Foo kind=102 (avail_mem=1379732K)                  <1>
+[83.772s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=25                                          <1>
+[83.772s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=25                                             <1>
+[83.772s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=27, scratch_i=25, index_map_len=2             <1>
+[83.772s][info ][redefine,class,constantpool] merge_cp_len=27, index_map_len=2                                          <1>
+[83.772s][debug][redefine,class,load        ] loaded name=sandbox.AgentTest$Foo (avail_mem=1379732K)                    <1>
+[83.772s][debug][redefine,class,load        ] loading name=sandbox.AgentTest kind=102 (avail_mem=1379732K)              <1>
+[83.772s][info ][redefine,class,constantpool] old_cp_len=176, scratch_cp_len=176                                        <1>
+[83.772s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=176                                            <1>
+[83.772s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=176, scratch_i=176, index_map_len=0           <1>
+[83.772s][info ][redefine,class,constantpool] merge_cp_len=176, index_map_len=0                                         <1>
+[83.772s][debug][redefine,class,load        ] loaded name=sandbox.AgentTest (avail_mem=1379732K)                        <1>
+[83.773s][info ][redefine,class,update      ] adjust: name=sandbox.AgentTest$Foo                                        <1>
+[83.773s][debug][redefine,class,update,constantpool] cpc special, static or dynamic entry update: <init>(()V)           <1>
+[83.773s][info ][redefine,class,load               ] redefined name=sandbox.AgentTest$Foo, count=1 (avail_mem=1379732K) <1>
+[83.773s][info ][redefine,class,load               ] redefined name=sandbox.AgentTest, count=1 (avail_mem=1379732K)     <1>
+[83.774s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0                                   <1>
+[83.774s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0                          <1>
+[83.779s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)                 <1>
+[201.432s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)               <2>
+[201.433s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)                <2>
+...                                                                                                                     <3>
+----
+<1> Reload the class `Foo` after it's instantiation, breakpoint at the second line of the `main` method.
+<2> Resumes the normal execution flow.
+<3> The rest of the program output.
+
+==== Just-in-Time and compilation
+
+.Just-in-Time compilation and inlining
+[source,shell]
+----
+$ java -Xlog:jit*=debug,compilation*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+...
+[0.053s][debug][jit,compilation      ]   30       3       java.util.ImmutableCollections$SetN$SetNIterator::hasNext (13 bytes)
+[0.053s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=36Kb max_used=36Kb free=119991Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+[0.053s][debug][jit,compilation      ]   31       3       java.util.ImmutableCollections$SetN$SetNIterator::nextIndex (56 bytes)
+[0.053s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=37Kb max_used=37Kb free=119990Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+[0.053s][debug][jit,compilation      ]   32       3       java.util.ImmutableCollections$SetN$SetNIterator::next (47 bytes)
+[0.053s][debug][jit,inlining         ]                               @ 1   java.util.ImmutableCollections$SetN$SetNIterator::hasNext (13 bytes)
+[0.053s][debug][jit,inlining         ]                               @ 15   java.util.ImmutableCollections$SetN$SetNIterator::nextIndex (56 bytes)   callee is too large
+[0.053s][debug][jit,inlining         ]                               @ 43  java/util/NoSuchElementException::<init> (not loaded)   not inlineable
+[0.054s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.054s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=38Kb max_used=38Kb free=119989Kb
+[0.054s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+...
+----
+
 
 === Programmatic access
 
