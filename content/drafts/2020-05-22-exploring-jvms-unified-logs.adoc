@@ -481,6 +481,12 @@ I mentioned there's an interesting file that declares GC _log prefix_ for a list
 _The diff is huge and may take some time to load, search for the following file
 https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9[src/share/vm/logging/logPrefix.hpp]._
 
+Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it's easy
+to update the logging configuration when changing the GC algorythm, e.g. using CMS then switch to G1GC.
+I would have preferred an additional tag for each GC algorithms (`g1` for g1GC, `cms` for Concurrent Mark
+and Sweep,`shenandoah` for Shenandoah, etc) that would have allowed to configure logging this way
+`-Xlog:zgc=info*`, unfortunately this is only a dream at this time.
+
 Moreover, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
 This makes the tag selection hard to use properly and tedious to maintain. Very few will _grep_ the
 JDK code base to track which tag they need to tune GCs which is already arcane enough.
