@@ -17,7 +17,7 @@
     
     
 
-<title>Exploring JVM unified logs (JEP-158 / JEP-271) • Brice Dutheil</title>
+<title>Embracing JVM unified logging (JEP-158 / JEP-271) • Brice Dutheil</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="Exploring JVM unified logs (JEP-158 / JEP-271)">
+<meta property="og:title" content="Embracing JVM unified logging (JEP-158 / JEP-271)">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/04/24/exploring-jvm-unified-logs-jep-158-jep-271/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/04/24/embracing-jvm-unified-logging-jep-158-jep-271/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -53,7 +53,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Exploring JVM unified logs (JEP-158 / JEP-271)">
+<meta name="twitter:title" content="Embracing JVM unified logging (JEP-158 / JEP-271)">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -234,7 +234,7 @@
 
 <article>
   <header>
-    <h1>Exploring JVM unified logs (JEP-158 / JEP-271)</h1>
+    <h1>Embracing JVM unified logging (JEP-158 / JEP-271)</h1>
     
     
 <div class="post__meta">
@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 93 min read
+    <i class="fas fa-clock"></i> 98 min read
 
     
     
@@ -262,25 +262,35 @@
   
   <div class="post adoc">
     <div class="paragraph">
-<p>For people that were used to pre-jdk8 options, we knew our via explicit options
-in particular for GC logging, but occasionally to other options like those that trace
-class loading and unloading, or even more <em>obscure</em> options.</p>
+<p>Unified logging was introduced in JDK 9, and is available for us all, in the JDK 11 LTS.
+Like other great serviceability feature (<code>jcmd</code> or JFR) this was inspired by JRockit.</p>
 </div>
 <div class="paragraph">
-<p>From JDK 9, the JVM maintainers chose to overhaul the way JVM logs things.
-JDK 9 may seem old news today but I still find it difficult to know what to log.
+<p>As a pre-jdk9 users I had my way using the explicit GC logging options. Also, on occasions
+it was useful to toggle other options like tracing class un/loading.</p>
+</div>
+<div class="paragraph">
+<p>Starting from JDK 9, the JVM maintainers chose to overhaul the way JVM logs things.
+I believe that unified logging is great, but after using it I believe it&#8217;s purpose
+targets more JDK maintainers, eventually library maintainers, than end users.
+Meanwhile it&#8217;s likely that one may need to activate GC logs.</p>
+</div>
+<div class="paragraph">
+<p>So, while JDK 9 may seem old news today I still find it difficult to know exactly what will be logged.
 Very well written blogs such as <a href="https://blog.codefx.org/java/unified-logging-with-the-xlog-option/">this one</a>
-from <a href="https://twitter.com/nipafx">Nicolai Parlog</a> usually only touch the surface of unified logging and usually
-focus on GC logs.
-The official documentation only refer to old options and their unified logging counter part.
-The issue I think unified logging has is do not account for the abundance of possibilities
-and especially how it can help you gain insight on the VM components.</p>
+from <a href="https://twitter.com/nipafx">Nicolai Parlog</a> usually only touch the surface of unified
+logging and usually focus on GC logs.
+And the official documentation rarely document JVM logging well enough, apart from how old options
+translate in unified logging.</p>
 </div>
 <div class="paragraph">
-<p>On the GC side for example some information like the <em>IHOP</em> can only be found
-if the proper logging tag at the right level are set. In my opinion the flexibility
-of this logging system make it&#8217;s configuration even more obscure compared to
-the previous logging explicit and searchable JVM option.</p>
+<p>While GC logging is usually a well covered topic, I found there&#8217;s information some gaps like <em>IHOP</em>
+messages missing as the multitude of tags and their various levels may not be set as necessary.</p>
+</div>
+<div class="paragraph">
+<p>In my opinion the flexibility of this logging system brought has a major downside from a user
+perspective in it&#8217;s configuration correctness, and I think in some ways it&#8217;s more obscure compared to
+the previous explicit logging flags.</p>
 </div>
 <div class="paragraph">
 <p>Anyway, let&#8217;s begin ou exploration with a small recapitulation of <a href="https://openjdk.java.net/jeps/158">JEP-158</a>
@@ -335,12 +345,17 @@ which lays out the foundation of JVM unified logging.</p>
 </div>
 </details>
 <div class="paragraph">
-<p>Note that it&#8217;s possible to have multiple log configuration simply by adding new <code>-Xlog&#8230;&#8203;</code> options.
-However, the output must be unique in these logs, otherwise the last one will override the previous log
-configuration.</p>
+<p>This command-line option is the main entry point to unified logging. It allows to configure logs
+that required multiple options in a single one.</p>
+</div>
+<div class="paragraph">
+<p>Moreover, it&#8217;s now possible to declare multiple log configuration simply by adding additional <code>-Xlog&#8230;&#8203;</code>
+options. Their output must however be unique in these logs, otherwise the last option declaration will
+override the previous log configuration.</p>
 </div>
 <div class="paragraph">
 <p>Also, if you already heard of <code>jcmd</code>, unified logging JEP made the log configurable at runtime.
+It&#8217;s the second main entry point to unified logging.
 <em>If you didn&#8217;t hear about <code>jcmd</code> you really should check it out it&#8217;s the future
 of the serviceability / diagnostic command on the JDK.</em></p>
 </div>
@@ -360,7 +375,7 @@ it will be possible to use JMX to change logging configuration in runtime.</p>
 </div>
 <div class="paragraph">
 <p>Now let&#8217;s see what we can do with unified logging and profit from the
-insight it can give in the JVM.</p>
+insight it gives in the JVM.</p>
 </div>
 </div>
 </div>
@@ -595,8 +610,8 @@ instantiated directly somewhere else.</p>
 </div>
 <div class="paragraph">
 <p>So when one see <code>class, path</code> combination it&#8217;s in fact a tag set, I will refer to
-these as <em>tag-set</em>, <em>tag set</em>, or <em>tagset</em>. And I&#8217;ll use the term <em>log tag root</em>
-to indicate that a tag is used as the forst tag, it&#8217;s generally about a JVM component
+these as <em>tag-set</em>, <em>tag set</em>, or <em>tagset</em>. And, I&#8217;ll use the term <em>log tag root</em>
+to indicate that a tag is used as the first tag, it&#8217;s generally about a JVM component
 like GC, classes, or JFR.</p>
 </div>
 <div class="paragraph">
@@ -615,7 +630,7 @@ after the decorations but before the log message.</p>
 </div>
 <div class="paragraph">
 <p>Log prefixes allows to prepend the log message (that&#8217;s the prefix) with something for
-declared tagsets. As we&#8217;ll see later there is currently only one list of tagsets that uses
+declared <em>tagsets</em>. As we&#8217;ll see later there is currently only one list of tagsets that uses
 the log prefix mechanism, GC logging to print the <em>GC id</em>:</p>
 </div>
 <div class="ulist">
@@ -3405,6 +3420,7 @@ os and container tags :</p>
 </div>
 </div>
 <div class="listingblock">
+<div class="title">Logs when running the code snippet</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
 [0.151s][stdout] m(): foo
@@ -3421,6 +3437,79 @@ os and container tags :</p>
 [0.690s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
 [0.690s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
 [0.690s][stdout] m(): bar</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_during_debug"><a class="anchor" href="#_during_debug"></a><a class="link" href="#_during_debug">During debug</a></h4>
+<div class="listingblock">
+<div class="title">Reload <code>Foo</code> class after instantiation during debug</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine*=debug,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+[83.772s][debug][redefine,class,load] loading name=sandbox.AgentTest$Foo kind=102 (avail_mem=1379732K)                  <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=25                                          <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=25                                             <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=27, scratch_i=25, index_map_len=2             <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][info ][redefine,class,constantpool] merge_cp_len=27, index_map_len=2                                          <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][debug][redefine,class,load        ] loaded name=sandbox.AgentTest$Foo (avail_mem=1379732K)                    <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][debug][redefine,class,load        ] loading name=sandbox.AgentTest kind=102 (avail_mem=1379732K)              <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][info ][redefine,class,constantpool] old_cp_len=176, scratch_cp_len=176                                        <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=176                                            <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][debug][redefine,class,constantpool] after pass 1a: merge_cp_len=176, scratch_i=176, index_map_len=0           <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][info ][redefine,class,constantpool] merge_cp_len=176, index_map_len=0                                         <i class="conum" data-value="1"></i><b>(1)</b>
+[83.772s][debug][redefine,class,load        ] loaded name=sandbox.AgentTest (avail_mem=1379732K)                        <i class="conum" data-value="1"></i><b>(1)</b>
+[83.773s][info ][redefine,class,update      ] adjust: name=sandbox.AgentTest$Foo                                        <i class="conum" data-value="1"></i><b>(1)</b>
+[83.773s][debug][redefine,class,update,constantpool] cpc special, static or dynamic entry update: &lt;init&gt;(()V)           <i class="conum" data-value="1"></i><b>(1)</b>
+[83.773s][info ][redefine,class,load               ] redefined name=sandbox.AgentTest$Foo, count=1 (avail_mem=1379732K) <i class="conum" data-value="1"></i><b>(1)</b>
+[83.773s][info ][redefine,class,load               ] redefined name=sandbox.AgentTest, count=1 (avail_mem=1379732K)     <i class="conum" data-value="1"></i><b>(1)</b>
+[83.774s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0                                   <i class="conum" data-value="1"></i><b>(1)</b>
+[83.774s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0                          <i class="conum" data-value="1"></i><b>(1)</b>
+[83.779s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)                 <i class="conum" data-value="1"></i><b>(1)</b>
+[201.432s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)               <i class="conum" data-value="2"></i><b>(2)</b>
+[201.433s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)                <i class="conum" data-value="2"></i><b>(2)</b>
+...                                                                                                                     <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Reload the class <code>Foo</code> after it&#8217;s instantiation, breakpoint at the second line of the <code>main</code> method.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Resumes the normal execution flow.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The rest of the program output.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_just_in_time_and_compilation"><a class="anchor" href="#_just_in_time_and_compilation"></a><a class="link" href="#_just_in_time_and_compilation">Just-in-Time and compilation</a></h4>
+<div class="listingblock">
+<div class="title">Just-in-Time compilation and inlining</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:jit*=debug,compilation*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+...
+[0.053s][debug][jit,compilation      ]   30       3       java.util.ImmutableCollections$SetN$SetNIterator::hasNext (13 bytes)
+[0.053s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=36Kb max_used=36Kb free=119991Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+[0.053s][debug][jit,compilation      ]   31       3       java.util.ImmutableCollections$SetN$SetNIterator::nextIndex (56 bytes)
+[0.053s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=37Kb max_used=37Kb free=119990Kb
+[0.053s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+[0.053s][debug][jit,compilation      ]   32       3       java.util.ImmutableCollections$SetN$SetNIterator::next (47 bytes)
+[0.053s][debug][jit,inlining         ]                               @ 1   java.util.ImmutableCollections$SetN$SetNIterator::hasNext (13 bytes)
+[0.053s][debug][jit,inlining         ]                               @ 15   java.util.ImmutableCollections$SetN$SetNIterator::nextIndex (56 bytes)   callee is too large
+[0.053s][debug][jit,inlining         ]                               @ 43  java/util/NoSuchElementException::&lt;init&gt; (not loaded)   not inlineable
+[0.054s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.054s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=38Kb max_used=38Kb free=119989Kb
+[0.054s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+...</code></pre>
 </div>
 </div>
 </div>
@@ -3499,21 +3588,21 @@ public class TriggerGcLogsProgrammatically {
 gives great insight in the JVM. Also, a strong point of this implementation
 is dynamic configuration change, it is very useful when one doesn&#8217;t want to
 restart a process just to raise the logging levels, or to gain insight on
-another JVM component.</p>
+a JVM component.</p>
 </div>
 <div class="paragraph">
 <p>Yet not everyone will be interested by most of these subsystems. I&#8217;m pretty sure
 GC logs will be the most used logs. On this in particular, I think JDK maintainers
-should add tags for the type of GC, cms for CMS, zgc for ZGC, g1 for G1GC, shenandoah
-for Shenandoah, etc.</p>
+should add tags for the type of GC, <code>cms</code> for CMS, <code>zgc</code> for ZGC, <code>g1</code> for G1GC,
+<code>shenandoah</code> for Shenandoah, etc.</p>
 </div>
 <div class="paragraph">
-<p>And in that regard I think the new system lacks good default options for logging.
+<p>And, in that regard I believe the new system lacks good default options for logging.
 As seen above it&#8217;s easy to miss valuable information by being too restrictive with
 the tags. The removed GC logging flags were more explicit.</p>
 </div>
 <div class="paragraph">
-<p>In general I think unified logging suffers from few drawbacks</p>
+<p>In general, I think unified logging suffers from few drawbacks:</p>
 </div>
 <div class="ulist checklist">
 <ul class="checklist">
