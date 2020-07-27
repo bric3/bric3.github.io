@@ -4,28 +4,34 @@ date: "2020-04-24T11:54:58+02:00"
 language: en
 draft: true
 #tags: ["log","jvm","java","unified logging", "jep-158", "jep-271"]
-slug: "exploring-jvm-unified-logs-jep-158-jep-271"
-title: "Exploring JVM unified logs (JEP-158 / JEP-271)"
+slug: "embracing-jvm-unified-logging-jep-158-jep-271"
+title: "Embracing JVM unified logging (JEP-158 / JEP-271)"
 ---
 
-// TODO rephrase
-For people that were used to pre-jdk8 options, we knew our via explicit options
-in particular for GC logging, but occasionally to other options like those that trace
-class loading and unloading, or even more _obscure_ options.
+Unified logging was introduced in JDK 9, and is available for us all, in the JDK 11 LTS.
+Like other great serviceability feature (`jcmd` or JFR) this was inspired by JRockit.
 
-From JDK 9, the JVM maintainers chose to overhaul the way JVM logs things.
-JDK 9 may seem old news today but I still find it difficult to know what to log.
+As a pre-jdk9 users I had my way using the explicit GC logging options. Also, on occasions
+it was useful to toggle other options like tracing class un/loading.
+
+Starting from JDK 9, the JVM maintainers chose to overhaul the way JVM logs things.
+I believe that unified logging is great, but after using it I believe it's purpose
+targets more JDK maintainers, eventually library maintainers, than end users.
+Meanwhile it's likely that one may need to activate GC logs.
+
+So, while JDK 9 may seem old news today I still find it difficult to know exactly what will be logged.
 Very well written blogs such as https://blog.codefx.org/java/unified-logging-with-the-xlog-option/[this one]
-from https://twitter.com/nipafx[Nicolai Parlog] usually only touch the surface of unified logging and usually
-focus on GC logs.
-The official documentation only refer to old options and their unified logging counter part.
-The issue I think unified logging has is do not account for the abundance of possibilities
-and especially how it can help you gain insight on the VM components.
+from https://twitter.com/nipafx[Nicolai Parlog] usually only touch the surface of unified
+logging and usually focus on GC logs.
+And the official documentation rarely document JVM logging well enough, apart from how old options
+translate in unified logging.
 
-On the GC side for example some information like the _IHOP_ can only be found
-if the proper logging tag at the right level are set. In my opinion the flexibility
-of this logging system make it's configuration even more obscure compared to
-the previous logging explicit and searchable JVM option.
+While GC logging is usually a well covered topic, I found there's information some gaps like _IHOP_
+messages missing as the multitude of tags and their various levels may not be set as necessary.
+
+In my opinion the flexibility of this logging system brought has a major downside from a user
+perspective in it's configuration correctness, and I think in some ways it's more obscure compared to
+the previous explicit logging flags.
 
 Anyway, let's begin ou exploration with a small recapitulation of https://openjdk.java.net/jeps/158[JEP-158]
 which lays out the foundation of JVM unified logging.
@@ -77,11 +83,15 @@ The JEP describes how the logging configuration works in the command line :
 
 ====
 
-Note that it's possible to have multiple log configuration simply by adding new `-Xlog...` options.
-However, the output must be unique in these logs, otherwise the last one will override the previous log
-configuration.
+This command-line option is the main entry point to unified logging. It allows to configure logs
+that required multiple options in a single one.
+
+Moreover, it's now possible to declare multiple log configuration simply by adding additional `-Xlog...`
+options. Their output must however be unique in these logs, otherwise the last option declaration will
+override the previous log configuration.
 
 Also, if you already heard of `jcmd`, unified logging JEP made the log configurable at runtime.
+It's the second main entry point to unified logging.
 _If you didn't hear about `jcmd` you really should check it out it's the future
 of the serviceability / diagnostic command on the JDK._
 
@@ -97,7 +107,7 @@ ____
 
 
 Now let's see what we can do with unified logging and profit from the
-insight it can give in the JVM.
+insight it gives in the JVM.
 
 == Useful usage of unified logging
 
@@ -270,8 +280,8 @@ instantiated directly somewhere else.
 
 
 So when one see `class, path` combination it's in fact a tag set, I will refer to
-these as _tag-set_, _tag set_, or _tagset_. And I'll use the term _log tag root_
-to indicate that a tag is used as the forst tag, it's generally about a JVM component
+these as _tag-set_, _tag set_, or _tagset_. And, I'll use the term _log tag root_
+to indicate that a tag is used as the first tag, it's generally about a JVM component
 like GC, classes, or JFR.
 
 There another construct on top of _tagsets_, that is called log prefix,
@@ -283,7 +293,7 @@ A prefix consists of a format string and a value or callback. Prefixes are added
 after the decorations but before the log message.
 
 Log prefixes allows to prepend the log message (that's the prefix) with something for
-declared tagsets. As we'll see later there is currently only one list of tagsets that uses
+declared _tagsets_. As we'll see later there is currently only one list of tagsets that uses
 the log prefix mechanism, GC logging to print the _GC id_:
 
 * https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/jdk-11.0.8%2B10/src/hotspot/share/logging/logPrefix.hpp[src/hotspot/share/logging/logPrefix.hpp]
@@ -1309,18 +1319,18 @@ Unified logging is a great change in the JVM, it's flexibility and ubiquity
 gives great insight in the JVM. Also, a strong point of this implementation
 is dynamic configuration change, it is very useful when one doesn't want to
 restart a process just to raise the logging levels, or to gain insight on
-another JVM component.
+a JVM component.
 
 Yet not everyone will be interested by most of these subsystems. I'm pretty sure
 GC logs will be the most used logs. On this in particular, I think JDK maintainers
-should add tags for the type of GC, cms for CMS, zgc for ZGC, g1 for G1GC, shenandoah
-for Shenandoah, etc.
+should add tags for the type of GC, `cms` for CMS, `zgc` for ZGC, `g1` for G1GC,
+`shenandoah` for Shenandoah, etc.
 
-And in that regard I think the new system lacks good default options for logging.
+And, in that regard I believe the new system lacks good default options for logging.
 As seen above it's easy to miss valuable information by being too restrictive with
 the tags. The removed GC logging flags were more explicit.
 
-In general I think unified logging suffers from few drawbacks
+In general, I think unified logging suffers from few drawbacks:
 
 * [ ] discoverability, while anyone can peek at the available tags the mass of
 the tags makes the system hard to use if you don't know already what is expected
@@ -1339,7 +1349,6 @@ Command line flags provided a good user experience, they were discoverable becau
 documented, they were explicit, and usually stable. These flags are gone for GC logging,
 but there are still some old `Trace*` flags that setup unified logging ; I think
 JDK maintainers should have kept the old flags or proposed alternative flags for GC.
-
 
 
 
