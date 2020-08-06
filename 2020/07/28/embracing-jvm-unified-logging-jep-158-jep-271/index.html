@@ -1258,7 +1258,7 @@ I mentioned there&#8217;s an interesting file that declares GC <em>log prefix</e
 </div>
 <div class="paragraph">
 <p>Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it&#8217;s easy
-to update the logging configuration when changing the GC algorythm, e.g. using CMS then switch to G1GC.
+to update the logging configuration when changing the GC algorithm, e.g. using CMS then switch to G1GC.
 I would have preferred an additional tag for each GC algorithms (<code>g1</code> for g1GC, <code>cms</code> for Concurrent Mark
 and Sweep,<code>shenandoah</code> for Shenandoah, etc) that would have allowed to configure logging this way
 <code>-Xlog:zgc=info*</code>, unfortunately this is only a dream at this time.</p>
@@ -1303,11 +1303,11 @@ prefer to log more tags and simplify the overall logging configuration.</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Specific tagset level configuration for ergonomics.</td>
+<td>Specific <em>tagset</em> level configuration for ergonomics.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Specific tagset level configuration for tenuring distribution.</td>
+<td>Specific <em>tagset</em> level configuration for tenuring distribution.</td>
 </tr>
 </table>
 </div>
@@ -2563,7 +2563,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>safepoint</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>JVM stop-the-world operations Heap Dump, some GC tasks, deoptimization, revokebias, library loading, etc&#8230;&#8203; (<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134">src/hotspot/share/runtime/vm_operations.hpp</a>, the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone <code>vmoperation</code>.</p>
+<p>JVM stop-the-world operations Heap Dump, some GC tasks, de-optimization, biased locking revocation, library loading, etc&#8230;&#8203; (<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134">src/hotspot/share/runtime/vm_operations.hpp</a>, the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone <code>vmoperation</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2862,7 +2862,7 @@ that declares all logging tags (138 in total). From there I searched where these
 </div>
 <div class="paragraph">
 <p>In building this reference we see that some JVM sub-systems can output a lot of logs.
-Two subsystems stands out in the way they describe their tagsets : JFR and the Garbage Collection</p>
+Two subsystems stands out in the way they describe their <em>tagsets</em> : JFR and the Garbage Collection:</p>
 </div>
 <details>
 <summary class="title">JFR tag sets</summary>
@@ -2886,8 +2886,8 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
 </div>
 </div>
 <div class="paragraph">
-<p>However, note that the tags seen above are not all used in the VM native code code, instead
-JFR is unique in its genre as it does it has it&#8217;s own unified logging in Java.
+<p>However, note that the tags seen above are not all used in the VM native code, instead
+JFR is unique in its genre as it is using unified logging in its Java code base.
 For that the above C++ enum is bound as Java enum
 <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-0e924ad42210746c2311151b92a2d61c">src/jdk.jfr/share/classes/jdk/jfr/internal/LogTag.java</a>,
 and can call the native log method via this
@@ -3034,7 +3034,7 @@ JVM component.</p>
 </ul>
 </div>
 </dd>
-<dt class="hdlist1">Class loding service</dt>
+<dt class="hdlist1">Class loading service</dt>
 <dd>
 <div class="ulist">
 <ul>
@@ -3515,7 +3515,7 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 <div class="title">CHange <code>Foo.m()</code> class after instantiation during debug</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp . DebugTest
-[51.942s][debug][redefine,class,load] loading name=sandbox.DebugTest kind=102 (avail_mem=1416012K)                   <i class="conum" data-value="1"></i><b>(1)</b>
+[51.942s][debug][redefine,class,load] loading name=sandbox.DebugTest kind=102 (avail_mem=1416012K)         <i class="conum" data-value="1"></i><b>(1)</b>
 [51.942s][trace][redefine,class,normalize] Method matched: new: sandbox.DebugTest.&lt;init&gt;()V [0] == old: sandbox.DebugTest.&lt;init&gt;()V [0]
 [51.942s][trace][redefine,class,normalize] Method matched: new: sandbox.DebugTest.main([Ljava/lang/String;)V [1] == old: sandbox.DebugTest.main([Ljava/lang/String;)V [1]
 [51.942s][info ][redefine,class,constantpool] old_cp_len=91, scratch_cp_len=91
@@ -3526,7 +3526,7 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 [51.942s][debug][redefine,class,load        ] loading name=sandbox.DebugTest$Foo kind=102 (avail_mem=1416012K)
 [51.942s][trace][redefine,class,normalize   ] Method matched: new: sandbox.DebugTest$Foo.&lt;init&gt;()V [0] == old: sandbox.DebugTest$Foo.&lt;init&gt;()V [0]
 [51.942s][trace][redefine,class,normalize   ] Method matched: new: sandbox.DebugTest$Foo.m()Ljava/lang/String; [1] == old: sandbox.DebugTest$Foo.m()Ljava/lang/String; [1]
-[51.942s][info ][redefine,class,constantpool] old_cp_len=40, scratch_cp_len=48                                       <i class="conum" data-value="2"></i><b>(2)</b>
+[51.942s][info ][redefine,class,constantpool] old_cp_len=40, scratch_cp_len=48                             <i class="conum" data-value="2"></i><b>(2)</b>
 [51.942s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=40
 [51.942s][trace][redefine,class,constantpool] mapped tag 8 at index 7 to 40
 [51.942s][trace][redefine,class,constantpool] mapped tag 1 at index 8 to 41
@@ -3562,7 +3562,7 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 [51.943s][trace][redefine,class,constantpool] ldc@0x0000000110ee1352 old=17, new=9
 [51.943s][trace][redefine,class,constantpool] invokespecial@0x0000000110ee1354 old=19, new=11
 [51.943s][trace][redefine,class,constantpool] invokevirtual@0x0000000110ee1357 old=22, new=14
-[51.943s][debug][redefine,class,annotation  ] num_annotations=1                                                      <i class="conum" data-value="3"></i><b>(3)</b>
+[51.943s][debug][redefine,class,annotation  ] num_annotations=1                                            <i class="conum" data-value="3"></i><b>(3)</b>
 [51.943s][debug][redefine,class,annotation  ] mapped old type_index=35
 [51.943s][debug][redefine,class,annotation  ] type_index=48  num_element_value_pairs=1
 [51.943s][debug][redefine,class,annotation  ] mapped old element_name_index=36
@@ -3582,15 +3582,15 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 [51.943s][trace][redefine,class,constantpool] lvt-descriptor_cp_index change: 32 to 24
 [51.943s][trace][redefine,class,constantpool] lvt-name_cp_index change: 31 to 23
 [51.943s][trace][redefine,class,constantpool] lvt-descriptor_cp_index change: 32 to 24
-[51.943s][debug][redefine,class,load        ] loaded name=sandbox.DebugTest$Foo (avail_mem=1416012K)                 <i class="conum" data-value="4"></i><b>(4)</b>
-[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=2, obsolete_cnt=0                                            <i class="conum" data-value="5"></i><b>(5)</b>
+[51.943s][debug][redefine,class,load        ] loaded name=sandbox.DebugTest$Foo (avail_mem=1416012K)       <i class="conum" data-value="4"></i><b>(4)</b>
+[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=2, obsolete_cnt=0                                  <i class="conum" data-value="5"></i><b>(5)</b>
 [51.943s][trace][redefine,class,iklass,add   ] adding previous version ref for sandbox.DebugTest, EMCP_cnt=2
 [51.943s][trace][redefine,class,iklass,add   ] EMCP method sandbox.DebugTest.&lt;init&gt;()V is NOT on_stack 0x0000000110edf4a8
 [51.943s][trace][redefine,class,iklass,add   ] EMCP method sandbox.DebugTest.main([Ljava/lang/String;)V is on_stack 0x0000000110edf5c0
 [51.943s][trace][redefine,class,iklass,add   ] scratch class added; one of its methods is on_stack.
 [51.943s][info ][redefine,class,load         ] redefined name=sandbox.DebugTest, count=1 (avail_mem=1416012K)
 [51.943s][trace][redefine,class,obsolete,mark] mark m(()Ljava/lang/String;) as obsolete
-[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=1, obsolete_cnt=1                                            <i class="conum" data-value="6"></i><b>(6)</b>
+[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=1, obsolete_cnt=1                                  <i class="conum" data-value="6"></i><b>(6)</b>
 [51.943s][trace][redefine,class,iklass,add   ] adding previous version ref for sandbox.DebugTest$Foo, EMCP_cnt=1
 [51.943s][trace][redefine,class,iklass,add   ] scratch class not added; no methods are running
 [51.943s][info ][redefine,class,update       ] adjust: name=sandbox.DebugTest$Foo
@@ -3599,11 +3599,11 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 [51.944s][trace][redefine,class,obsolete,metadata  ] calling check_class
 [51.944s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
 [51.944s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
-[51.964s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)              <i class="conum" data-value="7"></i><b>(7)</b>
-[57.587s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)             <i class="conum" data-value="8"></i><b>(8)</b>
+[51.964s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)    <i class="conum" data-value="7"></i><b>(7)</b>
+[57.587s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)   <i class="conum" data-value="8"></i><b>(8)</b>
 [57.588s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)
 [57.682s][stdout] m(): foo
-[72.578s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)             <i class="conum" data-value="9"></i><b>(9)</b>
+[72.578s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)   <i class="conum" data-value="9"></i><b>(9)</b>
 [72.586s][debug][redefine,class,load               ] loading name=sandbox.DebugTest kind=102 (avail_mem=1234396K)
 [72.586s][trace][redefine,class,normalize          ] Method matched: new: sandbox.DebugTest.&lt;init&gt;()V [0] == old: sandbox.DebugTest.&lt;init&gt;()V [0]
 [72.586s][trace][redefine,class,normalize          ] Method matched: new: sandbox.DebugTest.main([Ljava/lang/String;)V [1] == old: sandbox.DebugTest.main([Ljava/lang/String;)V [1]
@@ -3640,7 +3640,7 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 [72.588s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
 [72.588s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
 [72.630s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)
-[75.100s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)            <i class="conum" data-value="10"></i><b>(10)</b>
+[75.100s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)  <i class="conum" data-value="10"></i><b>(10)</b>
 [75.101s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)
 [75.104s][stdout] m(): fable</code></pre>
 </div>
