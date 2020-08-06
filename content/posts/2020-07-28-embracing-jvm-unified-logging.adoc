@@ -491,7 +491,7 @@ _The diff is huge and may take some time to load, search for the following file
 https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9[src/share/vm/logging/logPrefix.hpp]._
 
 Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it's easy
-to update the logging configuration when changing the GC algorythm, e.g. using CMS then switch to G1GC.
+to update the logging configuration when changing the GC algorithm, e.g. using CMS then switch to G1GC.
 I would have preferred an additional tag for each GC algorithms (`g1` for g1GC, `cms` for Concurrent Mark
 and Sweep,`shenandoah` for Shenandoah, etc) that would have allowed to configure logging this way
 `-Xlog:zgc=info*`, unfortunately this is only a dream at this time.
@@ -525,8 +525,8 @@ prefer to log more tags and simplify the overall logging configuration.
   :file=/gclogs/%t-gc.log:uptime,tags,level:filecount=10,filesize=20M
 ----
 <1> Logs everything under `gc` at `debug` level.
-<2> Specific tagset level configuration for ergonomics.
-<3> Specific tagset level configuration for tenuring distribution.
+<2> Specific _tagset_ level configuration for ergonomics.
+<3> Specific _tagset_ level configuration for tenuring distribution.
 
 The above configuration is simple at the expanse of possibly larger file size.
 Also, using `gc*=debug` allows to catch extra tags, and possibly new `gc` related tags
@@ -829,7 +829,7 @@ that declares all logging tags (138 in total). From there I searched where these
 | reloc                 | `gc`                           | ZGC object set relocation.
 | remset                | `gc`                           | G1GC remembered set. The `tracking` and `exit` tag can come along if level is `trace`.
 | resolve               | `class`, `aot`                 | Logs about constant pool resolutions, e.g. when loading classes, lambdas, doing reflection, jni
-| safepoint             | `safepoint`                    | JVM stop-the-world operations Heap Dump, some GC tasks, deoptimization, revokebias, library loading, etc... (https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134[src/hotspot/share/runtime/vm_operations.hpp], the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone `vmoperation`.
+| safepoint             | `safepoint`                    | JVM stop-the-world operations Heap Dump, some GC tasks, de-optimization, biased locking revocation, library loading, etc... (https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134[src/hotspot/share/runtime/vm_operations.hpp], the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone `vmoperation`.
 | sampling              | `jfr`                          | Old object sampling in JFR. `trace` level only.
 | scavenge              | `gc`                           | CMS, Parallel, and Serial GC scavenge traces.
 | setting               | `jfr`                          | Part of `jfr`, mostly about JFR configuration.
@@ -870,7 +870,7 @@ that declares all logging tags (138 in total). From there I searched where these
 {{< /wrapTable >}}
 
 In building this reference we see that some JVM sub-systems can output a lot of logs.
-Two subsystems stands out in the way they describe their tagsets : JFR and the Garbage Collection
+Two subsystems stands out in the way they describe their _tagsets_ : JFR and the Garbage Collection:
 
 .JFR tag sets
 [%collapsible]
@@ -893,17 +893,16 @@ Two subsystems stands out in the way they describe their tagsets : JFR and the G
   /* NEW TAGS, DONT FORGET TO UPDATE JAVA SIDE */
 ----
 
-However, note that the tags seen above are not all used in the VM native code code, instead
-JFR is unique in its genre as it does it has it's own unified logging in Java.
+However, note that the tags seen above are not all used in the VM native code, instead
+JFR is unique in its genre as it is using unified logging in its Java code base.
 For that the above C++ enum is bound as Java enum
 https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-0e924ad42210746c2311151b92a2d61c[src/jdk.jfr/share/classes/jdk/jfr/internal/LogTag.java],
 and can call the native log method via this
 https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-db120cf46c6f014e0335e9c421b31911[src/jdk.jfr/share/classes/jdk/jfr/internal/JVM.java]
 class.
 
-
-
 ====
+
 
 .GC tag sets, declared to print the message prefix
 [%collapsible]
@@ -995,7 +994,7 @@ Class file loading, linking::
 * `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
 * `log_info(verification)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/classfile/verifier.cpp[src/hotspot/share/classfile/verifier.cpp]
 
-Class loding service::
+Class loading service::
 * `log_info(class, unload)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/services/classLoadingService.cpp[src/hotspot/share/services/classLoadingService.cpp]
 
 Constant Pool::
@@ -1305,7 +1304,7 @@ adds another instruction, change the return values of `m()`, etc.
 [source,shell]
 ----
 $ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp . DebugTest
-[51.942s][debug][redefine,class,load] loading name=sandbox.DebugTest kind=102 (avail_mem=1416012K)                   <1>
+[51.942s][debug][redefine,class,load] loading name=sandbox.DebugTest kind=102 (avail_mem=1416012K)         <1>
 [51.942s][trace][redefine,class,normalize] Method matched: new: sandbox.DebugTest.<init>()V [0] == old: sandbox.DebugTest.<init>()V [0]
 [51.942s][trace][redefine,class,normalize] Method matched: new: sandbox.DebugTest.main([Ljava/lang/String;)V [1] == old: sandbox.DebugTest.main([Ljava/lang/String;)V [1]
 [51.942s][info ][redefine,class,constantpool] old_cp_len=91, scratch_cp_len=91
@@ -1316,7 +1315,7 @@ $ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,ser
 [51.942s][debug][redefine,class,load        ] loading name=sandbox.DebugTest$Foo kind=102 (avail_mem=1416012K)
 [51.942s][trace][redefine,class,normalize   ] Method matched: new: sandbox.DebugTest$Foo.<init>()V [0] == old: sandbox.DebugTest$Foo.<init>()V [0]
 [51.942s][trace][redefine,class,normalize   ] Method matched: new: sandbox.DebugTest$Foo.m()Ljava/lang/String; [1] == old: sandbox.DebugTest$Foo.m()Ljava/lang/String; [1]
-[51.942s][info ][redefine,class,constantpool] old_cp_len=40, scratch_cp_len=48                                       <2>
+[51.942s][info ][redefine,class,constantpool] old_cp_len=40, scratch_cp_len=48                             <2>
 [51.942s][debug][redefine,class,constantpool] after pass 0: merge_cp_len=40
 [51.942s][trace][redefine,class,constantpool] mapped tag 8 at index 7 to 40
 [51.942s][trace][redefine,class,constantpool] mapped tag 1 at index 8 to 41
@@ -1352,7 +1351,7 @@ $ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,ser
 [51.943s][trace][redefine,class,constantpool] ldc@0x0000000110ee1352 old=17, new=9
 [51.943s][trace][redefine,class,constantpool] invokespecial@0x0000000110ee1354 old=19, new=11
 [51.943s][trace][redefine,class,constantpool] invokevirtual@0x0000000110ee1357 old=22, new=14
-[51.943s][debug][redefine,class,annotation  ] num_annotations=1                                                      <3>
+[51.943s][debug][redefine,class,annotation  ] num_annotations=1                                            <3>
 [51.943s][debug][redefine,class,annotation  ] mapped old type_index=35
 [51.943s][debug][redefine,class,annotation  ] type_index=48  num_element_value_pairs=1
 [51.943s][debug][redefine,class,annotation  ] mapped old element_name_index=36
@@ -1372,15 +1371,15 @@ $ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,ser
 [51.943s][trace][redefine,class,constantpool] lvt-descriptor_cp_index change: 32 to 24
 [51.943s][trace][redefine,class,constantpool] lvt-name_cp_index change: 31 to 23
 [51.943s][trace][redefine,class,constantpool] lvt-descriptor_cp_index change: 32 to 24
-[51.943s][debug][redefine,class,load        ] loaded name=sandbox.DebugTest$Foo (avail_mem=1416012K)                 <4>
-[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=2, obsolete_cnt=0                                            <5>
+[51.943s][debug][redefine,class,load        ] loaded name=sandbox.DebugTest$Foo (avail_mem=1416012K)       <4>
+[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=2, obsolete_cnt=0                                  <5>
 [51.943s][trace][redefine,class,iklass,add   ] adding previous version ref for sandbox.DebugTest, EMCP_cnt=2
 [51.943s][trace][redefine,class,iklass,add   ] EMCP method sandbox.DebugTest.<init>()V is NOT on_stack 0x0000000110edf4a8
 [51.943s][trace][redefine,class,iklass,add   ] EMCP method sandbox.DebugTest.main([Ljava/lang/String;)V is on_stack 0x0000000110edf5c0
 [51.943s][trace][redefine,class,iklass,add   ] scratch class added; one of its methods is on_stack.
 [51.943s][info ][redefine,class,load         ] redefined name=sandbox.DebugTest, count=1 (avail_mem=1416012K)
 [51.943s][trace][redefine,class,obsolete,mark] mark m(()Ljava/lang/String;) as obsolete
-[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=1, obsolete_cnt=1                                            <6>
+[51.943s][trace][redefine,class,obsolete,mark] EMCP_cnt=1, obsolete_cnt=1                                  <6>
 [51.943s][trace][redefine,class,iklass,add   ] adding previous version ref for sandbox.DebugTest$Foo, EMCP_cnt=1
 [51.943s][trace][redefine,class,iklass,add   ] scratch class not added; no methods are running
 [51.943s][info ][redefine,class,update       ] adjust: name=sandbox.DebugTest$Foo
@@ -1389,11 +1388,11 @@ $ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,ser
 [51.944s][trace][redefine,class,obsolete,metadata  ] calling check_class
 [51.944s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
 [51.944s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
-[51.964s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)              <7>
-[57.587s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)             <8>
+[51.964s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)    <7>
+[57.587s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)   <8>
 [57.588s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)
 [57.682s][stdout] m(): foo
-[72.578s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)             <9>
+[72.578s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)   <9>
 [72.586s][debug][redefine,class,load               ] loading name=sandbox.DebugTest kind=102 (avail_mem=1234396K)
 [72.586s][trace][redefine,class,normalize          ] Method matched: new: sandbox.DebugTest.<init>()V [0] == old: sandbox.DebugTest.<init>()V [0]
 [72.586s][trace][redefine,class,normalize          ] Method matched: new: sandbox.DebugTest.main([Ljava/lang/String;)V [1] == old: sandbox.DebugTest.main([Ljava/lang/String;)V [1]
@@ -1430,7 +1429,7 @@ $ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,ser
 [72.588s][info ][redefine,class,timer              ] vm_op: all=0  prologue=0  doit=0
 [72.588s][info ][redefine,class,timer              ] redefine_single_class: phase1=0  phase2=0
 [72.630s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)
-[75.100s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)            <10>
+[75.100s][debug][redefine,class,breakpoint         ] clearing breakpoint in main(([Ljava/lang/String;)V)  <10>
 [75.101s][debug][redefine,class,breakpoint         ] setting breakpoint in main(([Ljava/lang/String;)V)
 [75.104s][stdout] m(): fable
 ----

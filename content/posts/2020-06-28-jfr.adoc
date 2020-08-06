@@ -141,7 +141,7 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 	path-to-gc-roots : [optional] Collect path to GC roots (BOOLEAN, false)
 ----
 
-In production you'll be most likely using `duration`, `maxsize`, `filename` and `settings` options.
+In production, you'll be most likely using `duration`, `maxsize`, `filename` and `settings` options.
 We'll briefly look at other JFR commands after discussing the `settings`.
 
 NOTE: Later in this article we'll see how to start recording from the command line
@@ -155,7 +155,7 @@ the JDK ships with two : `default` and `profile`. A configuration is an XML file
 are enabled, their threshold, if stacktraces are recorded, etc. And there is also a
 `control` element that is used by JDK Mission Control.
 
-Here's is the first few line of the `default` settings. As its name impies, this is the configuration
+Here's the first few lines of the `default` settings. As its name impies, this is the configuration
 that is used when the command is run without a `settings` option.
 
 .$JAVA_HOME/lib/jfr/default.jfc
@@ -216,9 +216,9 @@ With the `profile` settings, the dumped file takes around 35mb for a 5min durati
 get access to additional events like the `OldObjectSample` stacktraces, or TLS events
 like TLS handshakes, X509 validation, Classloading events, etc.
 
-It actually has a tad more overhead, 2%. But in most workload this should be ok.
+It actually has a tad more overhead, 2%. In most workload this should be ok.
 
-To value of the `settings` option is file name of these files `default` or `profile`. In addition
+To value of the `settings` option is file name of these files `default` or `profile`. In addition,
 it's also possible to pass an absolute file path, in other words it's possible to use configuration
 of our own stored elsewhere.
 
@@ -263,7 +263,7 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 If there is a single recording at the time it's possible to just use `JFR.dump`, but JFR is
 powerful enough to support multiple concomitant recordings, in this case you need to specify
 which recording to dump, obviously.
-Some of the options override those defined in the start command like `filename` or `maxage`
+Some options override those defined in the start command like `filename` or `maxage`
 for the current dump in particular. THe other options are certainly interesting but
 I found them a bit less useful in practice.
 
@@ -398,7 +398,7 @@ or for some other analysis like with the `OldObjectSample`.
 
 The `repositorypath` is where JFR dumps regularly slices or chunks of jfr events, they have
 maximum size of `maxchunksize`. These files behave like a log rolling appender.
-By default these chunks are stored in the temporary directory and in a subfolder with a timestamp.
+By default, these chunks are stored in the temporary directory and in a subfolder with a timestamp.
 
 .JFR repository
 [source, shell]
@@ -725,10 +725,10 @@ to heap dumps for the autopsy.
 === Record application startup
 
 I mentioned startup as a separate window, because it's useful to inspect startup recording.
-During this time, the JVM intialize a lot of things, most code has yet to be warmed up,
-depending on the worload there may be a lot of allocations.
+During this time, the JVM initialize a lot of things, most code has yet to be warmed up,
+depending on the workload there may be a lot of allocations.
 
-I found that having these startup recording very useful to tune the readyness of an application, as we'll see after.
+I found that having this startup recording very useful to tune the readiness of an application, as we'll see after.
 
 
 .Time bound recording at JVM startup
@@ -737,7 +737,7 @@ I found that having these startup recording very useful to tune the readyness of
 -XX:StartFlightRecording=settings=profile,duration=6m,name=app-startup,filename=/var/log/jfr/app-startup.jfr
 ----
 
-Eventually it's possible to tweak this recording with, other parameters like
+Eventually it's possible to tweak this recording with, other parameters like:
 
 * `path-to-gc-roots=true`, which allows to identify leaks using the `OldObjectSample` (enabled in
 the `profile` settings)
@@ -893,10 +893,10 @@ is way too narrow in my opinion, using a 27 inches monitor really adds to usabil
 
 At some point we had an issue with application startup performance.
 For a bit of context this app runs in a Kubernetes cluster, with k8s it's possible
-to define a _rollout policy_ to avoid service distruption, that what we had, so there's a
+to define a _rollout policy_ to avoid service disruption, that what we had, so there's a
 rollout, new pods (a pod is composed of the application container) get created,
 new application are started, then Kubernetes has a mean to check when the application is
-*ready*, it's called the readyness probe. This probe can be a call to http endpoint or a script,
+*ready*, it's called the readiness probe. This probe can be a call to http endpoint or a script,
 ours is an HTTP endpoint.
 
 WHen the probe indicates the application is ready, the application starts receiving traffic,
@@ -905,7 +905,7 @@ from this moment latencies increased from 10-20 milliseconds to seconds.
 Opening the recording JMC, it will start an automated analysis. Sometime it's helpful
 and warning should be looked at. In this case the issue was elsewhere.
 
-To help in our case, we need to go in the thread view, which as a _thread lanes_
+To help in our case, I needed to go in the thread view, which as a _thread lanes_
 which displays each thread as an horizontal bar, and JFR event are painted on the bar
 at the time they happened and for how long. At the bottom there's a the time axis.
 
@@ -922,24 +922,24 @@ The vertical pattern is more precise, these vertical pattern indicates a _cross
 threads phenomena_. And we can notice that all thread are not affected the same way.
 
 The lanes in green at the top indicates these threads are progressing normally, nothing's
-wrong with them. However is we go down there especially, the pattern materialize around
+wrong with them. However, if we go down there especially, the pattern materialize around
 12:51:11.
 
-Each color indicate some events
+Each color indicate some events:
 
 * Gray => the thread does nothing, it's parked
 * Small dark point => The park event, the thread was scheduled but was eventually parked
 * Red => In this case it's a _blocked lock_
-* Yellow => Here the yellow events that intrests us are thread waiting on a lock
+* Yellow => Here the yellow events that interests us are thread waiting on a lock
 
-I'm not well versed in desfribing colors, so know that there are other events that use
+I'm not well versed in describing colors, so know that there are other events that use
 a slightly different tone / shade of red, yellow or else. Just click on the event
 to see what's going on.
 
 .monitor blocked
 image::/assets/jfr/startup-1-threads-jedis-lock-event.png[align="center"]
 
-The UI could be improved but going over the events shows a popup with it's details,
+The UI could be improved but going over the events shows a popup with its details,
 for the Monitor Blocked event, there's the duration this monitor was block, who held
 this monitor before, and the monitor address in the heap.
 
@@ -947,11 +947,12 @@ This monitor was held for ~9s, that's a big bottleneck !
 
 image::/assets/jfr/startup-1-threads-jedis-monitor-acquire-blocked.png[align="center"]
 
-In this case we had ~200 thread competing for this lock in particular. And finding the thread that
-acquired it is not automated, it's a bit tedious, but in the end didn't revealed anything.
+In this case this application had ~200 thread competing for this lock in particular. And finding
+the thread that acquired it is not automated, it's a bit tedious, but in the end didn't reveal
+anything.
 
-However the Monitor Blocked event has another interesting element, the stacktrace. In the lower
-pane of JMC, if the event is selected, we can see the stack trace where this event was emmitted.
+However, the Monitor Blocked event has another interesting element, the stacktrace. In the lower
+pane of JMC, if the event is selected, we can see the stack trace where this event was emitted.
 
 .jedis classloading
 image::/assets/jfr/startup-1-threads-jedis-monitor-blocked-stack.png[align="center"]
@@ -959,9 +960,9 @@ image::/assets/jfr/startup-1-threads-jedis-monitor-blocked-stack.png[align="cent
 Here that's the JDK classloader. I would never have thought that the JDK code would cause ~9s
 contention. But looking at the stacktrace, there _jedis_ (a Redis client) connection pool involved.
 Maybe the class have static initialization that does IO, maybe it's the agent that runs in production
-that introduces latencies during this specific classlaoding.
+that introduces latencies during this specific classloading.
 
-But all the threads starts working again around 12:51:22, and redis bottle neck is not anymore an issue
+But all the threads starts working again around 12:51:22, and redis bottleneck is not anymore an issue
 afterward. Let's look at the story on the IO side, open the Socket IO view.
 
 Identify which one is related to redis, either via IP or via port (Redis is `6379`).
@@ -970,7 +971,7 @@ Identify which one is related to redis, either via IP or via port (Redis is `637
 image::/assets/jfr/startup-1-socketio-redis-port.png[align="center"]
 
 While we see a total time of 30s, it's the accumulated time for all thread for the recording duration (6m).
-So nothing fancy here. However we see that actual IO happens really late, around 12:51:22.
+So nothing fancy here. However, we see that actual IO happens later, around 12:51:22.
 
 .Socket IO actual Redis read / write
 image::/assets/jfr/startup-1-socketio-redis.png[align="center"]
@@ -980,13 +981,14 @@ connection establishment, or actually during classloading.
 
 In order to remediate that, we noticed this code is called once the application is ready.
 So in order to avoid the contention the code was changed to pre-connect to redis during the
-application startup before the the application is considedred ready. And it worked, this
+application startup before the application is considered ready. And it worked, this
 specific issue disappeared.
 
 image::/assets/jfr/startup-2-thread-lanes.png[align="center"]
 
-However as knew from the first recording, and now the second iteration this was not the only issue
-identified when flying over the yellow and red events.
+The issue identified in the first recording showed some contention on redis, this is now gone.
+There is however in this second iteration multiple other issues when flying the mouse pointer
+over the yellow and red events.
 
 
 .Incriminating stack traces 1
@@ -1069,27 +1071,29 @@ image::/assets/jfr/startup-2-stack-11.png[align="center"]
 All the stacktraces above have one thing in common, a contention on a lock.
 As thread were blocked, and new request appeared, this had the effects of increase the
 queuing, and made tomcat creates new _http nio_ worked threads until the maximum is reached
-(200 by default). I applied the same trick: i.e before readyness, exercise code paths that
+(200 by default). I applied the same trick: i.e before readiness, exercise code paths that
 are lazy initialized. And it worked too. Most contention disappeared afterward.
 
 .Better startup / C2 compiler event
 image::/assets/jfr/startup-3-C2-compiler.png[align="center"]
 
-There was still some potential gain however. We noticed a few C2 compiler events,
-If you don't know C1 and C2, it's the compilers that transform bytecode to assembly.
-While C1 is somewhat superficial in optimizing the assembly, but it requires few
-CPU and it allows code to be executed asap yet not as efficient as possible. In a
-second phase C2 may kick in, this one outputs highly optimized code for hot code path
-(code that is executed very, very often), but it requires resources.
+There was still some potential gain however. I noticed a few C2 compiler related events.
+If you don't know C1 and C2, those are the compilers that transform bytecode to assembly.
+C1 interprets the bytecode and may perform some tricks like escape
+analysis, but its role is to be fast to execute bytecode and not about optimizing the machine
+code assembly. In a second phase C2 may kick in for hot code path that is code that is executed
+very often, and its job is to output highly optimized code at the cost of higher computation
+resources.
 
-Note this compilation event is not blocking threads !
+Note this compilation event *is not* blocking threads !
 
-As an experiment I decided to use the Graal compiler, which I believe is the new
-generation of compiler. https://github.com/oracle/graal/blob/master/compiler/README.md[Graal compiler]
+As an experiment I used the Graal compiler, which I believe is the new
+generation of compiler that have a chance to replace C2. https://github.com/oracle/graal/blob/master/compiler/README.md[Graal compiler]
 is part of the https://github.com/oracle/graal[GraalVM] project.
 It ships as an experimental option : `-XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler`.
 
-And the result for this work load in particular.
+And the result for this work load in particular, just activating the Graal compiler between
+these two successive rollouts.
 
 .Improved P99
 image::/assets/jfr/startup-3-grafana.png[align="center"]
@@ -1097,13 +1101,13 @@ image::/assets/jfr/startup-3-grafana.png[align="center"]
 This graph is falling under the https://latencytipoftheday.blogspot.com/2014/06/latencytipoftheday-most-page-loads.html[_percentlie_]
 but the improvement is still visible.
 
-Now when we analyzed the new profile we noticed that JVM was using a lot of time to
+After that experiment when I analyzed the new profile I noticed that JVM was using a lot of time to
 revoke bias locking. Note the events in fushia are custom JFR events that track HTTP requests.
 (https://twitter.com/gunnarmorling[Gunnar Morling] has an inspiring
 https://www.morling.dev/blog/rest-api-monitoring-with-custom-jdk-flight-recorder-events/[write up] about it).
 
 This VM operation is done during safepoint during which the JVM is paused. At this time a lot of
-of bias revocation event appears, so we removed them, and it works too.
+bias revocation event appears, so we removed them, and it works too.
 
 .Revoke Bias locking
 image::/assets/jfr/startup-4-threads-revoke-biased-locks.png[align="center"]
@@ -1140,7 +1144,7 @@ Anyway from there we could imagine a _setting_ file in the JDK dedicated for GC 
 Instead of parsing log files whose _string format_ that may change a bit over releases
 (even with unified logging) GC events could be analyzed leveraging the included JFR schema.
 
-Also with JFR, it's even possible to record memory leak using the `profile` _settings_ file,
+Also, with JFR it's even possible to record memory leak using the `profile` _settings_ file,
 I never tried that in a real situation though, but if this avoids the need to make a heap dump
 and parse it then I'm all in.
 
@@ -1148,11 +1152,11 @@ and parse it then I'm all in.
 
 Use JFR in production, use JDK Mission Control !
 
-I' amazed by the professionalism and the quality of the work BEA put in their JVM (JRockit) in
+I'm amazed by the professionalism and the quality of the work BEA put in their JVM (JRockit) in
 the early 2000s, thanks to these talented engineer, we have JFR and `jcmd` (which was named `jrcmd`).
 And thanks to Oracle for making these available for all !.
 
-You nay also want to follow http://hirt.se[Marcus Hirt's blog], he regularly updates it with useful
+You may also want to follow http://hirt.se[Marcus Hirt's blog], he regularly updates it with useful
 information on JMC and JFR. As it happens Marucs was the co-founder of Appeal (the company that developed
 the JRockit), then continued his career at BEA then Oracle.
 
