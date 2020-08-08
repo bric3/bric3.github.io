@@ -14,7 +14,7 @@ As a pre-jdk9 users I had my way using the explicit GC logging options. Also, on
 it was useful to toggle other options like tracing class un/loading.
 
 Starting from JDK 9, the JVM maintainers chose to overhaul the way JVM logs things.
-I believe that unified logging is great, but after using it I believe it's purpose
+I believe that unified logging is great, but after using it I believe its purpose
 targets more JDK maintainers, eventually library maintainers, than end users.
 Meanwhile it's likely that one may need to activate GC logs.
 
@@ -28,16 +28,16 @@ translate in unified logging.
 While GC logging is usually a well covered topic, I found there's information some gaps like _IHOP_
 messages missing as the multitude of tags and their various levels may not be set as necessary.
 
-In my opinion the flexibility of this logging system brought has a major downside from a user
-perspective in it's configuration correctness, and I think in some ways it's more obscure compared to
+In my opinion the flexibility of this logging system brought a major downside from a user's
+perspective in its configuration correctness, and I think in some ways it's more obscure compared to
 the previous explicit logging flags.
 
-Anyway, let's begin ou exploration with a small recapitulation of https://openjdk.java.net/jeps/158[JEP-158]
+Anyway, let's begin our exploration with a small recapitulation of https://openjdk.java.net/jeps/158[JEP-158]
 which lays out the foundation of JVM unified logging.
 
 == Unified JVM Logging (JEP-158)
 
-The JEP describes how the logging configuration works in the command line :
+The JEP describes how the logging configuration works in the command line:
 
 .java log configuration command line syntax
 [%collapsible]
@@ -82,16 +82,16 @@ The JEP describes how the logging configuration works in the command line :
 
 ====
 
-This command-line option is the main entry point to unified logging. It allows to configure logs
+This command-line option is the main entry point to unified logging. It allows configuring logs
 that required multiple options in a single one.
 
 Moreover, it's now possible to declare multiple log configuration simply by adding additional `-Xlog...`
 options. Their output must however be unique in these logs, otherwise the last option declaration will
 override the previous log configuration.
 
-Also, if you already heard of `jcmd`, unified logging JEP made the log configurable at runtime.
+Also, if you already heard of `jcmd`, unified logging JEP enabled log configurable at runtime.
 It's the second main entry point to unified logging.
-_If you didn't hear about `jcmd` you really should check it out it's the future
+_If you didn't hear about `jcmd` you really should check it out. It's the future
 of the serviceability / diagnostic command on the JDK._
 
 .A note about `jcmd`
@@ -112,7 +112,7 @@ insight it gives in the JVM.
 
 === How to use the tool, help from the command line
 
-While the JEP explains things, it's usually not how we get the first contact, we use the
+While the JEP explains things, it's usually not how we get the first contact: We use the
 command line help, which is describing just as well how to use on the command line.
 
 Also, you may have to enable logs on a running VM, well in this case the `jcmd` sub-command `VM.log`
@@ -210,17 +210,17 @@ Options: (options must be specified using the <key> or <key>=<value> syntax)
 
 ==== Configuring unified logging
 
-From the help and the JEP above here's what to retain :
+From the help and the JEP above here's what to retain:
 
 Tags::
-When a log message is shown, it should be associated with a set of tags in the JVM which identify by names: `os`, `gc`, `modules`…
+When a log message is shown, it should be associated with a set of tags in the JVM which identify by names: `os`, `gc`, `modules`...
 
-– We can apply different settings for individual tags.
-– `\*` denotes _wildcard_ tag match. Not using `*` means all messages matching exactly the specified tags.
+* We can apply different settings for individual tags.
+* `\*` denotes _wildcard_ tag match. Not using `*` means all messages matching exactly the specified tags.
 
 Levels::
 We can perform logging at different levels. The available levels are `error`, `warning`, `info`, `debug`, `trace` and `develop`.
-
++
 To disable logging, use the alternative `off`.
 
 Outputs::
@@ -242,18 +242,18 @@ Default settings::
 .. output: `stdout`
 .. decorators: `uptime`, `level`, `tags`
 
-In practice this will give :
+In practice this will give:
 
 .`java` command
 [source,role="primary"]
 ----
--Xlog:pagesize,os*,os+container=trace:file=/var/log/%t-os-container-pagezise.log:uptime,tags,level
+-Xlog:pagesize,os*,os+container=trace:file=/var/log/%t-os-container-pagesise.log:uptime,tags,level
 ----
 
 .`jcmd` command
 [source,role"secondary"]
 ----
-$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagezise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level
+$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagesise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level
 ----
 
 The above commands are equivalent, but note that depending on the specified tags and level, the log content
@@ -268,7 +268,7 @@ there is still some kind of _hierarchy_.
 
 As we'll see later some tags are standalone tags, but a large proportion of tags
 are always logged with other. We could say they are part of a group with a _root_
-tag like `gc`, `class`, etc. Those are my words, but looking at the JEP-158 diff.
+tag like `gc`, `class`, etc. Those are my observations, but let's look at the JEP-158 diff.
 
 There's one file that caught attention, it's
 https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-7cb36a4a80175eed80c087a48e4f071f[logTagSet.hpp]
@@ -278,20 +278,20 @@ Tagsets are created automatically by the LogTagSetMappings and should never be
 instantiated directly somewhere else.
 
 
-So when one see `class, path` combination it's in fact a tag set, I will refer to
+So when one sees a `class, path` combination it's in fact a tag set. I will refer to
 these as _tag-set_, _tag set_, or _tagset_. And, I'll use the term _log tag root_
 to indicate that a tag is used as the first tag, it's generally about a JVM component
 like GC, classes, or JFR.
 
-There another construct on top of _tagsets_, that is called log prefix,
-we can learn about it in
+There is another construct on top of _tagsets_, that is called log prefix.
+We can learn about it in
 https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9[logPrefix.hpp]
 
 > Prefixes prepend each log message for a specified tagset with the given prefix.
 A prefix consists of a format string and a value or callback. Prefixes are added
 after the decorations but before the log message.
 
-Log prefixes allows to prepend the log message (that's the prefix) with something for
+Log prefixes allow it to prepend the log message (that's the prefix) with something for
 declared _tagsets_. As we'll see later there is currently only one list of tagsets that uses
 the log prefix mechanism, GC logging to print the _GC id_:
 
@@ -305,15 +305,15 @@ equivalence or not of the log configuration. I got the configuration wrong _as i
 several times until I decided to dive in.
 
 GC unified logging is covered by another JEP, https://openjdk.java.net/jeps/271[JEP 271: Unified GC Logging],
-which rely on JEP-158 as mentioned earlier. However, this JEP is much more concise and
-barely elaborate how the previous logging option will be turned in unified logs.
+which relies on JEP-158 as mentioned earlier. However, this JEP is much more concise and
+barely describes how the previous logging option will be turned in unified logs.
 
-One of the best source came from https://twitter.com/poonam_bajaj[Poonam Bajaj Parhar],s talk on
+One of the best source came from https://twitter.com/poonam_bajaj[Poonam Bajaj Parhar]'s talk on
 https://www.slideshare.net/PoonamBajaj5/lets-learn-to-talk-to-gc-logs-in-java-9[unified GC logs]
 However the most interesting data is not searchable because it's an image of a table and
 everything is not there, for the poor souls that need to work with other GCs.
 
-The basic translation of the following usual GC logging configuration :
+The basic translation of the following usual GC logging configuration:
 
 .pre-jdk9
 [source]
@@ -331,7 +331,7 @@ The basic translation of the following usual GC logging configuration :
 -Xloggc:/var/log/`date +%FT%H-%M-%S`-gc.log   \
 ----
 
-These flags could be translated to the following configuration :
+These flags could be translated to the following configuration:
 
 .log config
 [source,role="primary"]
@@ -371,8 +371,8 @@ themselves changed, e.g. the GC cause and the GC id are now always logged.
 
 Now it's the right opportunity to warn about the slight caveats of this log configuration.
 
-This configuration is fine and work reasonably well, BUT this configuration
-actually may misses some log like some `ihop`, which is not only logged with the `ergo` tag
+This configuration is fine and works reasonably well, BUT this configuration
+actually may miss some logs like some `ihop`, which is not only logged with the `ergo` tag
 as we'll see.
 
 ==== Exhaustive translation table
@@ -382,7 +382,7 @@ https://bugs.openjdk.java.net/browse/JDK-8059805[JDK-8059805],
 https://bugs.openjdk.java.net/browse/JDK-8145092[JDK-8145092], and in particular the
 https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3[related diff] https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[(on github)].
 
-In a lesser way I sued the official https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5[`java` documentation],
+In a lesser way I used the official https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5[`java` documentation],
 which I found somewhat lacking in this regard.
 
 {{< wrapTable >}}
@@ -465,7 +465,7 @@ which I found somewhat lacking in this regard.
 
 {{< /wrapTable >}}
 
-.old option are now decorators
+.old options are now decorators
 [cols="m,m"]
 |===
 
@@ -485,16 +485,16 @@ On the example of heap occupancy logs (IHOP), it was logged with `PrintAdaptiveS
 and now it's supposed to be logged as part of the GC ergonomics by setting `gc+ergo*` to `trace`.
 Looking at the code, I noticed the `ihop` tag is not always combined with `ergo`.
 
-This tag is not alone, in the https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[diff]
-I mentioned there's an interesting file that declares GC _log prefix_ for a list of _tag-sets_.
+This tag is not the only one, in the https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[diff]
+I mentioned previously there's an interesting file that declares GC _log prefix_ for a list of _tag-sets_.
 _The diff is huge and may take some time to load, search for the following file
 https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9[src/share/vm/logging/logPrefix.hpp]._
 
-Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it's easy
+Also, some logging tags are common to multiple GC. While there is nothing wrong in this, it's easy
 to update the logging configuration when changing the GC algorithm, e.g. using CMS then switch to G1GC.
 I would have preferred an additional tag for each GC algorithms (`g1` for g1GC, `cms` for Concurrent Mark
 and Sweep,`shenandoah` for Shenandoah, etc) that would have allowed to configure logging this way
-`-Xlog:zgc=info*`, unfortunately this is only a dream at this time.
+`-Xlog:zgc=info*`. Unfortunately this is only a dream at this time.
 
 Moreover, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
 This makes the tag selection hard to use properly and tedious to maintain. Very few will _grep_ the
@@ -505,7 +505,7 @@ I believe that if we configure/select tags too restrictively it might be counter
 
 ==== Embracing unified logging for GC logs
 
-This led to think that instead of trying to _mimic_ old logging options, I should instead
+This led me to think that instead of trying to _mimic_ old logging options, I should instead
 prefer to log more tags and simplify the overall logging configuration.
 
 .log config
@@ -528,8 +528,8 @@ prefer to log more tags and simplify the overall logging configuration.
 <2> Specific _tagset_ level configuration for ergonomics.
 <3> Specific _tagset_ level configuration for tenuring distribution.
 
-The above configuration is simple at the expanse of possibly larger file size.
-Also, using `gc*=debug` allows to catch extra tags, and possibly new `gc` related tags
+The above configuration is simpler at the expense of possibly larger file size.
+Also, using `gc*=debug` allows it to catch extra tags, and possibly new `gc` related tags
 that show up. In my opinion this configuration does not have any caveats.
 
 And as mentioned I benefited from other tags under `gc` that I wasn't even looking
@@ -573,7 +573,7 @@ can spot other useful information.
 
 ==== Try GC logging configurations
 
-Unlike `os` and `container` logs, GC happens almost continuously this opens the opportunity
+Unlike `os` and `container` logs, GC happens almost continuously. This opens the opportunity
 to try log configurations at runtime using `jcmd`. In the example below I wanted to monitor
 more thoroughly G1GC regions:
 
@@ -591,7 +591,7 @@ jcmd $(pidof java) \
 === Migrating other options
 
 One thing I used to log is about classes, particularly during development.
-Especially loading and unloading. I sued this a lot while debugging some aspects of Mockito
+Especially loading and unloading. I used this a lot while debugging some aspects of Mockito
 and some application servers back in the days.
 
 Some of the `Trace*` options are still present, even in JDK 14, although they output a warning.
@@ -672,16 +672,16 @@ static AliasedFlag const removed_develop_logging_flags[] = {
 
 === Building a unified logging tag reference
 
-Ok nice, but `java -Xlog:help` list a lot more available tags than those already mentioned.
+Ok nice, but `java -Xlog:help` lists a lot more available tags than those already mentioned.
 
-The issue with unified logging is the documentation, identifying the tag we want
-can be tedious. If I select the tag `dump` what will it output and when, is it about heap dump.
-Same if I select `system` is it about system calls, or else. Well it turns out there's just
+The issue with unified logging is the documentation: identifying the tag we want
+can be tedious. If I select the tag `dump` what will it output and when, is it about heap dump?
+Same if I select `system`: is it about system calls, or else? Well it turns out there's just
 no documentation whatsoever, you need to look at the code.
 
 
 The starting point for this job was https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8[this commit]
-and what the JEP-158 proposed :
+and what the JEP-158 proposed:
 
 {{< wrapTable >}}
 
@@ -844,9 +844,9 @@ that declares all logging tags (138 in total). From there I searched where these
 | stringdedup           | `gc`                           | G1GC string deduplication (for old generation)
 | stringtable           |                                | About interned strings (`String.intern()`), can be seen with the `gc` _log tag root_ when G1GC is in use to log string and symbol cleanups.
 | subclass              | `class`, `redefine`            | Sub-class unloading. Affected subclasses during redefinition.
-| survivor              | `gc`                           | CMS GC survivor informations.
+| survivor              | `gc`                           | CMS GC survivor information.
 | sweep                 | `gc`, `codecache`              | CMS GC sweeping activity. And code cache native methods flushing depending on the _log tag root_.
-| system                | `jfr`                          | JFR system logging, recordind start/stop, emergency dump, etc.
+| system                | `jfr`                          | JFR system logging, recording start/stop, emergency dump, etc.
 | table                 | `membername`                   | Only used with `membername`, about the hashtable to record methods, and replace them during redefinition.
 | task                  | `gc`                           | Mostly related to GC tasks, useful to see the `phases` tag. Also appears combined with `handshake` for thread local handshakes.
 | thread                | `os`                           | When used as a _log tag root_, it's about `smr`, when it's combined with the `os` log tag root it's about the thread lifecycle and guards.
@@ -858,10 +858,10 @@ that declares all logging tags (138 in total). From there I searched where these
 | unshareable           | `cds`                          | For classes that cannot be shared, especially interesting during CDS archive creation
 | update                | `redefine`                     | Logs about redefinition changes in classes, methods, constant pool, vtable, itable, etc.
 | verification          |                                | Classes bytecode verifier, when standalone. Same for classes in CDS archive when combined with `cds`.
-| verify                | `gc`                           | Verifications operations done during GC operations.
+| verify                | `gc`                           | Verification operations done during GC operations.
 | vmoperation           |                                | Logs VM operations
 | vmthread              |                                | JVM threads that perform the VM operations (usually during safepoints)
-| vtables               |                                | Java's virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes). Those that did C++ before will remember.
+| vtables               |                                | Java's virtual calls mechanism (virtual table allows to find the right method address for the current instance in a hierarchy of classes). Those that did C++ before will remember.
 | vtablestubs           |                                | Java's virtual calls mechanism that is used for megamorphic call sites (i.e. when the method to execute is not the same on successive executions because the object hierarchy differ). Hotspot wiki https://wiki.openjdk.java.net/display/HotSpot/PerformanceTechniques[1,title=Performance technics] https://wiki.openjdk.java.net/display/HotSpot/VirtualCalls[2,title=Virtual calls]
 | workgang              | `gc`                           | GC worker threads.
 
@@ -870,7 +870,7 @@ that declares all logging tags (138 in total). From there I searched where these
 {{< /wrapTable >}}
 
 In building this reference we see that some JVM sub-systems can output a lot of logs.
-Two subsystems stands out in the way they describe their _tagsets_ : JFR and the Garbage Collection:
+Two subsystems stands out in the way they describe their _tagsets_: JFR and the Garbage Collection:
 
 .JFR tag sets
 [%collapsible]
@@ -1011,8 +1011,7 @@ OOPS::
 
 JNI::
 * `log_is_enabled(Debug, class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jni.cpp[src/hotspot/share/prims/jni.cpp]
-+
-`log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvm.cpp[src/hotspot/share/prims/jvm.cpp]
+* `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvm.cpp[src/hotspot/share/prims/jvm.cpp]
 
 Reflection::
 * `log_debug(class, resolve)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/reflection.cpp[src/hotspot/share/runtime/reflection.cpp]
@@ -1090,7 +1089,7 @@ Interpreter
 ==== OS and container related
 
 If the workload you are working on is running on containers you may have heard of the
-os and container tags :
+os and container tags:
 
 .os, container, pagesize logs
 [source, shell]
@@ -1263,7 +1262,7 @@ $ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./li
 [0.690s][stdout] m(): bar
 ----
 
-These logs are quite technical, but they may be useful when developing agents,
+These logs are quite technical, but they may be useful when developing agents.
 
 ==== During debug
 
@@ -1300,7 +1299,7 @@ public class DebugTest {
 <1> Set break point here, then change the inner class `Foo`, like the annotation value,
 adds another instruction, change the return values of `m()`, etc.
 
-.CHange `Foo.m()` class after instantiation during debug
+.Change `Foo.m()` class after instantiation during debug
 [source,shell]
 ----
 $ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp . DebugTest
@@ -1445,20 +1444,20 @@ the method I just modified).
 <7> The redefinition is over, and sets again the breakpoint.
 <8> In debug simply continue to _the next step_.
 <9> Once again modify the `m()` method and reload the class.
-<10> Class Is reloaded, simply continue.
+<10> Class Is reloaded, continue.
 
 
 These logs are rarely useful unless you work with IDE, debuggers or the JVM itself.
 However, they are interesting to understand what's going on when debugging.
 One thing to mention is that the JVMTI infrastructure relies a lot on the redefinition
-component, it's one of the most complex piece in the JVM.
+component, it's one of the most complex pieces in the JVM.
 
 
 
 ==== Just-in-Time and compilation
 
 If you need to look in the compilation of methods, because something do not perform as
-expected, one may want to toggle the logs for the just-in-time and compilation logs :
+expected, one may want to toggle the logs for the just-in-time and compilation logs:
 
 .Just-in-Time compilation and inlining
 [source,shell]
@@ -1483,11 +1482,11 @@ $ java -Xlog:jit*=debug,compilation*=debug -cp . JustStartMainTest
 ...
 ----
 
-The above logs snippet, shows that the JVM is
+The above log snippet shows that the JVM is
 
-. compiling methods `next` and `hasNext`
+. compiling methods `next` and `hasNext`,
 . then tries to inline `hasNext` into `next`,
-. then tries to inline `nextIndex` into next but fails
+. then tries to inline `nextIndex` into next but fails.
 
 This article has been written using the code base of JDK11u 11.0.8. Not everything is
 logged via the unified logging mechanism, and I don't think this changed in recent JDK
@@ -1495,7 +1494,7 @@ versions e.g. JDK 15 which is not yet out at this time.
 
 So, for example if you need to work with the JVM C2 compiler for some reason then
 `-Xlog:jit*=debug,compilation*=debug` might not be enough, instead you'll need to use
-`-XX:+LogCompilation`, which by default will generate a file like `hotspot_pid{pid}.log`
+`-XX:+LogCompilation`, which by default will generate a file like `+hotspot_pid{pid}.log+`
 in the working directory, unless this flag `-XX:LogFile=compilation-log.xml` is specified.
 The content of this file is actually an XML document.
 
@@ -1701,8 +1700,8 @@ $ grep "Entering safepoint" /var/log/2020-01-28_13-36-23-vm.log
 ...
 ----
 
-There's a lot of activity, most of this VM activity will be easier to analyze
-using JFR / JDK Mission Control, but for logging very long process, logs are still
+There's a lot of activity. Most of this VM activity will be easier to analyze
+using JFR / JDK Mission Control, but for logging very long running processes, logs are still
 quite useful.
 
 
@@ -1710,7 +1709,7 @@ quite useful.
 === Programmatic access
 
 
-For those that played with `jcmd` before you may already know each command
+For those that played with `jcmd` before you may already know all commands
 are available as MXBeans. This immediately suggests that it's possible to invoke
 these command programmatically.
 
@@ -1757,13 +1756,13 @@ public class TriggerGcLogsProgrammatically {
 == Wrap up
 
 
-Unified logging is a great change in the JVM, it's flexibility and ubiquity
+Unified logging is a great change in the JVM: Its flexibility and ubiquity
 gives great insight in the JVM. Also, a strong point of this implementation
-is dynamic configuration change, it is very useful when one doesn't want to
+is dynamic configuration change: It is very useful when one doesn't want to
 restart a process just to raise the logging levels, or to gain insight on
 a JVM component.
 
-Yet not everyone will be interested by most of these subsystems. I'm pretty sure
+Yet not everyone will be interested in most of these subsystems. I'm pretty sure
 GC logs will be the most used logs. On this in particular, I think JDK maintainers
 should add tags for the type of GC, `cms` for CMS, `zgc` for ZGC, `g1` for G1GC,
 `shenandoah` for Shenandoah, etc.
@@ -1774,22 +1773,22 @@ the tags. The removed GC logging flags were more explicit.
 
 In particular, I think unified logging suffers from few drawbacks:
 
-* [ ] discoverability, while anyone can peek at the available tags the mass of
-the tags makes the system hard to use if you don't know already what is expected
+* [ ] discoverability: while anyone can peek at the available tags the mass of
+the tags makes the system hard to use if you don't know already what to expect
 from these tags.
 
-* [ ] documentation, tags are not documented, most don't auto-document themselves
-so if don't know already what to expect from these tags you'll need to take the
+* [ ] documentation: tags are not documented, most don't auto-document themselves
+so if you don't know already what to expect from these tags you'll need to take the
 long road to try each combination.
 
-* [ ] stability, while the JVM check if the selected tags exists it doesn't check
+* [ ] stability: while the JVM checks if the selected tags exists it doesn't check
 if the combination will log something. On each JDK version logs can change in subtle
 ways for whatever reasons (like bug-fixing). It's best to verify on each new JDK version
 if things changed.
 
 Command line flags provided a good user experience, they were discoverable because
 documented, they were explicit, and usually stable. These flags are gone for GC logging,
-but there are still some old `Trace*` flags that setup unified logging ; if
+but there are still some old `Trace*` flags that setup unified logging. If
 JDK maintainers chose to keep the old flags or proposed alternative flags for GC
 that would have made unified logging use more practical I think.
 
