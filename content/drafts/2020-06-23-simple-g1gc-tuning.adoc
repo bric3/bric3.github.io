@@ -1,0 +1,74 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-6-23T21:54:58+02:00"
+language: en
+draft: true
+#tags: ["jvm","java","gc", "g1", "g1gc"]
+slug: "simple-g1gc-tuning"
+title: "Simple G1GC tuning"
+---
+
+
+== Side notes
+
+=== Default GC depends on "server class"
+
+If your application is running with less than 2 cpus or less than 2gb of 
+memory the JVM heuristics think the app is not running on a server, which makes 
+the SerialGC the default GC, while this is unlikely to be an issue with apps that 
+use less than 2GB of heap. It may well be an issue for apps that don’t use much 
+CPU but require more memory. In this case it might be useful to toggle UseG1GC.
+
+Corretto 11.0.7 JVM code source : 
+
+* https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/runtime/os.cpp#L1654-L1699[src/src/hotspot/share/runtime/os.cpp:1654-1699]
++
+[source, c++]
+----
+// This is the working definition of a server class machine:
+// >= 2 physical CPU's and >=2GB of memory, with some fuzz
+// because the graphics memory (?) sometimes masks physical memory.
+// If you want to change the definition of a server class machine
+// on some OS or platform, e.g., >=4GB on Windows platforms,
+// then you'll have to parameterize this method based on that state,
+// as was done for logical processors here, or replicate and
+// specialize this method for each platform.  (Or fix os to have
+// some inheritance structure and use subclassing.  Sigh.)
+// If you want some platform to always or never behave as a server
+// class machine, change the setting of AlwaysActAsServerClassMachine
+// and NeverActAsServerClassMachine in globals*.hpp.
+bool os::is_server_class_machine() {
+----
+
+
+* https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/gc/shared/gcConfig.cpp#L103-L117[src/src/hotspot/share/gc/shared/gcConfig.cpp:103-117]
++
+This method is only used there in this release 
++
+[source, c++]
+----
+void GCConfig::select_gc_ergonomically() {
+  if (os::is_server_class_machine()) {
+#if INCLUDE_G1GC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseG1GC, true);
+#elif INCLUDE_PARALLELGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseParallelGC, true);
+#elif INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  } else {
+#if INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  }
+}
+----
+
+
+This heuristic probably predates containers and cgroups hype, and doesn't look 
+like it has been updated to reflect this trend.
+
+Anyway it’s always possible to guide the JVM heuristics on this matter, using 
+`-XX:+AlwaysActAsServerClassMachine` (which let’s the default GC be used), or 
+by enabling a particular GC algorithm.
+
