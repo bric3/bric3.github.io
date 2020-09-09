@@ -17,7 +17,7 @@
     
     
 
-<title>The Quest to API versioning with JAX-RS • Brice Dutheil</title>
+<title>Simple G1GC tuning • Brice Dutheil</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="The Quest to API versioning with JAX-RS">
+<meta property="og:title" content="Simple G1GC tuning">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2017/11/20/api-versioning-with-jax-rs/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/1/01/01/simple-g1gc-tuning/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -47,13 +47,13 @@
 <meta property="og:image:height" content="192">
     
 
-<meta property="og:updated_time" content="2017-11-20T00:00:00Z">
+
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="The Quest to API versioning with JAX-RS">
+<meta name="twitter:title" content="Simple G1GC tuning">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -234,13 +234,11 @@
 
 <article>
   <header>
-    <h1>The Quest to API versioning with JAX-RS</h1>
+    <h1>Simple G1GC tuning</h1>
     
     
 <div class="post__meta">
     
-    
-      <i class="fas fa-calendar-alt"></i> 2017-11-20
     
     
     
@@ -260,96 +258,92 @@
   
   
   
-  <div class="post md">
-    <h1 id="the-quest-to-api-versioning-with-jax-rs">The Quest to API versioning with JAX-RS</h1>
-<blockquote>
-<p>In another post Nottingham adds that we <a href="http://www.mnot.net/blog/2012/07/11/header_versioning">shouldn’t use a custom header for versioning</a>
-and touches on versioning through the Accept header but there is a fundamental
-thread here: try as hard as possible to not introduce breaking changes so that
-versioning isn’t a big issue.</p>
-</blockquote>
-<p>There is multiple way to address that need.</p>
-<p>No versioning within the app, i.e. using a different backend (and as such a
-different authority, host and/or port) for each version</p>
-<ul>
-<li>Versioning via the path</li>
-<li>Query param</li>
-<li>Custom request header</li>
-<li>Via mime-type</li>
-</ul>
-<p>The trend is to use the Accept header with the mime-type to express versions.</p>
-<p>In this situation there&rsquo;s different approaches, that are not mutually exclusive</p>
-<ol>
-<li>
-<p>Using the media type <a href="https://tools.ietf.org/html/rfc6838#section-3.2">vendor tree</a> (RFC 6838)</p>
-<p>In the following request the client asks for the server to produce an <code>edge.v2.0</code>
-json. The <code>vnd</code> facet indicate the beginning of the  vendor tree.</p>
-<pre><code>GET /token HTTP/1.1
-Accept: application/vnd.app-api.v2.0+json
-</code></pre>
-</li>
-<li>
-<p>Using <a href="https://tools.ietf.org/html/rfc6838#section-4.3">media-type parameters</a> (RFC 6838)</p>
-<p>In the following request the client asks the server to produce the version 2.
-The media type is accompanied by the custom version parameter (same way as
-passing the charset)</p>
-<pre><code>GET /token HTTP/1.1
-Accept: application/json; version=2.0
-</code></pre>
-<p>The benefit of this approach is that, the code keeps using the standard know
-media-type here <code>application/json</code>, but that it can be customized with named
-parameters (<code>version</code>, <code>kind</code>, <code>experiment</code>, etc. along with the usual ones
-like <code>charset</code> or <code>q</code>).</p>
-</li>
-</ol>
-<p>The good news is that JAX-RS specification also supports parameter constructs
-since version JAX-RS 1.0 : <a href="https://docs.oracle.com/javaee/7/api/javax/ws/rs/core/MediaType.html">MediaType</a>.
-The bad news is that JAX-RS doesn&rsquo;t specify how content negotiation is supposed
-to be handled further that the raw media-type (i.e. without parameters), in
-practice Jersey for example does not handle this case. How to solve the problem :</p>
+  <div class="post adoc">
+    <div class="sect1">
+<h2 id="_side_notes"><a class="anchor" href="#_side_notes"></a><a class="link" href="#_side_notes">Side notes</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_default_gc_depends_on_server_class"><a class="anchor" href="#_default_gc_depends_on_server_class"></a><a class="link" href="#_default_gc_depends_on_server_class">Default GC depends on "server class"</a></h3>
+<div class="paragraph">
+<p>If your application is running with less than 2 cpus or less than 2gb of
+memory the JVM heuristics think the app is not running on a server, which makes
+the SerialGC the default GC, while this is unlikely to be an issue with apps that
+use less than 2GB of heap. It may well be an issue for apps that don’t use much
+CPU but require more memory. In this case it might be useful to toggle UseG1GC.</p>
+</div>
+<div class="paragraph">
+<p>Corretto 11.0.7 JVM code source :</p>
+</div>
+<div class="ulist">
 <ul>
 <li>
-<p>The problem can be alleviated by using a pre-matching <code>ContainerRequestFilter</code>
-that will transform the media-type parameter to the vendor tree form.</p>
+<p><a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/runtime/os.cpp#L1654-L1699">src/src/hotspot/share/runtime/os.cpp:1654-1699</a></p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="c++" class="language-c++ hljs">// This is the working definition of a server class machine:
+// &gt;= 2 physical CPU's and &gt;=2GB of memory, with some fuzz
+// because the graphics memory (?) sometimes masks physical memory.
+// If you want to change the definition of a server class machine
+// on some OS or platform, e.g., &gt;=4GB on Windows platforms,
+// then you'll have to parameterize this method based on that state,
+// as was done for logical processors here, or replicate and
+// specialize this method for each platform.  (Or fix os to have
+// some inheritance structure and use subclassing.  Sigh.)
+// If you want some platform to always or never behave as a server
+// class machine, change the setting of AlwaysActAsServerClassMachine
+// and NeverActAsServerClassMachine in globals*.hpp.
+bool os::is_server_class_machine() {</code></pre>
+</div>
+</div>
 </li>
 <li>
-<p>It seems that RestEasy (from JBoss / Redhat) understands media-type parameter.</p>
+<p><a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/gc/shared/gcConfig.cpp#L103-L117">src/src/hotspot/share/gc/shared/gcConfig.cpp:103-117</a></p>
+<div class="paragraph">
+<p>This method is only used there in this release</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="c++" class="language-c++ hljs">void GCConfig::select_gc_ergonomically() {
+  if (os::is_server_class_machine()) {
+#if INCLUDE_G1GC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseG1GC, true);
+#elif INCLUDE_PARALLELGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseParallelGC, true);
+#elif INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  } else {
+#if INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  }
+}</code></pre>
+</div>
+</div>
 </li>
 </ul>
-<p>In any case if <code>version</code> is not supported the server must send back a
-<code>406 Not Acceptable</code> status instead of <code>404 Not Found</code>.</p>
-<p>Client side, OkHttp 3.9.0 don&rsquo;t understand media-type parameters, but this is
-not a problem in practice as strings constants can be used.</p>
-
-
-
-<h2 id="end-words">End words</h2>
-<p>JAX-RS is NOT HTTP. I really think JAX-RS is one the best specification of the
-JEE bag, but yet again JAX-RS falls short in term of helping Java developers to
-design an HTTP API.</p>
-<h2 id="motivational-reads-">Motivational reads :</h2>
-<ul>
-<li><a href="http://www.mnot.net/blog/2012/12/04/api-evolution">http://www.mnot.net/blog/2012/12/04/api-evolution</a></li>
-<li><a href="https://content.pivotal.io/blog/api-versioning">https://content.pivotal.io/blog/api-versioning</a></li>
-<li><a href="https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/">https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/</a></li>
-<li><a href="http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned">http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned</a></li>
-<li><a href="https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/">https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/</a></li>
-<li><a href="https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html">https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html</a></li>
-</ul>
+</div>
+<div class="paragraph">
+<p>This heuristic probably predates containers and cgroups hype, and doesn&#8217;t look
+like it has been updated to reflect this trend.</p>
+</div>
+<div class="paragraph">
+<p>Anyway it’s always possible to guide the JVM heuristics on this matter, using
+<code>-XX:+AlwaysActAsServerClassMachine</code> (which let’s the default GC be used), or
+by enabling a particular GC algorithm.</p>
+</div>
+</div>
+</div>
+</div>
 
   </div>
   
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/1/01/01/simple-g1gc-tuning/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Simple G1GC tuning</span>
-    </a>
     
-    
-    <a href="/drafts/2018/02/20/uri_paths_with_trailing_or_leading_slashes/" class="navigation-next">
-      <span class="navigation-tittle">Opinion, should we prefix JAX-RS Path value with a slash ?</span>
+    <a href="/drafts/2017/11/20/api-versioning-with-jax-rs/" class="navigation-next">
+      <span class="navigation-tittle">The Quest to API versioning with JAX-RS</span>
       <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     

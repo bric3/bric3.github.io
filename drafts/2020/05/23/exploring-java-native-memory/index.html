@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.73.0" />
+
+    
+    
+    
+
+<title>Exploring Java native memory • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="Exploring Java native memory">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/05/23/exploring-java-native-memory/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2020-05-23T23:45:29&#43;0200">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Exploring Java native memory">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.bb59d997d8cd2a51d39cab60618731a566daf97296d7483d15fc1124aec9c489.css" integrity="sha256-u1nZl9jNKlHTnKtgYYcxpWba&#43;XKW10g9FfwRJK7JxIk=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.2eddfb769610f72f40f6bc949e62a3acf298eb8504c073739085a417978b18cd.css" integrity="sha256-Lt37dpYQ9y9A9ryUnmKjrPKY64UEwHNzkIWkF5eLGM0=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/@BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+
+<article>
+  <header>
+    <h1>Exploring Java native memory</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-05-23
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 45 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="paragraph">
+<p>Like many I was happy to see the JDK landed support for containers in Java 9,
+and that it was backported to Java 8 as well. Now the JDK 11 enables this
+support by default. This support make the JVM read information from <code>cgroup</code>s,
+also the JVM has new way to tell the runtime the memory as a percentage of the
+cgroup value via the <code>-XX:MaxRAMPercentage</code> flag. After some experience with it
+I found this flag is not helpful in containers, at least for the application mileage
+I worked with.</p>
+</div>
+<div class="paragraph">
+<p>So, this flag did not worked as I expected to be, and I&#8217;m a bit the culprit on this one.
+When this flag appeared –- as a fraction based flags first (<code>*RAMFraction</code>)&#8201;&#8212;&#8201;mostly blogs
+explored these options (<em>like this <a href="https://merikan.com/2019/04/jvm-in-a-container/">one</a></em>),
+many thanks to authors of these blogs. However I missed the most important part
+<code>MaxRamPercentage</code> is <strong>only about the Java heap</strong>, like most blog most on the topic, leaving
+the bigger picture.</p>
+</div>
+<div class="paragraph">
+<p>If I turnned on blogs first it&#8217;s because the official documentation doesn&#8217;t even mention
+any <code>*RAMPercentage</code> flags:</p>
+</div>
+<div class="ulist">
+<div class="title">Oracle documentation</div>
+<ul>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>java</code> (JDK11)</a></p>
+</li>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/12/docs/specs/man/java.html"><code>java</code> (JDK12)</a></p>
+</li>
+<li>
+<p><a href="https://docs.oracle.csom/apps/search/search.jsp?q=MaxRAMPercentage&amp;search-scope=book&amp;book=tools&amp;product=en%2Fjava%2Fjavase%2F11&amp;category=java">Searching Oracle&#8217;s documentation</a></p>
+</li>
+<li>
+<p>&#8230;&#8203;</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Fortunately there&#8217;s this awesome contribution from <a href="https://twitter.com/chriswhocodes">Chris Newland</a>,
+this tool indexes JDK codebase and flag&#8217;s documentations among other metadata.</p>
+</div>
+<div class="paragraph">
+
+
+
+<div class="table-wrapper">
+    <table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. <a href="https://chriswhocodes.com/hotspot_options_jdk11.html">VM Options Explorer - JDK11 HotSpot</a></caption>
+<colgroup>
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.0909%;">
+<col style="width: 9.091%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Since</th>
+<th class="tableblock halign-left valign-top">Deprecated</th>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">OS</th>
+<th class="tableblock halign-left valign-top">CPU</th>
+<th class="tableblock halign-left valign-top">Component</th>
+<th class="tableblock halign-left valign-top">Default</th>
+<th class="tableblock halign-left valign-top">Availability</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Defined in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MaxRAMPercentage</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JDK10</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">double</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">gc</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">25.0 range(0.0, 100.0)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">product</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Maximum percentage of real memory used for maximum heap size</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>share/gc/shared/gc_globals.hpp</code></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+</div>
+<div class="paragraph">
+<p>I knew this tool beforehand yet I didn&#8217;t use Chris&#8217;s website first, I should have.
+Anyway. This entry is about figuring out the other memory <em>parts</em> of a Java process.
+I will use as a specimen an issue that I experienced in production, the actual problem could
+be solved without diving in memory, but it served as an excuse to go down the rabbit hole.</p>
+</div>
+<div class="paragraph">
+<p>In doing so the following writing tries to piece together several elements
+from a few things I knew, things I grepped in the JDK codebase, blog post, stack overflow,
+and things learned from&#8201;&#8212;&#8201;awesome&#8201;&#8212;&#8201;people.</p>
+</div>
+<div class="paragraph">
+<p>If I ignored something or if I&#8217;m wrong please reach out.</p>
+</div>
+<hr>
+<div class="paragraph">
+<p>To put things in context the application is running within a Kubernetes cluster
+and experienced memory problems after increasing HTTP traffic.</p>
+</div>
+<div class="paragraph">
+<p>This application is deployed as a <a href="https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/"><em>replicaset</em></a>,
+this means that Kubernetes make sure there&#8217;s always the right number of application
+instances, or <em>replicas</em> using the Kubernetes terminology.
+Also this deployment is using an <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/"><em>horizontal pod auto-scaler</em></a>
+whose role is to increase the number of instances based on some criteria, this application
+used the CPU usage.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Problem</div>
+<div class="paragraph">
+<p>The application was running with <code>-XX:MaxRAMPercentage=85</code> in a container constrained
+to <code>3 GiB</code> of memory and hit the memory limit. Naturally the application got killed by the
+OS. And more dramatically all replicas eventually got <em>oomkilled</em> after some time, which led
+Kubernetes to always deploy new pods.</p>
+</div>
+<div class="paragraph">
+<p>This application worked very well on a different datacenter handling all the traffic with
+a heap of <code>2 GiB</code>. The instances in Kubernetes could handle half of the traffic well but not
+the entire traffic.</p>
+</div>
+<div class="paragraph">
+<p>In short when the traffic on kubernetes instances was increased to 100%
+the <em>pod</em>s started to get <em>oom killed</em>.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="./../static/assets/maxrampercentage/app-jvm-memory-usage.png" alt="app jvm memory usage"></span></p>
+</div>
+<div class="paragraph">
+<p>On the graph above we can see the trend of the <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize in green,
+the Java heap limit (85% of <code>3 GiB</code>), and in yellow the current heap usage.</p>
+</div>
+<div class="paragraph">
+<p>Note that this graph has a slight issue as it displays data in <em>metric bytes</em>
+while in reality this should be IEC bytes. Talking about this :</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Most of the time, figures will use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">IEC binary notation</a> (<code>1 KiB = 1024 B</code>),
+it matches the <a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226">JVM</a>,
+our <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory">Kubernetes</a> usage,
+and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code> ; although I couldn&#8217;t find a reference stating this).</p>
+</div>
+<div class="paragraph">
+<p>Some charts may however use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">SI metric notation</a> (<code>1 KB = 1000 B</code>).</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+Actually, 227,893 KB is only 222 MB. For ease of discussion, I&#8217;ll truncate the KBs part by 1,000
+in this chapter; pretend I&#8217;m a disk manufacturer.
+</blockquote>
+<div class="attribution">
+&#8212; Java Performance: The Definitive Guide<br>
+<cite>Getting the Most Out of Your Code (1st Edition)</cite>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Thanks to this <a href="https://twitter.com/fleming_matt/status/1282729134481965064?s=21">tweet</a>.</em></p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<details>
+<summary class="title">Fixing the issue without understanding</summary>
+<div class="content">
+<div class="paragraph">
+<p>The application that became problematic runs on a Kubernetes cluster. As mentioned above
+this application worked fine before, and the people who handled the issue at that time were
+not well-prepared, and I certainly wouldn&#8217;t be prepared much better, that means memory
+limits until it worked. <code>5 GiB</code> proved to be the lucky number.
+It was the right approach at this moment in this context as it quickly resolved production
+issues.</p>
+</div>
+<div class="listingblock">
+<div class="title">memory limits in the deployment object of the app</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: java-app
+spec:
+  template:
+    spec:
+      containers:
+      - name: java-app
+        resources:
+          limits:
+            cpu: "8"
+            memory: 5Gi <i class="conum" data-value="1"></i><b>(1)</b>
+          requests:
+            cpu: "3"
+            memory: 3Gi</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The working memory limit.</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>The resources tree is equivalent to this docker params</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">docker run \
+  --cpu-shares=3 \ <i class="conum" data-value="1"></i><b>(1)</b>
+  --cpu-quota=8 \ <i class="conum" data-value="2"></i><b>(2)</b>
+  --memory=5g \ <i class="conum" data-value="3"></i><b>(3)</b>
+  ...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>cpu request, this is the relative weight of that container for CPU time</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>cpu limit, this limits the CPU time of container’s processes, that means throttling</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>memory limit, tells the OS to kill (<code>oomkill</code>) the container&#8217;s processes if they hit this limit</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The memory request is only used for scheduling the pod on a node.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>However, while increasing memory limit work this is not satisfactory because :</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>This number comes from trial and error.</p>
+</li>
+<li>
+<p>This application worked with a <code>2 GiB</code> heap, <code>5 GiB</code> looks greedy.</p>
+</li>
+<li>
+<p>Why this his number work is not understood.</p>
+</li>
+</ol>
+</div>
+</div>
+</details>
+<div class="paragraph">
+<p><em>Now let&#8217;s answer this question: What is consuming the memory ?</em></p>
+</div>
+<div class="sect1">
+<h2 id="_diagnosis"><a class="anchor" href="#_diagnosis"></a><a class="link" href="#_diagnosis">Diagnosis</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_reading_the_jvm_settings"><a class="anchor" href="#_reading_the_jvm_settings"></a><a class="link" href="#_reading_the_jvm_settings">Reading the JVM settings</a></h3>
+<div class="paragraph">
+<p>What most of are doing when assessing java memory is to look at the Java heap.
+In particular if the process is started with <code>\*RAMPercentage</code>, the JVM will compute
+the actual values from the <code>cgroup</code>s. In this case using <code>jcmd</code> it&#8217;s possible to access
+the runtime values.</p>
+</div>
+<div class="paragraph">
+<p>For example with a memory limit of <code>5 GiB</code>, if a process is started with
+<code>-XX:InitialRAMPercentage=85.0</code> and <code>-XX:MaxRAMPercentage=85.0</code> only the <code>VM.flags</code>
+will output this :</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>VM.flags</code> in k8s</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) VM.flags | tr ' ' '\n'
+6:
+...
+-XX:InitialHeapSize=4563402752 <i class="conum" data-value="3"></i><b>(3)</b>
+-XX:InitialRAMPercentage=85.000000 <i class="conum" data-value="1"></i><b>(1)</b>
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=4563402752 <i class="conum" data-value="4"></i><b>(4)</b>
+-XX:MaxNewSize=2736783360
+-XX:MaxRAMPercentage=85.000000 <i class="conum" data-value="2"></i><b>(2)</b>
+-XX:MinHeapDeltaBytes=2097152
+-XX:NativeMemoryTracking=summary
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Initial RAM at 85%</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Max RAM at 85%</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Initial heap size ~<code>4.25 GiB</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Max heap size ~<code>4.25 GiB</code></td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Do not confuse the <code>VM.flags</code> command which will output parameters calculated <strong>from</strong> the
+<em>command line</em> and <code>VM.command_line</code> which will print the <strong>raw</strong> <em>command line</em>.</p>
+</div>
+<div class="paragraph">
+<p>The other Hotspot flag values comes are JVM defaults (which may either be static values,
+or computed from internal heuristics).</p>
+</div>
+<div class="paragraph">
+<p>That beaing said Java heap is only a part of the process memory usage.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_reading_the_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container">Reading the memory footprint of the java process in the container</a></h3>
+<div class="paragraph">
+<p>The most critical thing to look at, in particular in a container, is the <em>resident set size</em>,
+it can be obtained in various ways, using <code>ps</code>, <code>top</code> or reading the <code>/proc</code> filesystem.</p>
+</div>
+<div class="listingblock primary">
+<div class="title"><code>ps</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ ps o pid,rss -p $(pidof java)
+PID   RSS
+  6 4701120</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title"><code>/proc/{pid}/status</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ cat /proc/$(pgrep java)/status | grep VmRSS
+VmRSS:	 4701120 kB</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On this process the RSS is <code>4.6 GiB</code>. This means that the process uses at least <code>0.35 GiB</code>
+of non Java heap memory, I&#8217;ll refer to this memory as native memory.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s dig a bit to understand this number <code>4701120 KiB</code>.</p>
+</div>
+<div class="sect3">
+<h4 id="_the_java_memory_zones"><a class="anchor" href="#_the_java_memory_zones"></a><a class="link" href="#_the_java_memory_zones">The java memory zones</a></h4>
+<div class="paragraph">
+<p>In order to understand how the Java process memory is consumed, we need to use
+<em>Native Memory Tracking</em>, fortunately the application has been started with
+<code>-XX:NativeMemoryTracking=summary</code> which produces an overview of the different
+memory zones that a Java process uses.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10% performance overhead.
+The <em>summary</em> mode only has an impact in memory usage as shown below.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+It is necessary to note that while the above command indicate a scale in <code>KB</code> for the JVM
+it really means <code>KiB</code>.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title"><code>VM.native_memory</code> instant snapshot</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) VM.native_memory
+6:
+
+Native Memory Tracking:
+
+Total: reserved=7168324KB, committed=5380868KB                               <i class="conum" data-value="1"></i><b>(1)</b>
+-                 Java Heap (reserved=4456448KB, committed=4456448KB)        <i class="conum" data-value="2"></i><b>(2)</b>
+                            (mmap: reserved=4456448KB, committed=4456448KB)
+
+-                     Class (reserved=1195628KB, committed=165788KB)         <i class="conum" data-value="3"></i><b>(3)</b>
+                            (classes #28431)                                 <i class="conum" data-value="4"></i><b>(4)</b>
+                            (  instance classes #26792, array classes #1639)
+                            (malloc=5740KB #87822)
+                            (mmap: reserved=1189888KB, committed=160048KB)
+                            (  Metadata:   )
+                            (    reserved=141312KB, committed=139876KB)
+                            (    used=135945KB)
+                            (    free=3931KB)
+                            (    waste=0KB =0.00%)
+                            (  Class space:)
+                            (    reserved=1048576KB, committed=20172KB)
+                            (    used=17864KB)
+                            (    free=2308KB)
+                            (    waste=0KB =0.00%)
+
+-                    Thread (reserved=696395KB, committed=85455KB)
+                            (thread #674)
+                            (stack: reserved=692812KB, committed=81872KB)    <i class="conum" data-value="5"></i><b>(5)</b>
+                            (malloc=2432KB #4046)
+                            (arena=1150KB #1347)
+
+-                      Code (reserved=251877KB, committed=105201KB)          <i class="conum" data-value="6"></i><b>(6)</b>
+                            (malloc=4189KB #11718)
+                            (mmap: reserved=247688KB, committed=101012KB)
+
+-                        GC (reserved=230739KB, committed=230739KB)          <i class="conum" data-value="7"></i><b>(7)</b>
+                            (malloc=32031KB #63631)
+                            (mmap: reserved=198708KB, committed=198708KB)
+
+-                  Compiler (reserved=5914KB, committed=5914KB)              <i class="conum" data-value="8"></i><b>(8)</b>
+                            (malloc=6143KB #3281)
+                            (arena=18014398509481755KB #5)
+
+-                  Internal (reserved=24460KB, committed=24460KB)           <i class="conum" data-value="10"></i><b>(10)</b>
+                            (malloc=24460KB #13140)
+
+-                     Other (reserved=267034KB, committed=267034KB)         <i class="conum" data-value="11"></i><b>(11)</b>
+                            (malloc=267034KB #631)
+
+-                    Symbol (reserved=28915KB, committed=28915KB)            <i class="conum" data-value="9"></i><b>(9)</b>
+                            (malloc=25423KB #330973)
+                            (arena=3492KB #1)
+
+-    Native Memory Tracking (reserved=8433KB, committed=8433KB)
+                            (malloc=117KB #1498)
+                            (tracking overhead=8316KB)
+
+-               Arena Chunk (reserved=217KB, committed=217KB)
+                            (malloc=217KB)
+
+-                   Logging (reserved=7KB, committed=7KB)
+                            (malloc=7KB #266)
+
+-                 Arguments (reserved=19KB, committed=19KB)
+                            (malloc=19KB #521)
+
+-                    Module (reserved=1362KB, committed=1362KB)
+                            (malloc=1362KB #6320)
+
+-              Synchronizer (reserved=837KB, committed=837KB)
+                            (malloc=837KB #6877)
+
+-                 Safepoint (reserved=8KB, committed=8KB)
+                            (mmap: reserved=8KB, committed=8KB)
+
+-                   Unknown (reserved=32KB, committed=32KB)
+                            (mmap: reserved=32KB, committed=32KB)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This shows a <code>reserved</code> value (<code>7168324 KiB</code> (~<code>6.84 GiB</code>)), it&#8217;s the amount of addressable memory
+(all OS types) on that container, and a <code>committed</code> value (<code>4456448 KiB</code> (~<code>4.25 GiB</code>)) that represents
+what the JVM actually asked the OS to allocate.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>Heap</code> zone, note that reserved and committed values are the same <code>4456448 KiB</code> here because our
+<code>InitialRAMPercentage</code> is the same as max. I&#8217;m not sure why this number is different from the VM
+flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>~<code>162 MiB</code> of metaspace.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>How many classes have been loaded : <code>28431</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>There are 674 threads whose stacks are using ~<code>80 MiB</code> at this time.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td><code>Code</code> cache area (assembly of the used methods) ~<code>102 MiB</code> out of ~<code>246 MiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>This section contains <code>GC</code> algorithms internal data structures, this is app is using G1GC which takes ~<code>225 MiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="8"></i><b>8</b></td>
+<td>C1 / C2 compilers (which compile bytecode to assembly) use ~<code>5.8 MiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="9"></i><b>9</b></td>
+<td>The <code>Symbol</code> section contains many things like interned strings and other internal constants for about <code>28.2 MiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="10"></i><b>10</b></td>
+<td>The <code>Internal</code> area takes ~<code>24 MiB</code>. Before Java 11 this area included <code>DirectByteBuffers</code>, but from Java 11 those
+are accounted in the <code>Other</code> zone.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="11"></i><b>11</b></td>
+<td>The <code>Other</code> section after Java 11 includes <code>DirectByteBuffers</code> ~<code>261 MiB</code>.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The remaining areas are much smaller in scale, NMT takes ~<code>8.2 MiB</code> itself, module system usage ~<code>1.3 MiB</code>,
+etc. Also, note that enabling other JVM features may show up if they are activated, like flight recorder.
+<a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
+</div>
+<div class="paragraph">
+<p>There&#8217;s a lot more to read on the
+<a href="https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80">official documentation about NMT</a>
+and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">how to Monitor VM Internal Memory</a>.</p>
+</div>
+<div class="paragraph">
+<p>Yet another worthwhile read on <a href="https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/">native memory tracking</a>
+by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_lets_pause_a_bit_and_revise_memory_management"><a class="anchor" href="#_lets_pause_a_bit_and_revise_memory_management"></a><a class="link" href="#_lets_pause_a_bit_and_revise_memory_management">Let&#8217;s pause a bit and revise memory management</a></h4>
+<div class="paragraph">
+<p>I mentioned it already : the <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it? What exactly means
+<em>committed</em> memory ? Or <em>reserved</em> memory ? How do they relate to each other?</p>
+</div>
+<div class="paragraph">
+<p>First let&#8217;s break down the vocabulary when we talk about memory.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./.asciidoctor/diag-3252bc635491ac7a8a2f4f601fc870a7.png" alt="diag 3252bc635491ac7a8a2f4f601fc870a7" width="650" height="224">
+</div>
+<div class="title">memory zones</div>
+</div>
+<table class="tableblock frame-all grid-all fit-content stretch">
+<caption class="title">Table 1. vocabulary breakdown (<a href="https://stackoverflow.com/a/31178912/48136">source</a>)</caption>
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Address ranges that have been mapped or <code>malloc</code>ed.
+They may or may not be backed by physical or swap due to lazy allocation and paging.
+This applies to the JVM and the OS.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reserved</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> or <code>malloc</code> for a
+particular memory pool. In other words <em>reserved memory</em> represents the maximum addressable memory.
+Those could be referred to as <strong>uncommitted</strong>.
+This applies to the JVM and the OS.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OS memory pages which are currently in physical ram. This means codes, stacks, part of the
+committed memory pools but also portions of <code>mmap</code>ed files which have recently been accessed
+and allocations outside the control of the JVM.
+This only relate to the OS.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Virtual</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
+files or shared memory. This number is rarely informative since the JVM will reserve large address
+ranges upfront. We can see this number as the pessimistic memory usage.
+This only relate to the OS.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The graph above does not show resident memory, indeed, the above graph is mostly about the
+layout of the address space of a (Java) process. However, to talk about resident memory
+it&#8217;s necessary to remind how OSes, and Linux in this article, manage memory through the concept of
+<strong>paging</strong>.</p>
+</div>
+<div class="paragraph">
+<p>The virtual address space is divided into smaller chunks called <em>pages</em>. I only saw pages of <code>4 KiB</code>
+but other sizes exists and may even co-exists (e.g. having pages of 4 KiB mixed with 2 MiB pages), it
+all depends on the processor architecture. Anyway that&#8217;s something that is out of scope for this
+writing. What is interesting is how paging and RSS relate to each other.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./.asciidoctor/diag-96557e74a51c4d49ee1705ceb7623a59.png" alt="diag 96557e74a51c4d49ee1705ceb7623a59" width="660" height="532">
+</div>
+<div class="title">paging (for a single process)</div>
+</div>
+<div class="paragraph">
+<p>As shown in the graph above the addressable space of a process is divided in <em>pages</em>.
+These pages have to be stored physically, either in RAM or on disk. The real memory
+address is naturally different from this virtual address space for the process.
+It&#8217;s the job of the MMU (Memory Management Unit) to perform the translation between
+virtual addresses and physical addresses.</p>
+</div>
+<div class="paragraph">
+<p>One of the advantage of virtual memory is providing to a process the illusion of very
+big memory. The trick behind that is that not all memory is used at the same time,
+thus allowing:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>to not use physical memory frames if the process didn&#8217;t yet <em>touch</em> this page</p>
+</li>
+<li>
+<p>to use a slower device to store pages, usually a disk, in special part called <em>swap</em></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To understand <em>RSS</em> the diagram above is enough as it shows where
+used process memory may <em>resides</em>, in RAM or in a secondary storage (like a disk).
+The <em>resident set size</em> which means the total size of pages of a process either
+in RAM or in secondary storage, that is without untouched/unused pages.
+This contrasts with VSZ or virtual size which includes the total address space of
+a program, which can be very large.</p>
+</div>
+<div class="paragraph">
+<p><em>If you want to dive how the whole paging thing works head to
+system courses where they usually explain in depth how everything interacts.</em></p>
+</div>
+<div class="paragraph">
+<p>To put things in perspective I&#8217;d like to explain one last thing to memory management
+with the JVM perspective.</p>
+</div>
+<div class="sect4">
+<h5 id="_reserved_and_committed_memory_in_the_jvm"><a class="anchor" href="#_reserved_and_committed_memory_in_the_jvm"></a><a class="link" href="#_reserved_and_committed_memory_in_the_jvm">Reserved and committed memory in the JVM</a></h5>
+<div class="paragraph">
+<p>As mentioned above one of the idea of the <strong>reserved</strong> / <strong>committed</strong> memory is to
+provide the illusion of a single <strong>continuous</strong> memory space.</p>
+</div>
+<div class="paragraph">
+<p>Concretely for the JVM it means that the <em>committed</em> memory is immediately usable,
+and the <em>reserved</em> memory part means memory <em>put on hold</em> and not usable.
+Now with a better understanding of how memory works let&#8217;s look again at the output
+of the <code>VM.native_memory</code> command to make more sense of it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">Total: reserved=7168324KB, committed=5380868KB                               <i class="conum" data-value="1"></i><b>(1)</b>
+-                 Java Heap (reserved=4456448KB, committed=4456448KB)        <i class="conum" data-value="2"></i><b>(2)</b>
+                            (mmap: reserved=4456448KB, committed=4456448KB)
+...
+-                     Class (reserved=1195628KB, committed=165788KB)         <i class="conum" data-value="3"></i><b>(3)</b>
+...
+-                    Thread (reserved=696395KB, committed=85455KB)           <i class="conum" data-value="4"></i><b>(4)</b>
+...
+-                      Code (reserved=251877KB, committed=105201KB)
+...
+-                        GC (reserved=230739KB, committed=230739KB)          <i class="conum" data-value="5"></i><b>(5)</b>
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The process addressable memory and what is currently committed.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Here the NMT also show the same abstractions of committed and reserved memory,
+on this process these values are the same because the <code>InitialHeapSize</code> (<code>Xms</code>) and
+<code>MaxHeapSize</code> (<code>Xmx</code>)are the same. If these boundaries were different it is likely
+the heap zone would show different values for reserved and committed memory; the
+JVM will increase the committed memory if necessary, and can even uncommit some of
+this memory if the GC algorithm allows it.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Class, Code spaces works the same way, specifics JVM flags control the reserved
+and committed memory.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Java Threads are allocated within the process memory, the JVM flags only control
+the size of a thread. I will expand on this later.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Then comes the other memory space of the JVM, like the GC internal structures, who
+are using a different memory management, these zones usually have the same reserved/committed
+amount.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Iterating on the graph above the memory is split in smaller regions.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./.asciidoctor/diag-abb4c3ae90873d437ccfb49eaadb47e5.png" alt="diag abb4c3ae90873d437ccfb49eaadb47e5" width="770" height="266">
+</div>
+<div class="title">JVM memory zones</div>
+</div>
+<div class="paragraph">
+<p>This immediately leads to new vocabulary :</p>
+</div>
+<table class="tableblock frame-all grid-all fit-content stretch">
+<caption class="title">Table 2. Java memory vocabulary</caption>
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Used Heap</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects and to a certain extent object
+that are unreachable but not yet collected by the GC. This only relate to the JVM Java heap.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed heap</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The current limit if the writable memory to write objects to.
+It&#8217;s the current workspace of the GC. Upon process start this value should be equal to <code>Xms</code>,
+then the GC may expand it up to the Java heap reserved memory, or in Java terms the heap max size,
+or <code>Xmx</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Heap Max Size</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The maximum amount of memory that the Java heap can occupy.
+It&#8217;s the <em>reserved</em> amount in Java Heap section of the NMT output.
+If the application requires more memory this will result in a <code>OutOfMemoryError</code>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>So committed stands for writable memory and reserved stands for total addressable space
+of the memory. Hiw does it work concretely?</p>
+</div>
+<div class="paragraph">
+<p>The JVM starts by <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444"><em>reserving</em> the memory</a>,
+then parts of this "reserve" will be made available by
+<a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3517-L3531">modifying the memory mappings</a>
+using <code>malloc</code>, <code>mmap</code>, as well as <code>mprotect</code> calls in particular (on Linux).</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_malloc_and_mmap"><a class="anchor" href="#_malloc_and_mmap"></a><a class="link" href="#_malloc_and_mmap"><code>malloc</code> and <code>mmap</code></a></h5>
+<div class="paragraph">
+<p>The <code>malloc</code> and <code>mmap</code> C calls ask the OS to allocate memory. And it&#8217;s the job of the OS to
+provide the application the necessary memory, or fail if not possible.</p>
+</div>
+<div class="paragraph">
+<p>Also, depending on the mapping in particular for <code>mmap</code> the OS can be asked to make a file
+accessible as a memory zone, in short it&#8217;s the kernel that perform IOs, in contrast to perform
+IOs with a file descriptor application side.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="./../static/assets/maxrampercentage/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"></span></p>
+</div>
+<details>
+<summary class="title">Differences between <a href="https://linux.die.net/man/3/malloc"><code>malloc</code></a> and <a href="http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html"><code>mmap</code></a></summary>
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><code>malloc</code> may <em>recycle</em> previously used memory that was released by <code>free</code>,
+and perform a system call to get memory only required. It&#8217;s part of the C standard.</p>
+</li>
+<li>
+<p><code>malloc</code> allows you pass a size and that&#8217;s basically it.</p>
+</li>
+<li>
+<p><code>mmap</code> is a system call. It&#8217;s not part of the C standard, and may not be available
+on all platforms.</p>
+</li>
+<li>
+<p><code>mmap</code> can both map private memory or shared memory (as in shared with other processes).
+Those are called <em>anonymous mapping</em> using flag <code>MAP_ANONYMOUS</code>.</p>
+</li>
+<li>
+<p><code>mmap</code> can also interact with disk files on specific ranges, without having
+a file descriptor.</p>
+</li>
+<li>
+<p><code>mmap</code> can be set with various flags that are used to control how this memory
+mapping behave.</p>
+</li>
+<li>
+<p>Both have their performance characteristics, <code>malloc</code> is usually preferred for
+few and small allocations, <code>mmap</code> is preferred for few but large allocations.</p>
+</li>
+</ul>
+</div>
+</div>
+</details>
+<div class="paragraph">
+<p>When the JVM bootstrap, it requests a main memory of a certain size with the <code>PROT_NONE</code>
+flag to prevent any access. This has the effect to tell the OS that this mapping should
+not be backed by physical memory. Then when memory regions are needed, typically during
+bootstrap, or when new java threads are created, the JVM changes the mapping for a
+sub-range of that main memory by removing the <code>PROT_NONE</code> flag.</p>
+</div>
+<details>
+<summary class="title">Simple code example</summary>
+<div class="content">
+<div class="paragraph">
+<p>To help you understand here&#8217;s a very simple program:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>that <strong>reserves</strong> <code>16 MiB</code> via a <code>malloc</code> call and <code>16 MiB</code> via the <code>mmap</code> call</p>
+</li>
+<li>
+<p>then this program will invoke <code>ps</code> to show its actual memory consumption (RSS)</p>
+</li>
+<li>
+<p>then it will touch/use memory by setting a bit every <code>1 KiB</code></p>
+</li>
+<li>
+<p>then this program will invoke <code>ps</code> again to show its actual memory consumption (RSS)</p>
+</li>
+</ol>
+</div>
+<div class="listingblock primary">
+<div class="title">memory example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/mman.h&gt;
+
+#define HEAP_SIZE (16 * 1024 * 1024 * sizeof(char))
+
+int main (int argc, char *argv[])
+{
+  char *heap1 = malloc(HEAP_SIZE);
+  char *heap2 = mmap(0, HEAP_SIZE, PROT_NONE|PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, -1, 0);
+
+  pid_t pid = getpid();
+  printf("pid: %d\n", pid);
+
+  char buffer[50];
+
+  sprintf(buffer, "ps -p %d -o rss,vsz,command", pid);
+  printf("Executing: '%s'\n", buffer);
+  system(buffer);
+
+  printf("Writing to some pages, but not all\n");
+
+  for (char* i = heap1; i &lt; (heap1 + HEAP_SIZE / 16); i += 1024) {
+    *i = 0x01;
+  }
+  for (char* i = heap2; i &lt; (heap2 + HEAP_SIZE / 8); i += 1024) {
+    *i = 0x01;
+  }
+
+  sprintf(buffer, "ps -p %d -o rss,vsz,command", pid);
+  printf("Executing: '%s'\n", buffer);
+  system(buffer);
+
+  free(heap1);
+  munmap(heap2, HEAP_SIZE);
+
+  return 0;
+}</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">result</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ gcc -Wall -Wpedantic -o heap-malloc heap-malloc.c &amp;&amp; ./heap-mem
+pid: 4301956
+
+Executing: 'ps -p 2904 -o rss,vsz,command'
+   RSS      VSZ COMMAND
+   708  4301956 ./test-mem
+Writing to some pages, but not all
+Executing: 'ps -p 2904 -o rss,vsz,command'
+   RSS      VSZ COMMAND
+  3780  4301956 ./test-mem</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As the <code>stdout</code> shows the RSS of this program is very low until memory is actually written to. At the same time
+the virtual memory is much, much higher; it means this simple program could address up to
+about <code>4 GiB</code>.</p>
+</div>
+<div class="paragraph">
+<p><em>This program ran on a MacBook Pro 2018 running an Intel Core i7 CPU.</em></p>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_move_elsewhere"><a class="anchor" href="#_move_elsewhere"></a><a class="link" href="#_move_elsewhere">Move elsewhere</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_virtual_memory_and_paging"><a class="anchor" href="#_virtual_memory_and_paging"></a><a class="link" href="#_virtual_memory_and_paging">virtual memory and paging</a></h3>
+<div class="paragraph">
+<p><strong>Virtual memory</strong> is a memory management scheme that is used by most operating systems ;
+it allows programs to use memory without dealing with hardware, or other concerns like
+sharing the memory resource. In doing so it allows programs to request more memory than
+available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
+called <strong>pages</strong>. For any given page in the virtual memory, and depending on the application(s)
+the OS may:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>make this page resident in physical memory, if something has be written into it</p>
+</li>
+<li>
+<p>do nothing if a page is not used, this page is virtually available</p>
+</li>
+<li>
+<p>move a page from physical memory to swap, if the OS thinks there&#8217;s not enough room for other pages</p>
+</li>
+<li>
+<p>map ta portion of a file to this page</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="./../static/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging" title="Simple overview of OS paging"></span></p>
+</div>
+<div class="paragraph">
+<p>E.g at the moment this report was executed the committed memory is <code>5380868 KiB</code> (<code>5.13 GiB</code>) while
+the process RSS is <code>4701120 KiB</code>. The difference relates to how <code>mmap</code> works (on Linux), memory
+pages are only backed by physical memory once they&#8217;re written to.</p>
+</div>
+<div class="paragraph">
+<p>Some people may have heard of the <code>-XX:+AlwaysPreTouch</code> Hotspot option. This option tells
+the JVM to <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829">write a zero to every OS memory pages</a>.
+This option has the effect of avoiding physical memory commit latencies at runtime, however this
+only affects the heap memory zone. Other areas like thread stack or metaspace work differently.</p>
+</div>
+<div class="paragraph">
+<p>In other words that means parts of the <strong>committed</strong> memory shown in NMT is not <strong>resident</strong> and as such
+RSS counter may not reflect what is een in the <strong>committed</strong> memory.</p>
+</div>
+<div class="paragraph">
+<p>Now that we revised some basics, let&#8217;s go back to the trail.</p>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/2020/05/23/maxrampercentage-is-not-what-i-wished-for/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">MaxRamPercentage is not what I wished for</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+    
+
+
+
+    </body>
+</html>
+
