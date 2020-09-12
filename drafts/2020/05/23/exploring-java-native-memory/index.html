@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 45 min read
+    <i class="fas fa-clock"></i> 73 min read
 
     
     
@@ -1195,6 +1195,524 @@ about <code>4 GiB</code>.</p>
 </div>
 </div>
 </details>
+<div class="paragraph">
+<p>Now after some memory management refresh, let&#8217;s go back to the main topic of this blog post.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_exploring_what_nmt_does_not_show"><a class="anchor" href="#_exploring_what_nmt_does_not_show"></a><a class="link" href="#_exploring_what_nmt_does_not_show">Exploring what NMT does not show</a></h4>
+<div class="paragraph">
+<p>The <code>NativeMemoryTracking</code> output showed memory usage of the JVM, but it didn&#8217;t report
+<code>MappedByteBuffers</code>, those are the files that are <em>memory mapped</em> to the virtual memory
+of a process as explained above via the native <code>mmap</code> call.
+Memory pages of the file content that have been placed in RAM by the OS are accounted in RSS.</p>
+</div>
+<div class="paragraph">
+<p>First let&#8217;s see the memory mappings of a process using the handy command : <code>pmap -x &lt;pid&gt;</code>.
+<code>pmap</code> is part of the <a href="https://gitlab.com/procps-ng/procps/"><code>procps</code></a> utilities, that contains
+other tools like: <code>ps</code>, <code>pgrep</code>, <code>watch</code> or <code>vmstat</code>, so it&#8217;s likely that no additional
+installation is required which is desirable when the container filesystem is read-only.</p>
+</div>
+<div class="paragraph">
+<p>For example on the same process on which I showed the native memory.</p>
+</div>
+<div class="listingblock">
+<div class="title">process memory mappings</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x $(pgrep java)
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
+-XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
+-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- java
+0000000000600000       4       4       4 r---- java
+0000000000601000       4       4       4 rw--- java
+000000000216f000     404     272     272 rw---   [ anon ]
+00000006f0000000 4476620 3128252 3128252 rw---   [ anon ]
+00000008013b3000 1028404       0       0 -----   [ anon ]
+00007fc5de9ea000      16       0       0 -----   [ anon ]
+00007fc5de9ee000    1012     104     104 rw---   [ anon ]
+00007fc5deaeb000      16       0       0 -----   [ anon ]
+00007fc5deaef000    1012      24      24 rw---   [ anon ]
+00007fc5debec000      16       0       0 -----   [ anon ]
+00007fc5debf0000    1012      92      92 rw---   [ anon ]
+00007fc5deced000      16       0       0 -----   [ anon ]
+00007fc5decf1000    1012     100     100 rw---   [ anon ]
+00007fc5dedee000      16       0       0 -----   [ anon ]
+00007fc5dedf2000    1012     100     100 rw---   [ anon ]
+00007fc5deeef000      16       0       0 -----   [ anon ]
+00007fc5deef3000    1012     100     100 rw---   [ anon ]
+00007fc5deff0000      16       0       0 -----   [ anon ]
+00007fc5deff4000    1012     100     100 rw---   [ anon ]
+00007fc5df0f1000      16       0       0 -----   [ anon ]
+00007fc5df0f5000    1012     100     100 rw---   [ anon ]
+00007fc5df1f2000      16       0       0 -----   [ anon ]
+00007fc5df1f6000    1012     100     100 rw---   [ anon ]
+00007fc5df2f3000      16       0       0 -----   [ anon ]
+00007fc5df2f7000    1012     100     100 rw---   [ anon ]
+00007fc5df3f4000      16       0       0 -----   [ anon ]
+00007fc5df3f8000    1012     100     100 rw---   [ anon ]
+00007fc5df4f5000      16       0       0 -----   [ anon ]
+00007fc5df4f9000    1012     100     100 rw---   [ anon ]
+00007fc5df5f6000      16       0       0 -----   [ anon ]
+00007fc5df5fa000    1012     100     100 rw---   [ anon ]
+
+...
+
+00007fca48ba9000   17696   14876       0 r-x-- libjvm.so
+00007fca49cf1000    2044       0       0 ----- libjvm.so
+00007fca49ef0000     764     764     764 r---- libjvm.so
+00007fca49faf000     232     232     208 rw--- libjvm.so
+00007fca49fe9000     352     320     320 rw---   [ anon ]
+00007fca4a041000     136     136       0 r---- libc-2.28.so
+00007fca4a063000    1312    1140       0 r-x-- libc-2.28.so
+00007fca4a1ab000     304     148       0 r---- libc-2.28.so
+00007fca4a1f7000       4       0       0 ----- libc-2.28.so
+00007fca4a1f8000      16      16      16 r---- libc-2.28.so
+00007fca4a1fc000       8       8       8 rw--- libc-2.28.so
+00007fca4a1fe000      16      16      16 rw---   [ anon ]
+00007fca4a202000       4       4       0 r---- libdl-2.28.so
+00007fca4a203000       4       4       0 r-x-- libdl-2.28.so
+00007fca4a204000       4       4       0 r---- libdl-2.28.so
+00007fca4a205000       4       4       4 r---- libdl-2.28.so
+00007fca4a206000       4       4       4 rw--- libdl-2.28.so
+00007fca4a207000     100     100       0 r-x-- libjli.so
+00007fca4a220000    2048       0       0 ----- libjli.so
+00007fca4a420000       4       4       4 r---- libjli.so
+00007fca4a421000       4       4       4 rw--- libjli.so
+00007fca4a422000      24      24       0 r---- libpthread-2.28.so
+00007fca4a428000      60      60       0 r-x-- libpthread-2.28.so
+00007fca4a437000      24       0       0 r---- libpthread-2.28.so
+00007fca4a43d000       4       4       4 r---- libpthread-2.28.so
+00007fca4a43e000       4       4       4 rw--- libpthread-2.28.so
+00007fca4a43f000      16       4       4 rw---   [ anon ]
+00007fca4a443000       4       4       0 r---- LC_IDENTIFICATION
+00007fca4a444000       4       0       0 -----   [ anon ]
+00007fca4a445000       4       0       0 r----   [ anon ]
+00007fca4a446000       8       8       8 rw---   [ anon ]
+00007fca4a448000       4       4       0 r---- ld-2.28.so
+00007fca4a449000     120     120       0 r-x-- ld-2.28.so
+00007fca4a467000      32      32       0 r---- ld-2.28.so
+00007fca4a46f000       4       4       4 r---- ld-2.28.so
+00007fca4a470000       4       4       4 rw--- ld-2.28.so
+00007fca4a471000       4       4       4 rw---   [ anon ]
+00007ffe28536000     140      40      40 rw---   [ stack ]
+00007ffe28582000      12       0       0 r----   [ anon ]
+00007ffe28585000       8       4       0 r-x--   [ anon ]
+ffffffffff600000       4       0       0 r-x--   [ anon ]
+---------------- ------- ------- -------
+total kB         24035820 4776860 4720796</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To select the file mappings we can filter on the
+<a href="https://www.kernel.org/doc/Documentation/filesystems/proc.txt">access permissions</a>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>r-</code>: readable memory mapping</p>
+</li>
+<li>
+<p><code>w</code>: writable memory mapping</p>
+</li>
+<li>
+<p><code>x</code>: executable memory mapping</p>
+</li>
+<li>
+<p><code>s</code> or <code>p</code> : shared memory mapping or private mapping. <code>/proc/&lt;pid&gt;/maps</code></p>
+</li>
+</ul>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p>On a side note, <code>pmap</code> may show another mapping mode which I barely found any reference of,
+here&#8217;s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a>
+and <a href="https://linux.die.net/man/2/mmap">here</a></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>R</code>: if set, the map has no swap space reserved (<code>MAP_NORESERVE</code> flag of <code>mmap</code>).
+This means that we can get a segmentation fault by accessing that memory if it has not
+already been mapped to physical memory, and if the system is out of physical memory.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p><em>I was a bit unfamiliar with <code>pmap</code>, reading <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">this process memory blog</a>
+helped me with this command.</em></p>
+</div>
+<div class="paragraph">
+<p>At this time the focus is to see what are the memory mapped files with the JVM.
+The <code>Mapping</code> column on the of <code>pmap -x $(pgrep java)</code> can be parsed to identify
+file mappings, but this is brittle and unnecessary, one can simply look at
+the output of <code>pmap -X $(pgrep java)</code> (notice the big <code>X</code>) or even at the
+<code>/proc/$(pidof java)/maps</code> content looking for a non-zero value of the <code>inode</code>
+column inidcating this is a file.</p>
+</div>
+<div class="paragraph">
+<p>Using the output of <code>pmap -X $(pgrep java)</code> and selecting the matching lines
+with <code>awk</code> this is <em>easy</em>:</p>
+</div>
+<div class="listingblock">
+<div class="title">Shared application memory mapped files</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -X $(pidof java) | awk '{ if (NR &lt;= 2 || $5 &gt;0 ) \ <i class="conum" data-value="1"></i><b>(1)</b>
+  printf "%12s %8s %8s %4s %s\n", \ <i class="conum" data-value="2"></i><b>(2)</b>
+  $1, \
+  $6, \
+  $7, \
+  $2, \
+  $19 }' <i class="conum" data-value="2"></i><b>(2)</b>
+          7: -Djava.awt.headless=true -XX:NativeMemoryTracking=summary /usr/bin/java
+     Address     Size      Rss Perm Mapping <i class="conum" data-value="3"></i><b>(3)</b>
+561ddb94a000        4        4 r-xp java
+561ddbb4b000        4        4 r--p java
+561ddbb4c000        4        4 rw-p java
+7f355521f000        4        4 r--s instrumentation9549273990865322165.jar
+7f355964d000        4        4 r--s instrumentation14393425676176063484.jar
+7f3559e50000     1160     1160 r--s dd-java-agent.jar
+7f355a372000      256      192 r-xp libsunec.so
+7f355a3b2000     2048        0 ---p libsunec.so
+7f355a5b2000       20       20 r--p libsunec.so
+7f355a5b7000        8        8 rw-p libsunec.so
+7f355a7b9000       16       16 r--p libresolv-2.28.so
+7f355a7bd000       52       52 r-xp libresolv-2.28.so
+7f355a7ca000       16       16 r--p libresolv-2.28.so
+7f355a7ce000        4        0 ---p libresolv-2.28.so
+7f355a7cf000        4        4 r--p libresolv-2.28.so
+7f355a7d0000        4        4 rw-p libresolv-2.28.so
+7f355a7d3000        4        4 r--p libnss_dns-2.28.so
+7f355a7d4000       16       16 r-xp libnss_dns-2.28.so
+7f355a7d8000        4        0 r--p libnss_dns-2.28.so
+7f355a7d9000        4        4 r--p libnss_dns-2.28.so
+7f355a7da000        4        4 rw-p libnss_dns-2.28.so
+7f355a7dd000        4        4 r--s instrumentation13129117816180832587.jar
+7f355a7de000        8        8 r-xp libextnet.so
+7f355a7e0000     2044        0 ---p libextnet.so
+7f355a9df000        4        4 r--p libextnet.so
+7f355b9e9000        4        4 r--s newrelic-bootstrap1151474907525430822.jar
+7f355bfea000       24       24 r-xp libmanagement_ext.so
+7f355bff0000     2044        0 ---p libmanagement_ext.so
+7f355c1ef000        4        4 r--p libmanagement_ext.so
+7f355c1f0000        4        4 rw-p libmanagement_ext.so
+7f355c1f1000       16       16 r-xp libmanagement.so
+7f355c1f5000     2048        0 ---p libmanagement.so
+7f355c3f5000        4        4 r--p libmanagement.so
+7f355c5f7000        8        8 r--s newrelic-weaver-api14962018995408739070.jar
+7f355c5f9000       12       12 r--s newrelic-api8237374132620194936.jar
+7f355c5fc000        4        4 r--s newrelic-opentracing-bridge6621669571490510163.jar
+7f355c5fd000       16       16 r--s agent-bridge7978421659510986627.jar
+7f355c601000       88       88 r-xp libnet.so
+7f355c617000     2048        0 ---p libnet.so
+7f355c817000        4        4 r--p libnet.so
+7f355c818000        4        4 rw-p libnet.so
+7f355c819000       64       64 r-xp libnio.so
+7f355c829000     2048        0 ---p libnio.so
+7f355ca29000        4        4 r--p libnio.so
+7f355ca2a000        4        4 rw-p libnio.so
+7f355cf30000      200      128 r--p LC_CTYPE
+7f355cf62000        4        4 r--p LC_NUMERIC
+7f355cf63000        4        4 r--p LC_TIME
+7f355cf64000     1484      156 r--p LC_COLLATE
+7f355d0d7000        4        4 r--p LC_MONETARY
+7f355d0d8000        4        4 r--p SYS_LC_MESSAGES
+7f355d0d9000        4        4 r--p LC_PAPER
+7f355d0da000        4        4 r--p LC_NAME
+7f355d0db000       28       28 r--s gconv-modules.cache
+7f357663b000   138232    30036 r--s modules
+7f357ed39000      104       92 r-xp libzip.so
+7f357ed53000     2044        0 ---p libzip.so
+7f357ef52000        4        4 r--p libzip.so
+7f357ef5c000       12       12 r--p libnss_files-2.28.so
+7f357ef5f000       28       28 r-xp libnss_files-2.28.so
+7f357ef66000        8        8 r--p libnss_files-2.28.so
+7f357ef68000        4        0 ---p libnss_files-2.28.so
+7f357ef69000        4        4 r--p libnss_files-2.28.so
+7f357ef6a000        4        4 rw-p libnss_files-2.28.so
+7f357ef71000        4        4 r--p LC_ADDRESS
+7f357ef72000        4        4 r--p LC_TELEPHONE
+7f357ef73000        4        4 r--p LC_MEASUREMENT
+7f357ef74000       40       40 r-xp libinstrument.so
+7f357ef7e000     2044        0 ---p libinstrument.so
+7f357f17d000        4        4 r--p libinstrument.so
+7f357f17e000        4        4 rw-p libinstrument.so
+7f357f17f000      108       64 r-xp libjimage.so
+7f357f19a000     2048        0 ---p libjimage.so
+7f357f39a000        8        8 r--p libjimage.so
+7f357f39c000        4        4 rw-p libjimage.so
+7f357f39d000      164      164 r-xp libjava.so
+7f357f3c6000     2048        0 ---p libjava.so
+7f357f5c6000        4        4 r--p libjava.so
+7f357f5c7000        4        4 rw-p libjava.so
+7f357f5c9000       68       68 r-xp libverify.so
+7f357f5da000     2044        0 ---p libverify.so
+7f357f7d9000        8        8 r--p libverify.so
+7f357f7dc000        8        8 r--p librt-2.28.so
+7f357f7de000       16       16 r-xp librt-2.28.so
+7f357f7e2000        8        0 r--p librt-2.28.so
+7f357f7e4000        4        4 r--p librt-2.28.so
+7f357f7e5000        4        4 rw-p librt-2.28.so
+7f357f8e7000    17680    15012 r-xp libjvm.so
+7f3580a2b000     2044        0 ---p libjvm.so
+7f3580c2a000      764      764 r--p libjvm.so
+7f3580ce9000      228      228 rw-p libjvm.so
+7f3580d7d000       12       12 r--p libgcc_s.so.1
+7f3580d80000       68       64 r-xp libgcc_s.so.1
+7f3580d91000       12       12 r--p libgcc_s.so.1
+7f3580d94000        4        0 ---p libgcc_s.so.1
+7f3580d95000        4        4 r--p libgcc_s.so.1
+7f3580d96000        4        4 rw-p libgcc_s.so.1
+7f3580d97000       52       52 r--p libm-2.28.so
+7f3580da4000      636      368 r-xp libm-2.28.so
+7f3580e43000      852      128 r--p libm-2.28.so
+7f3580f18000        4        4 r--p libm-2.28.so
+7f3580f19000        4        4 rw-p libm-2.28.so
+7f3580f1a000      548      548 r--p libstdc++.so.6.0.25
+7f3580fa3000      688      192 r-xp libstdc++.so.6.0.25
+7f358104f000      248       64 r--p libstdc++.so.6.0.25
+7f358108d000        4        0 ---p libstdc++.so.6.0.25
+7f358108e000       40       40 r--p libstdc++.so.6.0.25
+7f3581098000        8        8 rw-p libstdc++.so.6.0.25
+7f35810a0000      136      136 r--p libc-2.28.so
+7f35810c2000     1312     1208 r-xp libc-2.28.so
+7f358120a000      304      152 r--p libc-2.28.so
+7f3581256000        4        0 ---p libc-2.28.so
+7f3581257000       16       16 r--p libc-2.28.so
+7f358125b000        8        8 rw-p libc-2.28.so
+7f3581261000        4        4 r--p libdl-2.28.so
+7f3581262000        4        4 r-xp libdl-2.28.so
+7f3581263000        4        4 r--p libdl-2.28.so
+7f3581264000        4        4 r--p libdl-2.28.so
+7f3581265000        4        4 rw-p libdl-2.28.so
+7f3581266000      100      100 r-xp libjli.so
+7f358127f000     2048        0 ---p libjli.so
+7f358147f000        4        4 r--p libjli.so
+7f3581480000        4        4 rw-p libjli.so
+7f3581481000       24       24 r--p libpthread-2.28.so
+7f3581487000       60       60 r-xp libpthread-2.28.so
+7f3581496000       24        0 r--p libpthread-2.28.so
+7f358149c000        4        4 r--p libpthread-2.28.so
+7f358149d000        4        4 rw-p libpthread-2.28.so
+7f35814a2000        4        4 r--p LC_IDENTIFICATION
+7f35814a5000      152      152 r-xp libtcmalloc_minimal.so.4.5.3
+7f35814cb000     2048        0 ---p libtcmalloc_minimal.so.4.5.3
+7f35816cb000        4        4 r--p libtcmalloc_minimal.so.4.5.3
+7f35816cc000        4        4 rw-p libtcmalloc_minimal.so.4.5.3
+7f3581878000        4        4 r--p ld-2.28.so
+7f3581879000      120      120 r-xp ld-2.28.so
+7f3581897000       32       32 r--p ld-2.28.so
+7f358189f000        4        4 r--p ld-2.28.so
+7f35818a0000        4        4 rw-p ld-2.28.so
+     ======= ======== ============== =======
+     6172856        0        0 4245724 <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Filter lines that have an Inode value over 0 and only from the 3rd line (included).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Print only some columns, `pmap -X {pid}&#8217;s output is verbose.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The columns are select to match the output of <code>pmap -x</code>, <code>Size</code> column is in <code>KiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>The last two lines aren&#8217;t filtered out due to my limited skills in <code>awk</code>. They are
+only valid for the complete output. The actual sum of the size and rss columns
+is respectively <code>195336 KiB</code> and <code>52316 KiB</code>.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>What may catch the eye is the multiple mapping for native libraries like <code>libjvm.so</code>.
+The reason is that some part of the file is executable, others are for exchanging information
+with the library.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>r-xp</code> means an executable segment of the library</p>
+</li>
+<li>
+<p><code>r--p</code> means readable memory of the library, e.g. constants</p>
+</li>
+<li>
+<p><code>rw-p</code> means writable memory, this is usually where the process can set global
+variables of thw library.</p>
+</li>
+<li>
+<p><code>---p</code> is a no permission segment, I&#8217;m not sure about this one, but it&#8217;s location
+(between executable and writable segments) makes me think it&#8217;s about buffer overflow
+prevention.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Mapped files represents <code>195.3 MiB</code> of the address space of which <code>52.3 MiB</code> are
+actually resident.</p>
+</div>
+<div class="paragraph">
+<p>Wrapping this information from NMT and memory mapped files leaves us with the
+following <em>equation</em> to estimate the actual memory usage of a process:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files +
+               + Native Libraries + Malloc overhead + ...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Using the <strong>committed</strong> value from the NMT output above, and the <strong>mapping size</strong>
+this breaks out as :</p>
+</div>
+<table class="tableblock frame-all grid-all fit-content stretch">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">230739</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Metaspace</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">165788</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code Cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">105201</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Symbol tables</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">28915</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compiler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5914</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Other JVM structures
+(Internal + NMT + smaller area)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">24460 + 8433 + 217 + 7 + 19 + 1362 + 837 + 8 + 32 = (35375)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread stacks</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">85455</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Direct buffers (Other)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">267034</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Total accounted by NMT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5380868</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mapped files (and native libs)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">195336</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Malloc overhead</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">accounted in NMT</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&#8230;&#8203;</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5576205 KiB</p></td>
+</tr>
+</tfoot>
+</table>
+<div class="paragraph">
+<p><code>5576205 KiB</code> is what this container is supposedly actually using,
+as expected this is way over the RSS (<code>4701120 KiB</code>) and, also over the
+<code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit. Due to paging this pod may not have
+access all pages especially for a big enough heap. A pod like this is healthy
+and can stay that way if the RSS don&#8217;t grow out that much.</p>
+</div>
+<div class="paragraph">
+<p>The <em>proc</em> filesystem is nice as it gives the paging details on the current process.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
+..............................................................................
+ Field    Content
+ size     total program size (pages)		(same as VmSize in status)
+ resident size of memory portions (pages)	(same as VmRSS in status)
+ shared   number of pages that are shared	(i.e. backed by a file, same
+						as RssFile+RssShmem in status)
+ trs      number of pages that are 'code'	(not including libs; broken,
+							includes data segment)
+ lrs      number of pages of library		(always 0 on 2.6)
+ drs      number of pages of data/stack		(including libs; broken,
+							includes library text)
+ dt       number of dirty pages			(always 0 on 2.6)</pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ ps -o rss,vsz,command $(pidof java)
+  RSS    VSZ COMMAND
+4346704 6507368 /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava
+$ cat /proc/$(pidof java)/statm | tr ' ' '\n'
+1626842 <i class="conum" data-value="1"></i><b>(1)</b>
+1086676
+12638
+1
+0
+1283103
+0</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Total size of the adressing space, in other words it&#8217;s the virtual size = 6507368 KiB</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Given a page size is <code>4 KiB</code>, it gives in particular :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>vsz = <code>1626842 * 4 = 6507368</code></p>
+</li>
+<li>
+<p>rss = <code>1086676 * 4 = 4346704</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A process like may grow it&#8217;s memory usage up to <code>1626842</code> pages.
+If the kubernetes memory limit is <code>5 GiB</code> (<code>5242880 KiB</code>) then
+the process will be oom-killed around <code>1310720</code> used pages.</p>
 </div>
 </div>
 </div>
@@ -1246,9 +1764,6 @@ only affects the heap memory zone. Other areas like thread stack or metaspace wo
 <div class="paragraph">
 <p>In other words that means parts of the <strong>committed</strong> memory shown in NMT is not <strong>resident</strong> and as such
 RSS counter may not reflect what is een in the <strong>committed</strong> memory.</p>
-</div>
-<div class="paragraph">
-<p>Now that we revised some basics, let&#8217;s go back to the trail.</p>
 </div>
 </div>
 </div>
