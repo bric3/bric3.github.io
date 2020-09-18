@@ -72,3 +72,58 @@ Anyway it’s always possible to guide the JVM heuristics on this matter, using
 `-XX:+AlwaysActAsServerClassMachine` (which let’s the default GC be used), or 
 by enabling a particular GC algorithm.
 
+
+
+:y: ✔
+:n: ✖︎
+
+== ZGC
+
+.GC concurrent components
+|===
+|Phase                    | Serial | Parallel | G1   | CMS | ZGC
+
+|Marking                  | {n}    | {n}       | {y}* | {y}* | {y}
+|Compaction               | {n}    | {n}       | {n}  | {n}  | {y}
+|Reference Processing     | {n}    | {n}       | {n}  | {n}  | {y}
+|Relocation Set Selection | {n}    | {n}       | {n}  | {n}  | {y}
+|String table cleaning    | {n}    | {n}       | {n}  | {n}  | {y}
+|JNI WeakRef Cleaning     | {n}    | {n}       | {n}  | {n}  | {y}
+|JNI GlobalRef Cleaning   | {n}    | {n}       | {n}  | {n}  | {y}
+|Class Unloading          | {n}    | {n}       | {n}  | {n}  | {y}
+|Thread Stack Scanning    | {n}    | {n}       | {n}  | {n}  | {n}
+
+|===
+
+
+[none]
+- * old gen only
+- ** not yet
+
+https://www.youtube.com/watch?v=88E86quLmQA&feature=youtu.be&list=PLX8CzqL3ArzW8jrkifXxj_DhXjKeGOSuU[source]
+
+.color pointer
+[svgbob,object-pointer]
+----
+                  colors
+                  <----->
++----------------+-+-+-+-+--------------------------------------------------+
+| unused 16 bits | | | | |  object address (44 bits, 16TB address space )   |
++----------------+-+-+-+-+--------------------------------------------------+
+ <----------------------- 64 bit object pointer --------------------------->
+
+----
+
+
+
+ZGC has load barrier (inserted by the JIT at strategic places)
+this barrier checks has a bad _color_, and fix the object reference.
+
+Currently, ZGC time pause time increase with more threads (GC roots),
+because this phase is not concurrent. However, work has begun in
+https://openjdk.java.net/jeps/376[JEP 376], which shows great progress
+so far ith sub-millisecond pauses.
+
+* https://wiki.openjdk.java.net/display/zgc
+* https://docs.oracle.com/en/java/javase/15/gctuning/
+* https://malloc.se[Per Linden's blog]
