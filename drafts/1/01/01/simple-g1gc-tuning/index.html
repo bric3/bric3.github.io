@@ -245,7 +245,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 5 min read
+    <i class="fas fa-clock"></i> 8 min read
 
     
     
@@ -332,6 +332,148 @@ like it has been updated to reflect this trend.</p>
 <code>-XX:+AlwaysActAsServerClassMachine</code> (which let’s the default GC be used), or
 by enabling a particular GC algorithm.</p>
 </div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_zgc"><a class="anchor" href="#_zgc"></a><a class="link" href="#_zgc">ZGC</a></h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. GC concurrent components</caption>
+<colgroup>
+<col style="width: 16.6666%;">
+<col style="width: 16.6666%;">
+<col style="width: 16.6666%;">
+<col style="width: 16.6666%;">
+<col style="width: 16.6666%;">
+<col style="width: 16.667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Phase</th>
+<th class="tableblock halign-left valign-top">Serial</th>
+<th class="tableblock halign-left valign-top">Parallel</th>
+<th class="tableblock halign-left valign-top">G1</th>
+<th class="tableblock halign-left valign-top">CMS</th>
+<th class="tableblock halign-left valign-top">ZGC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Marking</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔*</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔*</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compaction</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reference Processing</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relocation Set Selection</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">String table cleaning</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JNI WeakRef Cleaning</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">JNI GlobalRef Cleaning</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Class Unloading</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✔</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread Stack Scanning</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">✖︎</p></td>
+</tr>
+</tbody>
+</table>
+<div class="ulist none">
+<ul class="none">
+<li>
+<p>* old gen only</p>
+</li>
+<li>
+<p>** not yet</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="https://www.youtube.com/watch?v=88E86quLmQA&amp;feature=youtu.be&amp;list=PLX8CzqL3ArzW8jrkifXxj_DhXjKeGOSuU">source</a></p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./.asciidoctor/object-pointer.svg" alt="object pointer" width="624" height="112">
+</div>
+<div class="title">color pointer</div>
+</div>
+<div class="paragraph">
+<p>ZGC has load barrier (inserted by the JIT at strategic places)
+this barrier checks has a bad <em>color</em>, and fix the object reference.</p>
+</div>
+<div class="paragraph">
+<p>Currently, ZGC time pause time increase with more threads (GC roots),
+because this phase is not concurrent. However, work has begun in
+<a href="https://openjdk.java.net/jeps/376">JEP 376</a>, which shows great progress
+so far ith sub-millisecond pauses.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://wiki.openjdk.java.net/display/zgc" class="bare">https://wiki.openjdk.java.net/display/zgc</a></p>
+</li>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/15/gctuning/" class="bare">https://docs.oracle.com/en/java/javase/15/gctuning/</a></p>
+</li>
+<li>
+<p><a href="https://malloc.se">Per Linden&#8217;s blog</a></p>
+</li>
+</ul>
 </div>
 </div>
 </div>
