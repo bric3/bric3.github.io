@@ -8,6 +8,12 @@ title: "Exploring Java native memory"
 draft: true
 ---
 
+
+CAUTION: Talk about the kubernetes scheduling aspect of setting memory request and limits.
+
+CAUTION: Change _memory zone_ in NMT to memory by JVM components
+
+
 Like many I was happy to see the JDK landed support for containers in Java 9,
 and that it was backported to Java 8 as well. Now the JDK 11 enables this
 support by default. This support make the JVM read information from ``cgroup``s,
@@ -23,7 +29,7 @@ many thanks to authors of these blogs. However I missed the most important part
 `MaxRamPercentage` is **only about the Java heap**, like most blog most on the topic, leaving
 the bigger picture.
 
-If I turnned on blogs first it's because the official documentation doesn't even mention
+If I turned on blogs first it's because the official documentation doesn't even mention
 any `*RAMPercentage` flags:
 
 .Oracle documentation
@@ -90,7 +96,7 @@ the __pod__s started to get _oom killed_.
 ****
 
 
-image:../../static/assets/maxrampercentage/app-jvm-memory-usage.png[]
+image:../static/assets/maxrampercentage/app-jvm-memory-usage.png[JVM memory usage]
 
 On the graph above we can see the trend of the **R**esident **S**et **S**ize in green,
 the Java heap limit (85% of `3 GiB`), and in yellow the current heap usage.
@@ -222,7 +228,7 @@ _command line_ and `VM.command_line` which will print the *raw* _command line_.
 The other Hotspot flag values comes are JVM defaults (which may either be static values,
 or computed from internal heuristics).
 
-That beaing said Java heap is only a part of the process memory usage.
+That being said the Java heap is only a part of the process memory usage.
 
 === Reading the memory footprint of the java process in the container
 
@@ -306,7 +312,7 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
 
 -                  Compiler (reserved=5914KB, committed=5914KB)              <8>
                             (malloc=6143KB #3281)
-                            (arena=18014398509481755KB #5)
+                            (arena=180KB #5)
 
 -                  Internal (reserved=24460KB, committed=24460KB)           <10>
                             (malloc=24460KB #13140)
@@ -360,6 +366,11 @@ flags `-XX:MaxHeapSize=4563402752` though.
 are accounted in the `Other` zone.
 <11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
 
+All possible memory types are defined there in
+https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/memory/allocation.hpp#L114-L141[this enumeration],
+and https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/services/nmtCommon.cpp#L28-L51[here]
+as they appear in the report.
+
 The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
 etc. Also, note that enabling other JVM features may show up if they are activated, like flight recorder.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
@@ -380,7 +391,7 @@ _committed_ memory ? Or _reserved_ memory ? How do they relate to each other?
 First let's break down the vocabulary when we talk about memory.
 
 .memory zones
-[ditaa]
+[ditaa,"memory-zones",opts=inline]
 ----
 
 |<--virtual memory----------------------------------------->|
@@ -436,7 +447,7 @@ writing. What is interesting is how paging and RSS relate to each other.
 
 
 .paging (for a single process)
-[ditaa]
+[ditaa,"memory-paging",opts=inline]
 ----
 
 +-+ touched/used  +-+ untouched/unused
@@ -544,7 +555,7 @@ amount.
 Iterating on the graph above the memory is split in smaller regions.
 
 .JVM memory zones
-[ditaa]
+[ditaa, jvm-memory-zones, opts=inline]
 ----
 
 |<--virtual memory----------------------------------------------------->|
@@ -631,10 +642,10 @@ few and small allocations, `mmap` is preferred for few but large allocations.
 
 When the JVM bootstrap, it requests a main memory of a certain size with the `PROT_NONE`
 flag to prevent any access. This has the effect to tell the OS that this mapping should
-not be backed by physical memory. Then when memory regions are needed, typically during
-bootstrap, or when new java threads are created, the JVM changes the mapping for a
-sub-range of that main memory by removing the `PROT_NONE` flag.
-
+not be backed by physical memory. Then when memory is needed by the program,
+the JVM changes the mapping for a sub-range of that main memory by removing the
+`PROT_NONE` flag. When new java threads are created then the JVM will simply
+request another memory segment.
 
 
 .Simple code example
@@ -1043,7 +1054,7 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Native Libraries + Malloc overhead + ...
 ....
 
-Using the *committed* value from the NMT output above, and the *mapping size*
+Using the *committed* values from the NMT output above, and the *mapping size*
 this breaks out as :
 
 [%autowidth.stretch,options="footer"]
@@ -1070,11 +1081,21 @@ this breaks out as :
 |===
 
 
-`5576205 KiB` is what this container is supposedly actually using,
-as expected this is way over the RSS (`4701120 KiB`) and, also over the
-`5 GiB` (`5242880 KiB`) of the pod limit. Due to paging this pod may not have
-access all pages especially for a big enough heap. A pod like this is healthy
-and can stay that way if the RSS don't grow out that much.
+`5576205 KiB` is what this container is supposedly actually using, but:
+
+ - as expected this is way over the RSS (`4701120 KiB`) and,
+ - also over the `5 GiB` (`5242880 KiB`) of the pod limit.
+
+This happens because this pod may not have access all pages especially
+if the heap is big enough and the allocation rate is not big enough. While
+a pod like this may be health and stay that way. It should rise your eyebrow,
+if the RSS grow then the pod is likely to be oomkilled.
+
+And this is where one need to review the memory parameter of either
+the JVM or the memory limits of the pod. Either the JVM is over-sized
+or the JVM will eventually be oomkilled by the OS.
+
+===== How many pages are used ?
 
 The _proc_ filesystem is nice as it gives the paging details on the current process.
 
@@ -1102,23 +1123,26 @@ $ ps -o rss,vsz,command $(pidof java)
 4346704 6507368 /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava
 $ cat /proc/$(pidof java)/statm | tr ' ' '\n'
 1626842 <1>
-1086676
+1086676 <2>
 12638
 1
 0
 1283103
 0
 ----
-<1> Total size of the adressing space, in other words it's the virtual size = 6507368 KiB
+<1> Total size in _pages_ of the addressing space, in bytes : `6507368 KiB`
+<2> Resident memory in _pages_, in bytes : `4346704 KiB`
 
 Given a page size is `4 KiB`, it gives in particular :
 
 * vsz = `1626842 * 4 = 6507368`
 * rss = `1086676 * 4 = 4346704`
 
-A process like may grow it's memory usage up to `1626842` pages.
-If the kubernetes memory limit is `5 GiB` (`5242880 KiB`) then
-the process will be oom-killed around `1310720` used pages.
+NOTE: If the kubernetes memory limit is `5 GiB` (`5242880 KiB`),
+then the process may be oom-killed if the program uses more than
+`1310720` used pages. If the program don't use more pages than this
+number this process will be fine.
+
 
 
 ////
@@ -1140,6 +1164,184 @@ echo $(($(jcmd $(pidof java) VM.native_memory \
 On macOs you should install the GNU coreutils and use `ggrep` and `ghead`.
 =====
 ////
+
+
+
+==== Digging
+
+The previous section showed that NMT numbers only represents the sizes
+of the different JVM memory zones, but, does not reflect the real usage.
+
+Most of the time using `ps` is enough. If you need to understand a bit more
+what in the JVM is actually consuming memory, then read on.
+
+
+The JVM components reported by NMT use different type of memory management and
+have different allocation patterns.
+
+. GC based
+`Java heap` and `Metaspace` (`Class`) are s=usually the biggest customer of memory,
+they both rely on `mmap`.
++
+.java heap and metaspace
+----
+-                 Java Heap (reserved=3145728KB, committed=3145728KB)
+                            (mmap: reserved=3145728KB, committed=3145728KB)
+
+-                     Class (reserved=1195111KB, committed=164967KB)
+                            (classes #27354)
+                            (  instance classes #25689, array classes #1665)
+                            (malloc=5223KB #86596)
+                            (mmap: reserved=1189888KB, committed=159744KB)
+----
++
+The interesting part is that these parts rely on the GC algorithm to
+_arrange_ the memory. In particular these zones have very large memory segments
+that matches the JVM options.
++
+Some option may trigger specific behavior for these
+memory zones, e.g. enabling the heap to grow or shrink (I never saw that in practice,
+maybe I'll see it once I use a JDK 12+ with https://openjdk.java.net/jeps/346[JEP-346],
+although even the JEP mention if there is very low activity, which is not gonna
+happen for some workload).
+
+
+
+. Threads
+The Java threads are constructs controlled by the JVM runtime,
+each thread is allocated on addressable space, their allocation size is always the
+same, but can be controlled via a few JVM parameters. Their usage depends on
+application usage. Eg. if the program request 1000 threads, then the JVM needs
+to allocate 1000 threads.
++
+.thread
+----
+-                    Thread (reserved=533903KB, committed=70439KB)
+                            (thread #517)
+                            (stack: reserved=531432KB, committed=67968KB) <1>
+                            (malloc=1866KB #3103) <2>
+                            (arena=605KB #1033) <3>
+----
+<1> The stack memory is where the JVM puts the thread stack, it's the sum
+of all thread stack memory mappings.
+<2> The thread sub-system performed 3103 ``malloc``s amounting to `1866 KiB`.
+<3> The thread local handles required 1033 arenas, amounting to `605 KiB`.
+
+
+. Other native zones
+The other component reported by NMT management uses different technics. Sometime using a
+combination of these technics:
++
+`GC` zone for example only works with `malloc` and `mmap`, and size can grow as needed.
++
+.gc
+----
+-                        GC (reserved=180505KB, committed=180505KB)
+                            (malloc=30589KB #219593) <1>
+                            (mmap: reserved=149916KB, committed=149916KB) <2>
+----
+<1> Here the GC performed 219593 ``malloc``s amounting to `30589 KiB`.
+<2> Here the GC reserved and committed memory segment(s) amount to `149916 KiB`.
++
+The JVM also implements its own
+https://en.wikipedia.org/wiki/Region-based_memory_management[Arena based memory management],
+(distinct from the arena memory management of glibc). It is used by some
+subsystems of the JVM or when native code uses internal objects that rely on JVM arenas
+https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src/src/hotspot/share/utilities/bitMap.hpp#L344-L345[[1\]]
+https://github.com/corretto/corretto-11/blob/7ea9366e39d0650274e45ce966b36bb01d26ff26/src/src/hotspot/share/utilities/growableArray.hpp#L127[[2\]]
++
+`Compiler`, `Symbol table` do use this memory management for example.
+Special mention of the _thread local handles_ that also use JVM arenas.
++
+NMT reports all the memory allocation technics that are used by a JVM component,
+for example the GC system :
++
+.compiler
+----
+-                  Compiler (reserved=6666KB, committed=6666KB)
+                            (malloc=6533KB #3575) <1>
+                            (arena=133KB #5) <2>
+----
+<1> The compiler performed 3575 ``malloc``s amounting to `6533 KiB`.
+<2> The compiler uses 5 arenas totaling `133 KiB`.
+
+
+There are three kinds of segments we can easily guess in the memory
+mapping because we know their size, Java heap, metaspace, and threads.
+Other segments are difficult to guess for two reasons: the malloc
+implementation details, like the arenas in Glibc, and the number of
+different `malloc` calls for a single component.
+
+
+
+
+
+CAUTION: Todo
+
+
+Where to look for this number? While it's easy to get the RSS of a process, to understand
+if the committed heap actually _resides_ on physical memory you need to use `pmap` or
+inspect `/proc/{pid}/maps` or `/proc/{pid}/smaps`. You have to notice the one of the first
+memory zones is quite big and about the size of the committed heap as shown in NMT. It's easier
+to spot with `pmap -X` (capital `X`). _Note the captures below are from a different pod/process_.
+
+.`pmap -x <pid>`
+[source, role="primary"]
+----
+$ pmap -x $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- java
+0000000000600000       4       4       4 r---- java
+0000000000601000       4       4       4 rw--- java
+0000000001cfc000     412     224     224 rw---   [ anon ]
+00000006f0000000 4477472 2944744 2944744 rw---   [ anon ] <1>
+0000000801488000 1027552       0       0 -----   [ anon ]
+00007f11b3744000   16388   16388   16388 rw---   [ anon ]
+00007f11b4745000      16       0       0 -----   [ anon ]
+00007f11b4749000   50688   49484   49484 rw---   [ anon ]
+00007f11b78c9000    1536       0       0 -----   [ anon ]
+00007f11b7a49000   32776   32776   32776 rw---   [ anon ]
+00007f11b9a4b000      16       0       0 -----   [ anon ] <2>
+00007f11b9a4f000    1012      24      24 rw---   [ anon ] <3>
+00007f11b9b4c000      16       0       0 -----   [ anon ]
+00007f11b9b50000    1012      92      92 rw---   [ anon ]
+00007f11b9c4d000      16       0       0 -----   [ anon ]
+00007f11b9c51000    1012     116     116 rw---   [ anon ]
+...
+----
+<1> heap memory
+<2> a thread guard pages
+<3> a thread stack
+
+.`pmap- X <pid>`
+[source, role="secondary"]
+----
+$ pmap -X $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
+         Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
+        00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
+        00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        00601000 rw-p 00001000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        01cfc000 rw-p 00000000  00:00       0      412     224     224        224       224        0              0              0               0    0       0      0           0 [heap] <1>
+       6f0000000 rw-p 00000000  00:00       0  4477472 2939592 2939592    2939592   2939592        0              0              0               0    0       0      0           0        <2>
+       801488000 ---p 00000000  00:00       0  1027552       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4745000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4749000 rw-p 00000000  00:00       0    50688   49472   49472      49472     49472        0              0              0               0    0       0      0           0
+    7f11b78c9000 ---p 00000000  00:00       0     1536       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b7a49000 rw-p 00000000  00:00       0    32776   32776   32776      32776     32776        0              0              0               0    0       0      0           0
+    7f11b9a4b000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        <3>
+    7f11b9a4f000 rw-p 00000000  00:00       0     1012     112     112        112       112        0              0              0               0    0       0      0           0        <4>
+    7f11b9b4c000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        
+    7f11b9b50000 rw-p 00000000  00:00       0     1012      96      96         96        96        0              0              0               0    0       0      0           0
+    7f11b9c4d000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
+...
+----
+<1> native heap memory
+<2> java heap
+<3> a thread guard pages
+<4> a thread stack
 
 
 
