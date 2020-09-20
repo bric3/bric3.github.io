@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.73.0" />
+<meta name="generator" content="Hugo 0.75.1" />
 
     
     
@@ -65,10 +65,10 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.bb59d997d8cd2a51d39cab60618731a566daf97296d7483d15fc1124aec9c489.css" integrity="sha256-u1nZl9jNKlHTnKtgYYcxpWba&#43;XKW10g9FfwRJK7JxIk=">
+<link rel="stylesheet" href="/scss/hyde-hyde.157ebce1a9aa8d33b32dc026b8fa65847644aab3c1cb1ff0e1c25efc7ec2491e.css" integrity="sha256-FX684amqjTOzLcAmuPplhHZEqrPByx/w4cJe/H7CSR4=">
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde-dark.2eddfb769610f72f40f6bc949e62a3acf298eb8504c073739085a417978b18cd.css" integrity="sha256-Lt37dpYQ9y9A9ryUnmKjrPKY64UEwHNzkIWkF5eLGM0=" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.e42accb90675eefea7f835f9f36a333b2e088d399217fcac85044e672158d585.css" integrity="sha256-5CrMuQZ17v6n&#43;DX582ozOy4IjTmSF/yshQROZyFY1YU=" media="(prefers-color-scheme: dark)">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -296,9 +296,9 @@ it was useful to toggle other options like tracing class un/loading.</p>
 </div>
 <div class="paragraph">
 <p>Starting from JDK 9, the JVM maintainers chose to overhaul the way JVM logs things.
-I believe that unified logging is great, but after using it I believe it&#8217;s purpose
+I believe that unified logging is great, but after using it I believe it’s purpose
 targets more JDK maintainers, eventually library maintainers, than end users.
-Meanwhile it&#8217;s likely that one may need to activate GC logs.</p>
+Meanwhile it’s likely that one may need to activate GC logs.</p>
 </div>
 <div class="paragraph">
 <p>So, while JDK 9 may seem old news today I still find it difficult to know exactly what will be logged.
@@ -309,16 +309,16 @@ And the official documentation rarely document JVM logging well enough, apart fr
 translate in unified logging.</p>
 </div>
 <div class="paragraph">
-<p>While GC logging is usually a well covered topic, I found there&#8217;s information some gaps like <em>IHOP</em>
+<p>While GC logging is usually a well covered topic, I found there’s information some gaps like <em>IHOP</em>
 messages missing as the multitude of tags and their various levels may not be set as necessary.</p>
 </div>
 <div class="paragraph">
 <p>In my opinion the flexibility of this logging system brought has a major downside from a user
-perspective in it&#8217;s configuration correctness, and I think in some ways it&#8217;s more obscure compared to
+perspective in it’s configuration correctness, and I think in some ways it’s more obscure compared to
 the previous explicit logging flags.</p>
 </div>
 <div class="paragraph">
-<p>Anyway, let&#8217;s begin ou exploration with a small recapitulation of <a href="https://openjdk.java.net/jeps/158">JEP-158</a>
+<p>Anyway, let’s begin ou exploration with a small recapitulation of <a href="https://openjdk.java.net/jeps/158">JEP-158</a>
 which lays out the foundation of JVM unified logging.</p>
 </div>
 <div class="sect1">
@@ -334,23 +334,23 @@ which lays out the foundation of JVM unified logging.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">-Xlog[:option]
     option         :=  [&lt;what&gt;][:[&lt;output&gt;][:[&lt;decorators&gt;][:&lt;output-options&gt;]]]
-                       'help'
-                       'disable'
+                       &#39;help&#39;
+                       &#39;disable&#39;
     what           :=  &lt;selector&gt;[,...]
     selector       :=  &lt;tag-set&gt;[*][=&lt;level&gt;]
     tag-set        :=  &lt;tag&gt;[+...]
-                       'all'
+                       &#39;all&#39;
     tag            :=  name of tag
     level          :=  trace
                        debug
                        info
                        warning
                        error
-    output         :=  'stderr'
-                       'stdout'
+    output         :=  &#39;stderr&#39;
+                       &#39;stdout&#39;
                        [file=]&lt;filename&gt;
     decorators     :=  &lt;decorator&gt;[,...]
-                       'none'
+                       &#39;none&#39;
     decorator      :=  time
                        uptime
                        timemillis
@@ -374,14 +374,14 @@ which lays out the foundation of JVM unified logging.</p>
 that required multiple options in a single one.</p>
 </div>
 <div class="paragraph">
-<p>Moreover, it&#8217;s now possible to declare multiple log configuration simply by adding additional <code>-Xlog&#8230;&#8203;</code>
+<p>Moreover, it’s now possible to declare multiple log configuration simply by adding additional <code>-Xlog…​</code>
 options. Their output must however be unique in these logs, otherwise the last option declaration will
 override the previous log configuration.</p>
 </div>
 <div class="paragraph">
 <p>Also, if you already heard of <code>jcmd</code>, unified logging JEP made the log configurable at runtime.
-It&#8217;s the second main entry point to unified logging.
-<em>If you didn&#8217;t hear about <code>jcmd</code> you really should check it out it&#8217;s the future
+It’s the second main entry point to unified logging.
+<em>If you didn’t hear about <code>jcmd</code> you really should check it out it’s the future
 of the serviceability / diagnostic command on the JDK.</em></p>
 </div>
 <div class="quoteblock">
@@ -399,7 +399,7 @@ it will be possible to use JMX to change logging configuration in runtime.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s see what we can do with unified logging and profit from the
+<p>Now let’s see what we can do with unified logging and profit from the
 insight it gives in the JVM.</p>
 </div>
 </div>
@@ -410,7 +410,7 @@ insight it gives in the JVM.</p>
 <div class="sect2">
 <h3 id="_how_to_use_the_tool_help_from_the_command_line"><a class="anchor" href="#_how_to_use_the_tool_help_from_the_command_line"></a><a class="link" href="#_how_to_use_the_tool_help_from_the_command_line">How to use the tool, help from the command line</a></h3>
 <div class="paragraph">
-<p>While the JEP explains things, it&#8217;s usually not how we get the first contact, we use the
+<p>While the JEP explains things, it’s usually not how we get the first contact, we use the
 command line help, which is describing just as well how to use on the command line.</p>
 </div>
 <div class="paragraph">
@@ -422,7 +422,7 @@ is your tool.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:help
 -Xlog Usage: -Xlog[:[selections][:[output][:[decorators][:output-options]]]]
-         where 'selections' are combinations of tags and levels of the form tag1[+tag2...][*][=level][,...]
+         where &#39;selections&#39; are combinations of tags and levels of the form tag1[+tag2...][*][=level][,...]
          NOTE: Unless wildcard (*) is specified, only log messages tagged with exactly the tags specified will be matched.
 
 Available log levels:
@@ -430,11 +430,11 @@ Available log levels:
 
 Available log decorators:
  time (t), utctime (utc), uptime (u), timemillis (tm), uptimemillis (um), timenanos (tn), uptimenanos (un), hostname (hn), pid (p), tid (ti), level (l), tags (tg)
- Decorators can also be specified as 'none' for no decoration.
+ Decorators can also be specified as &#39;none&#39; for no decoration.
 
 Available log tags:
  add, age, alloc, annotation, aot, arguments, attach, barrier, biasedlocking, blocks, bot, breakpoint, bytecode, cds, census, class, classhisto, cleanup, codecache, compaction, compilation, constantpool, constraints, container, coops, cpu, cset, data, datacreation, dcmd, decoder, defaultmethods, director, dump, ergo, event, exceptions, exit, fingerprint, free, freelist, gc, handshake, hashtables, heap, humongous, ihop, iklass, init, inlining, interpreter, itables, jfr, jit, jni, jvmti, liveness, load, loader, logging, malloc, mark, marking, membername, memops, metadata, metaspace, methodcomparator, mirror, mmu, module, monitorinflation, monitormismatch, nestmates, nmethod, normalize, objecttagging, obsolete, oldobject, oom, oopmap, oops, oopstorage, os, pagesize, parser, patch, path, perf, phases, plab, preorder, preview, promotion, protectiondomain, purge, redefine, ref, refine, region, reloc, remset, resolve, safepoint, sampling, scavenge, setting, smr, stackmap, stacktrace, stackwalk, start, startuptime, state, stats, stringdedup, stringtable, subclass, survivor, sweep, system, table, task, thread, time, timer, tlab, tracking, unload, unshareable, update, verification, verify, vmoperation, vmthread, vtables, vtablestubs, workgang
- Specifying 'all' instead of a tag combination matches all tag combinations.
+ Specifying &#39;all&#39; instead of a tag combination matches all tag combinations.
 
 Described tag sets:
  logging: Logging for the log framework itself
@@ -442,44 +442,44 @@ Described tag sets:
 Available log outputs:
  stdout/stderr
  file=&lt;filename&gt;
-  If the filename contains %p and/or %t, they will expand to the JVM's PID and startup timestamp, respectively.
+  If the filename contains %p and/or %t, they will expand to the JVM&#39;s PID and startup timestamp, respectively.
   Additional output-options for file outputs:
    filesize=..  - Target byte size for log rotation (supports K/M/G suffix). If set to 0, log rotation will not trigger automatically, but can be performed manually (see the VM.log DCMD).
    filecount=.. - Number of files to keep in rotation (not counting the active file). If set to 0, log rotation is disabled. This will cause existing log files to be overwritten.
 
 Some examples:
  -Xlog
-         Log all messages up to 'info' level to stdout with 'uptime', 'levels' and 'tags' decorations.
+         Log all messages up to &#39;info&#39; level to stdout with &#39;uptime&#39;, &#39;levels&#39; and &#39;tags&#39; decorations.
          (Equivalent to -Xlog:all=info:stdout:uptime,levels,tags).
 
  -Xlog:gc
-         Log messages tagged with 'gc' tag up to 'info' level to stdout, with default decorations.
+         Log messages tagged with &#39;gc&#39; tag up to &#39;info&#39; level to stdout, with default decorations.
 
  -Xlog:gc,safepoint
-         Log messages tagged either with 'gc' or 'safepoint' tags, both up to 'info' level, to stdout, with default decorations.
-         (Messages tagged with both 'gc' and 'safepoint' will not be logged.)
+         Log messages tagged either with &#39;gc&#39; or &#39;safepoint&#39; tags, both up to &#39;info&#39; level, to stdout, with default decorations.
+         (Messages tagged with both &#39;gc&#39; and &#39;safepoint&#39; will not be logged.)
 
  -Xlog:gc+ref=debug
-         Log messages tagged with both 'gc' and 'ref' tags, up to 'debug' level, to stdout, with default decorations.
+         Log messages tagged with both &#39;gc&#39; and &#39;ref&#39; tags, up to &#39;debug&#39; level, to stdout, with default decorations.
          (Messages tagged only with one of the two tags will not be logged.)
 
  -Xlog:gc=debug:file=gc.txt:none
-         Log messages tagged with 'gc' tag up to 'debug' level to file 'gc.txt' with no decorations.
+         Log messages tagged with &#39;gc&#39; tag up to &#39;debug&#39; level to file &#39;gc.txt&#39; with no decorations.
 
  -Xlog:gc=trace:file=gctrace.txt:uptimemillis,pid:filecount=5,filesize=1m
-         Log messages tagged with 'gc' tag up to 'trace' level to a rotating fileset of 5 files of size 1MB,
-         using the base name 'gctrace.txt', with 'uptimemillis' and 'pid' decorations.
+         Log messages tagged with &#39;gc&#39; tag up to &#39;trace&#39; level to a rotating fileset of 5 files of size 1MB,
+         using the base name &#39;gctrace.txt&#39;, with &#39;uptimemillis&#39; and &#39;pid&#39; decorations.
 
  -Xlog:gc::uptime,tid
-         Log messages tagged with 'gc' tag up to 'info' level to output 'stdout', using 'uptime' and 'tid' decorations.
+         Log messages tagged with &#39;gc&#39; tag up to &#39;info&#39; level to output &#39;stdout&#39;, using &#39;uptime&#39; and &#39;tid&#39; decorations.
 
  -Xlog:gc*=info,safepoint*=off
-         Log messages tagged with at least 'gc' up to 'info' level, but turn off logging of messages tagged with 'safepoint'.
-         (Messages tagged with both 'gc' and 'safepoint' will not be logged.)
+         Log messages tagged with at least &#39;gc&#39; up to &#39;info&#39; level, but turn off logging of messages tagged with &#39;safepoint&#39;.
+         (Messages tagged with both &#39;gc&#39; and &#39;safepoint&#39; will not be logged.)
 
  -Xlog:disable -Xlog:safepoint=trace:safepointtrace.txt
          Turn off all logging, including warnings and errors,
-         and then enable messages tagged with 'safepoint' up to 'trace' level to file 'safepointtrace.txt'.</code></pre>
+         and then enable messages tagged with &#39;safepoint&#39; up to &#39;trace&#39; level to file &#39;safepointtrace.txt&#39;.</code></pre>
 </div>
 </div>
 <div class="listingblock secondary">
@@ -500,7 +500,7 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
         output : [optional] The name or index (#&lt;index&gt;) of output to configure. (STRING, no default value)
         output_options : [optional] Options for the output. (STRING, no default value)
         what : [optional] Configures what tags to log. (STRING, no default value)
-        decorators : [optional] Configures which decorators to use. Use 'none' or an empty value to remove all. (STRING, no default value)
+        decorators : [optional] Configures which decorators to use. Use &#39;none&#39; or an empty value to remove all. (STRING, no default value)
         disable : [optional] Turns off all logging and clears the log configuration. (BOOLEAN, no default value)
         list : [optional] Lists current log configuration. (BOOLEAN, no default value)
         rotate : [optional] Rotates all logs. (BOOLEAN, no default value)</code></pre>
@@ -509,7 +509,7 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 <div class="sect3">
 <h4 id="_configuring_unified_logging"><a class="anchor" href="#_configuring_unified_logging"></a><a class="link" href="#_configuring_unified_logging">Configuring unified logging</a></h4>
 <div class="paragraph">
-<p>From the help and the JEP above here&#8217;s what to retain :</p>
+<p>From the help and the JEP above here’s what to retain :</p>
 </div>
 <div class="dlist">
 <dl>
@@ -599,7 +599,7 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 <div class="listingblock">
 <div class="title"><code>jcmd</code> command</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="role"secondary"" class="language-role"secondary" hljs">$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagezise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level</code></pre>
+<pre class="highlightjs highlight"><code data-lang="role" secondary""="" class="language-role" secondary"="" hljs"="">$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagezise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -616,12 +616,12 @@ Tags are not hierarchic, however, when their use in the JDK code base suggests
 there is still some kind of <em>hierarchy</em>.</p>
 </div>
 <div class="paragraph">
-<p>As we&#8217;ll see later some tags are standalone tags, but a large proportion of tags
+<p>As we’ll see later some tags are standalone tags, but a large proportion of tags
 are always logged with other. We could say they are part of a group with a <em>root</em>
 tag like <code>gc</code>, <code>class</code>, etc. Those are my words, but looking at the JEP-158 diff.</p>
 </div>
 <div class="paragraph">
-<p>There&#8217;s one file that caught attention, it&#8217;s
+<p>There’s one file that caught attention, it’s
 <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-7cb36a4a80175eed80c087a48e4f071f">logTagSet.hpp</a></p>
 </div>
 <div class="quoteblock">
@@ -634,9 +634,9 @@ instantiated directly somewhere else.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>So when one see <code>class, path</code> combination it&#8217;s in fact a tag set, I will refer to
-these as <em>tag-set</em>, <em>tag set</em>, or <em>tagset</em>. And, I&#8217;ll use the term <em>log tag root</em>
-to indicate that a tag is used as the first tag, it&#8217;s generally about a JVM component
+<p>So when one see <code>class, path</code> combination it’s in fact a tag set, I will refer to
+these as <em>tag-set</em>, <em>tag set</em>, or <em>tagset</em>. And, I’ll use the term <em>log tag root</em>
+to indicate that a tag is used as the first tag, it’s generally about a JVM component
 like GC, classes, or JFR.</p>
 </div>
 <div class="paragraph">
@@ -654,8 +654,8 @@ after the decorations but before the log message.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>Log prefixes allows to prepend the log message (that&#8217;s the prefix) with something for
-declared <em>tagsets</em>. As we&#8217;ll see later there is currently only one list of tagsets that uses
+<p>Log prefixes allows to prepend the log message (that’s the prefix) with something for
+declared <em>tagsets</em>. As we’ll see later there is currently only one list of tagsets that uses
 the log prefix mechanism, GC logging to print the <em>GC id</em>:</p>
 </div>
 <div class="ulist">
@@ -670,7 +670,7 @@ the log prefix mechanism, GC logging to print the <em>GC id</em>:</p>
 <div class="sect2">
 <h3 id="_migrating_the_gc_log_configuration_jep_271"><a class="anchor" href="#_migrating_the_gc_log_configuration_jep_271"></a><a class="link" href="#_migrating_the_gc_log_configuration_jep_271">Migrating the GC log configuration (JEP-271)</a></h3>
 <div class="paragraph">
-<p>While this topic may seem covered by other blogs I wasn&#8217;t satisfied by the actual
+<p>While this topic may seem covered by other blogs I wasn’t satisfied by the actual
 equivalence or not of the log configuration. I got the configuration wrong <em>as in incomplete</em>
 several times until I decided to dive in.</p>
 </div>
@@ -682,7 +682,7 @@ barely elaborate how the previous logging option will be turned in unified logs.
 <div class="paragraph">
 <p>One of the best source came from <a href="https://twitter.com/poonam_bajaj">Poonam Bajaj Parhar</a>,s talk on
 <a href="https://www.slideshare.net/PoonamBajaj5/lets-learn-to-talk-to-gc-logs-in-java-9">unified GC logs</a>
-However the most interesting data is not searchable because it&#8217;s an image of a table and
+However the most interesting data is not searchable because it’s an image of a table and
 everything is not there, for the poor souls that need to work with other GCs.</p>
 </div>
 <div class="paragraph">
@@ -731,7 +731,7 @@ everything is not there, for the poor souls that need to work with other GCs.</p
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td><code>PrintGCDetails</code> (remember that default level is <code>info</code>)</td>
 </tr>
@@ -771,7 +771,7 @@ everything is not there, for the poor souls that need to work with other GCs.</p
 <td><i class="conum" data-value="10"></i><b>10</b></td>
 <td><code>UseGCLogFileRotation</code>, <code>NumberOfGCLogFiles</code>, <code>GCLogFileSize</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>Note that some options do not have equivalents in unified GC logging.
@@ -779,12 +779,12 @@ Either because the tag system is more precise, or because the log message
 themselves changed, e.g. the GC cause and the GC id are now always logged.</p>
 </div>
 <div class="paragraph">
-<p>Now it&#8217;s the right opportunity to warn about the slight caveats of this log configuration.</p>
+<p>Now it’s the right opportunity to warn about the slight caveats of this log configuration.</p>
 </div>
 <div class="paragraph">
 <p>This configuration is fine and work reasonably well, BUT this configuration
 actually may misses some log like some <code>ihop</code>, which is not only logged with the <code>ergo</code> tag
-as we&#8217;ll see.</p>
+as we’ll see.</p>
 </div>
 <div class="sect3">
 <h4 id="_exhaustive_translation_table"><a class="anchor" href="#_exhaustive_translation_table"></a><a class="link" href="#_exhaustive_translation_table">Exhaustive translation table</a></h4>
@@ -806,13 +806,13 @@ which I found somewhat lacking in this regard.</p>
     <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Exhaustive GC logging option translation table (with some caveats)</caption>
 <colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 33.3333%;">
-<col style="width: 33.3334%;">
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3334%;"/>
 </colgroup>
 <thead>
 <tr>
-<th class="tableblock halign-left valign-top">Old GC log flags usually set with <code>-XX:+&#8230;&#8203;</code></th>
+<th class="tableblock halign-left valign-top">Old GC log flags usually set with <code>-XX:+…​</code></th>
 <th class="tableblock halign-left valign-top">`Equivalent` tags with log level</th>
 <th class="tableblock halign-left valign-top">Definition of the the old flag</th>
 </tr>
@@ -986,7 +986,7 @@ which I found somewhat lacking in this regard.</p>
 <p><code>gc+plab=trace</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Print (survivor space) promotion LAB&#8217;s sizing decisions</p>
+<p>Print (survivor space) promotion LAB’s sizing decisions</p>
 </div></div></td>
 </tr>
 <tr>
@@ -995,7 +995,7 @@ which I found somewhat lacking in this regard.</p>
 <p><code>gc+plab=trace</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Print (old gen) promotion LAB&#8217;s sizing decisions</p>
+<p>Print (old gen) promotion LAB’s sizing decisions</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1139,7 +1139,7 @@ which I found somewhat lacking in this regard.</p>
 <p><code>gc+freelist+census=debug</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Census for CMS' FreeListSpace</p>
+<p>Census for CMS&#39; FreeListSpace</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1148,7 +1148,7 @@ which I found somewhat lacking in this regard.</p>
 <p><code>gc+freelist+stats=debug</code> (<code>trace</code>) <code>gc+freelist*=debug</code> (<code>trace</code>)</p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Statistics for CMS' FreeListSpace</p>
+<p>Statistics for CMS&#39; FreeListSpace</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1223,8 +1223,8 @@ which I found somewhat lacking in this regard.</p>
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. old option are now decorators</caption>
 <colgroup>
-<col style="width: 50%;">
-<col style="width: 50%;">
+<col style="width: 50%;"/>
+<col style="width: 50%;"/>
 </colgroup>
 <tbody>
 <tr>
@@ -1247,17 +1247,17 @@ I expected. They had a different <em>tag set</em>.</p>
 </div>
 <div class="paragraph">
 <p>On the example of heap occupancy logs (IHOP), it was logged with <code>PrintAdaptiveSizePolicy</code>
-and now it&#8217;s supposed to be logged as part of the GC ergonomics by setting <code>gc+ergo*</code> to <code>trace</code>.
+and now it’s supposed to be logged as part of the GC ergonomics by setting <code>gc+ergo*</code> to <code>trace</code>.
 Looking at the code, I noticed the <code>ihop</code> tag is not always combined with <code>ergo</code>.</p>
 </div>
 <div class="paragraph">
 <p>This tag is not alone, in the <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">diff</a>
-I mentioned there&#8217;s an interesting file that declares GC <em>log prefix</em> for a list of <em>tag-sets</em>.
+I mentioned there’s an interesting file that declares GC <em>log prefix</em> for a list of <em>tag-sets</em>.
 <em>The diff is huge and may take some time to load, search for the following file
 <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9">src/share/vm/logging/logPrefix.hpp</a>.</em></p>
 </div>
 <div class="paragraph">
-<p>Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it&#8217;s easy
+<p>Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it’s easy
 to update the logging configuration when changing the GC algorithm, e.g. using CMS then switch to G1GC.
 I would have preferred an additional tag for each GC algorithms (<code>g1</code> for g1GC, <code>cms</code> for Concurrent Mark
 and Sweep,<code>shenandoah</code> for Shenandoah, etc) that would have allowed to configure logging this way
@@ -1297,7 +1297,7 @@ prefer to log more tags and simplify the overall logging configuration.</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Logs everything under <code>gc</code> at <code>debug</code> level.</td>
 </tr>
@@ -1309,7 +1309,7 @@ prefer to log more tags and simplify the overall logging configuration.</p>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>Specific <em>tagset</em> level configuration for tenuring distribution.</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>The above configuration is simple at the expanse of possibly larger file size.
@@ -1317,8 +1317,8 @@ Also, using <code>gc*=debug</code> allows to catch extra tags, and possibly new 
 that show up. In my opinion this configuration does not have any caveats.</p>
 </div>
 <div class="paragraph">
-<p>And as mentioned I benefited from other tags under <code>gc</code> that I wasn&#8217;t even looking
-at before because I simply didn&#8217;t think to enable the logging option,
+<p>And as mentioned I benefited from other tags under <code>gc</code> that I wasn’t even looking
+at before because I simply didn’t think to enable the logging option,
 like <code>PrintJNIGCStalls</code> in pre-jdk9 <code>jni</code> tag in unified logging or dreaded humongous
 allocations in G1GC via the <code>humongous</code> tag.
 In short this simpler configuration enabled more logging, which means GC analysis tool
@@ -1429,10 +1429,10 @@ more thoroughly G1GC regions:</p>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">jcmd $(pidof java) \
   VM.log \
-    what="gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*" \
+    what=&#34;gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*&#34; \
     decorators=time,tags,level \
-    output="file=/var/log/%t-gc-region-tracing.log" \
-    output_options="filecount=10,filesize=20M"</code></pre>
+    output=&#34;file=/var/log/%t-gc-region-tracing.log&#34; \
+    output_options=&#34;filecount=10,filesize=20M&#34;</code></pre>
 </div>
 </div>
 </div>
@@ -1455,8 +1455,8 @@ and some application servers back in the days.</p>
     <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Other tracing option translation</caption>
 <colgroup>
-<col style="width: 50%;">
-<col style="width: 50%;">
+<col style="width: 50%;"/>
+<col style="width: 50%;"/>
 </colgroup>
 <tbody>
 <tr>
@@ -1551,36 +1551,36 @@ and some application servers back in the days.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="c++" class="language-c++ hljs">// NOTE: A compatibility request will be necessary for each alias to be removed.
 static AliasedLoggingFlag const aliased_logging_flags[] = {
-  { "PrintCompressedOopsMode",   LogLevel::Info,  true,  LOG_TAGS(gc, heap, coops) },
-  { "PrintSharedSpaces",         LogLevel::Info,  true,  LOG_TAGS(cds) },
-  { "TraceBiasedLocking",        LogLevel::Info,  true,  LOG_TAGS(biasedlocking) },
-  { "TraceClassLoading",         LogLevel::Info,  true,  LOG_TAGS(class, load) },
-  { "TraceClassLoadingPreorder", LogLevel::Debug, true,  LOG_TAGS(class, preorder) },
-  { "TraceClassPaths",           LogLevel::Info,  true,  LOG_TAGS(class, path) },
-  { "TraceClassResolution",      LogLevel::Debug, true,  LOG_TAGS(class, resolve) },
-  { "TraceClassUnloading",       LogLevel::Info,  true,  LOG_TAGS(class, unload) },
-  { "TraceExceptions",           LogLevel::Info,  true,  LOG_TAGS(exceptions) },
-  { "TraceLoaderConstraints",    LogLevel::Info,  true,  LOG_TAGS(class, loader, constraints) },
-  { "TraceMonitorInflation",     LogLevel::Debug, true,  LOG_TAGS(monitorinflation) },
-  { "TraceSafepointCleanupTime", LogLevel::Info,  true,  LOG_TAGS(safepoint, cleanup) },
-  { "TraceJVMTIObjectTagging",   LogLevel::Debug, true,  LOG_TAGS(jvmti, objecttagging) },
-  { "TraceRedefineClasses",      LogLevel::Info,  false, LOG_TAGS(redefine, class) },
+  { &#34;PrintCompressedOopsMode&#34;,   LogLevel::Info,  true,  LOG_TAGS(gc, heap, coops) },
+  { &#34;PrintSharedSpaces&#34;,         LogLevel::Info,  true,  LOG_TAGS(cds) },
+  { &#34;TraceBiasedLocking&#34;,        LogLevel::Info,  true,  LOG_TAGS(biasedlocking) },
+  { &#34;TraceClassLoading&#34;,         LogLevel::Info,  true,  LOG_TAGS(class, load) },
+  { &#34;TraceClassLoadingPreorder&#34;, LogLevel::Debug, true,  LOG_TAGS(class, preorder) },
+  { &#34;TraceClassPaths&#34;,           LogLevel::Info,  true,  LOG_TAGS(class, path) },
+  { &#34;TraceClassResolution&#34;,      LogLevel::Debug, true,  LOG_TAGS(class, resolve) },
+  { &#34;TraceClassUnloading&#34;,       LogLevel::Info,  true,  LOG_TAGS(class, unload) },
+  { &#34;TraceExceptions&#34;,           LogLevel::Info,  true,  LOG_TAGS(exceptions) },
+  { &#34;TraceLoaderConstraints&#34;,    LogLevel::Info,  true,  LOG_TAGS(class, loader, constraints) },
+  { &#34;TraceMonitorInflation&#34;,     LogLevel::Debug, true,  LOG_TAGS(monitorinflation) },
+  { &#34;TraceSafepointCleanupTime&#34;, LogLevel::Info,  true,  LOG_TAGS(safepoint, cleanup) },
+  { &#34;TraceJVMTIObjectTagging&#34;,   LogLevel::Debug, true,  LOG_TAGS(jvmti, objecttagging) },
+  { &#34;TraceRedefineClasses&#34;,      LogLevel::Info,  false, LOG_TAGS(redefine, class) },
   { NULL,                        LogLevel::Off,   false, LOG_TAGS(_NO_TAG) }
 };
 
 #ifndef PRODUCT
 // These options are removed in jdk9. Remove this code for jdk10.
 static AliasedFlag const removed_develop_logging_flags[] = {
-  { "TraceClassInitialization",   "-Xlog:class+init" },
-  { "TraceClassLoaderData",       "-Xlog:class+loader+data" },
-  { "TraceDefaultMethods",        "-Xlog:defaultmethods=debug" },
-  { "TraceItables",               "-Xlog:itables=debug" },
-  { "TraceMonitorMismatch",       "-Xlog:monitormismatch=info" },
-  { "TraceSafepoint",             "-Xlog:safepoint=debug" },
-  { "TraceStartupTime",           "-Xlog:startuptime" },
-  { "TraceVMOperation",           "-Xlog:vmoperation=debug" },
-  { "PrintVtables",               "-Xlog:vtables=debug" },
-  { "VerboseVerification",        "-Xlog:verification" },
+  { &#34;TraceClassInitialization&#34;,   &#34;-Xlog:class+init&#34; },
+  { &#34;TraceClassLoaderData&#34;,       &#34;-Xlog:class+loader+data&#34; },
+  { &#34;TraceDefaultMethods&#34;,        &#34;-Xlog:defaultmethods=debug&#34; },
+  { &#34;TraceItables&#34;,               &#34;-Xlog:itables=debug&#34; },
+  { &#34;TraceMonitorMismatch&#34;,       &#34;-Xlog:monitormismatch=info&#34; },
+  { &#34;TraceSafepoint&#34;,             &#34;-Xlog:safepoint=debug&#34; },
+  { &#34;TraceStartupTime&#34;,           &#34;-Xlog:startuptime&#34; },
+  { &#34;TraceVMOperation&#34;,           &#34;-Xlog:vmoperation=debug&#34; },
+  { &#34;PrintVtables&#34;,               &#34;-Xlog:vtables=debug&#34; },
+  { &#34;VerboseVerification&#34;,        &#34;-Xlog:verification&#34; },
   { NULL, NULL }
 };
 #endif //PRODUCT</code></pre>
@@ -1597,7 +1597,7 @@ static AliasedFlag const removed_develop_logging_flags[] = {
 <div class="paragraph">
 <p>The issue with unified logging is the documentation, identifying the tag we want
 can be tedious. If I select the tag <code>dump</code> what will it output and when, is it about heap dump.
-Same if I select <code>system</code> is it about system calls, or else. Well it turns out there&#8217;s just
+Same if I select <code>system</code> is it about system calls, or else. Well it turns out there’s just
 no documentation whatsoever, you need to look at the code.</p>
 </div>
 <div class="paragraph">
@@ -1629,11 +1629,11 @@ and what the JEP-158 proposed :</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">log_info(gc, rt, classloading)("Loaded %d objects.", object_count)
+<pre class="highlightjs highlight"><code class="language-none hljs">log_info(gc, rt, classloading)(&#34;Loaded %d objects.&#34;, object_count)
     the macro is checking the log level to avoid uneccessary
     calls and allocations.
 
-log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number)</code></pre>
+log_debug(svc, debugger)(&#34;Debugger interface listening at port %d.&#34;, port_number)</code></pre>
 </div>
 </div>
 </blockquote>
@@ -1645,11 +1645,11 @@ log_debug(svc, debugger)("Debugger interface listening at port %d.", port_number
 <div class="paragraph">
 <p>The idea of this section is to <em>build</em> a logging tag reference. For that
 I needed grep and the hotspot repo. I build this reference on the code found in
-11.0.7, but I don&#8217;t think there was any change in 11.0.8; please keep in mind this is
-only a snapshot and it&#8217;s likely that tags get added or changed in later JVM revisions.</p>
+11.0.7, but I don’t think there was any change in 11.0.8; please keep in mind this is
+only a snapshot and it’s likely that tags get added or changed in later JVM revisions.</p>
 </div>
 <div class="paragraph">
-<p>In the commit above there&#8217;s an interesting file
+<p>In the commit above there’s an interesting file
 <a href="https://github.com/corretto/corretto-11/blob/2750418af3603bcb10ba5e933a7198f21b78361d/src/src/hotspot/share/logging/logTag.hpp">src/hotspot/share/logging/logTag.hpp</a>
 that declares all logging tags (138 in total). From there I searched where these tags where used.</p>
 </div>
@@ -1661,9 +1661,9 @@ that declares all logging tags (138 in total). From there I searched where these
     <table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 1. Log tags</caption>
 <colgroup>
-<col>
-<col>
-<col>
+<col/>
+<col/>
+<col/>
 </colgroup>
 <tbody>
 <tr>
@@ -1869,7 +1869,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>os</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Container (CGroup) related (<code>cpu</code>, <code>cpuset</code>, <code>memory</code>, <code>mountinfo</code>, &#8230;&#8203;)</p>
+<p>Container (CGroup) related (<code>cpu</code>, <code>cpuset</code>, <code>memory</code>, <code>mountinfo</code>, …​)</p>
 </div></div></td>
 </tr>
 <tr>
@@ -1982,7 +1982,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>exceptions</code>, <code>redefine</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>About Java exceptions handling in different parts (interpreter, during safepoint, compiler, &#8230;&#8203;). Specific exception handling during redefined class loading when combined with <code>redefine</code>.</p>
+<p>About Java exceptions handling in different parts (interpreter, during safepoint, compiler, …​). Specific exception handling during redefined class loading when combined with <code>redefine</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2043,7 +2043,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>hashtables</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>When standalone, it&#8217;s the internal bucketed hash table, far cousin of a <code>HashMap</code>, Hotspot uses it for strings, and other symbols. CDS uses another internal implementation for statistics, hence this tag may be combined with <code>cds</code> <em>log tag root</em>.</p>
+<p>When standalone, it’s the internal bucketed hash table, far cousin of a <code>HashMap</code>, Hotspot uses it for strings, and other symbols. CDS uses another internal implementation for statistics, hence this tag may be combined with <code>cds</code> <em>log tag root</em>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2430,7 +2430,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>perf</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs about JVM perf counters. But when combined with <code>stringtable</code> it&#8217;s about interned strings (<code>String.intern()</code>).</p>
+<p>Logs about JVM perf counters. But when combined with <code>stringtable</code> it’s about interned strings (<code>String.intern()</code>).</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2563,7 +2563,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>safepoint</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>JVM stop-the-world operations Heap Dump, some GC tasks, de-optimization, biased locking revocation, library loading, etc&#8230;&#8203; (<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134">src/hotspot/share/runtime/vm_operations.hpp</a>, the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone <code>vmoperation</code>.</p>
+<p>JVM stop-the-world operations Heap Dump, some GC tasks, de-optimization, biased locking revocation, library loading, etc…​ (<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134">src/hotspot/share/runtime/vm_operations.hpp</a>, the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone <code>vmoperation</code>.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2631,14 +2631,14 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code>, <code>codecache</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Indicates a ZGC phase start, thus it&#8217;s combined with <code>gc</code>. But can also indicate other operation start, like for <code>codecache</code>.</p>
+<p>Indicates a ZGC phase start, thus it’s combined with <code>gc</code>. But can also indicate other operation start, like for <code>codecache</code>.</p>
 </div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>startuptime</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Logs the JVM subsystems startup time (interpreter, GC, module systems, class loading, aot, genesis which is about memory zones &#8230;&#8203;)</p>
+<p>Logs the JVM subsystems startup time (interpreter, GC, module systems, class loading, aot, genesis which is about memory zones …​)</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2735,7 +2735,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>os</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>When used as a <em>log tag root</em>, it&#8217;s about <code>smr</code>, when it&#8217;s combined with the <code>os</code> log tag root it&#8217;s about the thread lifecycle and guards.</p>
+<p>When used as a <em>log tag root</em>, it’s about <code>smr</code>, when it’s combined with the <code>os</code> log tag root it’s about the thread lifecycle and guards.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2835,14 +2835,14 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vtables</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Java&#8217;s virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes). Those that did C++ before will remember.</p>
+<p>Java’s virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes). Those that did C++ before will remember.</p>
 </div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vtablestubs</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Java&#8217;s virtual calls mechanism that is used for megamorphic call sites (i.e. when the method to execute is not the same on successive executions because the object hierarchy differ). Hotspot wiki <a href="https://wiki.openjdk.java.net/display/HotSpot/PerformanceTechniques" title="Performance technics">1</a> <a href="https://wiki.openjdk.java.net/display/HotSpot/VirtualCalls" title="Virtual calls">2</a></p>
+<p>Java’s virtual calls mechanism that is used for megamorphic call sites (i.e. when the method to execute is not the same on successive executions because the object hierarchy differ). Hotspot wiki <a href="https://wiki.openjdk.java.net/display/HotSpot/PerformanceTechniques" title="Performance technics">1</a> <a href="https://wiki.openjdk.java.net/display/HotSpot/VirtualCalls" title="Virtual calls">2</a></p>
 </div></div></td>
 </tr>
 <tr>
@@ -2953,7 +2953,7 @@ class.</p>
 </div>
 </details>
 <div class="paragraph">
-<p>The other <em>tag-sets</em> are not declared, so I&#8217;m listing some of them in a non exhaustive way for the other major
+<p>The other <em>tag-sets</em> are not declared, so I’m listing some of them in a non exhaustive way for the other major
 JVM component.</p>
 </div>
 <div class="ulist">
@@ -3258,7 +3258,7 @@ JVM component.</p>
 <p><code>LogTarget(Trace, jvmti) log</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jvmtiExport.cpp#L428" class="bare">https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jvmtiExport.cpp#L428</a></p>
 </li>
 <li>
-<p><code>log_trace(jvmti)("----- capabilities -----")</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiManageCapabilities.cpp">src/hotspot/share/prims/jvmtiManageCapabilities.cpp</a></p>
+<p><code>log_trace(jvmti)(&#34;----- capabilities -----&#34;)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiManageCapabilities.cpp">src/hotspot/share/prims/jvmtiManageCapabilities.cpp</a></p>
 </li>
 <li>
 <p><code>log_trace(jvmti)</code> <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/prims/jvmtiTrace.cpp">src/hotspot/share/prims/jvmtiTrace.cpp</a></p>
@@ -3341,9 +3341,9 @@ os and container tags :</p>
 [0.008s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu/cpu.shares
 [0.008s][trace][os,container] CPU Shares is: 1024
 [0.009s][trace][os,container] OSContainer::active_processor_count: 4
-[0.009s][info ][pagesize    ] CodeHeap 'non-nmethods':  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
-[0.009s][info ][pagesize    ] CodeHeap 'profiled nmethods':  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
-[0.009s][info ][pagesize    ] CodeHeap 'non-profiled nmethods':  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
+[0.009s][info ][pagesize    ] CodeHeap &#39;non-nmethods&#39;:  min=2496K max=5696K base=0x00007fa24090d000 page_size=4K size=5696K
+[0.009s][info ][pagesize    ] CodeHeap &#39;profiled nmethods&#39;:  min=2496K max=120032K base=0x00007fa240e9d000 page_size=4K size=120032K
+[0.009s][info ][pagesize    ] CodeHeap &#39;non-profiled nmethods&#39;:  min=2496K max=120032K base=0x00007fa2483d5000 page_size=4K size=120032K
 [0.010s][info ][os,cpu      ] CPU:total 4 (initial active 4) (1 cores per cpu, 1 threads per core) family 6 model 142 stepping 10, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, 3dnowpref, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
 [0.010s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
 [0.010s][info ][os,cpu      ] model name  : Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz
@@ -3420,7 +3420,7 @@ os and container tags :</p>
 
     public static void main(String[] args) {
         Foo foo = new Foo();
-        System.out.printf("[%.3fs][stdout] m(): %s%n",
+        System.out.printf(&#34;[%.3fs][stdout] m(): %s%n&#34;,
                           ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
                           foo.m());
 
@@ -3431,16 +3431,16 @@ os and container tags :</p>
                 .make()
                 .load(Foo.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
 
-        System.out.printf("[%.3fs][stdout] m(): %s%n",
+        System.out.printf(&#34;[%.3fs][stdout] m(): %s%n&#34;,
                           ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
                           foo.m());
     }
 
     private static class Foo {
-        String m() { return "foo"; }
+        String m() { return &#34;foo&#34;; }
     }
     private static class Bar {
-        String m() { return "bar"; }
+        String m() { return &#34;bar&#34;; }
     }
 }</code></pre>
 </div>
@@ -3481,17 +3481,17 @@ public class DebugTest {
 
     public static void main(String[] args) {
         var foo = new Foo();
-        System.out.printf("[%.3fs][stdout] m(): %s%n",  <i class="conum" data-value="1"></i><b>(1)</b>
+        System.out.printf(&#34;[%.3fs][stdout] m(): %s%n&#34;,  <i class="conum" data-value="1"></i><b>(1)</b>
                           ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
                           foo.m());
-        System.out.printf("[%.3fs][stdout] m(): %s%n",  // in debug advance by one step
+        System.out.printf(&#34;[%.3fs][stdout] m(): %s%n&#34;,  // in debug advance by one step
                           ManagementFactory.getRuntimeMXBean().getUptime() / 1000d,
                           foo.m());
     }
 
     private static class Foo {
-        @Alpha(v = "bim")
-        String m() { return "foo"; }
+        @Alpha(v = &#34;bim&#34;)
+        String m() { return &#34;foo&#34;; }
     }
 
     @Retention(RetentionPolicy.RUNTIME)
@@ -3504,12 +3504,12 @@ public class DebugTest {
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Set break point here, then change the inner class <code>Foo</code>, like the annotation value,
 adds another instruction, change the return values of <code>m()</code>, etc.</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock">
 <div class="title">CHange <code>Foo.m()</code> class after instantiation during debug</div>
@@ -3567,7 +3567,7 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 [51.943s][debug][redefine,class,annotation  ] type_index=48  num_element_value_pairs=1
 [51.943s][debug][redefine,class,annotation  ] mapped old element_name_index=36
 [51.943s][debug][redefine,class,annotation  ] element_name_index=49
-[51.943s][debug][redefine,class,annotation  ] tag='s'
+[51.943s][debug][redefine,class,annotation  ] tag=&#39;s&#39;
 [51.943s][debug][redefine,class,annotation  ] mapped old const_value_index=37
 [51.943s][debug][redefine,class,annotation  ] const_value_index=29
 [51.943s][trace][redefine,class,constantpool] inner_class_info change: 26 to 18
@@ -3647,19 +3647,19 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>The JVM is already at breakpoint, first logs when the modified <code>Foo</code> is <em>reloaded</em>,
 the logs gives nice insight on the machinery that is necessary to replace a simple method.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>There&#8217;s a lot of activity on the constant pool which is used by the JVM to find internal class
+<td>There’s a lot of activity on the constant pool which is used by the JVM to find internal class
 symbols, among other things.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Since I modified annotations, there&#8217;s some change to perform on this side too.</td>
+<td>Since I modified annotations, there’s some change to perform on this side too.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
@@ -3690,13 +3690,13 @@ the method I just modified).</td>
 <td><i class="conum" data-value="10"></i><b>10</b></td>
 <td>Class Is reloaded, simply continue.</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>These logs are rarely useful unless you work with IDE, debuggers or the JVM itself.
-However, they are interesting to understand what&#8217;s going on when debugging.
+However, they are interesting to understand what’s going on when debugging.
 One thing to mention is that the JVMTI infrastructure relies a lot on the redefinition
-component, it&#8217;s one of the most complex piece in the JVM.</p>
+component, it’s one of the most complex piece in the JVM.</p>
 </div>
 </div>
 <div class="sect3">
@@ -3711,20 +3711,20 @@ expected, one may want to toggle the logs for the just-in-time and compilation l
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:jit*=debug,compilation*=debug -cp . JustStartMainTest
 ...
 [0.053s][debug][jit,compilation      ]   30       3       java.util.ImmutableCollections$SetN$SetNIterator::hasNext (13 bytes)
-[0.053s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
-[0.053s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=36Kb max_used=36Kb free=119991Kb
-[0.053s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+[0.053s][debug][compilation,codecache] CodeHeap &#39;non-profiled nmethods&#39;: size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.053s][debug][compilation,codecache] CodeHeap &#39;profiled nmethods&#39;: size=120028Kb used=36Kb max_used=36Kb free=119991Kb
+[0.053s][debug][compilation,codecache] CodeHeap &#39;non-nmethods&#39;: size=5700Kb used=972Kb max_used=977Kb free=4727Kb
 [0.053s][debug][jit,compilation      ]   31       3       java.util.ImmutableCollections$SetN$SetNIterator::nextIndex (56 bytes)
-[0.053s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
-[0.053s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=37Kb max_used=37Kb free=119990Kb
-[0.053s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+[0.053s][debug][compilation,codecache] CodeHeap &#39;non-profiled nmethods&#39;: size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.053s][debug][compilation,codecache] CodeHeap &#39;profiled nmethods&#39;: size=120028Kb used=37Kb max_used=37Kb free=119990Kb
+[0.053s][debug][compilation,codecache] CodeHeap &#39;non-nmethods&#39;: size=5700Kb used=972Kb max_used=977Kb free=4727Kb
 [0.053s][debug][jit,compilation      ]   32       3       java.util.ImmutableCollections$SetN$SetNIterator::next (47 bytes)
 [0.053s][debug][jit,inlining         ]                               @ 1   java.util.ImmutableCollections$SetN$SetNIterator::hasNext (13 bytes)
 [0.053s][debug][jit,inlining         ]                               @ 15   java.util.ImmutableCollections$SetN$SetNIterator::nextIndex (56 bytes)   callee is too large
 [0.053s][debug][jit,inlining         ]                               @ 43  java/util/NoSuchElementException::&lt;init&gt; (not loaded)   not inlineable
-[0.054s][debug][compilation,codecache] CodeHeap 'non-profiled nmethods': size=120032Kb used=2Kb max_used=2Kb free=120029Kb
-[0.054s][debug][compilation,codecache] CodeHeap 'profiled nmethods': size=120028Kb used=38Kb max_used=38Kb free=119989Kb
-[0.054s][debug][compilation,codecache] CodeHeap 'non-nmethods': size=5700Kb used=972Kb max_used=977Kb free=4727Kb
+[0.054s][debug][compilation,codecache] CodeHeap &#39;non-profiled nmethods&#39;: size=120032Kb used=2Kb max_used=2Kb free=120029Kb
+[0.054s][debug][compilation,codecache] CodeHeap &#39;profiled nmethods&#39;: size=120028Kb used=38Kb max_used=38Kb free=119989Kb
+[0.054s][debug][compilation,codecache] CodeHeap &#39;non-nmethods&#39;: size=5700Kb used=972Kb max_used=977Kb free=4727Kb
 ...</code></pre>
 </div>
 </div>
@@ -3746,12 +3746,12 @@ expected, one may want to toggle the logs for the just-in-time and compilation l
 </div>
 <div class="paragraph">
 <p>This article has been written using the code base of JDK11u 11.0.8. Not everything is
-logged via the unified logging mechanism, and I don&#8217;t think this changed in recent JDK
+logged via the unified logging mechanism, and I don’t think this changed in recent JDK
 versions e.g. JDK 15 which is not yet out at this time.</p>
 </div>
 <div class="paragraph">
 <p>So, for example if you need to work with the JVM C2 compiler for some reason then
-<code>-Xlog:jit*=debug,compilation*=debug</code> might not be enough, instead you&#8217;ll need to use
+<code>-Xlog:jit*=debug,compilation*=debug</code> might not be enough, instead you’ll need to use
 <code>-XX:+LogCompilation</code>, which by default will generate a file like <code>hotspot_pid{pid}.log</code>
 in the working directory, unless this flag <code>-XX:LogFile=compilation-log.xml</code> is specified.
 The content of this file is actually an XML document.</p>
@@ -3763,19 +3763,19 @@ The content of this file is actually an XML document.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class DebugTest {
     public static void main(String[] args) {
-        System.out.printf("[%.3fs][stdout] ping%n", ManagementFactory.getRuntimeMXBean().getUptime() / 1000d);
-        System.out.printf("[%.3fs][stdout] pong%n", ManagementFactory.getRuntimeMXBean().getUptime() / 1000d); <i class="conum" data-value="1"></i><b>(1)</b>
+        System.out.printf(&#34;[%.3fs][stdout] ping%n&#34;, ManagementFactory.getRuntimeMXBean().getUptime() / 1000d);
+        System.out.printf(&#34;[%.3fs][stdout] pong%n&#34;, ManagementFactory.getRuntimeMXBean().getUptime() / 1000d); <i class="conum" data-value="1"></i><b>(1)</b>
     }
 }</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>breakpoint</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>When debugging for example this simple program, we see already a lot of activity performed by the JVM
@@ -3798,7 +3798,7 @@ using <code>-Xlog:safepoint*=info</code>, I found that <code>vmoperation</code> 
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Name of the VM operation</td>
 </tr>
@@ -3806,7 +3806,7 @@ using <code>-Xlog:safepoint*=info</code>, I found that <code>vmoperation</code> 
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Summary of the JVM stopped time</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title">ChangeBreakpoints</div>
@@ -3859,11 +3859,11 @@ reasons.</p>
 </div>
 <div class="paragraph">
 <p>Safepoint logging is useful if the application is regularly stopped, but the GC is not the root cause.
-So it&#8217;s useful to always log safepoints.</p>
+So it’s useful to always log safepoints.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ grep "Entering safepoint" /var/log/2020-01-28_13-36-23-vm.log
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ grep &#34;Entering safepoint&#34; /var/log/2020-01-28_13-36-23-vm.log
 [6.880s][info ][safepoint     ] Entering safepoint region: Deoptimize
 [6.880s][info ][safepoint        ] Entering safepoint region: Deoptimize
 [6.884s][info ][safepoint        ] Entering safepoint region: Deoptimize
@@ -3976,7 +3976,7 @@ So it&#8217;s useful to always log safepoints.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>There&#8217;s a lot of activity, most of this VM activity will be easier to analyze
+<p>There’s a lot of activity, most of this VM activity will be easier to analyze
 using JFR / JDK Mission Control, but for logging very long process, logs are still
 quite useful.</p>
 </div>
@@ -3986,7 +3986,7 @@ quite useful.</p>
 <h3 id="_programmatic_access"><a class="anchor" href="#_programmatic_access"></a><a class="link" href="#_programmatic_access">Programmatic access</a></h3>
 <div class="paragraph">
 <p>For those that played with <code>jcmd</code> before you may already know each command
-are available as MXBeans. This immediately suggests that it&#8217;s possible to invoke
+are available as MXBeans. This immediately suggests that it’s possible to invoke
 these command programmatically.</p>
 </div>
 <div class="listingblock">
@@ -4004,17 +4004,17 @@ import java.lang.management.ManagementFactory;
 public class TriggerGcLogsProgrammatically {
     public static void main(String[] args) throws Exception {
         // jcmd $(pidof java) VM.log what=gc*=debug decorators=uptime,tags,level output=stderr
-        executeDcmd("vmLog", <i class="conum" data-value="1"></i><b>(1)</b>
-                    "what=gc*=trace", <i class="conum" data-value="2"></i><b>(2)</b>
-                    "decorators=uptime,tags,level", <i class="conum" data-value="3"></i><b>(3)</b>
-                    "output=stderr"); <i class="conum" data-value="4"></i><b>(4)</b>
+        executeDcmd(&#34;vmLog&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
+                    &#34;what=gc*=trace&#34;, <i class="conum" data-value="2"></i><b>(2)</b>
+                    &#34;decorators=uptime,tags,level&#34;, <i class="conum" data-value="3"></i><b>(3)</b>
+                    &#34;output=stderr&#34;); <i class="conum" data-value="4"></i><b>(4)</b>
 
         // jcmd $(pidof java) VM.log list
-        System.out.printf("%s%n", executeDcmd("vmLog", "list"));
+        System.out.printf(&#34;%s%n&#34;, executeDcmd(&#34;vmLog&#34;, &#34;list&#34;));
     }
 
     private static String executeDcmd(String operationName, String... params) throws Exception {
-        var objectName = new ObjectName("com.sun.management:type=DiagnosticCommand");
+        var objectName = new ObjectName(&#34;com.sun.management:type=DiagnosticCommand&#34;);
         var mbeanServer = ManagementFactory.getPlatformMBeanServer();
 
         return (String) mbeanServer.invoke(objectName,
@@ -4027,7 +4027,7 @@ public class TriggerGcLogsProgrammatically {
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Equivalent to <code>VM.log</code></td>
 </tr>
@@ -4043,7 +4043,7 @@ public class TriggerGcLogsProgrammatically {
 <td><i class="conum" data-value="4"></i><b>4</b></td>
 <td>Output section</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 </div>
 </div>
@@ -4052,21 +4052,21 @@ public class TriggerGcLogsProgrammatically {
 <h2 id="_wrap_up"><a class="anchor" href="#_wrap_up"></a><a class="link" href="#_wrap_up">Wrap up</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Unified logging is a great change in the JVM, it&#8217;s flexibility and ubiquity
+<p>Unified logging is a great change in the JVM, it’s flexibility and ubiquity
 gives great insight in the JVM. Also, a strong point of this implementation
-is dynamic configuration change, it is very useful when one doesn&#8217;t want to
+is dynamic configuration change, it is very useful when one doesn’t want to
 restart a process just to raise the logging levels, or to gain insight on
 a JVM component.</p>
 </div>
 <div class="paragraph">
-<p>Yet not everyone will be interested by most of these subsystems. I&#8217;m pretty sure
+<p>Yet not everyone will be interested by most of these subsystems. I’m pretty sure
 GC logs will be the most used logs. On this in particular, I think JDK maintainers
 should add tags for the type of GC, <code>cms</code> for CMS, <code>zgc</code> for ZGC, <code>g1</code> for G1GC,
 <code>shenandoah</code> for Shenandoah, etc.</p>
 </div>
 <div class="paragraph">
 <p>In that regard I believe the new system lacks good default options for logging.
-As seen above it&#8217;s easy to miss valuable information by being too restrictive with
+As seen above it’s easy to miss valuable information by being too restrictive with
 the tags. The removed GC logging flags were more explicit.</p>
 </div>
 <div class="paragraph">
@@ -4076,18 +4076,18 @@ the tags. The removed GC logging flags were more explicit.</p>
 <ul class="checklist">
 <li>
 <p><i class="fa fa-square-o"></i> discoverability, while anyone can peek at the available tags the mass of
-the tags makes the system hard to use if you don&#8217;t know already what is expected
+the tags makes the system hard to use if you don’t know already what is expected
 from these tags.</p>
 </li>
 <li>
-<p><i class="fa fa-square-o"></i> documentation, tags are not documented, most don&#8217;t auto-document themselves
-so if don&#8217;t know already what to expect from these tags you&#8217;ll need to take the
+<p><i class="fa fa-square-o"></i> documentation, tags are not documented, most don’t auto-document themselves
+so if don’t know already what to expect from these tags you’ll need to take the
 long road to try each combination.</p>
 </li>
 <li>
-<p><i class="fa fa-square-o"></i> stability, while the JVM check if the selected tags exists it doesn&#8217;t check
+<p><i class="fa fa-square-o"></i> stability, while the JVM check if the selected tags exists it doesn’t check
 if the combination will log something. On each JDK version logs can change in subtle
-ways for whatever reasons (like bug-fixing). It&#8217;s best to verify on each new JDK version
+ways for whatever reasons (like bug-fixing). It’s best to verify on each new JDK version
 if things changed.</p>
 </li>
 </ul>

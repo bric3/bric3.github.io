@@ -11,7 +11,7 @@
 <meta http-equiv="Cache-Control" content="public" />
 <!-- Enable responsiveness on mobile devices -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<meta name="generator" content="Hugo 0.73.0" />
+<meta name="generator" content="Hugo 0.75.1" />
 
     
     
@@ -65,10 +65,10 @@
 
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde.bb59d997d8cd2a51d39cab60618731a566daf97296d7483d15fc1124aec9c489.css" integrity="sha256-u1nZl9jNKlHTnKtgYYcxpWba&#43;XKW10g9FfwRJK7JxIk=">
+<link rel="stylesheet" href="/scss/hyde-hyde.157ebce1a9aa8d33b32dc026b8fa65847644aab3c1cb1ff0e1c25efc7ec2491e.css" integrity="sha256-FX684amqjTOzLcAmuPplhHZEqrPByx/w4cJe/H7CSR4=">
 
 
-<link rel="stylesheet" href="/scss/hyde-hyde-dark.2eddfb769610f72f40f6bc949e62a3acf298eb8504c073739085a417978b18cd.css" integrity="sha256-Lt37dpYQ9y9A9ryUnmKjrPKY64UEwHNzkIWkF5eLGM0=" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.e42accb90675eefea7f835f9f36a333b2e088d399217fcac85044e672158d585.css" integrity="sha256-5CrMuQZ17v6n&#43;DX582ozOy4IjTmSF/yshQROZyFY1YU=" media="(prefers-color-scheme: dark)">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -265,11 +265,11 @@
 <p>Like many I was happy to see that the JDK landed support for containers
 in Java 9, it was backported to Java 8 too.
 Now JDK 11 does this by default and reads information from <code>cgroup`s and
-it&#8217;s possible to tell the memory usage via the `-XX:MaxRAMPercentage</code> flag.</p>
+it’s possible to tell the memory usage via the `-XX:MaxRAMPercentage</code> flag.</p>
 </div>
 <div class="paragraph">
 <p>However in practice this turned out not not working as well as hoped.
-Here&#8217;s an issue about a containerized Java 11 web application running on Kubernetes,
+Here’s an issue about a containerized Java 11 web application running on Kubernetes,
 at some point in time this application experienced memory  problems.</p>
 </div>
 <div class="sidebarblock">
@@ -291,12 +291,12 @@ on these new instances the <em>pod</em>s started to get <em>oom killed</em>.</p>
 </div>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/pod-memory-usage.png" alt="pod memory usage"></span>
+<p><span class="image"><img src="/assets/maxrampercentage/pod-memory-usage.png" alt="pod memory usage"/></span>
 <em>The orange line is the pod memory limit, the increasing green line is the
 total memory usage of the container <code>container_memory_usage_bytes</code>.</em></p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/app-jvm-memory-usage.png" alt="app jvm memory usage"></span>
+<p><span class="image"><img src="/assets/maxrampercentage/app-jvm-memory-usage.png" alt="app jvm memory usage"/></span>
 <em>The blue line is the heap limit <code>3 GiB</code>, the increasing green line
 is the application memory or more precisely the <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize
 (RSS), yellow line is the heap usage.</em></p>
@@ -307,21 +307,21 @@ this issue served as an excuse to go down the rabbit hole of process memory expl
 and the JVM in particular.
 In doing so the following writing tries to piece together several elements
 from a few things I knew, things I grepped in the JDK codebase, blog post, stack overflow,
-and things learned from other&#8201;&#8212;&#8201;awesome&#8201;&#8212;&#8201;people, all related to the JVM and its
+and things learned from other — awesome — people, all related to the JVM and its
 interaction with the Linux OS.</p>
 </div>
 <div class="paragraph">
-<p>I hope I didn&#8217;t ignore important things, I hope I&#8217;m not totally wrong,
-or simply I hope I&#8217;m not misguiding myself and especially others. If I&#8217;m wrong
+<p>I hope I didn’t ignore important things, I hope I’m not totally wrong,
+or simply I hope I’m not misguiding myself and especially others. If I’m wrong
 please reach out.</p>
 </div>
 <div class="paragraph">
-<p><em>Now let&#8217;s answer this question: Why does the container use more than <code>MaxRamPercentage</code>
+<p><em>Now let’s answer this question: Why does the container use more than <code>MaxRamPercentage</code>
 of <code>resourceslimits.memory</code>?</em></p>
 </div>
 <div class="admonitionblock note">
 <table>
-<tr>
+<tbody><tr>
 <td class="icon">
 <i class="fa icon-note" title="Note"></i>
 </td>
@@ -330,7 +330,7 @@ of <code>resourceslimits.memory</code>?</em></p>
 <p>Most of the time, figures will use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">IEC binary notation</a> (<code>1 KiB = 1024 B</code>),
 it matches the <a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226">JVM</a>,
 our <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory">Kubernetes</a> usage,
-and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code>, although I could find a reference).</p>
+and Linux’s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code>, although I could find a reference).</p>
 </div>
 <div class="paragraph">
 <p>Some charts may however use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">SI metric notation</a> (<code>1 KB = 1000 B</code>).</p>
@@ -340,7 +340,7 @@ and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps
 </div>
 </td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="sect1">
 <h2 id="_fixing_the_issue_without_understanding"><a class="anchor" href="#_fixing_the_issue_without_understanding"></a><a class="link" href="#_fixing_the_issue_without_understanding">Fixing the issue without understanding</a></h2>
@@ -348,7 +348,7 @@ and Linux&#8217;s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps
 <div class="paragraph">
 <p>The application that became problematic runs on a Kubernetes cluster. As mentioned above
 this application worked fine before, and the people who handled the issue at that time were
-not well-prepared, and I certainly wouldn&#8217;t be prepared much better, that means memory
+not well-prepared, and I certainly wouldn’t be prepared much better, that means memory
 limits until it worked. <code>5 GiB</code> proved to be the lucky number.
 It was the right approach at this moment in this context as it quickly resolved production
 issues.</p>
@@ -367,24 +367,24 @@ spec:
       - name: java-app
         resources:
           limits:
-            cpu: "8"
+            cpu: &#34;8&#34;
             memory: 5Gi <i class="conum" data-value="1"></i><b>(1)</b>
           requests:
-            cpu: "3"
+            cpu: &#34;3&#34;
             memory: 3Gi</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>The working memory limit.</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="admonitionblock tip">
 <table>
-<tr>
+<tbody><tr>
 <td class="icon">
 <i class="fa icon-tip" title="Tip"></i>
 </td>
@@ -403,7 +403,7 @@ spec:
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>cpu request, this is the relative weight of that container for CPU time</td>
 </tr>
@@ -413,16 +413,16 @@ spec:
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>memory limit, tells the OS to kill (<code>oomkill</code>) the container&#8217;s processes if they hit this limit</td>
+<td>memory limit, tells the OS to kill (<code>oomkill</code>) the container’s processes if they hit this limit</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>The memory request is only used for scheduling the pod on a node.</p>
 </div>
 </td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>However, while this number work this is not satisfactory :</p>
@@ -447,7 +447,7 @@ spec:
 <div class="sectionbody">
 <div class="paragraph">
 <p>In order to understand our requirement, and to avoid guessing numbers until it works,
-let&#8217;s explore the memory of a java process.</p>
+let’s explore the memory of a java process.</p>
 </div>
 <div class="paragraph">
 <p>The RAM percentage are calculated at JVM startup from a given percentage, via
@@ -459,7 +459,7 @@ and <code>VM.command_line</code> which will print the actual command line.</p>
 <div class="listingblock">
 <div class="title"><code>VM.flags</code> in k8s</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pgrep java) VM.flags | tr &#39; &#39; &#39;\n&#39;
 6:
 ...
 -XX:InitialHeapSize=4563402752 <i class="conum" data-value="3"></i><b>(3)</b>
@@ -475,7 +475,7 @@ and <code>VM.command_line</code> which will print the actual command line.</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Initial RAM at 85%</td>
 </tr>
@@ -491,7 +491,7 @@ and <code>VM.command_line</code> which will print the actual command line.</p>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
 <td>Max heap size ~<code>4.25 GiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="sect2">
 <h3 id="_reading_the_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container">Reading the memory footprint of the java process in the container</a></h3>
@@ -516,7 +516,7 @@ VmRSS:	 4701120 kB</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><code>4.6 GiB</code> !!! Not quite within the <code>4.25 GiB</code> - 85% of <code>5 GiB</code> - limit. So let&#8217;s dig a
+<p><code>4.6 GiB</code> !!! Not quite within the <code>4.25 GiB</code> - 85% of <code>5 GiB</code> - limit. So let’s dig a
 bit to understand this number <code>4701120 KiB</code>.</p>
 </div>
 <div class="sect3">
@@ -527,7 +527,7 @@ produces an overview of the different memory zones of a Java process.</p>
 </div>
 <div class="admonitionblock note">
 <table>
-<tr>
+<tbody><tr>
 <td class="icon">
 <i class="fa icon-note" title="Note"></i>
 </td>
@@ -536,11 +536,11 @@ Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10% perfo
 But the <em>summary</em> mode only has an impact in memory as shown below.
 </td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="admonitionblock note">
 <table>
-<tr>
+<tbody><tr>
 <td class="icon">
 <i class="fa icon-note" title="Note"></i>
 </td>
@@ -549,7 +549,7 @@ It is necessary to note that while the above command indicate a scale in <code>K
 it really means <code>KiB</code>.
 </td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock">
 <div class="title"><code>VM.native_memory</code> instant snapshot</div>
@@ -635,16 +635,16 @@ Total: reserved=7168324KB, committed=5380868KB                               <i 
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>This shows a <code>reserved</code> value (<code>7168324 KiB</code> (~<code>6.84 GiB</code>)), it&#8217;s the amount of addressable memory
+<td>This shows a <code>reserved</code> value (<code>7168324 KiB</code> (~<code>6.84 GiB</code>)), it’s the amount of addressable memory
 (all OS types) on that container, and a <code>committed</code> value (<code>4456448 KiB</code> (~<code>4.25 GiB</code>)) that represents
 what the JVM actually asked the OS to allocate.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td><code>Heap</code> zone, note that reserved and committed values are the same <code>4456448 KiB</code> here because our
-<code>InitialRAMPercentage</code> is the same as max. I&#8217;m not sure why this number is different from the VM
+<code>InitialRAMPercentage</code> is the same as max. I’m not sure why this number is different from the VM
 flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
 </tr>
 <tr>
@@ -684,7 +684,7 @@ are accounted in the <code>Other</code> zone.</td>
 <td><i class="conum" data-value="11"></i><b>11</b></td>
 <td>The <code>Other</code> section after Java 11 includes <code>DirectByteBuffers</code> ~<code>261 MiB</code>.</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>The remaining areas are much smaller in scale, NMT takes ~<code>8.2 MiB</code> itself, module system usage ~<code>1.3 MiB</code>,
@@ -692,7 +692,7 @@ etc. Also, note that enabling other JVM features may show up if they are activat
 <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
 </div>
 <div class="paragraph">
-<p>There&#8217;s a lot more to read on the
+<p>There’s a lot more to read on the
 <a href="https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80">official documentation about NMT</a>
 and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">how to Monitor VM Internal Memory</a>.</p>
 </div>
@@ -702,19 +702,19 @@ by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_lets_pause_a_bit_and_revise_memory"><a class="anchor" href="#_lets_pause_a_bit_and_revise_memory"></a><a class="link" href="#_lets_pause_a_bit_and_revise_memory">Let&#8217;s pause a bit and revise memory</a></h4>
+<h4 id="_lets_pause_a_bit_and_revise_memory"><a class="anchor" href="#_lets_pause_a_bit_and_revise_memory"></a><a class="link" href="#_lets_pause_a_bit_and_revise_memory">Let’s pause a bit and revise memory</a></h4>
 <div class="paragraph">
 <p>I mentioned it already : the <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it? What exactly means
 <em>committed</em> memory ? Or <em>reserved</em> memory ? How do they relate to each others?</p>
 </div>
 <div class="paragraph">
-<p>First let&#8217;s break down the vocabulary when we talk about memory.</p>
+<p>First let’s break down the vocabulary when we talk about memory.</p>
 </div>
 <table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 1. vocabulary breakdown</caption>
 <colgroup>
-<col>
-<col>
+<col/>
+<col/>
 </colgroup>
 <tbody>
 <tr>
@@ -757,23 +757,23 @@ This only relate to the OS.</p></td>
 <div class="sect4">
 <h5 id="_malloc_and_mmap"><a class="anchor" href="#_malloc_and_mmap"></a><a class="link" href="#_malloc_and_mmap">malloc and mmap</a></h5>
 <div class="paragraph">
-<p>Now I&#8217;ve just mentioned two words <code>malloc</code> and <code>mmap</code>, these two calls to ask the OS to allocate memory.</p>
+<p>Now I’ve just mentioned two words <code>malloc</code> and <code>mmap</code>, these two calls to ask the OS to allocate memory.</p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"></span></p>
+<p><span class="image"><img src="/assets/maxrampercentage/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"/></span></p>
 </div>
 <div class="ulist">
 <div class="title">Differences between <a href="https://linux.die.net/man/3/malloc"><code>malloc</code></a> and <a href="http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html"><code>mmap</code></a></div>
 <ul>
 <li>
 <p><code>malloc</code> may <em>recycle</em> previously used memory that was released by <code>free</code>, and perform a system call to
-get memory only required. It&#8217;s part of the C standard.</p>
+get memory only required. It’s part of the C standard.</p>
 </li>
 <li>
-<p><code>malloc</code> allows you pass a size and that&#8217;s basically it.</p>
+<p><code>malloc</code> allows you pass a size and that’s basically it.</p>
 </li>
 <li>
-<p><code>mmap</code> is a system call. It&#8217;s not part of the C standard, and may not be available on all platforms.</p>
+<p><code>mmap</code> is a system call. It’s not part of the C standard, and may not be available on all platforms.</p>
 </li>
 <li>
 <p><code>mmap</code> can both map private memory or shared memory (as in shared with other processes). Those are called
@@ -826,7 +826,7 @@ the OS may</p>
 <p>do nothing if a page is not used, this page is virtually available</p>
 </li>
 <li>
-<p>move a page from physical memory to swap, if the OS thinks there&#8217;s not enough room for other pages</p>
+<p>move a page from physical memory to swap, if the OS thinks there’s not enough room for other pages</p>
 </li>
 <li>
 <p>map ta portion of a file to this page</p>
@@ -834,12 +834,12 @@ the OS may</p>
 </ul>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging" title="Simple overview of OS paging"></span></p>
+<p><span class="image"><img src="/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging" title="Simple overview of OS paging"/></span></p>
 </div>
 <div class="paragraph">
 <p>E.g at the moment this report was executed the committed memory is <code>5380868 KiB</code> (<code>5.13 GiB</code>) while
 the process RSS is <code>4701120 KiB</code>. The difference relates to how <code>mmap</code> works (on Linux), memory
-pages are only backed by physical memory once they&#8217;re written to.</p>
+pages are only backed by physical memory once they’re written to.</p>
 </div>
 <div class="paragraph">
 <p>Some people may have heard of the <code>-XX:+AlwaysPreTouch</code> Hotspot option. This option tells
@@ -852,16 +852,16 @@ only affects the heap memory zone. Other areas like thread stack or metaspace wo
 RSS counter may not reflect what is een in the <strong>committed</strong> memory.</p>
 </div>
 <div class="paragraph">
-<p>Now that we revised some basics, let&#8217;s go back to the trail.</p>
+<p>Now that we revised some basics, let’s go back to the trail.</p>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_exploring_what_nmt_does_not_show"><a class="anchor" href="#_exploring_what_nmt_does_not_show"></a><a class="link" href="#_exploring_what_nmt_does_not_show">Exploring what NMT does not show</a></h4>
 <div class="paragraph">
-<p>The above output showed many memory are but not all. There&#8217;s also the <code>MappedByteBuffers</code>, these
+<p>The above output showed many memory are but not all. There’s also the <code>MappedByteBuffers</code>, these
 are the files that are <em>memory mapped</em> to the virtual memory of a process. NMT does not track them,
-but <code>MappedByteBuffers</code> can also take physical memory if the application access any of them. It&#8217;s possible
+but <code>MappedByteBuffers</code> can also take physical memory if the application access any of them. It’s possible
 to see the actual usage of a process memory map: <code>pmap -x &lt;pid&gt;</code>.</p>
 </div>
 <div class="listingblock">
@@ -953,7 +953,7 @@ total kB         24035820 4776860 4720796</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s refine that with more
+<p>Let’s refine that with more
 <a href="https://www.kernel.org/doc/Documentation/filesystems/proc.txt">knowledge about <code>/proc/{pid}/maps</code></a>,
 it indicates that a <em>map</em> has a set of modes:</p>
 </div>
@@ -976,7 +976,7 @@ but <code>pmap</code> only show the <code>s</code> flag.</p>
 </div>
 <div class="paragraph">
 <p>On a side note, <code>pmap</code> may show another mapping mode which I barely found any reference of,
-here&#8217;s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a>
+here’s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a>
 and <a href="https://linux.die.net/man/2/mmap">here</a></p>
 </div>
 <div class="ulist">
@@ -991,14 +991,14 @@ already been mapped to physical memory, and if the system is out of physical mem
 <div class="paragraph">
 <p>At this time the focus is to see what are the memory mapped files with the JVM. Those can be either
 read from or written to, we need to look for both the <code>r</code> or <code>w</code> or neither. Also, while quite unlikely
-with Java let&#8217;s not restrict on the <em>executable</em> mapping, so the only thing we could be restricting to
+with Java let’s not restrict on the <em>executable</em> mapping, so the only thing we could be restricting to
 is the shared mapping <code>s</code> (memory mapped files are shared because the OS may want to reuse the afferent
 memory pages for other processes) :</p>
 </div>
 <div class="listingblock">
 <div class="title">Our application memory mapped files</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x 6 | grep &#34;[r-][w-][x-][s][R-]&#34;
 00007f5fdc02f000       4       4       0 r--s- instrumentation1647616515145161084.jar
 00007f5fdc030000       4       4       0 r--s- instrumentation11262564974060761935.jar
 00007f5fdc053000       8       8       0 r--s- java-agent-bs-cl.jar
@@ -1014,7 +1014,7 @@ memory pages for other processes) :</p>
 </div>
 </div>
 <div class="paragraph">
-<p>There&#8217;s around <code>35.2 MiB</code> of memory mapped files.</p>
+<p>There’s around <code>35.2 MiB</code> of memory mapped files.</p>
 </div>
 <div class="paragraph">
 <p><em>As I was a bit unfamiliar with <code>pmap</code>, reading <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">this process memory blog</a>
@@ -1034,8 +1034,8 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
 </div>
 <table class="tableblock frame-all grid-all fit-content stretch">
 <colgroup>
-<col>
-<col>
+<col/>
+<col/>
 </colgroup>
 <tbody>
 <tr>
@@ -1092,7 +1092,7 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
 <td class="tableblock halign-left valign-top"><p class="tableblock">accounted in NMT</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">&#8230;&#8203;</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">…​</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
@@ -1104,14 +1104,14 @@ following <em>equation</em> to estimate the actual memory usage of a process:</p
 </tfoot>
 </table>
 <div class="paragraph">
-<p><code>5417017 KiB</code> is what this container is supposedly actually using, but that&#8217;s way over the RSS (<code>4701120 KiB</code>)
+<p><code>5417017 KiB</code> is what this container is supposedly actually using, but that’s way over the RSS (<code>4701120 KiB</code>)
 and, also over the <code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit. Yet this pod is healthy and far from
 the thresholds to be oom killed.</p>
 </div>
 <div class="sect4">
-<h5 id="_rss_and_expected_memory_dont_match"><a class="anchor" href="#_rss_and_expected_memory_dont_match"></a><a class="link" href="#_rss_and_expected_memory_dont_match">RSS and expected memory don&#8217;t match</a></h5>
+<h5 id="_rss_and_expected_memory_dont_match"><a class="anchor" href="#_rss_and_expected_memory_dont_match"></a><a class="link" href="#_rss_and_expected_memory_dont_match">RSS and expected memory don’t match</a></h5>
 <div class="paragraph">
-<p>First let&#8217;s state a few considerations to understand :</p>
+<p>First let’s state a few considerations to understand :</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -1119,14 +1119,14 @@ the thresholds to be oom killed.</p>
 <p>NMT shows <em>reserved</em> and <em>committed</em> values on each areas,</p>
 <table class="tableblock frame-all grid-all fit-content stretch">
 <colgroup>
-<col>
-<col>
+<col/>
+<col/>
 </colgroup>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>reserved</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">This is the size that the JVM reserved, the OS guarantees these adresses to be
-available, but the JVM isn&#8217;t yet using the whole reserved space.</p></td>
+available, but the JVM isn’t yet using the whole reserved space.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>committed</code></p></td>
@@ -1155,10 +1155,10 @@ zone seems at this time is <code>3128252 KiB</code>.</p>
 </ol>
 </div>
 <div class="paragraph">
-<p>Where to look for this number? While it&#8217;s easy to get the RSS of a process, to understand
+<p>Where to look for this number? While it’s easy to get the RSS of a process, to understand
 if the committed heap actually <em>resides</em> on physical memory you need to use <code>pmap</code> or
 inspect <code>/proc/{pid}/maps</code> or <code>/proc/{pid}/smaps</code>. You have to notice the one of the first
-memory zones is quite big and about the size of the committed heap as shown in NMT. It&#8217;s easier
+memory zones is quite big and about the size of the committed heap as shown in NMT. It’s easier
 to spot with <code>pmap -X</code> (capital <code>X</code>). <em>Note the captures below are from a different pod/process</em>.</p>
 </div>
 <div class="listingblock primary">
@@ -1189,7 +1189,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>heap memory</td>
 </tr>
@@ -1201,7 +1201,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>a thread stack</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title"><code>pmap- X &lt;pid&gt;</code></div>
@@ -1230,7 +1230,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>heap memory</td>
 </tr>
@@ -1242,7 +1242,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <td><i class="conum" data-value="3"></i><b>3</b></td>
 <td>a thread stack</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 </div>
 </div>
@@ -1253,9 +1253,9 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <h2 id="_choosing_a_better_value_for_the_ram_percentage"><a class="anchor" href="#_choosing_a_better_value_for_the_ram_percentage"></a><a class="link" href="#_choosing_a_better_value_for_the_ram_percentage">Choosing a better value for the RAM percentage</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>From the above, it&#8217;s now possible with NMT especially and with <code>pmap</code> to
-understand actual memory usage and to answer the question: "What is a sensible
-RAM percentage setting for this application ?"</p>
+<p>From the above, it’s now possible with NMT especially and with <code>pmap</code> to
+understand actual memory usage and to answer the question: &#34;What is a sensible
+RAM percentage setting for this application ?&#34;</p>
 </div>
 <div class="paragraph">
 <p>Really what drive the answer is the actual non-heap usage not accounted in
@@ -1269,9 +1269,9 @@ RAM percentage setting for this application ?"</p>
 <table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 2. In percentages</caption>
 <colgroup>
-<col>
-<col>
-<col>
+<col/>
+<col/>
+<col/>
 </colgroup>
 <tbody>
 <tr>
@@ -1310,7 +1310,7 @@ in the container to be able to perform serviceability tasks, like profiling, etc
 </div>
 <div class="paragraph">
 <p>For a <code>5 GiB</code> memory limit it may be good to give a minimum of 20% space, my experience in this
-scenario is that 20% is too tight to handle surges. Supposing we&#8217;d like an additional <code>400 MiB</code>
+scenario is that 20% is too tight to handle surges. Supposing we’d like an additional <code>400 MiB</code>
 over <code>960 569 KiB</code> will give a percentage of 26%.</p>
 </div>
 <div class="paragraph">
@@ -1333,7 +1333,7 @@ a more significant part. For example on this same application we saw <code>1.3 G
 for a heap sized at <code>3 GiB</code>.</p>
 </div>
 <div class="paragraph">
-<p>For a quick win let&#8217;s adapt the application image.</p>
+<p>For a quick win let’s adapt the application image.</p>
 </div>
 </div>
 </div>
@@ -1348,7 +1348,7 @@ differ depending on the cluster / environment ; this can happen when you need to
 spending on your cloud provider for non-production clusters, like staging, pre-production, etc.</p>
 </div>
 <div class="paragraph">
-<p>Let&#8217;s use <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
+<p>Let’s use <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
 environment variable for more flexibility and remove the RAM percentage in the <code>CMD</code> directive.</p>
 </div>
 <div class="listingblock">
@@ -1356,7 +1356,7 @@ environment variable for more flexibility and remove the RAM percentage in the <
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">  ARG REGISTRY
   FROM $REGISTRY/corretto-java:11.0.6.10.1
-+ ENV JDK_JAVA_OPTIONS="" <i class="conum" data-value="1"></i><b>(1)</b>
++ ENV JDK_JAVA_OPTIONS=&#34;&#34; <i class="conum" data-value="1"></i><b>(1)</b>
 
   RUN mkdir -p /gclogs /etc/java-app
 
@@ -1366,34 +1366,34 @@ environment variable for more flexibility and remove the RAM percentage in the <
     ./src/serviceability/*.sh \
     /
 
-  CMD [ "/usr/bin/java", \
-        "-Dfile.encoding=UTF-8", \
-        "-Duser.timezone=UTC", \
-        "-Dcom.sun.management.jmxremote.port=7199", \
-        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
-        "-Dcom.sun.management.jmxremote.ssl=false", \
-        "-Dcom.sun.management.jmxremote.authenticate=false", \
-        "-Djava.security.egd=file:/dev/./urandom", \
--       "-XX:InitialRAMPercentage=85.0", \ <i class="conum" data-value="2"></i><b>(2)</b>
--       "-XX:MaxRAMPercentage=85.0", \
-        "-XX:NativeMemoryTracking=summary", \
-        "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
-        "-javaagent:/agent-1.jar", \
-        "-javaagent:/agent-2.jar", \
-        "-Dsqreen.config_file=/sqreen.properties", \
-        "-jar", \
-        "/java-app-boot.jar", \
-        "--spring.config.additional-location=/etc/java-app/config.yaml", \
-        "--server.port=8080" ]
+  CMD [ &#34;/usr/bin/java&#34;, \
+        &#34;-Dfile.encoding=UTF-8&#34;, \
+        &#34;-Duser.timezone=UTC&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.port=7199&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.rmi.port=7199&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.ssl=false&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.authenticate=false&#34;, \
+        &#34;-Djava.security.egd=file:/dev/./urandom&#34;, \
+-       &#34;-XX:InitialRAMPercentage=85.0&#34;, \ <i class="conum" data-value="2"></i><b>(2)</b>
+-       &#34;-XX:MaxRAMPercentage=85.0&#34;, \
+        &#34;-XX:NativeMemoryTracking=summary&#34;, \
+        &#34;-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M&#34;, \
+        &#34;-javaagent:/agent-1.jar&#34;, \
+        &#34;-javaagent:/agent-2.jar&#34;, \
+        &#34;-Dsqreen.config_file=/sqreen.properties&#34;, \
+        &#34;-jar&#34;, \
+        &#34;/java-app-boot.jar&#34;, \
+        &#34;--spring.config.additional-location=/etc/java-app/config.yaml&#34;, \
+        &#34;--server.port=8080&#34; ]
 
-  LABEL name="java-app"
-  LABEL build_path="../"
-  LABEL version_auto_semver="true"</code></pre>
+  LABEL name=&#34;java-app&#34;
+  LABEL build_path=&#34;../&#34;
+  LABEL version_auto_semver=&#34;true&#34;</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Defines a default empty <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a></td>
 </tr>
@@ -1401,10 +1401,10 @@ environment variable for more flexibility and remove the RAM percentage in the <
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Removes the RAM percentage settings to get <em>default</em> values.</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
-<p>Now let&#8217;s test this locally.</p>
+<p>Now let’s test this locally.</p>
 </div>
 <div class="listingblock">
 <div class="title">Build the container</div>
@@ -1434,34 +1434,34 @@ environment variable for more flexibility and remove the RAM percentage in the <
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Custom tag to avoid collision with regular images in my cache</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="sect2">
 <h3 id="_run_the_container_locally_with_the_java_app"><a class="anchor" href="#_run_the_container_locally_with_the_java_app"></a><a class="link" href="#_run_the_container_locally_with_the_java_app">Run the container locally with the Java app</a></h3>
 <div class="paragraph">
-<p>In this local test series, I&#8217;m using <code>3 GiB</code> as a memory limit and I chose 70% for the heap percentage.</p>
+<p>In this local test series, I’m using <code>3 GiB</code> as a memory limit and I chose 70% for the heap percentage.</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory="3gb" --name j-mem test-java-app
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory=&#34;3gb&#34; --name j-mem test-java-app
 Picked up JDK_JAVA_OPTIONS:
-10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
-2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won&#39;t be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add &#34;com.fasterxml.jackson.module:jackson-module-kotlin&#34; to the classpath
 ...</code></pre>
 </div>
 </div>
 <div class="listingblock secondary">
 <div class="title"><strong>With</strong> <code>JDK_JAVA_OPTIONS</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory="3gb" --env JDK_JAVA_OPTIONS="-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0" --name j-mem test-java-app
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory=&#34;3gb&#34; --env JDK_JAVA_OPTIONS=&#34;-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0&#34; --name j-mem test-java-app
 Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0
-10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
-2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won&#39;t be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add &#34;com.fasterxml.jackson.module:jackson-module-kotlin&#34; to the classpath
 ...</code></pre>
 </div>
 </div>
@@ -1471,7 +1471,7 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 <div class="listingblock primary">
 <div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c &#34;jcmd \$(pgrep java) VM.flags | tr &#39; &#39; &#39;\n&#39;&#34;
 6:
 ...
 -XX:MaxHeapSize=805306368 <i class="conum" data-value="1"></i><b>(1)</b>
@@ -1482,16 +1482,16 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Max heap is about <code>768 MiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title"><strong>With</strong> <code>JDK_JAVA_OPTIONS</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c &#34;jcmd \$(pgrep java) VM.flags | tr &#39; &#39; &#39;\n&#39;&#34;
 6:
 ...
 -XX:InitialHeapSize=2256535552
@@ -1505,14 +1505,14 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Max heap is about <code>2.1 GiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
-<p>Notice when there&#8217;s no RAM settings the JVM computed the max heap size at 25%
+<p>Notice when there’s no RAM settings the JVM computed the max heap size at 25%
 of <code>3 GiB</code> memory limit, and at 70% the jvm uses <code>2.1 GiB</code>. Also, the heap values
 are the only one affected.</p>
 </div>
@@ -1524,7 +1524,7 @@ are the only one affected.</p>
 <div class="sectionbody">
 <div class="paragraph">
 <p>As identified above there are two, maybe three memory areas whose usage may explain the surge in memory before
-the memory limit was increased. I don&#8217;t have anything to back that idea except how I expect these memory areas
+the memory limit was increased. I don’t have anything to back that idea except how I expect these memory areas
 to grow but not the others.</p>
 </div>
 <div class="olist arabic">
@@ -1546,11 +1546,11 @@ memory pages needed.</p>
 </ol>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/app-file-descriptors.png" alt="app file descriptors"></span></p>
+<p><span class="image"><img src="/assets/maxrampercentage/app-file-descriptors.png" alt="app file descriptors"/></span></p>
 </div>
 <div class="paragraph">
 <p>The heap had a max value anyway, and if it was then the app would either trigger full GCs, or self terminate
-with an <code>OutOfMemoryError</code>, so that is not the heap. As for the offers it&#8217;s unlikely with the workload they grow
+with an <code>OutOfMemoryError</code>, so that is not the heap. As for the offers it’s unlikely with the workload they grow
 that much.</p>
 </div>
 <div class="paragraph">
@@ -1560,12 +1560,12 @@ the system oom killer.</p>
 </div>
 <div class="paragraph">
 <p>Also, at some point in time this application worked well under way less memory in a different cluster <code>-Xmx=2g</code>.
-The code is not the culprit in this case. Let&#8217;s explore that.</p>
+The code is not the culprit in this case. Let’s explore that.</p>
 </div>
 <div class="sect2">
 <h3 id="_actual_java_heap_usage"><a class="anchor" href="#_actual_java_heap_usage"></a><a class="link" href="#_actual_java_heap_usage">Actual Java Heap usage</a></h3>
 <div class="paragraph">
-<p>While the previous section allowed to understand the actual memory usage, it didn&#8217;t give any figure
+<p>While the previous section allowed to understand the actual memory usage, it didn’t give any figure
 regarding the actual heap usage for this application :</p>
 </div>
 <div class="listingblock primary">
@@ -1581,11 +1581,11 @@ regarding the actual heap usage for this application :</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Used heap : ~<code>525 MiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title">1</div>
@@ -1600,11 +1600,11 @@ regarding the actual heap usage for this application :</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Used heap : ~<code>904 MiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title">2</div>
@@ -1619,11 +1619,11 @@ regarding the actual heap usage for this application :</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Used heap : ~<code>1,217 MiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title">3</div>
@@ -1638,11 +1638,11 @@ regarding the actual heap usage for this application :</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Used heap : ~<code>2,364 MiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title">4</div>
@@ -1657,11 +1657,11 @@ regarding the actual heap usage for this application :</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Used heap : ~<code>2,652 MiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title">5</div>
@@ -1676,11 +1676,11 @@ regarding the actual heap usage for this application :</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>Used heap : ~<code>273 MiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>On the application in production, limited with <code>5 GiB</code> of memory, the heap
@@ -1689,10 +1689,10 @@ over time suggests the memory usage for this app (for the current cluster topolo
 (<em>replicaset</em>, traffic, etc.)).</p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png" alt="app heap usage with 5GiB limit 85p max"></span></p>
+<p><span class="image"><img src="/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png" alt="app heap usage with 5GiB limit 85p max"/></span></p>
 </div>
 <div class="paragraph">
-<p>To keep things simple let&#8217;s use the rough top usage of <code>2.7 GiB</code> of the heap. While the available
+<p>To keep things simple let’s use the rough top usage of <code>2.7 GiB</code> of the heap. While the available
 allocated heap is <code>4.25 GiB</code>. As a reminder non-used memory pages are not physically in RAM,
 thanks to the OS (in that case Linux), look at the <code>RSS</code> column of the <code>pmap</code> output.</p>
 </div>
@@ -1745,7 +1745,7 @@ TODO Use -Xmx=2g</pre>
 incomplete to get the big picture, not to mention those who have slight errors.</p>
 </div>
 <div class="paragraph">
-<p>The official documentation doesn&#8217;t even mention <code>*RAMPercentage</code> flags:</p>
+<p>The official documentation doesn’t even mention <code>*RAMPercentage</code> flags:</p>
 </div>
 <div class="ulist">
 <div class="title">Oracle documentation</div>
@@ -1759,7 +1759,7 @@ incomplete to get the big picture, not to mention those who have slight errors.<
 </ul>
 </div>
 <div class="paragraph">
-<p>Fortunately there&#8217;s still</p>
+<p>Fortunately there’s still</p>
 </div>
 <div class="paragraph">
 
@@ -1769,17 +1769,17 @@ incomplete to get the big picture, not to mention those who have slight errors.<
     <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. <a href="https://chriswhocodes.com/hotspot_options_jdk11.html">VM Options Explorer - JDK11 HotSpot</a></caption>
 <colgroup>
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.0909%;">
-<col style="width: 9.091%;">
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.0909%;"/>
+<col style="width: 9.091%;"/>
 </colgroup>
 <thead>
 <tr>
@@ -1817,20 +1817,20 @@ incomplete to get the big picture, not to mention those who have slight errors.<
 
 </div>
 <div class="paragraph">
-<p>Point taken, I already knew <a href="https://twitter.com/chriswhocodes">Chris Newland</a>'s useful websites
-but didn&#8217;t visit them to use this option, <strong>I should have !</strong></p>
+<p>Point taken, I already knew <a href="https://twitter.com/chriswhocodes">Chris Newland</a>&#39;s useful websites
+but didn’t visit them to use this option, <strong>I should have !</strong></p>
 </div>
 <div class="paragraph">
-<p>Anyway after all, I don&#8217;t think <code>*RAMPercentage</code> flags are quite useful (or those
-are used inadequately for this application ?!). For me they don&#8217;t quite respect the <em>principle of
-the least surprise</em>. We&#8217;ve seen these percentages lacks any consideration of how non-heap usage grow,
-and the JVM didn&#8217;t limit these zones according to the <code>cgroup</code> limits, which is unsettling, because
+<p>Anyway after all, I don’t think <code>*RAMPercentage</code> flags are quite useful (or those
+are used inadequately for this application ?!). For me they don’t quite respect the <em>principle of
+the least surprise</em>. We’ve seen these percentages lacks any consideration of how non-heap usage grow,
+and the JVM didn’t limit these zones according to the <code>cgroup</code> limits, which is unsettling, because
 if they were, the JVM would have crashed with an <code>OutOfMemoryError</code>s from these zones.</p>
 </div>
 <div class="paragraph">
 <p>That being said, I believe that from now on it is actually just as ok if not better to prefer the usual
 <code>-Xmx</code> flags for Java applications running in a container for now, especially with the
-<code>JDK_JAVA_OPTIONS</code> environment variable, and this a bit less work because it&#8217;s not anymore necessary
+<code>JDK_JAVA_OPTIONS</code> environment variable, and this a bit less work because it’s not anymore necessary
 to translate byte numbers in percentages but instead just use the actual max memory.</p>
 </div>
 </div>
@@ -1854,25 +1854,25 @@ to translate byte numbers in percentages but instead just use the actual max mem
 <p><code>/proc</code> filesystem and related tooling is great</p>
 </li>
 <li>
-<p>Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + &#8230;&#8203;)</p>
+<p>Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + …​)</p>
 </li>
 <li>
 <p>Using <code>Xmx</code> in a container is still a very good choice compared to <code>MaxRAMPercentage</code></p>
 </li>
 </ul>
 </div>
-<hr>
-<hr>
-<hr>
-<hr>
-<hr>
-<hr>
+<hr/>
+<hr/>
+<hr/>
+<hr/>
+<hr/>
+<hr/>
 <div class="literalblock">
 <div class="content">
 <pre> __
 /\ \
 \ \ \____    ___     ___   __  __    ____
- \ \ '__`\  / __`\ /' _ `\/\ \/\ \  /',__\
+ \ \ &#39;__`\  / __`\ /&#39; _ `\/\ \/\ \  /&#39;,__\
   \ \ \L\ \/\ \L\ \/\ \/\ \ \ \_\ \/\__, `\
    \ \_,__/\ \____/\ \_\ \_\ \____/\/\____/
     \/___/  \/___/  \/_/\/_/\/___/  \/___/</pre>
@@ -1889,14 +1889,14 @@ with some <code>cgroup</code> knowledge and Linux memory understanding, so I wra
 information that was nice to refresh and explore.</p>
 </div>
 <div class="sect2">
-<h3 id="_interpreting_cgroups_memory_cgroup_v1"><a class="anchor" href="#_interpreting_cgroups_memory_cgroup_v1"></a><a class="link" href="#_interpreting_cgroups_memory_cgroup_v1">Interpreting cgroup&#8217;s memory (cgroup v1)</a></h3>
+<h3 id="_interpreting_cgroups_memory_cgroup_v1"><a class="anchor" href="#_interpreting_cgroups_memory_cgroup_v1"></a><a class="link" href="#_interpreting_cgroups_memory_cgroup_v1">Interpreting cgroup’s memory (cgroup v1)</a></h3>
 <div class="paragraph">
-<p>Before going further I&#8217;d like to mention that the Linux kernel documentation on
+<p>Before going further I’d like to mention that the Linux kernel documentation on
 <a href="https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt">cgroup v1</a>
 is a very good start.</p>
 </div>
 <div class="paragraph">
-<p>In our case let&#8217;s see what <code>cgroup</code> have to say inside our container. A lot of interesting
+<p>In our case let’s see what <code>cgroup</code> have to say inside our container. A lot of interesting
 bits are available in the <code>/sys/fs/cgroup</code>, those are not process specific.
 They may help tackle issue with memory not directly related with the process itself:</p>
 </div>
@@ -1950,7 +1950,7 @@ total_unevictable 0</code></pre>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>rss of the processes, anonymous memory and swap cache, without <code>tmpfs</code> (shmem) (~<code>4.49 GiB</code>)</td>
 </tr>
@@ -1978,7 +1978,7 @@ total_unevictable 0</code></pre>
 <td><i class="conum" data-value="7"></i><b>7</b></td>
 <td>page cache memory (~<code>54.8 MiB</code>)</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -2021,9 +2021,9 @@ to understand the contraint of the cgroup.</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>current memory usage ~<code>4.61 GiB</code>, but for the whole memory it&#8217;s recommended to read cache+rss+swap values in <code>memory.stat</code></td>
+<td>current memory usage ~<code>4.61 GiB</code>, but for the whole memory it’s recommended to read cache+rss+swap values in <code>memory.stat</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -2037,7 +2037,7 @@ to understand the contraint of the cgroup.</p>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
 <td>limit on memory and swap (~<code>5 GiB</code>)</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>Note the <code>memory.limit_in_bytes</code> and <code>memory.memsw.limit_in_bytes</code> values are the same,
@@ -2050,7 +2050,7 @@ on the swap.
 There are other parameters related to the kernel and tcp allocations.</p>
 </div>
 <div class="paragraph">
-<p>On the swapiness side, it&#8217;s possible to change that in the cgroup as well.</p>
+<p>On the swapiness side, it’s possible to change that in the cgroup as well.</p>
 </div>
 <div class="listingblock">
 <div class="title">memory.swapiness</div>
@@ -2063,7 +2063,7 @@ cat /sys/fs/cgroup/memory/memory.swappiness <i class="conum" data-value="2"></i>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>OS <code>swapiness</code></td>
 </tr>
@@ -2071,14 +2071,14 @@ cat /sys/fs/cgroup/memory/memory.swappiness <i class="conum" data-value="2"></i>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>cgroup <code>swapiness</code>, here the setting is unchanged.</td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>By the way, high <code>swappiness</code> is bad for applications with GC like the JVM.</p>
 </div>
 <div class="paragraph">
 <p>AS mentioned earlier the JVM look for some values in <code>memory.limit_in_bytes</code> and <code>memory.usage_in_bytes</code>,
-but not only, let&#8217;s find out with this logger :</p>
+but not only, let’s find out with this logger :</p>
 </div>
 <div class="listingblock">
 <div class="title">log container details</div>
@@ -2188,7 +2188,7 @@ but not only, let&#8217;s find out with this logger :</p>
 </div>
 <div class="colist arabic">
 <table>
-<tr>
+<tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td><code>/sys/fs/cgroup/memory/memory.limit_in_bytes</code> = 5368709120 bytes, in the k8s deployment object <code>spec.containers[0].resources.limits.memory: 5Gi</code></td>
 </tr>
@@ -2206,9 +2206,9 @@ but not only, let&#8217;s find out with this logger :</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
-<td><code>/sys/fs/cgroup/memory/memory.usage_in_bytes</code> = 4583374848 bytes &#8658; <code>4.27 GiB</code></td>
+<td><code>/sys/fs/cgroup/memory/memory.usage_in_bytes</code> = 4583374848 bytes ⇒ <code>4.27 GiB</code></td>
 </tr>
-</table>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>Kubernetes documentation was lacking a bit in that regard, but I found
