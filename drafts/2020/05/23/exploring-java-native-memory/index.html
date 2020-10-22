@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 88 min read
+    <i class="fas fa-clock"></i> 90 min read
 
     
     
@@ -430,7 +430,7 @@ the <em>pod</em>s started to get <em>oom killed</em>.</p>
 </div>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="../static/assets/maxrampercentage/app-jvm-memory-usage.png" alt="JVM memory usage"/></span></p>
+<p><span class="image"><img src="../../static/assets/maxrampercentage/app-jvm-memory-usage.png" alt="JVM memory usage"/></span></p>
 </div>
 <div class="paragraph">
 <p>On the graph above we can see the trend of the <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize in green,
@@ -580,17 +580,20 @@ spec:
 <h2 id="_diagnosis"><a class="anchor" href="#_diagnosis"></a><a class="link" href="#_diagnosis">Diagnosis</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_reading_the_jvm_settings"><a class="anchor" href="#_reading_the_jvm_settings"></a><a class="link" href="#_reading_the_jvm_settings">Reading the JVM settings</a></h3>
+<h3 id="_the_jvm_options"><a class="anchor" href="#_the_jvm_options"></a><a class="link" href="#_the_jvm_options">The JVM options</a></h3>
 <div class="paragraph">
-<p>What most of are doing when assessing java memory is to look at the Java heap.
-In particular if the process is started with <code>\*RAMPercentage</code>, the JVM will compute
-the actual values from the <code>cgroup</code>s. In this case using <code>jcmd</code> it’s possible to access
-the runtime values.</p>
+<p>When assessing java memory one of the fist thing to look at are the Java heap parameters.</p>
+</div>
+<div class="paragraph">
+<p>It’s likely anyone that reads this article is familiar with <code>Xms</code> or <code>Xmx</code>, but there are
+other ways to define the boundaries of the Java heap in particular if the process is started
+with <code>\*RAMPercentage</code>. With those the JVM will compute the actual values from the <code>cgroup</code>,
+in this case it’s possible to access the actual runtime values with <code>jcmd</code>.</p>
 </div>
 <div class="paragraph">
 <p>For example with a memory limit of <code>5 GiB</code>, if a process is started with
-<code>-XX:InitialRAMPercentage=85.0</code> and <code>-XX:MaxRAMPercentage=85.0</code> only the <code>VM.flags</code>
-will output this :</p>
+<code>-XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0</code> the <code>VM.flags</code>
+diagnostic command will output this :</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>VM.flags</code> in k8s</div>
@@ -629,23 +632,43 @@ will output this :</p>
 </tr>
 </tbody></table>
 </div>
-<div class="paragraph">
-<p>Do not confuse the <code>VM.flags</code> command which will output parameters calculated <strong>from</strong> the
-<em>command line</em> and <code>VM.command_line</code> which will print the <strong>raw</strong> <em>command line</em>.</p>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Do not confuse the <code>VM.flags</code> command which will output parameters calculated <strong>from</strong> the
+<em>command line</em> and <code>VM.command_line</code> which will print the <strong>raw</strong> <em>command line</em>.
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>The other Hotspot flag values comes are JVM defaults (which may either be static values,
 or computed from internal heuristics).</p>
 </div>
 <div class="paragraph">
-<p>That being said the Java heap is only a part of the process memory usage.</p>
+<p>The Java heap is only a part of the process memory usage. I intend
+to explain how memory is <em>concumed</em> in the rest of this article, in the context
+of an application running inside a container.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_reading_the_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_reading_the_memory_footprint_of_the_java_process_in_the_container">Reading the memory footprint of the java process in the container</a></h3>
+<h3 id="_the_real_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_the_real_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_the_real_memory_footprint_of_the_java_process_in_the_container">The real memory footprint of the java process in the container</a></h3>
 <div class="paragraph">
-<p>The most critical thing to look at, in particular in a container, is the <em>resident set size</em>,
-it can be obtained in various ways, using <code>ps</code>, <code>top</code> or reading the <code>/proc</code> filesystem.</p>
+<p>In the Java dream us developers shouldn’t care much about the memory or the OS
+and if we did we should only look a the Java Heap usage.</p>
+</div>
+<div class="paragraph">
+<p>This dream more or less lasted a long time until Java applications were put
+in containers.</p>
+</div>
+<div class="paragraph">
+<p>Indeed of the most the most critical thing to look at, in a containers in particlar,
+is the <em>resident set size</em>, it can be obtained in various ways, using <code>ps</code>, <code>top</code> or
+reading the <code>/proc</code> filesystem. E.g. on the same than above</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><code>ps</code></div>
@@ -663,19 +686,21 @@ VmRSS:	 4701120 kB</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>On this process the RSS is <code>4.6 GiB</code>. This means that the process uses at least <code>0.35 GiB</code>
-of non Java heap memory, I’ll refer to this memory as native memory.</p>
+<p>The RSS is <code>4.6 GiB</code>, and it’s Java heap size is <code>4.25 GiB</code>, indicating
+this process uses around <code>0.35 GiB</code> of non Java heap memory, I’ll refer
+to this memory as <em>native memory</em>.</p>
 </div>
 <div class="paragraph">
-<p>Let’s dig a bit to understand this number <code>4701120 KiB</code>.</p>
+<p>Now I’d like to dig a bit to understand the reported number <code>4701120 KiB</code>,
+what it actually measures.</p>
 </div>
 <div class="sect3">
 <h4 id="_the_java_memory_zones"><a class="anchor" href="#_the_java_memory_zones"></a><a class="link" href="#_the_java_memory_zones">The java memory zones</a></h4>
 <div class="paragraph">
 <p>In order to understand how the Java process memory is consumed, we need to use
-<em>Native Memory Tracking</em>, fortunately the application has been started with
-<code>-XX:NativeMemoryTracking=summary</code> which produces an overview of the different
-memory zones that a Java process uses.</p>
+<em>Native Memory Tracking</em> (<code>-XX:NativeMemoryTracking=summary</code>) which produces
+an overview of the memory usage by components of the JVM. It actually gives
+a pretty good picture of the &#34;cost&#34; of the JVM.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -684,8 +709,9 @@ memory zones that a Java process uses.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10% performance overhead.
-The <em>summary</em> mode only has an impact in memory usage as shown below.
+Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10%
+performance overhead. The <em>summary</em> mode merely has an impact in memory usage
+as shown below.
 </td>
 </tr>
 </tbody></table>
@@ -697,8 +723,8 @@ The <em>summary</em> mode only has an impact in memory usage as shown below.
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-It is necessary to note that while the above command indicate a scale in <code>KB</code> for the JVM
-it really means <code>KiB</code>.
+It is necessary to note that while the above command indicate a scale
+in <code>KB</code> for the JVM it really means <code>KiB</code>.
 </td>
 </tr>
 </tbody></table>
@@ -789,15 +815,15 @@ Total: reserved=7168324KB, committed=5380868KB                               <i 
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>This shows a <code>reserved</code> value (<code>7168324 KiB</code> (~<code>6.84 GiB</code>)), it’s the amount of addressable memory
-(all OS types) on that container, and a <code>committed</code> value (<code>4456448 KiB</code> (~<code>4.25 GiB</code>)) that represents
-what the JVM actually asked the OS to allocate.</td>
+<td>This shows a <code>reserved</code> value (<code>7168324 KiB</code> (~<code>6.84 GiB</code>)), it’s the amount
+of addressable memory on that container, and a <code>committed</code> value (<code>4456448 KiB</code> (~<code>4.25 GiB</code>))
+that represents what the JVM actually asked the OS to allocate.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>Heap</code> zone, note that reserved and committed values are the same <code>4456448 KiB</code> here because our
-<code>InitialRAMPercentage</code> is the same as max. I’m not sure why this number is different from the VM
-flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
+<td><code>Heap</code> zone, note that reserved and committed values are the same <code>4456448 KiB</code>
+here because our <code>InitialRAMPercentage</code> is the same as max. I’m not sure why this number
+is different from the VM flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -817,7 +843,8 @@ flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="7"></i><b>7</b></td>
-<td>This section contains <code>GC</code> algorithms internal data structures, this is app is using G1GC which takes ~<code>225 MiB</code>.</td>
+<td>This section contains <code>GC</code> algorithms internal data structures, this is app
+is using G1GC which takes ~<code>225 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="8"></i><b>8</b></td>
@@ -825,12 +852,13 @@ flags <code>-XX:MaxHeapSize=4563402752</code> though.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="9"></i><b>9</b></td>
-<td>The <code>Symbol</code> section contains many things like interned strings and other internal constants for about <code>28.2 MiB</code>.</td>
+<td>The <code>Symbol</code> section contains many things like interned strings and other
+internal constants for about <code>28.2 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="10"></i><b>10</b></td>
-<td>The <code>Internal</code> area takes ~<code>24 MiB</code>. Before Java 11 this area included <code>DirectByteBuffers</code>, but from Java 11 those
-are accounted in the <code>Other</code> zone.</td>
+<td>The <code>Internal</code> area takes ~<code>24 MiB</code>. Before Java 11 this area included
+<code>DirectByteBuffers</code>, but from Java 11 those are accounted in the <code>Other</code> zone.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="11"></i><b>11</b></td>
@@ -858,12 +886,18 @@ and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-t
 <p>Yet another worthwhile read on <a href="https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/">native memory tracking</a>
 by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
 </div>
+<div class="paragraph">
+<p>NMT is a great tool to gain an insight on the memory usage of the various
+parts that compose the Java runtime. But it doesn’t answer well
+what is actually accounted by the number reported in <code>ps</code>.</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_lets_pause_a_bit_and_revise_memory_management"><a class="anchor" href="#_lets_pause_a_bit_and_revise_memory_management"></a><a class="link" href="#_lets_pause_a_bit_and_revise_memory_management">Let’s pause a bit and revise memory management</a></h4>
 <div class="paragraph">
-<p>I mentioned it already : the <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it? What exactly means
-<em>committed</em> memory ? Or <em>reserved</em> memory ? How do they relate to each other?</p>
+<p>I mentioned this acronym already, <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it?
+What exactly means <em>committed</em> memory or <em>reserved</em> memory shown in NMT ? How do they
+relate to each other?</p>
 </div>
 <div class="paragraph">
 <p>First let’s break down the vocabulary when we talk about memory.</p>
@@ -947,38 +981,41 @@ This applies to the JVM and the OS.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reserved</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> or <code>malloc</code> for a
-particular memory pool. In other words <em>reserved memory</em> represents the maximum addressable memory.
+<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> or <code>malloc</code>
+for a particular memory pool. In other words <em>reserved memory</em> represents the maximum
+addressable memory.
 Those could be referred to as <strong>uncommitted</strong>.
 This applies to the JVM and the OS.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">OS memory pages which are currently in physical ram. This means codes, stacks, part of the
-committed memory pools but also portions of <code>mmap</code>ed files which have recently been accessed
-and allocations outside the control of the JVM.
+<td class="tableblock halign-left valign-top"><p class="tableblock">OS memory pages which are currently in physical ram. This means codes,
+stacks, part of the committed memory pools but also portions of <code>mmap</code>ed files
+which have recently been accessed and allocations outside the control of the JVM.
 This only relate to the OS.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Virtual</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
-files or shared memory. This number is rarely informative since the JVM will reserve large address
-ranges upfront. We can see this number as the pessimistic memory usage.
+<td class="tableblock halign-left valign-top"><p class="tableblock">The sum of all virtual address mappings. Covers committed, reserved
+memory pools but also mapped files or shared memory. This number is rarely informative
+since the JVM will reserve large address ranges upfront. We can see this number
+as the pessimistic memory usage.
 This only relate to the OS.</p></td>
 </tr>
 </tbody>
 </table>
 <div class="paragraph">
-<p>The graph above does not show resident memory, indeed, the above graph is mostly about the
-layout of the address space of a (Java) process. However, to talk about resident memory
-it’s necessary to remind how OSes, and Linux in this article, manage memory through the concept of
-<strong>paging</strong>.</p>
+<p>The graph above does not yet show resident memory. Indeed, the above graph most display
+the <em>layout</em> of the address space of a process. In order explain resident memory
+it’s necessary to revise how Linux (and other OSes by the way) manage memory
+using the concept of <strong>paging</strong>.</p>
 </div>
 <div class="paragraph">
-<p>The virtual address space is divided into smaller chunks called <em>pages</em>. I only saw pages of <code>4 KiB</code>
-but other sizes exists and may even co-exists (e.g. having pages of 4 KiB mixed with 2 MiB pages), it
-all depends on the processor architecture. Anyway that’s something that is out of scope for this
-writing. What is interesting is how paging and RSS relate to each other.</p>
+<p>The virtual address space is divided into smaller chunks called <em>pages</em>. While I only
+saw pages of <code>4 KiB</code> other sizes exist and may even co-exist (e.g. having pages of
+4 KiB mixed with 2 MiB pages), it all depends on the processor architecture.
+That’s something that is out of scope for this article. What is interesting is
+how paging and RSS relate to each other.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -1259,21 +1296,28 @@ writing. What is interesting is how paging and RSS relate to each other.</p>
 <div class="title">paging (for a single process)</div>
 </div>
 <div class="paragraph">
-<p>As shown in the graph above the addressable space of a process is divided in <em>pages</em>.
-These pages have to be stored physically, either in RAM or on disk. The real memory
-address is naturally different from this virtual address space for the process.
-It’s the job of the MMU (Memory Management Unit) to perform the translation between
-virtual addresses and physical addresses.</p>
+<p>The graph above shows the addressable space of a process and its <em>pages</em>.
+The process can access these pages using the addresses of it’s virtual space,
+however these pages have to be stored physically, usually in RAM, sometime on disk,
+when referring to these chunks of memory on hardware we use the term <em>frame</em>.</p>
 </div>
 <div class="paragraph">
-<p>One of the advantage of virtual memory is providing to a process the illusion of very
-big memory. The trick behind that is that not all memory is used at the same time,
-thus allowing:</p>
+<p>The real memory address is naturally different from this virtual address space
+for the process. There’s a specialized component called MMU (Memory Management Unit)
+to perform the translation between virtual addresses and physical addresses.</p>
+</div>
+<div class="paragraph">
+<p>The motivation behind virtual memory and paging comes from multi-tasking, to allows
+to run several program. Each process will have the illusion of a bigger memory.
+The OS is hard at work performing various tricks to keep these illusions for all processes.
+From this single observation &#34;Not all memory is used at the same time&#34;,
+it’s possible :</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>to not use physical memory frames if the process didn’t yet <em>touch</em> this page</p>
+<p>to not use physical memory frames if the process didn’t yet <em>touch</em> this page, in
+other words such a page does not really exist.</p>
 </li>
 <li>
 <p>to use a slower device to store pages, usually a disk, in special part called <em>swap</em></p>
@@ -1281,19 +1325,18 @@ thus allowing:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>To understand <em>RSS</em> the diagram above is enough as it shows where
-used process memory may <em>resides</em>, in RAM or in a secondary storage (like a disk).
-The <em>resident set size</em> which means the total size of pages of a process either
-in RAM or in secondary storage, that is without untouched/unused pages.
+<p>The <em>resident set size</em> mean the total size of pages of a process that resides either
+in RAM or in secondary storage, i.e. without untouched/unused pages.
 This contrasts with VSZ or virtual size which includes the total address space of
-a program, which can be very large.</p>
+a program, this value is usually way superior to RSS.</p>
 </div>
 <div class="paragraph">
 <p><em>If you want to dive how the whole paging thing works head to
-system courses where they usually explain in depth how everything interacts.</em></p>
+system courses, articles (like <a href="https://landley.net/writing/memory-faq.txt">this masterpiece</a>)
+where they usually explain in depth how everything interacts.</em></p>
 </div>
 <div class="paragraph">
-<p>To put things in perspective I’d like to explain one last thing to memory management
+<p>To put things in context I’d like to explain one last thing to memory management
 with the JVM perspective.</p>
 </div>
 <div class="sect4">
@@ -2223,18 +2266,18 @@ number this process will be fine.
 of the different JVM memory zones, but, does not reflect the real usage.</p>
 </div>
 <div class="paragraph">
-<p>Most of the time using <code>ps</code> is enough. If you need to understand a bit more
-what in the JVM is actually consuming memory, then read on.</p>
+<p>Most of the time using <code>ps</code> is enough. If however you’d like to understand a bit more
+how much JVM components are actually consuming memory, then read on.</p>
 </div>
 <div class="paragraph">
-<p>The JVM components reported by NMT use different type of memory management and
-have different allocation patterns.</p>
+<p>The JVM components reported by NMT can use different <em>types of memory management</em> and
+as such may have multiple allocation mechanisms. For example:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
 <p>GC based
-<code>Java heap</code> and <code>Metaspace</code> (<code>Class</code>) are s=usually the biggest customer of memory,
+<code>Java heap</code> and <code>Metaspace</code> (<code>Class</code>) are usually the biggest consumers of memory,
 they both rely on <code>mmap</code>.</p>
 <div class="listingblock">
 <div class="title">java heap and metaspace</div>
@@ -2250,15 +2293,17 @@ they both rely on <code>mmap</code>.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>The interesting part is that these parts rely on the GC algorithm to
-<em>arrange</em> the memory. In particular these zones have very large memory segments
-that matches the JVM options.</p>
+<p>These two <em>memory zones</em> are interesting in that they are managed by the GC algorithm,
+put in other words the GC is actually the memory manager of these zones, it is able to
+<em>arrange</em> the memory according to the options that are passed on the command line.
+E.g. with a fixed size heap (<code>Xms</code> = <code>Xmx</code>), the heap will be constituted of a large memory
+segment, in this case the <em>reserved</em> and <em>committed</em> values will be the same as well.</p>
 </div>
 <div class="paragraph">
-<p>Some option may trigger specific behavior for these
-memory zones, e.g. enabling the heap to grow or shrink (I never saw that in practice,
-maybe I’ll see it once I use a JDK 12+ with <a href="https://openjdk.java.net/jeps/346">JEP-346</a>,
-although even the JEP mention if there is very low activity, which is not gonna
+<p>Other options may trigger specific behavior for these memory zones, e.g. make
+the heap to grow or to shrink (I never saw that in practice,
+maybe I’ll see it once I use a JDK 12+ with <em>heap uncommit</em> with <a href="https://openjdk.java.net/jeps/346">JEP-346</a>,
+although even the JEP mention it’ll only happen if there is very low activity, which is unlikely to
 happen for some workload).</p>
 </div>
 </li>
@@ -2496,16 +2541,16 @@ the OS may:</p>
 <div class="ulist">
 <ul>
 <li>
-<p>make this page resident in physical memory, if something has be written into it</p>
+<p>Make this page resident in physical memory, if something has be written into it.</p>
 </li>
 <li>
-<p>do nothing if a page is not used, this page is virtually available</p>
+<p>Do nothing if a page is not used, this page is virtually available.</p>
 </li>
 <li>
-<p>move a page from physical memory to swap, if the OS thinks there’s not enough room for other pages</p>
+<p>Move a page from physical memory to swap, if the OS thinks there’s not enough room for other pages.</p>
 </li>
 <li>
-<p>map ta portion of a file to this page</p>
+<p>Map a portion of a file to this page.</p>
 </li>
 </ul>
 </div>
