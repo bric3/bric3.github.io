@@ -13,6 +13,7 @@ CAUTION: Talk about the kubernetes scheduling aspect of setting memory request a
 
 CAUTION: Change _memory zone_ in NMT to memory by JVM components
 
+// quote https://landley.net/writing/memory-faq.txt
 
 Like many I was happy to see the JDK landed support for containers in Java 9,
 and that it was backported to Java 8 as well. Now the JDK 11 enables this
@@ -96,7 +97,7 @@ the __pod__s started to get _oom killed_.
 ****
 
 
-image:../static/assets/maxrampercentage/app-jvm-memory-usage.png[JVM memory usage]
+image:../../static/assets/maxrampercentage/app-jvm-memory-usage.png[JVM memory usage]
 
 On the graph above we can see the trend of the **R**esident **S**et **S**ize in green,
 the Java heap limit (85% of `3 GiB`), and in yellow the current heap usage.
@@ -190,16 +191,18 @@ _Now let's answer this question: What is consuming the memory ?_
 
 == Diagnosis
 
-=== Reading the JVM settings
+=== The JVM options
 
-What most of are doing when assessing java memory is to look at the Java heap.
-In particular if the process is started with `\*RAMPercentage`, the JVM will compute
-the actual values from the ``cgroup``s. In this case using `jcmd` it's possible to access
-the runtime values.
+When assessing java memory one of the fist thing to look at are the Java heap parameters.
+
+It's likely anyone that reads this article is familiar with `Xms` or `Xmx`, but there are
+other ways to define the boundaries of the Java heap in particular if the process is started
+with `\*RAMPercentage`. With those the JVM will compute the actual values from the `cgroup`,
+in this case it's possible to access the actual runtime values with `jcmd`.
 
 For example with a memory limit of `5 GiB`, if a process is started with
-`-XX:InitialRAMPercentage=85.0` and `-XX:MaxRAMPercentage=85.0` only the `VM.flags`
-will output this :
+`-XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0` the `VM.flags`
+diagnostic command will output this :
 
 .`VM.flags` in k8s
 [source, bash]
@@ -222,18 +225,27 @@ $ jcmd $(pidof java) VM.flags | tr ' ' '\n'
 <3> Initial heap size ~`4.25 GiB`
 <4> Max heap size ~`4.25 GiB`
 
-Do not confuse the `VM.flags` command which will output parameters calculated *from* the
+TIP: Do not confuse the `VM.flags` command which will output parameters calculated *from* the
 _command line_ and `VM.command_line` which will print the *raw* _command line_.
 
 The other Hotspot flag values comes are JVM defaults (which may either be static values,
 or computed from internal heuristics).
 
-That being said the Java heap is only a part of the process memory usage.
+The Java heap is only a part of the process memory usage. I intend
+to explain how memory is _concumed_ in the rest of this article, in the context
+of an application running inside a container.
 
-=== Reading the memory footprint of the java process in the container
+=== The real memory footprint of the java process in the container
 
-The most critical thing to look at, in particular in a container, is the _resident set size_,
-it can be obtained in various ways, using `ps`, `top` or reading the `/proc` filesystem.
+In the Java dream us developers shouldn't care much about the memory or the OS
+and if we did we should only look a the Java Heap usage.
+
+This dream more or less lasted a long time until Java applications were put
+in containers.
+
+Indeed of the most the most critical thing to look at, in a containers in particlar,
+is the _resident set size_, it can be obtained in various ways, using `ps`, `top` or
+reading the `/proc` filesystem. E.g. on the same than above
 
 .`ps`
 [source, role="primary"]
@@ -250,23 +262,27 @@ $ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB
 ----
 
-On this process the RSS is `4.6 GiB`. This means that the process uses at least `0.35 GiB`
-of non Java heap memory, I'll refer to this memory as native memory.
+The RSS is `4.6 GiB`, and it's Java heap size is `4.25 GiB`, indicating
+this process uses around `0.35 GiB` of non Java heap memory, I'll refer
+to this memory as _native memory_.
 
-Let's dig a bit to understand this number `4701120 KiB`.
+Now I'd like to dig a bit to understand the reported number `4701120 KiB`,
+what it actually measures.
 
 ==== The java memory zones
 
 In order to understand how the Java process memory is consumed, we need to use
-_Native Memory Tracking_, fortunately the application has been started with
-`-XX:NativeMemoryTracking=summary` which produces an overview of the different
-memory zones that a Java process uses.
+_Native Memory Tracking_ (`-XX:NativeMemoryTracking=summary`) which produces
+an overview of the memory usage by components of the JVM. It actually gives
+a pretty good picture of the "cost" of the JVM.
 
-NOTE: Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10% performance overhead.
-The _summary_ mode only has an impact in memory usage as shown below.
+NOTE: Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10%
+performance overhead. The _summary_ mode merely has an impact in memory usage
+as shown below.
 
-NOTE: It is necessary to note that while the above command indicate a scale in `KB` for the JVM
-it really means `KiB`.
+NOTE: It is necessary to note that while the above command indicate a scale
+in `KB` for the JVM it really means `KiB`.
+
 
 .`VM.native_memory` instant snapshot
 [source, bash]
@@ -349,21 +365,23 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
 -                   Unknown (reserved=32KB, committed=32KB)
                             (mmap: reserved=32KB, committed=32KB)
 ----
-<1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount of addressable memory
-(all OS types) on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`)) that represents
-what the JVM actually asked the OS to allocate.
-<2> `Heap` zone, note that reserved and committed values are the same `4456448 KiB` here because our
-`InitialRAMPercentage` is the same as max. I'm not sure why this number is different from the VM
-flags `-XX:MaxHeapSize=4563402752` though.
+<1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount
+of addressable memory on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`))
+that represents what the JVM actually asked the OS to allocate.
+<2> `Heap` zone, note that reserved and committed values are the same `4456448 KiB`
+here because our `InitialRAMPercentage` is the same as max. I'm not sure why this number
+is different from the VM flags `-XX:MaxHeapSize=4563402752` though.
 <3> ~`162 MiB` of metaspace.
 <4> How many classes have been loaded : `28431`.
 <5> There are 674 threads whose stacks are using ~`80 MiB` at this time.
 <6> `Code` cache area (assembly of the used methods) ~`102 MiB` out of ~`246 MiB`.
-<7> This section contains `GC` algorithms internal data structures, this is app is using G1GC which takes ~`225 MiB`.
+<7> This section contains `GC` algorithms internal data structures, this is app
+is using G1GC which takes ~`225 MiB`.
 <8> C1 / C2 compilers (which compile bytecode to assembly) use ~`5.8 MiB`.
-<9> The `Symbol` section contains many things like interned strings and other internal constants for about `28.2 MiB`.
-<10> The `Internal` area takes ~`24 MiB`. Before Java 11 this area included `DirectByteBuffers`, but from Java 11 those
-are accounted in the `Other` zone.
+<9> The `Symbol` section contains many things like interned strings and other
+internal constants for about `28.2 MiB`.
+<10> The `Internal` area takes ~`24 MiB`. Before Java 11 this area included
+`DirectByteBuffers`, but from Java 11 those are accounted in the `Other` zone.
 <11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
 
 All possible memory types are defined there in
@@ -382,11 +400,15 @@ and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html
 Yet another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
 by http://twitter.com/shipilev[Aleksey Shipilёv].
 
+NMT is a great tool to gain an insight on the memory usage of the various
+parts that compose the Java runtime. But it doesn't answer well
+what is actually accounted by the number reported in `ps`.
 
 ==== Let's pause a bit and revise memory management
 
-I mentioned it already : the _RSS_ or **R**esident **S**et **S**ize, what is it? What exactly means
-_committed_ memory ? Or _reserved_ memory ? How do they relate to each other?
+I mentioned this acronym already, _RSS_ or **R**esident **S**et **S**ize, what is it?
+What exactly means _committed_ memory or _reserved_ memory shown in NMT ? How do they
+relate to each other?
 
 First let's break down the vocabulary when we talk about memory.
 
@@ -417,33 +439,36 @@ First let's break down the vocabulary when we talk about memory.
 They may or may not be backed by physical or swap due to lazy allocation and paging.
 This applies to the JVM and the OS.
 
-| *Reserved* | The total address range that has been pre-mapped via `mmap` or `malloc` for a
-particular memory pool. In other words _reserved memory_ represents the maximum addressable memory.
+| *Reserved* | The total address range that has been pre-mapped via `mmap` or `malloc`
+for a particular memory pool. In other words _reserved memory_ represents the maximum
+addressable memory.
 Those could be referred to as *uncommitted*.
 This applies to the JVM and the OS.
 
-| *Resident* | OS memory pages which are currently in physical ram. This means codes, stacks, part of the
-committed memory pools but also portions of ``mmap``ed files which have recently been accessed
-and allocations outside the control of the JVM.
+| *Resident* | OS memory pages which are currently in physical ram. This means codes,
+stacks, part of the committed memory pools but also portions of ``mmap``ed files
+which have recently been accessed and allocations outside the control of the JVM.
 This only relate to the OS.
 
-| *Virtual* | The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
-files or shared memory. This number is rarely informative since the JVM will reserve large address
-ranges upfront. We can see this number as the pessimistic memory usage.
+| *Virtual* | The sum of all virtual address mappings. Covers committed, reserved
+memory pools but also mapped files or shared memory. This number is rarely informative
+since the JVM will reserve large address ranges upfront. We can see this number
+as the pessimistic memory usage.
 This only relate to the OS.
 
 |===
 
 
-The graph above does not show resident memory, indeed, the above graph is mostly about the
-layout of the address space of a (Java) process. However, to talk about resident memory
-it's necessary to remind how OSes, and Linux in this article, manage memory through the concept of
-*paging*.
+The graph above does not yet show resident memory. Indeed, the above graph most display
+the _layout_ of the address space of a process. In order explain resident memory
+it's necessary to revise how Linux (and other OSes by the way) manage memory
+using the concept of *paging*.
 
-The virtual address space is divided into smaller chunks called _pages_. I only saw pages of `4 KiB`
-but other sizes exists and may even co-exists (e.g. having pages of 4 KiB mixed with 2 MiB pages), it
-all depends on the processor architecture. Anyway that's something that is out of scope for this
-writing. What is interesting is how paging and RSS relate to each other.
+The virtual address space is divided into smaller chunks called _pages_. While I only
+saw pages of `4 KiB` other sizes exist and may even co-exist (e.g. having pages of
+4 KiB mixed with 2 MiB pages), it all depends on the processor architecture.
+That's something that is out of scope for this article. What is interesting is
+how paging and RSS relate to each other.
 
 
 .paging (for a single process)
@@ -486,30 +511,36 @@ writing. What is interesting is how paging and RSS relate to each other.
 
 ----
 
-As shown in the graph above the addressable space of a process is divided in _pages_.
-These pages have to be stored physically, either in RAM or on disk. The real memory
-address is naturally different from this virtual address space for the process.
-It's the job of the MMU (Memory Management Unit) to perform the translation between
-virtual addresses and physical addresses.
+The graph above shows the addressable space of a process and its _pages_.
+The process can access these pages using the addresses of it's virtual space,
+however these pages have to be stored physically, usually in RAM, sometime on disk,
+when referring to these chunks of memory on hardware we use the term _frame_.
 
-One of the advantage of virtual memory is providing to a process the illusion of very
-big memory. The trick behind that is that not all memory is used at the same time,
-thus allowing:
+The real memory address is naturally different from this virtual address space
+for the process. There's a specialized component called MMU (Memory Management Unit)
+to perform the translation between virtual addresses and physical addresses.
 
-* to not use physical memory frames if the process didn't yet _touch_ this page
+The motivation behind virtual memory and paging comes from multi-tasking, to allows
+to run several program. Each process will have the illusion of a bigger memory.
+The OS is hard at work performing various tricks to keep these illusions for all processes.
+From this single observation "Not all memory is used at the same time",
+it's possible :
+
+* to not use physical memory frames if the process didn't yet _touch_ this page, in
+other words such a page does not really exist.
 * to use a slower device to store pages, usually a disk, in special part called _swap_
 
-To understand _RSS_ the diagram above is enough as it shows where
-used process memory may _resides_, in RAM or in a secondary storage (like a disk).
-The _resident set size_ which means the total size of pages of a process either
-in RAM or in secondary storage, that is without untouched/unused pages.
+
+The _resident set size_ mean the total size of pages of a process that resides either
+in RAM or in secondary storage, i.e. without untouched/unused pages.
 This contrasts with VSZ or virtual size which includes the total address space of
-a program, which can be very large.
+a program, this value is usually way superior to RSS.
 
 _If you want to dive how the whole paging thing works head to
-system courses where they usually explain in depth how everything interacts._
+system courses, articles (like https://landley.net/writing/memory-faq.txt[this masterpiece])
+where they usually explain in depth how everything interacts._
 
-To put things in perspective I'd like to explain one last thing to memory management
+To put things in context I'd like to explain one last thing to memory management
 with the JVM perspective.
 
 ===== Reserved and committed memory in the JVM
@@ -1172,15 +1203,15 @@ On macOs you should install the GNU coreutils and use `ggrep` and `ghead`.
 The previous section showed that NMT numbers only represents the sizes
 of the different JVM memory zones, but, does not reflect the real usage.
 
-Most of the time using `ps` is enough. If you need to understand a bit more
-what in the JVM is actually consuming memory, then read on.
+Most of the time using `ps` is enough. If however you'd like to understand a bit more
+how much JVM components are actually consuming memory, then read on.
 
 
-The JVM components reported by NMT use different type of memory management and
-have different allocation patterns.
+The JVM components reported by NMT can use different _types of memory management_ and
+as such may have multiple allocation mechanisms. For example:
 
 . GC based
-`Java heap` and `Metaspace` (`Class`) are s=usually the biggest customer of memory,
+`Java heap` and `Metaspace` (`Class`) are usually the biggest consumers of memory,
 they both rely on `mmap`.
 +
 .java heap and metaspace
@@ -1195,14 +1226,16 @@ they both rely on `mmap`.
                             (mmap: reserved=1189888KB, committed=159744KB)
 ----
 +
-The interesting part is that these parts rely on the GC algorithm to
-_arrange_ the memory. In particular these zones have very large memory segments
-that matches the JVM options.
+These two _memory zones_ are interesting in that they are managed by the GC algorithm,
+put in other words the GC is actually the memory manager of these zones, it is able to
+_arrange_ the memory according to the options that are passed on the command line.
+E.g. with a fixed size heap (`Xms` = `Xmx`), the heap will be constituted of a large memory
+segment, in this case the _reserved_ and _committed_ values will be the same as well.
 +
-Some option may trigger specific behavior for these
-memory zones, e.g. enabling the heap to grow or shrink (I never saw that in practice,
-maybe I'll see it once I use a JDK 12+ with https://openjdk.java.net/jeps/346[JEP-346],
-although even the JEP mention if there is very low activity, which is not gonna
+Other options may trigger specific behavior for these memory zones, e.g. make
+the heap to grow or to shrink (I never saw that in practice,
+maybe I'll see it once I use a JDK 12+ with _heap uncommit_ with https://openjdk.java.net/jeps/346[JEP-346],
+although even the JEP mention it'll only happen if there is very low activity, which is unlikely to
 happen for some workload).
 
 
@@ -1271,6 +1304,13 @@ mapping because we know their size, Java heap, metaspace, and threads.
 Other segments are difficult to guess for two reasons: the malloc
 implementation details, like the arenas in Glibc, and the number of
 different `malloc` calls for a single component.
+
+
+
+
+
+
+
 
 
 
@@ -1363,10 +1403,10 @@ available. In this scheme the OS splits the virtual memory and the memory in sma
 called *pages*. For any given page in the virtual memory, and depending on the application(s)
 the OS may:
 
-* make this page resident in physical memory, if something has be written into it
-* do nothing if a page is not used, this page is virtually available
-* move a page from physical memory to swap, if the OS thinks there's not enough room for other pages
-* map ta portion of a file to this page
+* Make this page resident in physical memory, if something has be written into it.
+* Do nothing if a page is not used, this page is virtually available.
+* Move a page from physical memory to swap, if the OS thinks there's not enough room for other pages.
+* Map a portion of a file to this page.
 
 image:../../static/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
 
