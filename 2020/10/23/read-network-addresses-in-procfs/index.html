@@ -17,7 +17,7 @@
     
     
 
-<title>Simple G1GC tuning • Brice Dutheil</title>
+<title>Reads network addresses in /proc • Brice Dutheil</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="Simple G1GC tuning">
+<meta property="og:title" content="Reads network addresses in /proc">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/09/22/simple-g1gc-tuning/" />
+<meta property="og:url" content="https://blog.arkey.fr/2020/10/23/read-network-addresses-in-procfs/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -47,13 +47,13 @@
 <meta property="og:image:height" content="192">
     
 
-<meta property="og:updated_time" content="2020-09-22T18:54:58&#43;0200">
+<meta property="og:updated_time" content="2020-10-23T23:25:32&#43;0200">
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Simple G1GC tuning">
+<meta name="twitter:title" content="Reads network addresses in /proc">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -234,20 +234,42 @@
 
 <article>
   <header>
-    <h1>Simple G1GC tuning</h1>
+    <h1>Reads network addresses in /proc</h1>
     
     
 <div class="post__meta">
     
     
-      <i class="fas fa-calendar-alt"></i> 2020-09-22
+      <i class="fas fa-calendar-alt"></i> 2020-10-23
     
     
     
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/shell">shell</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/bash">bash</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/ip">ip</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/procfs">procfs</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/awk">awk</a>
+          
+      
     
     
     <br/>
-    <i class="fas fa-clock"></i> 15 min read
+    <i class="fas fa-clock"></i> 20 min read
 
     
     
@@ -262,15 +284,15 @@
   
   <div class="post adoc">
     <div class="paragraph">
-<p>If you happen to be on a read only container that doesn’t have the usual network utility,
-like <code>netstat</code>, <code>ss</code> (socket stat), <code>lsof</code>, then your only option is to read procfs,
-however procfs displays data in hexadecimal.</p>
+<p>If you happen to be on a read only container that doesn’t have the usual network utilities,
+like <code>netstat</code>, <code>ss</code> (socket stat), <code>lsof</code>, etc then your only option is to leverage procfs,
+however procfs displays some data in hexadecimal.</p>
 </div>
 <div class="paragraph">
-<p>Let’s use the shell to leverage <code>/proc</code> in a human readable way.</p>
+<p>This blog post briefly presents a few tricks to read <code>/proc</code> in a human readable way.</p>
 </div>
 <div class="paragraph">
-<p><strong>tl;dr</strong></p>
+<p>tl;dr One of the final command could be this one :</p>
 </div>
 <div class="listingblock">
 <div class="title">lists destination IPs on port 9042</div>
@@ -294,8 +316,12 @@ however procfs displays data in hexadecimal.</p>
 10.45.32.123</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>But let’s see how I build it, then let’s look if it’s possible to repurpose elements
+of this command other use cases.</p>
+</div>
 <div class="sect1">
-<h2 id="_deconstruct_the_above_command"><a class="anchor" href="#_deconstruct_the_above_command"></a><a class="link" href="#_deconstruct_the_above_command">Deconstruct the above command</a></h2>
+<h2 id="_constructing_the_above_command"><a class="anchor" href="#_constructing_the_above_command"></a><a class="link" href="#_constructing_the_above_command">Constructing the above command</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>First we need to see which information we need to extract from procfs</p>
@@ -493,17 +519,25 @@ with <code>OFS</code> <em>output field separator</em> to separate each IP’s oc
 </div>
 </div>
 <div class="sect1">
-<h2 id="_closing_thought"><a class="anchor" href="#_closing_thought"></a><a class="link" href="#_closing_thought">Closing thought</a></h2>
+<h2 id="_exploring_other_usage"><a class="anchor" href="#_exploring_other_usage"></a><a class="link" href="#_exploring_other_usage">Exploring other usage</a></h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>There are many files in procfs net directory, I just showed <code>/proc/net/tcp</code> pseudo file,
+and I started this blog with a <code>port</code> filter, but they are other elements to look at, e.g.
+the TCP connection state. Looking aside there are also <code>/proc/net/udp</code>, <code>/proc/net/route</code>, etc
+pseudo files too.</p>
+</div>
+<div class="sect2">
+<h3 id="_tcp_connection_state"><a class="anchor" href="#_tcp_connection_state"></a><a class="link" href="#_tcp_connection_state">TCP Connection state</a></h3>
 <div class="paragraph">
 <p>While this may seem tricky at first, it’s easy to tweak these few lines,
 as functions, and combine them or modify them to extract on other criteria,
 e.g. the fourth field is about the connection state.</p>
 </div>
 <div class="listingblock">
-<div class="title">include/net/tcp_states.h</div>
+<div class="title"><a href="https://github.com/torvalds/linux/blob/v4.19/include/net/tcp_states.h">include/net/tcp_states.h (v4.19)</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">link:https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/include/net/tcp_states.h?id=HEAD[lines=10..27]</code></pre>
+<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">link:https://raw.githubusercontent.com/torvalds/linux/v4.19/include/net/tcp_states.h[lines=14..31]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -547,10 +581,10 @@ indicates what addresses have been bound by the process.</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>This time the line is separated by IP and port using the colon separator <code>-F:</code></p>
+<p>Addresses will be split using the colon separator <code>-F:</code>.</p>
 </li>
 <li>
-<p><code>{gsub(/../,&#34;0x&amp; &#34;, $1)}</code> will split the IP field as octets and prefix them by <code>0x</code></p>
+<p>Then <code>{gsub(/../,&#34;0x&amp; &#34;, $1)}</code> will split the IP field as octets and prefix them by <code>0x</code>.</p>
 </li>
 <li>
 <p>Then I need to reverse the IP octets, as <code>awk</code> cannot expand fields, I can split
@@ -573,6 +607,69 @@ Ending the line by printing the port field in decimal <code>printf &#34;%d%s&#34
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_reading_procnetroute"><a class="anchor" href="#_reading_procnetroute"></a><a class="link" href="#_reading_procnetroute">Reading /proc/net/route</a></h3>
+<div class="paragraph">
+<p>Likewise, in stripped down container <code>/sbin/route</code> may be missing, in that cas using procfs
+offer an alternative :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/net/route
+Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
+eth0	00000000	0104F80A	0003	0	0	0	00000000	0	0	0
+eth0	0204F80A	00000000	0001	0	0	0	00FFFFFF	0	0	0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Reversed hexadecimal IPs are immediately identifiable, although having a human readable form
+would be better. Reusing our previous awk command is pure profit.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/net/route \
+  | awk &#39;$1 == &#34;eth0&#34; {print $3}&#39; \
+  | awk &#39;{gsub(/../,&#34;0x&amp; &#34;)} OFS=&#34;.&#34; {for(i=NF;i&gt;0;i--) printf &#34;%d%s&#34;, $i, (i == 1 ? ORS : OFS)}&#39;
+10.248.4.1
+0.0.0.0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I’m not quite sure about the flags, this [stackoverflow answer]
+suggests to look at <a href="https://sourceforge.net/p/net-tools/code/ci/master/tree/lib/net-support.h#l225">net-tool source</a>,</p>
+</div>
+<div class="paragraph">
+<p>Which in turns suggest to look at <a href="https://github.com/torvalds/linux/blob/v3.6/include/linux/route.h#L50-L60"><code>include/linux/route.h</code> (v3.6)</a> file,
+which moved to <a href="https://github.com/torvalds/linux/blob/v3.7/include/uapi/linux/route.h#L50-L60"><code>include/uapi/linux/route.h#L50-L60</code></a> since v3.7.
+This happend during this <a href="https://github.com/torvalds/linux/commit/607ca46e97a1b6594b29647d98a32d545c24bdff#diff-9a1cc27b54f86cc709009b1225d7579bc53ee715d133f6104e56782d3ec697da">commit</a>
+for the creation of what is called the user space API of the kernel (uapi), or headers that can be used publicly.</p>
+</div>
+<div class="paragraph">
+<p>See this <a href="http://lwn.net/Articles/507794/">discussion</a>, and thanks for this <a href="https://stackoverflow.com/a/18858544/48136">StackOverflow answer</a>.</p>
+</div>
+<div class="paragraph">
+<p>Anyway here’s the flags :</p>
+</div>
+<div class="listingblock">
+<div class="title"><a href="https://github.com/torvalds/linux/blob/v4.19/include/uapi/linux/route.h">include/uapi/linux/route.h (v4.19)</a></div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">link:https://raw.githubusercontent.com/torvalds/linux/v4.19/include/uapi/linux/route.h[lines=51..61]</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_closing_thoughts"><a class="anchor" href="#_closing_thoughts"></a><a class="link" href="#_closing_thoughts">Closing thoughts</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>When containers are stripped down and read-only, and you don’t have the possibility
+to <em>attach</em> a debug container, I’m quite lucky to have the ability to introspect
+process <em>internals</em> thanks to the pseudo filesystem <code>/proc</code>. However sometimes
+the information is not easily human accessible. I hope the few <code>awk</code> tricks here
+will be useful to someone else.</p>
+</div>
+</div>
 </div>
 
   </div>
@@ -580,9 +677,9 @@ Ending the line by printing the port field in decimal <code>printf &#34;%d%s&#34
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/2020/05/23/exploring-java-native-memory/" class="navigation-prev">
+    <a href="/2020/07/28/embracing-jvm-unified-logging-jep-158-jep-271/" class="navigation-prev">
       <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Exploring Java native memory</span>
+      <span class="navigation-tittle">Embracing JVM unified logging (JEP-158 / JEP-271)</span>
     </a>
     
     
