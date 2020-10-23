@@ -3,19 +3,19 @@ authors: ["brice.dutheil"]
 date: "2020-09-22T18:54:58+02:00"
 language: en
 draft: true
-#tags: ["shell","bash","ip","procfs", "g1gc"]
-slug: "simple-g1gc-tuning"
-title: "Simple G1GC tuning"
+#tags: ["shell","bash","ip","procfs", "awk"]
+slug: "read-addresses-in-procfs"
+title: "Reads network addresses in /proc"
 ---
 
 
-If you happen to be on a read only container that doesn't have the usual network utility,
-like `netstat`, `ss` (socket stat), `lsof`, then your only option is to read procfs,
-however procfs displays data in hexadecimal.
+If you happen to be on a read only container that doesn't have the usual network utilities,
+like `netstat`, `ss` (socket stat), `lsof`, etc then your only option is to leverage procfs,
+however procfs displays some data in hexadecimal.
 
-Let's use the shell to leverage `/proc` in a human readable way.
+This blog post briefly presents a few tricks to read `/proc` in a human readable way.
 
-*tl;dr*
+tl;dr One of the final command could be this one :
 
 .lists destination IPs on port 9042
 [source, shell]
@@ -39,9 +39,10 @@ $ cat /proc/$(pidof java)/net/tcp \
 10.45.32.123
 ----
 
+But let's see how I build it, then let's look if it's possible to repurpose elements
+of this command other use cases.
 
-
-== Deconstruct the above command
+== Constructing the above command
 
 First we need to see which information we need to extract from procfs
 
@@ -214,16 +215,24 @@ $ cat /proc/$(pidof java)/net/tcp \
 10.45.32.123
 ----
 
-== Closing thought
+== Exploring other usage
+
+There are many files in procfs net directory, I just showed `/proc/net/tcp` pseudo file,
+and I started this blog with a `port` filter, but they are other elements to look at, e.g.
+the TCP connection state. Looking aside there are also `/proc/net/udp`, `/proc/net/route`, etc
+pseudo files too.
+
+
+=== TCP Connection state
 
 While this may seem tricky at first, it's easy to tweak these few lines,
 as functions, and combine them or modify them to extract on other criteria,
 e.g. the fourth field is about the connection state.
 
-.include/net/tcp_states.h
+.https://github.com/torvalds/linux/blob/v4.19/include/net/tcp_states.h[include/net/tcp_states.h (v4.19)]
 [source, c]
 ----
-include::https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/include/net/tcp_states.h?id=HEAD[lines=10..27]
+include::https://raw.githubusercontent.com/torvalds/linux/v4.19/include/net/tcp_states.h[lines=14..31]
 ----
 
 _Thanks to this https://stackoverflow.com/questions/5992211/list-of-possible-internal-socket-statuses-from-proc#5992274[stackoverflow answer]
@@ -260,8 +269,8 @@ $ echo "0100007F:3A98" \
   | awk -F: '{gsub(/../,"0x& ", $1)} {l=split($1,hip," "); for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? ":" : "."); printf "%d%s","0x"$2, ORS}'
 ----
 
-. This time the line is separated by IP and port using the colon separator `-F:`
-. `{gsub(/../,"0x& ", $1)}` will split the IP field as octets and prefix them by `0x`
+. Addresses will be split using the colon separator `-F:`.
+. Then `{gsub(/../,"0x& ", $1)}` will split the IP field as octets and prefix them by `0x`.
 . Then I need to reverse the IP octets, as `awk` cannot expand fields, I can split
 the IP field to an array `l=split($1,hip," ")`, where `l` is the length of that array
 then run the for-loop on this array `for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? ":" : ".")`.
@@ -279,7 +288,60 @@ $ cat /proc/$(pidof java)/net/tcp \
 0.0.0.0:15006
 ----
 
+=== Reading /proc/net/route
 
+Likewise, in stripped down container `/sbin/route` may be missing, in that cas using procfs
+offer an alternative :
+
+[source, shell]
+----
+$ cat /proc/net/route
+Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
+eth0	00000000	0104F80A	0003	0	0	0	00000000	0	0	0
+eth0	0204F80A	00000000	0001	0	0	0	00FFFFFF	0	0	0
+----
+
+Reversed hexadecimal IPs are immediately identifiable, although having a human readable form
+would be better. Reusing our previous awk command is pure profit.
+
+[source,shell]
+----
+$ cat /proc/net/route \
+  | awk '$1 == "eth0" {print $3}' \
+  | awk '{gsub(/../,"0x& ")} OFS="." {for(i=NF;i>0;i--) printf "%d%s", $i, (i == 1 ? ORS : OFS)}'
+10.248.4.1
+0.0.0.0
+----
+
+I'm not quite sure about the flags, this [stackoverflow answer]
+suggests to look at https://sourceforge.net/p/net-tools/code/ci/master/tree/lib/net-support.h#l225[net-tool source],
+
+Which in turns suggest to look at https://github.com/torvalds/linux/blob/v3.6/include/linux/route.h#L50-L60[`include/linux/route.h` (v3.6)] file,
+which moved to https://github.com/torvalds/linux/blob/v3.7/include/uapi/linux/route.h#L50-L60[`include/uapi/linux/route.h#L50-L60`] since v3.7.
+This happend during this https://github.com/torvalds/linux/commit/607ca46e97a1b6594b29647d98a32d545c24bdff#diff-9a1cc27b54f86cc709009b1225d7579bc53ee715d133f6104e56782d3ec697da[commit]
+for the creation of what is called the user space API of the kernel (uapi), or headers that can be used publicly.
+
+See this http://lwn.net/Articles/507794/[discussion], and thanks for this https://stackoverflow.com/a/18858544/48136[StackOverflow answer].
+
+Anyway here's the flags :
+
+
+.https://github.com/torvalds/linux/blob/v4.19/include/uapi/linux/route.h[include/uapi/linux/route.h (v4.19)]
+[source, c]
+----
+include::https://raw.githubusercontent.com/torvalds/linux/v4.19/include/uapi/linux/route.h[lines=51..61]
+----
+
+== Closing thoughts
+
+When containers are stripped down and read-only, and you don't have the possibility
+to _attach_ a debug container, I'm quite lucky to have the ability to introspect
+process _internals_ thanks to the pseudo filesystem `/proc`. However sometimes
+the information is not easily human accessible. I hope the few `awk` tricks here
+will be useful to someone else.
+
+// decimal IP to reversed hexa IP
+// awk -F. '{for(i=NF;i>0;i--) printf "%.2X", $i, (i == 1 ? ORS : "")}'
 
 // https://stackoverflow.com/questions/6149238/bash-script-for-converting-ip-addr-string-to-hexadecimal-format#6149254
 // https://stackoverflow.com/questions/1227986/how-to-reverse-column-order-of-a-file-in-linux-from-the-command-line#1228004
