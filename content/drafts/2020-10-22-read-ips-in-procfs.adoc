@@ -1,0 +1,286 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-09-22T18:54:58+02:00"
+language: en
+draft: true
+#tags: ["shell","bash","ip","procfs", "g1gc"]
+slug: "simple-g1gc-tuning"
+title: "Simple G1GC tuning"
+---
+
+
+If you happen to be on a read only container that doesn't have the usual network utility,
+like `netstat`, `ss` (socket stat), `lsof`, then your only option is to read procfs,
+however procfs displays data in hexadecimal.
+
+Let's use the shell to leverage `/proc` in a human readable way.
+
+*tl;dr*
+
+.lists destination IPs on port 9042
+[source, shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk -v DPORT=$(printf ":%x" 9042) '$3 ~ DPORT { print $3}' \
+  | sort -u \
+  | cut -f1 -d':' \
+  | awk '{gsub(/../,"0x& ")} OFS="." {for(i=NF;i>0;i--) printf "%d%s", $i, (i == 1 ? ORS : OFS)}'
+10.45.12.17
+10.45.1.18
+10.45.77.20
+10.45.31.23
+10.45.84.25
+10.45.8.26
+10.45.54.30
+10.45.55.30
+10.45.12.32
+10.45.19.34
+10.45.10.75
+10.45.32.123
+----
+
+
+
+== Deconstruct the above command
+
+First we need to see which information we need to extract from procfs
+
+.output of procfs net/tcp
+[source,shell]
+----
+$ cat /proc/$(pidof java)/net/tcp
+  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+   0: 0100007F:3A98 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 1694605946 1 0000000000000000 100 0 0 10 0
+   1: 00000000:3A99 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 1694637598 1 0000000000000000 100 0 0 10 0
+   2: 00000000:3A9E 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 1694637607 1 0000000000000000 100 0 0 10 0
+   3: 00000000:1F90 00000000:0000 0A 00000000:00000000 00:00000000 00000000 43514        0 1694688232 1 0000000000000000 100 0 0 10 0
+   4: 00000000:3AF2 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 1694605955 1 0000000000000000 100 0 0 10 0
+   5: 0D07D00A:3A9E 0F01D00A:9008 01 00000000:00000000 00:00000000 00000000  1337        0 1716103554 1 0000000000000000 20 4 0 20 33
+   6: 0D07D00A:9152 1D20D00A:1F90 01 00000000:00000000 00:00000000 00000000  1337        0 1713179716 1 0000000000000000 20 4 22 10 -1
+   7: 0D07D00A:D290 2708DC0A:0050 01 00000000:00000000 00:00000000 00000000 43514        0 1716022449 1 0000000000000000 20 4 28 10 145
+   8: 0100007F:1F90 0100007F:86DC 01 00000000:00000000 00:00000000 00000000 43514        0 1716279440 2 0000000000000000 21 4 2 10 24
+   9: 0D07D00A:AC3E 7126D00A:1F90 01 00000000:00000000 00:00000000 00000000  1337        0 1694739437 1 0000000000000000 21 4 22 10 -1
+  10: 0D07D00A:88FA 901BD00A:1F90 01 00000000:00000000 00:00000000 00000000  1337        0 1694718568 1 0000000000000000 20 4 30 10 -1
+...
+----
+
+
+.https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt[procfs net/tcp documentation]
+[%collapsible]
+----
+include::https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt[]
+----
+// link include require to set allow-uri-read attribute
+
+From the documentation, if I need to select connection targeting the remote
+port 9042, I'll need the 3rd column.
+
+.remote address
+[source,shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk '{print $3}'
+rem_address
+00000000:0000
+00000000:0000
+00000000:0000
+00000000:0000
+00000000:0000
+0F01D00A:9008
+1D20D00A:1F90
+2708DC0A:0050
+0100007F:86DC
+0100007F:1F90
+...
+----
+
+Then we need to select the port, it's simple as we just need
+to match the hexadecimal value of 9042.
+
+.connection's destination addresses for port 9042
+[source, shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk '{print $3}' \
+  | grep $(printf ":%x" 9042)
+1148D00A:2352
+142CD00A:2352
+2207D00A:2352
+2207D00A:2352
+1E1BD00A:2352
+1934D00A:2352
+1A4CD00A:2352
+4B1FD00A:2352
+4B1FD00A:2352
+1E2DD00A:2352
+1A4CD00A:2352
+1148D00A:2352
+1E2DD00A:2352
+1E1BD00A:2352
+...
+----
+
+The `grep` command can be included as part of the `awk` script.
+
+[source,shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk -v DPORT=$(printf ":%x" 9042) '$3 ~ DPORT { print $3}'
+----
+
+The first thing to notice is the duplicate, entries, that's expected,
+there's multiple connection to the same remote IP address (possibly with
+a different state). Duplicates can be removed with `sort -u`.
+Then we need to extract the IP.
+
+.all destination IP (hexa reversed) on port 9042
+[source, shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk -v DPORT=$(printf ":%x" 9042) '$3 ~ DPORT { print $3}' \
+  | sort -u \
+  | cut -f1 -d:
+110C2D0A
+12012D0A
+144D2D0A
+171F2D0A
+19542D0A
+1A082D0A
+1E362D0A
+1E372D0A
+200C2D0A
+22132D0A
+4B0A2D0A
+7B202D0A
+----
+
+Then we need to print these in human readable form. Notice they all are ending by
+`2D0A`, those two octets are respectively `0x2D=0x45` and `10`. This insight
+suggests these IPs are actually reversed, I'm not sure why ; I only ever used
+reversed IPs for https://en.wikipedia.org/wiki/Reverse_DNS[reverse DNS lookup]
+before. (I you know the reason please drop a comment ;))
+
+So to get human readable form we need to separate the 4 bytes, convert them in
+decimal, and reverse them.
+
+[source, shell]
+----
+$ echo "110C2D0A" \
+  | sed 's/../0x& /g' \ <1>
+  | awk '{ for(i=NF;i>0;i--) printf "%d.",$i; print "" }' \ <2>
+  | sed 's/.$//' <3>
+----
+<1> tell `sed` to split the stream every two characters, and
+prepend each bytes by `0x`, this is useful for `printf "%x"`.
+<2> reverse the order of each field, this simply a for-loop
+decrementing the index, for each fields printing it as a decimal.
+For each line prints a new line (that's the role of `print ""`)
+Then the last `sed` simply removes the last dot.
+
+These two sed are a bit inelegant and be replaced by a better awk script:
+
+[source, shell]
+----
+$ echo "110C2D0A" \
+  | awk '{gsub(/../,"0x& ")} OFS="." {for(i=NF;i>0;i--) printf "%d%s", $i, (i == 1 ? ORS : OFS)}'
+----
+
+1. Here `sed 's/../0x& /g'` is replaced by `{gsub(/../,"0x& ")}`
+2. Replacing the last `sed` also requires a better collection joining in the `awk` script
+with `OFS` _output field separator_ to separate each IP's octets and
+`ORS` _output result separator_, to go to the next line, which gives for each IP
+`printf "%d%s", $i, (i == 1 ? ORS : OFS)`
+
+
+.human readable list of destination IPs on port 9042
+[source, shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk -v DPORT=$(printf ":%x" 9042) '$3 ~ DPORT { print $3}' \
+  | sort -u \
+  | cut -f1 -d':' \
+  | awk '{gsub(/../,"0x& ")} OFS="." {for(i=NF;i>0;i--) printf "%d%s", $i, (i == 1 ? ORS : OFS)}'
+10.45.12.17
+10.45.1.18
+10.45.77.20
+10.45.31.23
+10.45.84.25
+10.45.8.26
+10.45.54.30
+10.45.55.30
+10.45.12.32
+10.45.19.34
+10.45.10.75
+10.45.32.123
+----
+
+== Closing thought
+
+While this may seem tricky at first, it's easy to tweak these few lines,
+as functions, and combine them or modify them to extract on other criteria,
+e.g. the fourth field is about the connection state.
+
+.include/net/tcp_states.h
+[source, c]
+----
+include::https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/include/net/tcp_states.h?id=HEAD[lines=10..27]
+----
+
+_Thanks to this https://stackoverflow.com/questions/5992211/list-of-possible-internal-socket-statuses-from-proc#5992274[stackoverflow answer]
+for pointing to the kernel code._
+
+So if I want to list which ports are open, we need to filter on
+the `TCP_LISTEN=0x0A` state, in this case the local address,
+indicates what addresses have been bound by the process.
+
+[source, shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk -v TCP_STATE=0A '($4 == TCP_STATE) { print $2 }'
+00000000:1F90
+00000000:3AF2
+0100007F:3A98
+00000000:3A99
+00000000:3A9E
+----
+
+Now my previous `awk` script
+
+[source, shell]
+----
+$ echo "110C2D0A" \
+  | awk '{gsub(/../,"0x& ")} OFS="." {for(i=NF;i>0;i--) printf "%d%s", $i, (i == 1 ? ORS : OFS)}'
+----
+
+can only format the IPs, let's rewrite it to be able to parse the whole address
+
+[source, shell]
+----
+$ echo "0100007F:3A98" \
+  | awk -F: '{gsub(/../,"0x& ", $1)} {l=split($1,hip," "); for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? ":" : "."); printf "%d%s","0x"$2, ORS}'
+----
+
+. This time the line is separated by IP and port using the colon separator `-F:`
+. `{gsub(/../,"0x& ", $1)}` will split the IP field as octets and prefix them by `0x`
+. Then I need to reverse the IP octets, as `awk` cannot expand fields, I can split
+the IP field to an array `l=split($1,hip," ")`, where `l` is the length of that array
+then run the for-loop on this array `for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? ":" : ".")`.
+Ending the line by printing the port field in decimal `printf "%d%s","0x"$2, ORS`.
+
+[source, shell]
+----
+$ cat /proc/$(pidof java)/net/tcp \
+  | awk -v TCP_STATE=0A '($4 == TCP_STATE) { print $2 }' \
+  | awk -F: '{gsub(/../,"0x& ", $1)} {l=split($1,hip," "); for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? ":" : "."); printf "%d%s","0x"$2, ORS}'
+0.0.0.0:8080
+0.0.0.0:15090
+127.0.0.1:15000
+0.0.0.0:15001
+0.0.0.0:15006
+----
+
+
+
+// https://stackoverflow.com/questions/6149238/bash-script-for-converting-ip-addr-string-to-hexadecimal-format#6149254
+// https://stackoverflow.com/questions/1227986/how-to-reverse-column-order-of-a-file-in-linux-from-the-command-line#1228004
+// https://blog.oddbit.com/post/2015-03-08-converting-hexadecimal-ip-addresses-to-dotted-quads-with-bas/
