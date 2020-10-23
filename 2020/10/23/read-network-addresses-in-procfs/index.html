@@ -269,7 +269,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 23 min read
+    <i class="fas fa-clock"></i> 28 min read
 
     
     
@@ -350,7 +350,54 @@ of this command other use cases.</p>
 <div class="listingblock">
 <div class="title"><a href="https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt">procfs net/tcp documentation</a></div>
 <div class="content">
-<pre>link:https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt[]</pre>
+<pre>This document describes the interfaces /proc/net/tcp and /proc/net/tcp6.
+Note that these interfaces are deprecated in favor of tcp_diag.
+
+These /proc interfaces provide information about currently active TCP
+connections, and are implemented by tcp4_seq_show() in net/ipv4/tcp_ipv4.c
+and tcp6_seq_show() in net/ipv6/tcp_ipv6.c, respectively.
+
+It will first list all listening TCP sockets, and next list all established
+TCP connections. A typical entry of /proc/net/tcp would look like this (split
+up into 3 parts because of the length of the line):
+
+   46: 010310AC:9C4C 030310AC:1770 01
+   |      |      |      |      |   |--&gt; connection state
+   |      |      |      |      |------&gt; remote TCP port number
+   |      |      |      |-------------&gt; remote IPv4 address
+   |      |      |--------------------&gt; local TCP port number
+   |      |---------------------------&gt; local IPv4 address
+   |----------------------------------&gt; number of entry
+
+   00000150:00000000 01:00000019 00000000
+      |        |     |     |       |--&gt; number of unrecovered RTO timeouts
+      |        |     |     |----------&gt; number of jiffies until timer expires
+      |        |     |----------------&gt; timer_active (see below)
+      |        |----------------------&gt; receive-queue
+      |-------------------------------&gt; transmit-queue
+
+   1000        0 54165785 4 cd1e6040 25 4 27 3 -1
+    |          |    |     |    |     |  | |  | |--&gt; slow start size threshold,
+    |          |    |     |    |     |  | |  |      or -1 if the threshold
+    |          |    |     |    |     |  | |  |      is &gt;= 0xFFFF
+    |          |    |     |    |     |  | |  |----&gt; sending congestion window
+    |          |    |     |    |     |  | |-------&gt; (ack.quick&lt;&lt;1)|ack.pingpong
+    |          |    |     |    |     |  |---------&gt; Predicted tick of soft clock
+    |          |    |     |    |     |              (delayed ACK control data)
+    |          |    |     |    |     |------------&gt; retransmit timeout
+    |          |    |     |    |------------------&gt; location of socket in memory
+    |          |    |     |-----------------------&gt; socket reference count
+    |          |    |-----------------------------&gt; inode
+    |          |----------------------------------&gt; unanswered 0-window probes
+    |---------------------------------------------&gt; uid
+
+timer_active:
+  0  no timer is pending
+  1  retransmit-timer is pending
+  2  another timer (e.g. delayed ack or keepalive) is pending
+  3  this is a socket in TIME_WAIT state. Not all fields will contain
+     data (or even exist)
+  4  zero window probe timer is pending</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -539,7 +586,24 @@ e.g. the fourth field is about the connection state.</p>
 <div class="listingblock">
 <div class="title"><a href="https://github.com/torvalds/linux/blob/v4.19/include/net/tcp_states.h">include/net/tcp_states.h (v4.19)</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">link:https://raw.githubusercontent.com/torvalds/linux/v4.19/include/net/tcp_states.h[lines=14..31]</code></pre>
+<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">#define _LINUX_TCP_STATES_H
+
+enum {
+	TCP_ESTABLISHED = 1,
+	TCP_SYN_SENT,
+	TCP_SYN_RECV,
+	TCP_FIN_WAIT1,
+	TCP_FIN_WAIT2,
+	TCP_TIME_WAIT,
+	TCP_CLOSE,
+	TCP_CLOSE_WAIT,
+	TCP_LAST_ACK,
+	TCP_LISTEN,
+	TCP_CLOSING,	/* Now a valid state */
+	TCP_NEW_SYN_RECV,
+
+	TCP_MAX_STATES	/* Leave at the end! */
+};</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -677,7 +741,17 @@ for the creation of what is called the user space API of the kernel (uapi), or h
 <div class="listingblock">
 <div class="title"><a href="https://github.com/torvalds/linux/blob/v4.19/include/uapi/linux/route.h">include/uapi/linux/route.h (v4.19)</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">link:https://raw.githubusercontent.com/torvalds/linux/v4.19/include/uapi/linux/route.h[lines=51..61]</code></pre>
+<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">#define	RTF_UP		0x0001		/* route usable		  	*/
+#define	RTF_GATEWAY	0x0002		/* destination is a gateway	*/
+#define	RTF_HOST	0x0004		/* host entry (net otherwise)	*/
+#define RTF_REINSTATE	0x0008		/* reinstate route after tmout	*/
+#define	RTF_DYNAMIC	0x0010		/* created dyn. (by redirect)	*/
+#define	RTF_MODIFIED	0x0020		/* modified dyn. (by redirect)	*/
+#define RTF_MTU		0x0040		/* specific MTU for this route	*/
+#define RTF_MSS		RTF_MTU		/* Compatibility :-(		*/
+#define RTF_WINDOW	0x0080		/* per route window clamping	*/
+#define RTF_IRTT	0x0100		/* Initial round trip time	*/
+#define RTF_REJECT	0x0200		/* Reject route			*/</code></pre>
 </div>
 </div>
 </div>
