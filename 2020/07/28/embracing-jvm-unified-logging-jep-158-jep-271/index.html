@@ -296,7 +296,7 @@ it was useful to toggle other options like tracing class un/loading.</p>
 </div>
 <div class="paragraph">
 <p>Starting from JDK 9, the JVM maintainers chose to overhaul the way JVM logs things.
-I believe that unified logging is great, but after using it I believe it’s purpose
+I believe that unified logging is great, but after using it I believe its purpose
 targets more JDK maintainers, eventually library maintainers, than end users.
 Meanwhile it’s likely that one may need to activate GC logs.</p>
 </div>
@@ -313,19 +313,19 @@ translate in unified logging.</p>
 messages missing as the multitude of tags and their various levels may not be set as necessary.</p>
 </div>
 <div class="paragraph">
-<p>In my opinion the flexibility of this logging system brought has a major downside from a user
-perspective in it’s configuration correctness, and I think in some ways it’s more obscure compared to
+<p>In my opinion the flexibility of this logging system brought a major downside from a user’s
+perspective in its configuration correctness, and I think in some ways it’s more obscure compared to
 the previous explicit logging flags.</p>
 </div>
 <div class="paragraph">
-<p>Anyway, let’s begin ou exploration with a small recapitulation of <a href="https://openjdk.java.net/jeps/158">JEP-158</a>
+<p>Anyway, let’s begin our exploration with a small recapitulation of <a href="https://openjdk.java.net/jeps/158">JEP-158</a>
 which lays out the foundation of JVM unified logging.</p>
 </div>
 <div class="sect1">
 <h2 id="_unified_jvm_logging_jep_158"><a class="anchor" href="#_unified_jvm_logging_jep_158"></a><a class="link" href="#_unified_jvm_logging_jep_158">Unified JVM Logging (JEP-158)</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The JEP describes how the logging configuration works in the command line :</p>
+<p>The JEP describes how the logging configuration works in the command line:</p>
 </div>
 <details>
 <summary class="title">java log configuration command line syntax</summary>
@@ -370,7 +370,7 @@ which lays out the foundation of JVM unified logging.</p>
 </div>
 </details>
 <div class="paragraph">
-<p>This command-line option is the main entry point to unified logging. It allows to configure logs
+<p>This command-line option is the main entry point to unified logging. It allows configuring logs
 that required multiple options in a single one.</p>
 </div>
 <div class="paragraph">
@@ -379,9 +379,9 @@ options. Their output must however be unique in these logs, otherwise the last o
 override the previous log configuration.</p>
 </div>
 <div class="paragraph">
-<p>Also, if you already heard of <code>jcmd</code>, unified logging JEP made the log configurable at runtime.
+<p>Also, if you already heard of <code>jcmd</code>, unified logging JEP enabled log configurable at runtime.
 It’s the second main entry point to unified logging.
-<em>If you didn’t hear about <code>jcmd</code> you really should check it out it’s the future
+<em>If you didn’t hear about <code>jcmd</code> you really should check it out. It’s the future
 of the serviceability / diagnostic command on the JDK.</em></p>
 </div>
 <div class="quoteblock">
@@ -410,7 +410,7 @@ insight it gives in the JVM.</p>
 <div class="sect2">
 <h3 id="_how_to_use_the_tool_help_from_the_command_line"><a class="anchor" href="#_how_to_use_the_tool_help_from_the_command_line"></a><a class="link" href="#_how_to_use_the_tool_help_from_the_command_line">How to use the tool, help from the command line</a></h3>
 <div class="paragraph">
-<p>While the JEP explains things, it’s usually not how we get the first contact, we use the
+<p>While the JEP explains things, it’s usually not how we get the first contact: We use the
 command line help, which is describing just as well how to use on the command line.</p>
 </div>
 <div class="paragraph">
@@ -509,33 +509,31 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 <div class="sect3">
 <h4 id="_configuring_unified_logging"><a class="anchor" href="#_configuring_unified_logging"></a><a class="link" href="#_configuring_unified_logging">Configuring unified logging</a></h4>
 <div class="paragraph">
-<p>From the help and the JEP above here’s what to retain :</p>
+<p>From the help and the JEP above here’s what to retain:</p>
 </div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">Tags</dt>
 <dd>
-<p>When a log message is shown, it should be associated with a set of tags in the JVM which identify by names: <code>os</code>, <code>gc</code>, <code>modules</code>…</p>
+<p>When a log message is shown, it should be associated with a set of tags in the JVM which identify by names: <code>os</code>, <code>gc</code>, <code>modules</code>…​</p>
+<div class="ulist">
+<ul>
+<li>
+<p>We can apply different settings for individual tags.</p>
+</li>
+<li>
+<p><code>*</code> denotes <em>wildcard</em> tag match. Not using <code>*</code> means all messages matching exactly the specified tags.</p>
+</li>
+</ul>
+</div>
 </dd>
-</dl>
-</div>
-<div class="paragraph">
-<p>– We can apply different settings for individual tags.
-– <code>*</code> denotes <em>wildcard</em> tag match. Not using <code>*</code> means all messages matching exactly the specified tags.</p>
-</div>
-<div class="dlist">
-<dl>
 <dt class="hdlist1">Levels</dt>
 <dd>
 <p>We can perform logging at different levels. The available levels are <code>error</code>, <code>warning</code>, <code>info</code>, <code>debug</code>, <code>trace</code> and <code>develop</code>.</p>
-</dd>
-</dl>
-</div>
 <div class="paragraph">
 <p>To disable logging, use the alternative <code>off</code>.</p>
 </div>
-<div class="dlist">
-<dl>
+</dd>
 <dt class="hdlist1">Outputs</dt>
 <dd>
 <p>The output currently supports 3 types: stdout, stderr, or a text file, which can be set up for log file rotation based on written size and a number of files to rotate (for example: each 10MB, keep 5 files in rotation)</p>
@@ -588,18 +586,18 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 </dl>
 </div>
 <div class="paragraph">
-<p>In practice this will give :</p>
+<p>In practice this will give:</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><code>java</code> command</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:pagesize,os*,os+container=trace:file=/var/log/%t-os-container-pagezise.log:uptime,tags,level</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">-Xlog:pagesize,os*,os+container=trace:file=/var/log/%t-os-container-pagesise.log:uptime,tags,level</code></pre>
 </div>
 </div>
 <div class="listingblock">
 <div class="title"><code>jcmd</code> command</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="role" secondary""="" class="language-role" secondary"="" hljs"="">$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagezise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level</code></pre>
+<pre class="highlightjs highlight"><code data-lang="role" secondary""="" class="language-role" secondary"="" hljs"="">$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagesise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -618,7 +616,7 @@ there is still some kind of <em>hierarchy</em>.</p>
 <div class="paragraph">
 <p>As we’ll see later some tags are standalone tags, but a large proportion of tags
 are always logged with other. We could say they are part of a group with a <em>root</em>
-tag like <code>gc</code>, <code>class</code>, etc. Those are my words, but looking at the JEP-158 diff.</p>
+tag like <code>gc</code>, <code>class</code>, etc. Those are my observations, but let’s look at the JEP-158 diff.</p>
 </div>
 <div class="paragraph">
 <p>There’s one file that caught attention, it’s
@@ -634,14 +632,14 @@ instantiated directly somewhere else.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>So when one see <code>class, path</code> combination it’s in fact a tag set, I will refer to
+<p>So when one sees a <code>class, path</code> combination it’s in fact a tag set. I will refer to
 these as <em>tag-set</em>, <em>tag set</em>, or <em>tagset</em>. And, I’ll use the term <em>log tag root</em>
 to indicate that a tag is used as the first tag, it’s generally about a JVM component
 like GC, classes, or JFR.</p>
 </div>
 <div class="paragraph">
-<p>There another construct on top of <em>tagsets</em>, that is called log prefix,
-we can learn about it in
+<p>There is another construct on top of <em>tagsets</em>, that is called log prefix.
+We can learn about it in
 <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/fc2a1798bac1bfda6929dc55936ba7f9e4cf0208#diff-c7fbf2952ef86b686c1849f6735041c9">logPrefix.hpp</a></p>
 </div>
 <div class="quoteblock">
@@ -654,7 +652,7 @@ after the decorations but before the log message.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>Log prefixes allows to prepend the log message (that’s the prefix) with something for
+<p>Log prefixes allow it to prepend the log message (that’s the prefix) with something for
 declared <em>tagsets</em>. As we’ll see later there is currently only one list of tagsets that uses
 the log prefix mechanism, GC logging to print the <em>GC id</em>:</p>
 </div>
@@ -676,17 +674,17 @@ several times until I decided to dive in.</p>
 </div>
 <div class="paragraph">
 <p>GC unified logging is covered by another JEP, <a href="https://openjdk.java.net/jeps/271">JEP 271: Unified GC Logging</a>,
-which rely on JEP-158 as mentioned earlier. However, this JEP is much more concise and
-barely elaborate how the previous logging option will be turned in unified logs.</p>
+which relies on JEP-158 as mentioned earlier. However, this JEP is much more concise and
+barely describes how the previous logging option will be turned in unified logs.</p>
 </div>
 <div class="paragraph">
-<p>One of the best source came from <a href="https://twitter.com/poonam_bajaj">Poonam Bajaj Parhar</a>,s talk on
+<p>One of the best source came from <a href="https://twitter.com/poonam_bajaj">Poonam Bajaj Parhar</a>&#39;s talk on
 <a href="https://www.slideshare.net/PoonamBajaj5/lets-learn-to-talk-to-gc-logs-in-java-9">unified GC logs</a>
 However the most interesting data is not searchable because it’s an image of a table and
 everything is not there, for the poor souls that need to work with other GCs.</p>
 </div>
 <div class="paragraph">
-<p>The basic translation of the following usual GC logging configuration :</p>
+<p>The basic translation of the following usual GC logging configuration:</p>
 </div>
 <div class="listingblock">
 <div class="title">pre-jdk9</div>
@@ -705,7 +703,7 @@ everything is not there, for the poor souls that need to work with other GCs.</p
 </div>
 </div>
 <div class="paragraph">
-<p>These flags could be translated to the following configuration :</p>
+<p>These flags could be translated to the following configuration:</p>
 </div>
 <div class="listingblock primary">
 <div class="title">log config</div>
@@ -782,8 +780,8 @@ themselves changed, e.g. the GC cause and the GC id are now always logged.</p>
 <p>Now it’s the right opportunity to warn about the slight caveats of this log configuration.</p>
 </div>
 <div class="paragraph">
-<p>This configuration is fine and work reasonably well, BUT this configuration
-actually may misses some log like some <code>ihop</code>, which is not only logged with the <code>ergo</code> tag
+<p>This configuration is fine and works reasonably well, BUT this configuration
+actually may miss some logs like some <code>ihop</code>, which is not only logged with the <code>ergo</code> tag
 as we’ll see.</p>
 </div>
 <div class="sect3">
@@ -795,7 +793,7 @@ as we’ll see.</p>
 <a href="https://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/f944761a3ce3">related diff</a> <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">(on github)</a>.</p>
 </div>
 <div class="paragraph">
-<p>In a lesser way I sued the official <a href="https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5"><code>java</code> documentation</a>,
+<p>In a lesser way I used the official <a href="https://docs.oracle.com/javase/9/tools/java.htm#JSWOR-GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5"><code>java</code> documentation</a>,
 which I found somewhat lacking in this regard.</p>
 </div>
 <div class="paragraph">
@@ -1221,7 +1219,7 @@ which I found somewhat lacking in this regard.</p>
 
 </div>
 <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. old option are now decorators</caption>
+<caption class="title">Table 1. old options are now decorators</caption>
 <colgroup>
 <col style="width: 50%;"/>
 <col style="width: 50%;"/>
@@ -1251,17 +1249,17 @@ and now it’s supposed to be logged as part of the GC ergonomics by setting <co
 Looking at the code, I noticed the <code>ihop</code> tag is not always combined with <code>ergo</code>.</p>
 </div>
 <div class="paragraph">
-<p>This tag is not alone, in the <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">diff</a>
-I mentioned there’s an interesting file that declares GC <em>log prefix</em> for a list of <em>tag-sets</em>.
+<p>This tag is not the only one, in the <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">diff</a>
+I mentioned previously there’s an interesting file that declares GC <em>log prefix</em> for a list of <em>tag-sets</em>.
 <em>The diff is huge and may take some time to load, search for the following file
 <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8#diff-c7fbf2952ef86b686c1849f6735041c9">src/share/vm/logging/logPrefix.hpp</a>.</em></p>
 </div>
 <div class="paragraph">
-<p>Also, some logging tags are common to multiple GC, while there is nothing wrong in this, it’s easy
+<p>Also, some logging tags are common to multiple GC. While there is nothing wrong in this, it’s easy
 to update the logging configuration when changing the GC algorithm, e.g. using CMS then switch to G1GC.
 I would have preferred an additional tag for each GC algorithms (<code>g1</code> for g1GC, <code>cms</code> for Concurrent Mark
 and Sweep,<code>shenandoah</code> for Shenandoah, etc) that would have allowed to configure logging this way
-<code>-Xlog:zgc=info*</code>, unfortunately this is only a dream at this time.</p>
+<code>-Xlog:zgc=info*</code>. Unfortunately this is only a dream at this time.</p>
 </div>
 <div class="paragraph">
 <p>Moreover, JDK maintainers improve the JVM sub-systems logging over time, possibly backporting improvements.
@@ -1275,7 +1273,7 @@ JDK code base to track which tag they need to tune GCs which is already arcane e
 <div class="sect3">
 <h4 id="_embracing_unified_logging_for_gc_logs"><a class="anchor" href="#_embracing_unified_logging_for_gc_logs"></a><a class="link" href="#_embracing_unified_logging_for_gc_logs">Embracing unified logging for GC logs</a></h4>
 <div class="paragraph">
-<p>This led to think that instead of trying to <em>mimic</em> old logging options, I should instead
+<p>This led me to think that instead of trying to <em>mimic</em> old logging options, I should instead
 prefer to log more tags and simplify the overall logging configuration.</p>
 </div>
 <div class="listingblock primary">
@@ -1312,8 +1310,8 @@ prefer to log more tags and simplify the overall logging configuration.</p>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>The above configuration is simple at the expanse of possibly larger file size.
-Also, using <code>gc*=debug</code> allows to catch extra tags, and possibly new <code>gc</code> related tags
+<p>The above configuration is simpler at the expense of possibly larger file size.
+Also, using <code>gc*=debug</code> allows it to catch extra tags, and possibly new <code>gc</code> related tags
 that show up. In my opinion this configuration does not have any caveats.</p>
 </div>
 <div class="paragraph">
@@ -1420,7 +1418,7 @@ can spot other useful information.</p>
 <div class="sect3">
 <h4 id="_try_gc_logging_configurations"><a class="anchor" href="#_try_gc_logging_configurations"></a><a class="link" href="#_try_gc_logging_configurations">Try GC logging configurations</a></h4>
 <div class="paragraph">
-<p>Unlike <code>os</code> and <code>container</code> logs, GC happens almost continuously this opens the opportunity
+<p>Unlike <code>os</code> and <code>container</code> logs, GC happens almost continuously. This opens the opportunity
 to try log configurations at runtime using <code>jcmd</code>. In the example below I wanted to monitor
 more thoroughly G1GC regions:</p>
 </div>
@@ -1441,7 +1439,7 @@ more thoroughly G1GC regions:</p>
 <h3 id="_migrating_other_options"><a class="anchor" href="#_migrating_other_options"></a><a class="link" href="#_migrating_other_options">Migrating other options</a></h3>
 <div class="paragraph">
 <p>One thing I used to log is about classes, particularly during development.
-Especially loading and unloading. I sued this a lot while debugging some aspects of Mockito
+Especially loading and unloading. I used this a lot while debugging some aspects of Mockito
 and some application servers back in the days.</p>
 </div>
 <div class="paragraph">
@@ -1592,17 +1590,17 @@ static AliasedFlag const removed_develop_logging_flags[] = {
 <div class="sect2">
 <h3 id="_building_a_unified_logging_tag_reference"><a class="anchor" href="#_building_a_unified_logging_tag_reference"></a><a class="link" href="#_building_a_unified_logging_tag_reference">Building a unified logging tag reference</a></h3>
 <div class="paragraph">
-<p>Ok nice, but <code>java -Xlog:help</code> list a lot more available tags than those already mentioned.</p>
+<p>Ok nice, but <code>java -Xlog:help</code> lists a lot more available tags than those already mentioned.</p>
 </div>
 <div class="paragraph">
-<p>The issue with unified logging is the documentation, identifying the tag we want
-can be tedious. If I select the tag <code>dump</code> what will it output and when, is it about heap dump.
-Same if I select <code>system</code> is it about system calls, or else. Well it turns out there’s just
+<p>The issue with unified logging is the documentation: identifying the tag we want
+can be tedious. If I select the tag <code>dump</code> what will it output and when, is it about heap dump?
+Same if I select <code>system</code>: is it about system calls, or else? Well it turns out there’s just
 no documentation whatsoever, you need to look at the code.</p>
 </div>
 <div class="paragraph">
 <p>The starting point for this job was <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/d724e8a3489f8ebb57c7bbf82784a2b2d537fdc8">this commit</a>
-and what the JEP-158 proposed :</p>
+and what the JEP-158 proposed:</p>
 </div>
 <div class="paragraph">
 
@@ -2690,7 +2688,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>CMS GC survivor informations.</p>
+<p>CMS GC survivor information.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2708,7 +2706,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>jfr</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>JFR system logging, recordind start/stop, emergency dump, etc.</p>
+<p>JFR system logging, recording start/stop, emergency dump, etc.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2814,7 +2812,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <p><code>gc</code></p>
 </div></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Verifications operations done during GC operations.</p>
+<p>Verification operations done during GC operations.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2835,7 +2833,7 @@ that declares all logging tags (138 in total). From there I searched where these
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vtables</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"></div></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>Java’s virtual calls mechanism (virtual table allows to find the right method address for the current instance in hierarchy of classes). Those that did C++ before will remember.</p>
+<p>Java’s virtual calls mechanism (virtual table allows to find the right method address for the current instance in a hierarchy of classes). Those that did C++ before will remember.</p>
 </div></div></td>
 </tr>
 <tr>
@@ -2862,7 +2860,7 @@ that declares all logging tags (138 in total). From there I searched where these
 </div>
 <div class="paragraph">
 <p>In building this reference we see that some JVM sub-systems can output a lot of logs.
-Two subsystems stands out in the way they describe their <em>tagsets</em> : JFR and the Garbage Collection:</p>
+Two subsystems stands out in the way they describe their <em>tagsets</em>: JFR and the Garbage Collection:</p>
 </div>
 <details>
 <summary class="title">JFR tag sets</summary>
@@ -3090,9 +3088,9 @@ JVM component.</p>
 <ul>
 <li>
 <p><code>log_is_enabled(Debug, class, resolve)</code> <a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/prims/jni.cpp">src/hotspot/share/prims/jni.cpp</a></p>
-<div class="paragraph">
+</li>
+<li>
 <p><code>log_debug(class, resolve)</code> <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/prims/jvm.cpp">src/hotspot/share/prims/jvm.cpp</a></p>
-</div>
 </li>
 </ul>
 </div>
@@ -3292,7 +3290,7 @@ JVM component.</p>
 <h4 id="_os_and_container_related"><a class="anchor" href="#_os_and_container_related"></a><a class="link" href="#_os_and_container_related">OS and container related</a></h4>
 <div class="paragraph">
 <p>If the workload you are working on is running on containers you may have heard of the
-os and container tags :</p>
+os and container tags:</p>
 </div>
 <div class="listingblock">
 <div class="title">os, container, pagesize logs</div>
@@ -3466,7 +3464,7 @@ os and container tags :</p>
 </div>
 </div>
 <div class="paragraph">
-<p>These logs are quite technical, but they may be useful when developing agents,</p>
+<p>These logs are quite technical, but they may be useful when developing agents.</p>
 </div>
 </div>
 <div class="sect3">
@@ -3512,7 +3510,7 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 </tbody></table>
 </div>
 <div class="listingblock">
-<div class="title">CHange <code>Foo.m()</code> class after instantiation during debug</div>
+<div class="title">Change <code>Foo.m()</code> class after instantiation during debug</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp . DebugTest
 [51.942s][debug][redefine,class,load] loading name=sandbox.DebugTest kind=102 (avail_mem=1416012K)         <i class="conum" data-value="1"></i><b>(1)</b>
@@ -3688,7 +3686,7 @@ the method I just modified).</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="10"></i><b>10</b></td>
-<td>Class Is reloaded, simply continue.</td>
+<td>Class Is reloaded, continue.</td>
 </tr>
 </tbody></table>
 </div>
@@ -3696,14 +3694,14 @@ the method I just modified).</td>
 <p>These logs are rarely useful unless you work with IDE, debuggers or the JVM itself.
 However, they are interesting to understand what’s going on when debugging.
 One thing to mention is that the JVMTI infrastructure relies a lot on the redefinition
-component, it’s one of the most complex piece in the JVM.</p>
+component, it’s one of the most complex pieces in the JVM.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_just_in_time_and_compilation"><a class="anchor" href="#_just_in_time_and_compilation"></a><a class="link" href="#_just_in_time_and_compilation">Just-in-Time and compilation</a></h4>
 <div class="paragraph">
 <p>If you need to look in the compilation of methods, because something do not perform as
-expected, one may want to toggle the logs for the just-in-time and compilation logs :</p>
+expected, one may want to toggle the logs for the just-in-time and compilation logs:</p>
 </div>
 <div class="listingblock">
 <div class="title">Just-in-Time compilation and inlining</div>
@@ -3729,18 +3727,18 @@ expected, one may want to toggle the logs for the just-in-time and compilation l
 </div>
 </div>
 <div class="paragraph">
-<p>The above logs snippet, shows that the JVM is</p>
+<p>The above log snippet shows that the JVM is</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>compiling methods <code>next</code> and <code>hasNext</code></p>
+<p>compiling methods <code>next</code> and <code>hasNext</code>,</p>
 </li>
 <li>
 <p>then tries to inline <code>hasNext</code> into <code>next</code>,</p>
 </li>
 <li>
-<p>then tries to inline <code>nextIndex</code> into next but fails</p>
+<p>then tries to inline <code>nextIndex</code> into next but fails.</p>
 </li>
 </ol>
 </div>
@@ -3976,8 +3974,8 @@ So it’s useful to always log safepoints.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>There’s a lot of activity, most of this VM activity will be easier to analyze
-using JFR / JDK Mission Control, but for logging very long process, logs are still
+<p>There’s a lot of activity. Most of this VM activity will be easier to analyze
+using JFR / JDK Mission Control, but for logging very long running processes, logs are still
 quite useful.</p>
 </div>
 </div>
@@ -3985,7 +3983,7 @@ quite useful.</p>
 <div class="sect2">
 <h3 id="_programmatic_access"><a class="anchor" href="#_programmatic_access"></a><a class="link" href="#_programmatic_access">Programmatic access</a></h3>
 <div class="paragraph">
-<p>For those that played with <code>jcmd</code> before you may already know each command
+<p>For those that played with <code>jcmd</code> before you may already know all commands
 are available as MXBeans. This immediately suggests that it’s possible to invoke
 these command programmatically.</p>
 </div>
@@ -4052,14 +4050,14 @@ public class TriggerGcLogsProgrammatically {
 <h2 id="_wrap_up"><a class="anchor" href="#_wrap_up"></a><a class="link" href="#_wrap_up">Wrap up</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Unified logging is a great change in the JVM, it’s flexibility and ubiquity
+<p>Unified logging is a great change in the JVM: Its flexibility and ubiquity
 gives great insight in the JVM. Also, a strong point of this implementation
-is dynamic configuration change, it is very useful when one doesn’t want to
+is dynamic configuration change: It is very useful when one doesn’t want to
 restart a process just to raise the logging levels, or to gain insight on
 a JVM component.</p>
 </div>
 <div class="paragraph">
-<p>Yet not everyone will be interested by most of these subsystems. I’m pretty sure
+<p>Yet not everyone will be interested in most of these subsystems. I’m pretty sure
 GC logs will be the most used logs. On this in particular, I think JDK maintainers
 should add tags for the type of GC, <code>cms</code> for CMS, <code>zgc</code> for ZGC, <code>g1</code> for G1GC,
 <code>shenandoah</code> for Shenandoah, etc.</p>
@@ -4075,17 +4073,17 @@ the tags. The removed GC logging flags were more explicit.</p>
 <div class="ulist checklist">
 <ul class="checklist">
 <li>
-<p><i class="fa fa-square-o"></i> discoverability, while anyone can peek at the available tags the mass of
-the tags makes the system hard to use if you don’t know already what is expected
+<p><i class="fa fa-square-o"></i> discoverability: while anyone can peek at the available tags the mass of
+the tags makes the system hard to use if you don’t know already what to expect
 from these tags.</p>
 </li>
 <li>
-<p><i class="fa fa-square-o"></i> documentation, tags are not documented, most don’t auto-document themselves
-so if don’t know already what to expect from these tags you’ll need to take the
+<p><i class="fa fa-square-o"></i> documentation: tags are not documented, most don’t auto-document themselves
+so if you don’t know already what to expect from these tags you’ll need to take the
 long road to try each combination.</p>
 </li>
 <li>
-<p><i class="fa fa-square-o"></i> stability, while the JVM check if the selected tags exists it doesn’t check
+<p><i class="fa fa-square-o"></i> stability: while the JVM checks if the selected tags exists it doesn’t check
 if the combination will log something. On each JDK version logs can change in subtle
 ways for whatever reasons (like bug-fixing). It’s best to verify on each new JDK version
 if things changed.</p>
@@ -4095,7 +4093,7 @@ if things changed.</p>
 <div class="paragraph">
 <p>Command line flags provided a good user experience, they were discoverable because
 documented, they were explicit, and usually stable. These flags are gone for GC logging,
-but there are still some old <code>Trace*</code> flags that setup unified logging ; if
+but there are still some old <code>Trace*</code> flags that setup unified logging. If
 JDK maintainers chose to keep the old flags or proposed alternative flags for GC
 that would have made unified logging use more practical I think.</p>
 </div>
