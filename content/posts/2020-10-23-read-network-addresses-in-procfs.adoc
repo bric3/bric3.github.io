@@ -39,7 +39,10 @@ $ cat /proc/$(pidof java)/net/tcp \
 10.45.32.123
 ----
 
-But let's see how I build it, then let's look if it's possible to repurpose elements
+
+I understand these long awk scripts are intimidating, but they are really helpful
+when you don't have a choice. Plus you learn `awk` basics.
+So let's see how I build it, then let's look if it's possible to repurpose elements
 of this command other use cases.
 
 == Constructing the above command
@@ -288,6 +291,27 @@ $ cat /proc/$(pidof java)/net/tcp \
 0.0.0.0:15006
 ----
 
+In order to make this script be reusable for an IP or an address (IP:port), it just need a little tweak
+
+[source, diff ]
+----
+- awk -F: '{gsub(/../,"0x& ", $1)} {l=split($1,hip," "); for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? ":" : "."); printf "%d%s","0x"$2, ORS}'
++ awk -F: '{gsub(/../,"0x& ", $1)} {l=split($1,hip," "); for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? "" : "."); if ($2 != "") printf ":%d%s","0x"$2, ORS}'
+----
+
+This last revision simply skip the port `$2` if it's value is blank.
+
+.formal hexadecimal IPs or network addresses
+[source, shell]
+----
+$ echo "0100007F:3A98
+0100007F" \
+  | awk -F: '{gsub(/../,"0x& ", $1)} {l=split($1,hip," "); for(i=l;i>0;i--) printf "%d%s", hip[i], (i == 1 ? "" : "."); if ($2 != "") printf ":%d%s","0x"$2, ORS}'
+127.0.0.1:15000
+127.0.0.1
+----
+
+
 === Reading /proc/net/route
 
 Likewise, in stripped down container `/sbin/route` may be missing, in that cas using procfs
@@ -295,7 +319,7 @@ offer an alternative :
 
 [source, shell]
 ----
-$ cat /proc/net/route
+$ cat /proc/$(pidof java)/net/route
 Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
 eth0	00000000	0104F80A	0003	0	0	0	00000000	0	0	0
 eth0	0204F80A	00000000	0001	0	0	0	00FFFFFF	0	0	0
@@ -306,7 +330,7 @@ would be better. Reusing our previous awk command is pure profit.
 
 [source,shell]
 ----
-$ cat /proc/net/route \
+$ cat /proc/$(pidof java)/net/route \
   | awk '$1 == "eth0" {print $3}' \
   | awk '{gsub(/../,"0x& ")} OFS="." {for(i=NF;i>0;i--) printf "%d%s", $i, (i == 1 ? ORS : OFS)}'
 10.248.4.1
@@ -332,6 +356,36 @@ Anyway here's the flags :
 include::https://raw.githubusercontent.com/torvalds/linux/v4.19/include/uapi/linux/route.h[lines=51..61]
 ----
 
+== IPv6
+
+Please keep in mind the above commands only account IPv4 connections, IPv6 related connections
+are in their related pseudo files, e.g `/proc/$(pidof java)/net/tcp6`, `/proc/$(pidof java)/net/ipv6_route`
+
+./proc/$(pidof java)/net/tcp6
+[source,shell]
+----
+$ cat /proc/$(pidof java)/net/tcp6
+  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+   0: 00000000000000000000000000000000:3AAC 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 2247569106 1 0000000000000000 100 0 0 10 0
+   1: 00000000000000000000000000000000:FFFD 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000 65533        0 2247536566 1 0000000000000000 100 0 0 10 0
+   2: 0000000000000000FFFF0000171F2D0A:3AAC 0000000000000000FFFF00000134D00A:9C74 06 00000000:00000000 03:000002B9 00000000     0        0 0 3 0000000000000000
+   3: 0000000000000000FFFF0000171F2D0A:3AAC 0000000000000000FFFF00000134D00A:9A36 06 00000000:00000000 03:00000060 00000000     0        0 0 3 0000000000000000
+   4: 0000000000000000FFFF0000171F2D0A:3AAC 0000000000000000FFFF00000134D00A:9ED8 06 00000000:00000000 03:00000511 00000000     0        0 0 3 0000000000000000
+----
+
+However it's a tad easier for IPv6 as those are expressed as hexadecimal anyway.
+This should be easy for those as only bit to do is formatting to remove leading ``0``s
+however ther's a catch, if you notice the last bytes they look exactly like
+the reversed IPv4, I'm not how exactly this reverse thing applies to the rest
+of the IPv6 though. But in this case the IPv6 is
+
+. `0000000000000000FFFF0000171F2D0A`
+. `0000000000000000FFFF00000A2D1F17` reversed the IPv4
+. `0000:0000:0000:0000:FFFF:0000:0A2D:1F17` group by words (2 bytes)
+. `0:0:0:0:ffff:0:a2d:1f17` removed leading 0s
+
+As I'm qui unsure how tha applies to all IPv6 I'd rather be prudent there.
+
 == Closing thoughts
 
 When containers are stripped down and read-only, and you don't have the possibility
@@ -339,6 +393,7 @@ to _attach_ a debug container, I'm quite lucky to have the ability to introspect
 process _internals_ thanks to the pseudo filesystem `/proc`. However sometimes
 the information is not easily human accessible. I hope the few `awk` tricks here
 will be useful to someone else.
+
 
 // decimal IP to reversed hexa IP
 // awk -F. '{for(i=NF;i>0;i--) printf "%.2X", $i, (i == 1 ? ORS : "")}'
