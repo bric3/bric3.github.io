@@ -2,7 +2,7 @@
 authors: ["brice.dutheil"]
 date: "2020-05-23T23:45:29+02:00"
 language: en
-#tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "pmap"]
+#tags: ["cgroup", "java", "kubernetes", "docker", "memory", "heap"]
 slug: "maxrampercentage-is-not-what-i-wished-for"
 title: "MaxRamPercentage is not what I wished for"
 draft: true
@@ -10,77 +10,142 @@ draft: true
 #  list: never
 ---
 
-Like many I was happy to see that the JDK landed support for containers
-in Java 9, it was backported to Java 8 too.
-Now JDK 11 does this by default and reads information from `cgroup`s and
-it's possible to tell the memory usage via the `-XX:MaxRAMPercentage` flag.
-
-However in practice this turned out not not working as well as hoped.
-Here's an issue about a containerized Java 11 web application running on Kubernetes,
-at some point in time this application experienced memory  problems.
+_This entry has been marinating for mast of the year 2020. Rewriting it 3 times
+to make it more digestible form, then I found out I should just split my thoughts
+in smaller articles that hopefully make sense on their own._
 
 
-.Problem
+== The stupid mistake
+
+Like many I was happy to see the JDK landed support for containers in Java 9,
+and that it was backported to Java 8 as well. Now the JDK 11 enables this
+support by default. This change made the JVM able to read information from the
+``cgroup``, and the `-XX:*RAMPercentage` flag family tells the JVM which _proportion_
+of the available memory for this cgroup can be used.
+
+In 2019, I had the chance the work on GKE (Google Kubernetes Engine) and putting
+Java applications in docker containers. Then bad production experiences arose that
+led me to think this flag may not be the right answer when applications are run in
+containers.
+_This opinion could be biased toward the application mileage and in the context they were run._
+
+This flag did not work as I expected it to be, and I'm a bit the culprit on this one
+as I failed to properly research. I didn't refresh this knowledge either at that time.
+When this flag appeared –- as a fraction based flags first (`*RAMFraction`) -- mostly blogs
+explored the new options (_like this https://merikan.com/2019/04/jvm-in-a-container/[one]_),
+many thanks to authors of these blogs who did the research.
+
+However, these blogs silently passed over the fact that `*RamPercentage` is
+**about the Java heap** (the same way `MaxRAM` is about Java heap), I simply
+overlooked that too.
+
+If I turned on blogs first it's because the official documentation doesn't even mention
+any `*RAMPercentage` flags:
+
+.Oracle documentation
+* https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`java` (JDK11)]
+* https://docs.oracle.com/en/java/javase/12/docs/specs/man/java.html[`java` (JDK12)]
+* https://docs.oracle.csom/apps/search/search.jsp?q=MaxRAMPercentage&search-scope=book&book=tools&product=en%2Fjava%2Fjavase%2F11&category=java[Searching Oracle's documentation]
+* ...
+
+
+I should have turned right away to this awesome contribution from https://twitter.com/chriswhocodes[Chris Newland],
+he wrote a tool that indexes flag's documentations, defaults and other metadata in various OpenJDK codebase.
+
+{{< wrapTable >}}
+
+.https://chriswhocodes.com/hotspot_options_jdk11.html[VM Options Explorer - JDK11 HotSpot]
+|===
+| Name             | Since | Deprecated | Type   | OS | CPU | Component | Default                   | Availability | Description                                                  | Defined in
+
+| MaxRAMPercentage | JDK10 |            | double |    |     | gc        | 25.0 range(0.0, 100.0) | product      | Maximum percentage of real memory used for maximum heap size | `share/gc/shared/gc_globals.hpp`
+
+|===
+
+{{< /wrapTable >}}
+
+
+I knew this tool beforehand, yet I didn't use Chris's website first, I should have, and
+you should too.
+
+TIP: Naming things is hard and I think this flag family should have been called something
+like `*HeapPercentageOfRAM` to prevent stupid errors.
+
+
+
+
+== How the issue happened
+
+
+.Context
 ****
-With a RAM percentage parameter at `85%` of `3 GiB` memory, the container
-metrics showed the application actually hit this limit, which resulted
-in killed pods and failing _deployment_ of our _replicaset_. The deployment
-had been set up with an _horizontal pod auto-scaler_ too.
+In Kubernetes an application is deployed via a
+https://kubernetes.io/docs/concepts/workloads/controllers/deployment/[deployment],
+it allows to describe various aspects of the deployment like the container image,
+how many https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/[replicas] are desired,
+the roll-out strategy, environment variables, exposed ports,
+the https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/[resources CPU or memory] it needs, etc.
+//Also this deployment is using an https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/[_horizontal pod auto-scaler_]
+//whose role is to increase the number of instances based on some criteria, this application
+//used the CPU usage as the deciding metric.
 
-We had instances on different datacenter without `cgroup` that handled well
-100% of the traffic with a heap of `2 GiB`. We migrated half of this traffic
-to instances on a Kubernetes cluster that used `cgroup` limits, the K8s instances
-worked well in these conditions. Then when we increased the traffic to 100%
-on these new instances the __pod__s started to get _oom killed_.
+The application was running with `-XX:MaxRAMPercentage=85` in a container constrained
+to `3 GiB` of memory.
+
 ****
 
-image:/assets/maxrampercentage/pod-memory-usage.png[]
-_The orange line is the pod memory limit, the increasing green line is the
-total memory usage of the container `container_memory_usage_bytes`._
 
-image:/assets/maxrampercentage/app-jvm-memory-usage.png[]
-_The blue line is the heap limit `3 GiB`, the increasing green line
-is the application memory or more precisely the **R**esident **S**et **S**ize
-(RSS), yellow line is the heap usage._
+This should have led enough free space but instead the application
+eventually hit the memory limit. Naturally the application got
+killed by the OS. More dramatically *all* replicas eventually got quickly _oomkilled_ after
+some time, which led Kubernetes to always deploy new pods.
 
-While this problem at the surface could have be solved with a lot less information,
-this issue served as an excuse to go down the rabbit hole of process memory exploration,
-and the JVM in particular.
-In doing so the following writing tries to piece together several elements
-from a few things I knew, things I grepped in the JDK codebase, blog post, stack overflow,
-and things learned from other -- awesome -- people, all related to the JVM and its
-interaction with the Linux OS.
+  This application worked very well on a different datacenter handling all the traffic with
+  a heap of `2 GiB`. The instances in Kubernetes could handle half of the traffic well but
+  not the entire traffic.
 
-I hope I didn't ignore important things, I hope I'm not totally wrong,
-or simply I hope I'm not misguiding myself and especially others. If I'm wrong
-please reach out.
+In short when the traffic on kubernetes instances got increased to 100%
+the __pod__s started to get _oom-killed_.
 
-_Now let's answer this question: Why does the container use more than `MaxRamPercentage`
-of `resourceslimits.memory`?_
+
+image:/static/assets/maxrampercentage/app-jvm-memory-usage.png[JVM memory usage]
+
+Caution, this graph has a slight issue as it displays data in _metric bytes_
+while in reality this should be IEC bytes.
+
+Above we can see the trend of the **R**esident **S**et **S**ize in green,
+the Java heap limit (85% of `3 GiB`), and in yellow the current heap usage.
 
 
 [NOTE]
 ====
 Most of the time, figures will use the https://en.wikipedia.org/wiki/Binary_prefix[IEC binary notation] (`1 KiB = 1024 B`),
-it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
+it matches the https://github.com/openjdk/jdk11u/blob/jdk-11.0.9%2B11/src/hotspot/share/utilities/globalDefinitions.hpp#L255[JVM],
 our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
-and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps`, although I could find a reference).
+and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps` ; although I couldn't find a reference link stating this).
 
 Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 B`).
 
+[quote, Java Performance: The Definitive Guide, Getting the Most Out of Your Code (1st Edition)]
+Actually, 227,893 KB is only 222 MB. For ease of discussion, I'll truncate the KBs part by 1,000
+in this chapter; pretend I'm a disk manufacturer.
 
-https://twitter.com/fleming_matt/status/1282729134481965064?s=21
+_Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21[tweet]._
 ====
 
-== Fixing the issue without understanding
 
-The application that became problematic runs on a Kubernetes cluster. As mentioned above
-this application worked fine before, and the people who handled the issue at that time were
-not well-prepared, and I certainly wouldn't be prepared much better, that means memory
-limits until it worked. `5 GiB` proved to be the lucky number.
-It was the right approach at this moment in this context as it quickly resolved production
-issues.
 
+== With `*RAMPercentage` should I just raise available memory ?
+
+This application don't have memory leaks. So we have two parameters on why
+it's possible to adjust memory :
+
+. The cgroup available memory (set via Kubernetes deployment object key `.resources.limits.memory`).
+. The Java Heap parameters.
+
+Yet the premise is to use `MaxRAMPercentage` which defines a percentage of
+the former option (cgroup's available memory), that would suggests that we only have
+to raise the available memory.
 
 .memory limits in the deployment object of the app
 [source,yaml]
@@ -88,21 +153,22 @@ issues.
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: java-app
+  name: "java-app"
 spec:
   template:
     spec:
       containers:
-      - name: java-app
+      - name: "java-app"
         resources:
           limits:
             cpu: "8"
-            memory: 5Gi # <1>
+            memory: "5Gi" # <1>
           requests:
             cpu: "3"
-            memory: 3Gi
+            memory: "3Gi"
 ----
-<1> The working memory limit.
+<1> Increasing the working memory limit.
+
 
 [TIP]
 =======
@@ -121,1277 +187,46 @@ docker run \
 <3> memory limit, tells the OS to kill (`oomkill`) the container's processes if they hit this limit
 
 The memory request is only used for scheduling the pod on a node.
-
 =======
 
-However, while this number work this is not satisfactory :
 
-1. This number comes from trial and error.
-2. This application worked with a `2 GiB` heap, `5 GiB` looks greedy.
-3. Why this his number work is not understood.
+That would be really convenient!
 
+In practice, I found this approach lacking, and inefficient for various reasons :
 
-== Diagnosis
+. It's just easy to raise the memory limit, but this may have a
+hidden cost, as this percentage is not adjusted. If the deployment
+requires a limit of 6 GiB, to work while the application is only using
+3 GiB (if the application don't need OS cache), then it has two consequences
+.. larger application will impact negatively Kubernetes scheduling (which selects
+where to run the container), either on this very application or on sibling containers.
+.. this cluster cost more than what is consume.
 
-In order to understand our requirement, and to avoid guessing numbers until it works,
-let's explore the memory of a java process.
+. This immediately leads to this point: the percentage used in `MaxRAMPercentage`
+can't stay a fixed value, it needs adjustment like we used to for `Xmx` style flags,
+and for the same reasons:
+.. the traffic load may change
+.. the number of instances or replicas may change
+.. application code may change the mileage
 
+. Adjusting the memory of either the Java Heap or the limit
+of the container is annoying because `MaxRAMPercentage` requires to
+perform a rule of three. This may seem petty but it's just easier to
+work with actual values, here percentage have no real benefits.
 
-The RAM percentage are calculated at JVM startup from a given percentage, via
-`-XX:InitialRAMPercentage=85.0` and `-XX:MaxRAMPercentage=85.0`, those are the only
-memory settings passed to the JVM, then the JVM calculates the following values.
-Do not confuse `VM.flags` which will output parameters calculated from the command line
-and `VM.command_line` which will print the actual command line.
+. GC parameters also use percentages, which forces sometime to calculate
+percentage of percentage.
 
-.`VM.flags` in k8s
-[source, bash]
-----
-$ jcmd $(pgrep java) VM.flags | tr ' ' '\n'
-6:
-...
--XX:InitialHeapSize=4563402752 <3>
--XX:InitialRAMPercentage=85.000000 <1>
--XX:MarkStackSize=4194304
--XX:MaxHeapSize=4563402752 <4>
--XX:MaxNewSize=2736783360
--XX:MaxRAMPercentage=85.000000 <2>
--XX:MinHeapDeltaBytes=2097152
--XX:NativeMemoryTracking=summary
-...
-----
-<1> Initial RAM at 85%
-<2> Max RAM at 85%
-<3> Initial heap size ~`4.25 GiB`
-<4> Max heap size ~`4.25 GiB`
+. Using percentage for Java heap makes us dismiss an entire facet of the memory,
+native memory. This memory in particular does grow too, but with in
+the same way than heap.
 
 
-=== Reading the memory footprint of the java process in the container
+== Final words
 
-The first thing to look at is the _resident set size_, it can be obtained in
-various ways, e.g. using `ps`, `top` or reading the `/proc` should give the same number
-if done at the same time.
+Concretely I find no compelling argument in favor of `*RAMPercentage` flags,
+I don't know if I'm old school, or mathematics-averse but I find `Xms` / `Xmx`
+easier to work with even in the context of containers.
 
-.`ps`
-[source, role="primary"]
-----
-$ ps o pid,rss -p $(pidof java)
-PID   RSS
-  6 4701120
-----
-
-.`/proc/{pid}/status`
-[source, role="secondary"]
-----
-$ cat /proc/$(pgrep java)/status | grep VmRSS
-VmRSS:	 4701120 kB
-----
-
-`4.6 GiB` !!! Not quite within the `4.25 GiB` - 85% of `5 GiB` - limit. So let's dig a
-bit to understand this number `4701120 KiB`.
-
-==== Digging in the java memory zones
-
-Fortunately the application started with `-XX:NativeMemoryTracking=summary` which
-produces an overview of the different memory zones of a Java process.
-
-NOTE: Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10% performance overhead.
-But the _summary_ mode only has an impact in memory as shown below.
-
-NOTE: It is necessary to note that while the above command indicate a scale in `KB` for the JVM
-it really means `KiB`.
-
-.`VM.native_memory` instant snapshot
-[source, bash]
-----
-$ jcmd $(pgrep java) VM.native_memory scale=KB
-6:
-
-Native Memory Tracking:
-
-Total: reserved=7168324KB, committed=5380868KB                               <1>
--                 Java Heap (reserved=4456448KB, committed=4456448KB)        <2>
-                            (mmap: reserved=4456448KB, committed=4456448KB)
-
--                     Class (reserved=1195628KB, committed=165788KB)         <3>
-                            (classes #28431)                                 <4>
-                            (  instance classes #26792, array classes #1639)
-                            (malloc=5740KB #87822)
-                            (mmap: reserved=1189888KB, committed=160048KB)
-                            (  Metadata:   )
-                            (    reserved=141312KB, committed=139876KB)
-                            (    used=135945KB)
-                            (    free=3931KB)
-                            (    waste=0KB =0.00%)
-                            (  Class space:)
-                            (    reserved=1048576KB, committed=20172KB)
-                            (    used=17864KB)
-                            (    free=2308KB)
-                            (    waste=0KB =0.00%)
-
--                    Thread (reserved=696395KB, committed=85455KB)
-                            (thread #674)
-                            (stack: reserved=692812KB, committed=81872KB)    <5>
-                            (malloc=2432KB #4046)
-                            (arena=1150KB #1347)
-
--                      Code (reserved=251877KB, committed=105201KB)          <6>
-                            (malloc=4189KB #11718)
-                            (mmap: reserved=247688KB, committed=101012KB)
-
--                        GC (reserved=230739KB, committed=230739KB)          <7>
-                            (malloc=32031KB #63631)
-                            (mmap: reserved=198708KB, committed=198708KB)
-
--                  Compiler (reserved=5914KB, committed=5914KB)              <8>
-                            (malloc=6143KB #3281)
-                            (arena=18014398509481755KB #5)
-
--                  Internal (reserved=24460KB, committed=24460KB)           <10>
-                            (malloc=24460KB #13140)
-
--                     Other (reserved=267034KB, committed=267034KB)         <11>
-                            (malloc=267034KB #631)
-
--                    Symbol (reserved=28915KB, committed=28915KB)            <9>
-                            (malloc=25423KB #330973)
-                            (arena=3492KB #1)
-
--    Native Memory Tracking (reserved=8433KB, committed=8433KB)
-                            (malloc=117KB #1498)
-                            (tracking overhead=8316KB)
-
--               Arena Chunk (reserved=217KB, committed=217KB)
-                            (malloc=217KB)
-
--                   Logging (reserved=7KB, committed=7KB)
-                            (malloc=7KB #266)
-
--                 Arguments (reserved=19KB, committed=19KB)
-                            (malloc=19KB #521)
-
--                    Module (reserved=1362KB, committed=1362KB)
-                            (malloc=1362KB #6320)
-
--              Synchronizer (reserved=837KB, committed=837KB)
-                            (malloc=837KB #6877)
-
--                 Safepoint (reserved=8KB, committed=8KB)
-                            (mmap: reserved=8KB, committed=8KB)
-
--                   Unknown (reserved=32KB, committed=32KB)
-                            (mmap: reserved=32KB, committed=32KB)
-----
-<1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount of addressable memory
-(all OS types) on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`)) that represents
-what the JVM actually asked the OS to allocate.
-<2> `Heap` zone, note that reserved and committed values are the same `4456448 KiB` here because our
-`InitialRAMPercentage` is the same as max. I'm not sure why this number is different from the VM
-flags `-XX:MaxHeapSize=4563402752` though.
-<3> ~`162 MiB` of metaspace.
-<4> How many classes have been loaded : `28431`.
-<5> There are 674 threads whose stacks are using ~`80 MiB` at this time.
-<6> `Code` cache area (assembly of the used methods) ~`102 MiB` out of ~`246 MiB`.
-<7> This section contains `GC` algorithms internal data structures, this is app is using G1GC which takes ~`225 MiB`.
-<8> C1 / C2 compilers (which compile bytecode to assembly) use ~`5.8 MiB`.
-<9> The `Symbol` section contains many things like interned strings and other internal constants for about `28.2 MiB`.
-<10> The `Internal` area takes ~`24 MiB`. Before Java 11 this area included `DirectByteBuffers`, but from Java 11 those
-are accounted in the `Other` zone.
-<11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
-
-The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
-etc. Also, note that enabling other JVM features may show up if they are activated.
-https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
-
-There's a lot more to read on the
-https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80[official documentation about NMT]
-and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77[how to Monitor VM Internal Memory].
-
-And another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
-by http://twitter.com/shipilev[Aleksey Shipilёv].
-
-==== Let's pause a bit and revise memory
-
-I mentioned it already : the _RSS_ or **R**esident **S**et **S**ize, what is it? What exactly means
-_committed_ memory ? Or _reserved_ memory ? How do they relate to each others?
-
-First let's break down the vocabulary when we talk about memory.
-
-.vocabulary breakdown
-[%autowidth.stretch]
-|===
-
-| *Used Heap* | The amount of memory occupied by live objects and to a certain extent object
-that are unreachable but not yet collected by the GC. This only relate to the JVM.
-
-| *Committed* | Address ranges that have been mapped or ``malloc``ed.
-They may or may not be backed by physical or swap due to lazy allocation and paging.
-This applies to the JVM and the OS.
-
-| *Reserved* | The total address range that has been pre-mapped via `mmap` or `malloc` for a
-particular memory pool. In other words _reserved memory_ represents the maximum addressable memory.
-Those could be referred to as *uncommitted*.
-This applies to the JVM and the OS.
-
-| *Resident* | OS memory pages which are currently in physical ram. This means code, stacks, part of the
-committed memory pools but also portions of ``mmap``ed files which have recently been accessed
-and allocations outside the control of the JVM.
-This only relate to the OS.
-
-| *Virtual* | The sum of all virtual address mappings. Covers committed, reserved memory pools but also mapped
-files or shared memory. This number is rarely informative since the JVM will reserve large address
-ranges upfront. We can see this number as the pessimistic memory usage.
-This only relate to the OS.
-
-|===
-
-https://stackoverflow.com/a/31178912/48136[source]
-
-===== malloc and mmap
-
-Now I've just mentioned two words `malloc` and `mmap`, these two calls to ask the OS to allocate memory.
-
-image:/assets/maxrampercentage/malloc-mmap.svg[align="center", title="Simple overview of malloc and mmap"]
-
-.Differences between https://linux.die.net/man/3/malloc[`malloc`] and http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html[`mmap`]
-* `malloc` may _recycle_ previously used memory that was released by `free`, and perform a system call to
-get memory only required. It's part of the C standard.
-
-* `malloc` allows you pass a size and that's basically it.
-
-* `mmap` is a system call. It's not part of the C standard, and may not be available on all platforms.
-
-* `mmap` can both map private memory or shared memory (as in shared with other processes). Those are called
-_anonymous mapping_ using flag `MAP_ANONYMOUS`.
-
-* `mmap` can also interact with disk files on specific ranges, without having a file descriptor.
-
-* `mmap` can be set with various flags that are used to control how this memory mapping behave.
-
-* Both have their performance characteristics, `malloc` is usually preferred for few and small allocations,
-`mmap` is preferred for few but large allocations.
-
-===== reserved and committed
-
-The idea of the *reserved* / *committed* memory is to make virtually *continuous* memory
-mapping. The _committed_ memory is immediately usable, on the other hand the _reserved_ memory is just
-reserved but not usable. The reserved range is mapped with the `PROT_NONE` flag to prevent any access,
-also this has the effect to tell the OS that this mapping should not be backed by physical memory.
-When the JVM thinks it need more commited memory, it will update part of the mapping by removing the
-`PROT_NONE` flag.
-
-The JVM starts be https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444[_reserving_ the memory],
-then parts of this will be made available by https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3517-L3531[modifying the mappings].
-
-===== virtual memory and paging
-
-*Virtual memory* is a memory management scheme that is used by most operating systems ;
-it allows programs to use memory without dealing with hardware, or other concerns like
-sharing the memory resource. In doing so it allows programs to request more memory than
-available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
-called *pages*. For any given page in the virtual memory, and depending on the application(s)
-the OS may
-
-* make this page resident in physical memory, if something has be written into it
-* do nothing if a page is not used, this page is virtually available
-* move a page from physical memory to swap, if the OS thinks there's not enough room for other pages
-* map ta portion of a file to this page
-
-image:/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
-
-E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
-the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
-pages are only backed by physical memory once they're written to.
-
-Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
-the JVM to https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829[write a zero to every OS memory pages].
-This option has the effect of avoiding physical memory commit latencies at runtime, however this
-only affects the heap memory zone. Other areas like thread stack or metaspace work differently.
-
-In other words that means parts of the *committed* memory shown in NMT is not *resident* and as such
-RSS counter may not reflect what is een in the *committed* memory.
-
-Now that we revised some basics, let's go back to the trail.
-
-==== Exploring what NMT does not show
-
-The above output showed many memory are but not all. There's also the `MappedByteBuffers`, these
-are the files that are _memory mapped_ to the virtual memory of a process. NMT does not track them,
-but `MappedByteBuffers` can also take physical memory if the application access any of them. It's possible
-to see the actual usage of a process memory map: `pmap -x <pid>`.
-
-
-.process memory mappings
-[source, bash]
-----
-$ pmap -x $(pgrep java)
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
--XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
--Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
-Address           Kbytes     RSS   Dirty Mode  Mapping
-0000000000400000       4       4       0 r-x-- java
-0000000000600000       4       4       4 r---- java
-0000000000601000       4       4       4 rw--- java
-000000000216f000     404     272     272 rw---   [ anon ]
-00000006f0000000 4476620 3128252 3128252 rw---   [ anon ]
-00000008013b3000 1028404       0       0 -----   [ anon ]
-00007fc5de9ea000      16       0       0 -----   [ anon ]
-00007fc5de9ee000    1012     104     104 rw---   [ anon ]
-00007fc5deaeb000      16       0       0 -----   [ anon ]
-00007fc5deaef000    1012      24      24 rw---   [ anon ]
-00007fc5debec000      16       0       0 -----   [ anon ]
-00007fc5debf0000    1012      92      92 rw---   [ anon ]
-00007fc5deced000      16       0       0 -----   [ anon ]
-00007fc5decf1000    1012     100     100 rw---   [ anon ]
-00007fc5dedee000      16       0       0 -----   [ anon ]
-00007fc5dedf2000    1012     100     100 rw---   [ anon ]
-00007fc5deeef000      16       0       0 -----   [ anon ]
-00007fc5deef3000    1012     100     100 rw---   [ anon ]
-00007fc5deff0000      16       0       0 -----   [ anon ]
-00007fc5deff4000    1012     100     100 rw---   [ anon ]
-00007fc5df0f1000      16       0       0 -----   [ anon ]
-00007fc5df0f5000    1012     100     100 rw---   [ anon ]
-00007fc5df1f2000      16       0       0 -----   [ anon ]
-00007fc5df1f6000    1012     100     100 rw---   [ anon ]
-00007fc5df2f3000      16       0       0 -----   [ anon ]
-00007fc5df2f7000    1012     100     100 rw---   [ anon ]
-00007fc5df3f4000      16       0       0 -----   [ anon ]
-00007fc5df3f8000    1012     100     100 rw---   [ anon ]
-00007fc5df4f5000      16       0       0 -----   [ anon ]
-00007fc5df4f9000    1012     100     100 rw---   [ anon ]
-00007fc5df5f6000      16       0       0 -----   [ anon ]
-00007fc5df5fa000    1012     100     100 rw---   [ anon ]
-
-...
-
-00007fca48ba9000   17696   14876       0 r-x-- libjvm.so
-00007fca49cf1000    2044       0       0 ----- libjvm.so
-00007fca49ef0000     764     764     764 r---- libjvm.so
-00007fca49faf000     232     232     208 rw--- libjvm.so
-00007fca49fe9000     352     320     320 rw---   [ anon ]
-00007fca4a041000     136     136       0 r---- libc-2.28.so
-00007fca4a063000    1312    1140       0 r-x-- libc-2.28.so
-00007fca4a1ab000     304     148       0 r---- libc-2.28.so
-00007fca4a1f7000       4       0       0 ----- libc-2.28.so
-00007fca4a1f8000      16      16      16 r---- libc-2.28.so
-00007fca4a1fc000       8       8       8 rw--- libc-2.28.so
-00007fca4a1fe000      16      16      16 rw---   [ anon ]
-00007fca4a202000       4       4       0 r---- libdl-2.28.so
-00007fca4a203000       4       4       0 r-x-- libdl-2.28.so
-00007fca4a204000       4       4       0 r---- libdl-2.28.so
-00007fca4a205000       4       4       4 r---- libdl-2.28.so
-00007fca4a206000       4       4       4 rw--- libdl-2.28.so
-00007fca4a207000     100     100       0 r-x-- libjli.so
-00007fca4a220000    2048       0       0 ----- libjli.so
-00007fca4a420000       4       4       4 r---- libjli.so
-00007fca4a421000       4       4       4 rw--- libjli.so
-00007fca4a422000      24      24       0 r---- libpthread-2.28.so
-00007fca4a428000      60      60       0 r-x-- libpthread-2.28.so
-00007fca4a437000      24       0       0 r---- libpthread-2.28.so
-00007fca4a43d000       4       4       4 r---- libpthread-2.28.so
-00007fca4a43e000       4       4       4 rw--- libpthread-2.28.so
-00007fca4a43f000      16       4       4 rw---   [ anon ]
-00007fca4a443000       4       4       0 r---- LC_IDENTIFICATION
-00007fca4a444000       4       0       0 -----   [ anon ]
-00007fca4a445000       4       0       0 r----   [ anon ]
-00007fca4a446000       8       8       8 rw---   [ anon ]
-00007fca4a448000       4       4       0 r---- ld-2.28.so
-00007fca4a449000     120     120       0 r-x-- ld-2.28.so
-00007fca4a467000      32      32       0 r---- ld-2.28.so
-00007fca4a46f000       4       4       4 r---- ld-2.28.so
-00007fca4a470000       4       4       4 rw--- ld-2.28.so
-00007fca4a471000       4       4       4 rw---   [ anon ]
-00007ffe28536000     140      40      40 rw---   [ stack ]
-00007ffe28582000      12       0       0 r----   [ anon ]
-00007ffe28585000       8       4       0 r-x--   [ anon ]
-ffffffffff600000       4       0       0 r-x--   [ anon ]
----------------- ------- ------- -------
-total kB         24035820 4776860 4720796
-----
-
-Let's refine that with more
-https://www.kernel.org/doc/Documentation/filesystems/proc.txt[knowledge about `/proc/{pid}/maps`],
-it indicates that a _map_ has a set of modes:
-
-* `r-`: readable memory mapping
-* `w`: writable memory mapping
-* `x`: executable memory mapping
-* `s` or `p` : shared memory mapping or private mapping. `/proc/<pid>/maps` shows both
-but `pmap` only show the `s` flag.
-
-On a side note, `pmap` may show another mapping mode which I barely found any reference of,
-here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html[one]
-and https://linux.die.net/man/2/mmap[here]
-
-* `R`: if set, the map has no swap space reserved (`MAP_NORESERVE` flag of `mmap`).
-This means that we can get a segmentation fault by accessing that memory if it has not
-already been mapped to physical memory, and if the system is out of physical memory.
-
-At this time the focus is to see what are the memory mapped files with the JVM. Those can be either
-read from or written to, we need to look for both the `r` or `w` or neither. Also, while quite unlikely
-with Java let's not restrict on the _executable_ mapping, so the only thing we could be restricting to
-is the shared mapping `s` (memory mapped files are shared because the OS may want to reuse the afferent
-memory pages for other processes) :
-
-.Our application memory mapped files
-[source, bash]
-----
-$ pmap -x 6 | grep "[r-][w-][x-][s][R-]"
-00007f5fdc02f000       4       4       0 r--s- instrumentation1647616515145161084.jar
-00007f5fdc030000       4       4       0 r--s- instrumentation11262564974060761935.jar
-00007f5fdc053000       8       8       0 r--s- java-agent-bs-cl.jar
-00007f5fdc055000       4       4       0 r--s- instrumentation249633448216144460.jar
-00007f5fdc056000       4       4       0 r--s- agent1-bootstrap10447345921091566771.jar
-00007f5fdc057000      12      12       0 r--s- agent1-api6038277081136135384.jar
-00007f5fec000000       8       8       0 r--s- agent1-weaver-api16247655721253674284.jar
-00007f5fec002000       4       4       0 r--s- agent1-opentracing-bridge12060425782296980104.jar
-00007f5fec003000      12      12       0 r--s- agent2-bridge3261511391751138774.jar
-00007f5ffb910000  138176   36060       0 r--s- modules
-00007f6008006000      28      28       0 r--s- gconv-modules.cache
-                           ^^^^^               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-----
-
-There's around `35.2 MiB` of memory mapped files.
-
-_As I was a bit unfamiliar with `pmap`, reading https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[this process memory blog]
-helped me with this command._
-
-Wrapping this information from NMT and memory mapped files leaves us with the
-following _equation_ to estimate the actual memory usage of a process:
-
-....
-Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
-               + Compiler + Other JVM structures + Thread stacks
-               + Direct buffers + Mapped files +
-               + Native Libraries + Malloc overhead + ...
-....
-
-[%autowidth.stretch,options="footer"]
-|===
-
-| Heap                            | 4456448
-| GC                              |  230739
-| Metaspace                       |  165788
-| Code Cache                      |  105201
-| Symbol tables                   |   28915
-| Compiler                        |    5914
-| Other JVM structures
-(Internal + NMT + smaller area)   |   24460 + 8433 + 217 + 7 + 19 + 1362 + 837 + 8 + 32
-| Thread stacks                   |   85455
-| Direct buffers (Other)          |  267034
-
-| Total accounted by NMT          | 5380869
-
-| Mapped files                    |   36060 + 4 + 4 + 8 + 4 + 4 + 12 + 8 + 4 + 12 + 28
-| Native Libraries                | unaccounted at this time
-| Malloc overhead                 | accounted in NMT
-| ...                             |
-
-| Total                           | 5417017 KiB
-|===
-
-
-`5417017 KiB` is what this container is supposedly actually using, but that's way over the RSS (`4701120 KiB`)
-and, also over the `5 GiB` (`5242880 KiB`) of the pod limit. Yet this pod is healthy and far from
-the thresholds to be oom killed.
-
-////
-[TIP]
-=====
-While NMT show you the total you can use this command to extract all relevant from the summary
-in a simple addition
-
-[source,bash]
-----
-echo $(($(jcmd $(pidof java) VM.native_memory \
-  | tee /dev/tty \
-  | grep -P "^-.*committed=" \
-  | grep -o -P "(?<=committed=)[0-9]+(?=KB)" \
-  | awk 'BEGIN { ORS=""; print "(" }; {print p$0; p=" + "} END { print ")\n"}' \
-  | tee /dev/tty )))
-----
-
-On macOs you should install the GNU coreutils and use `ggrep` and `ghead`.
-=====
-////
-
-===== RSS and expected memory don't match
-
-First let's state a few considerations to understand :
-
-. NMT shows _reserved_ and _committed_ values on each areas,
-+
-[%autowidth.stretch]
-|===
-
-| `reserved` | This is the size that the JVM reserved, the OS guarantees these adresses to be
-available, but the JVM isn't yet using the whole reserved space.
-| `committed` | This size indicate the memory that the JVM actually uses from the reserved space.
-
-|===
-+
-Each of these memory zones are managed differently: `GC`, `Compiler` have the
-same committed and reserved memory values while other zones have the ability to
-shrink or grow for example `thread stacks` zone reports
-`85455 KiB` but could be reduced to `696395 KiB` if necessary, the heap has theoretically the
-possibility to shrink as well ; however I never saw that in practice, maybe in JDK 12 with
-https://openjdk.java.net/jeps/346[JEP-346], alhough even the JEP mention if there is very low
-activity, which is improbable on this workload.
-
-. While the JVM did allocate this memory, Linux on x86 hardware uses virtual
-memory with paging. More specifically Linux optimizes actual physical memory
-and only commits a page physically if this page is actually written to. In this
-case the `Heap` zone in particular seems to benefit from this behavior as the JVM
-allocated `4456448 KiB`, but the actual RAM _resident set size_ usage of this memory
-zone seems at this time is `3128252 KiB`.
-
-Where to look for this number? While it's easy to get the RSS of a process, to understand
-if the committed heap actually _resides_ on physical memory you need to use `pmap` or
-inspect `/proc/{pid}/maps` or `/proc/{pid}/smaps`. You have to notice the one of the first
-memory zones is quite big and about the size of the committed heap as shown in NMT. It's easier
-to spot with `pmap -X` (capital `X`). _Note the captures below are from a different pod/process_.
-
-.`pmap -x <pid>`
-[source, role="primary"]
-----
-$ pmap -x $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
-Address           Kbytes     RSS   Dirty Mode  Mapping
-0000000000400000       4       4       0 r-x-- java
-0000000000600000       4       4       4 r---- java
-0000000000601000       4       4       4 rw--- java
-0000000001cfc000     412     224     224 rw---   [ anon ]
-00000006f0000000 4477472 2944744 2944744 rw---   [ anon ] <1>
-0000000801488000 1027552       0       0 -----   [ anon ]
-00007f11b3744000   16388   16388   16388 rw---   [ anon ]
-00007f11b4745000      16       0       0 -----   [ anon ]
-00007f11b4749000   50688   49484   49484 rw---   [ anon ]
-00007f11b78c9000    1536       0       0 -----   [ anon ]
-00007f11b7a49000   32776   32776   32776 rw---   [ anon ]
-00007f11b9a4b000      16       0       0 -----   [ anon ] <2>
-00007f11b9a4f000    1012      24      24 rw---   [ anon ] <3>
-00007f11b9b4c000      16       0       0 -----   [ anon ]
-00007f11b9b50000    1012      92      92 rw---   [ anon ]
-00007f11b9c4d000      16       0       0 -----   [ anon ]
-00007f11b9c51000    1012     116     116 rw---   [ anon ]
-...
-----
-<1> heap memory
-<2> a thread guard pages
-<3> a thread stack
-
-.`pmap- X <pid>`
-[source, role="secondary"]
-----
-$ pmap -X $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
-         Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
-        00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
-        00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
-        00601000 rw-p 00001000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
-        01cfc000 rw-p 00000000  00:00       0      412     224     224        224       224        0              0              0               0    0       0      0           0 [heap] <1>
-       6f0000000 rw-p 00000000  00:00       0  4477472 2939592 2939592    2939592   2939592        0              0              0               0    0       0      0           0
-       801488000 ---p 00000000  00:00       0  1027552       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b4745000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b4749000 rw-p 00000000  00:00       0    50688   49472   49472      49472     49472        0              0              0               0    0       0      0           0
-    7f11b78c9000 ---p 00000000  00:00       0     1536       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b7a49000 rw-p 00000000  00:00       0    32776   32776   32776      32776     32776        0              0              0               0    0       0      0           0
-    7f11b9a4b000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        <2>
-    7f11b9a4f000 rw-p 00000000  00:00       0     1012     112     112        112       112        0              0              0               0    0       0      0           0        <3>
-    7f11b9b4c000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b9b50000 rw-p 00000000  00:00       0     1012      96      96         96        96        0              0              0               0    0       0      0           0
-    7f11b9c4d000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
-...
-----
-<1> heap memory
-<2> a thread guard pages
-<3> a thread stack
-
-
-== Choosing a better value for the RAM percentage
-
-From the above, it's now possible with NMT especially and with `pmap` to
-understand actual memory usage and to answer the question: "What is a sensible
-RAM percentage setting for this application ?"
-
-Really what drive the answer is the actual non-heap usage not accounted in
-`MaxRAMPercentage`, from the numbers above:
-
-....
-(total) 5417017 - (heap) 4456448 = 960569 KiB
-....
-
-
-.In percentages
-[%autowidth.stretch,options="footer"]
-|===
-
-| Non heap | 5417017 - 4456448 = 960569 | ~17 %
-| Heap     | 4456448                    | ~83 %
-
-| Total    | 5417017                    | 100 %
-|===
-
-*This means, at that time the application needed around `960 MiB`, plus the heap to run.*
-
-The JVM was run this flag `-XX:MaxRAMPercentage=85.000000` which sets the heap maximum size
-to `4 563 402 752` Bytes or `4456448 KiB`, the value of this percentage is a lucky guess that
-worked for the `5 GiB` deployment memory limit, because the application never use the whole
-heap memory and as such it never used all the pages.
-
-This percentage is however *wrong*, if the JVM needed all the memory within the max
-heap plus higher thread usage be it more threads or deeper stack traces then the
-container/pod would have been _oom killed_. Also, it is necessary to give some free space
-in the container to be able to perform serviceability tasks, like profiling, etc.
-
-For a `5 GiB` memory limit it may be good to give a minimum of 20% space, my experience in this
-scenario is that 20% is too tight to handle surges. Supposing we'd like an additional `400 MiB`
-over `960 569 KiB` will give a percentage of 26%.
-
-Of course this number has to be adapted to the workload, e.g. if the application allocate a
-lot more ``DirectByteBuffer``s or if it requires heavy filesystem usage, then it would be a
-different number to account the room needed for the filesystem cache.
-
-In our case the starting point for a `5 GiB` memory limit is 26% :
-
-[source]
-----
--XX:InitialRAMPercentage=74.0 <1>
--XX:MaxRAMPercentage=74.0 <1>
-----
-
-But if the cgroup limit is decreased, for our application it meant the non heap usage will take
-a more significant part. For example on this same application we saw `1.3 GiB` of non-heap memory
-for a heap sized at `3 GiB`.
-
-
-
-
-For a quick win let's adapt the application image.
-
-== Make the docker image memory settings tweakable per environment
-
-As seen at the beginning of this post, RAM settings are part of the command declaration,
-first these arguments turned out to be incorrect but they are more difficult to change or tweak.
-In addition, the deployment requirements / limits are likely to
-differ depending on the cluster / environment ; this can happen when you need to decrease the money
-spending on your cloud provider for non-production clusters, like staging, pre-production, etc.
-
-Let's use https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
-environment variable for more flexibility and remove the RAM percentage in the `CMD` directive.
-
-.Application dockerfile
-[source,diff]
-----
-  ARG REGISTRY
-  FROM $REGISTRY/corretto-java:11.0.6.10.1
-+ ENV JDK_JAVA_OPTIONS="" <1>
-
-  RUN mkdir -p /gclogs /etc/java-app
-
-  COPY ./build/libs/java-app-boot.jar \
-    ./build/java-agents/agent-1.jar \
-    ./build/java-agents/agent-2.jar \
-    ./src/serviceability/*.sh \
-    /
-
-  CMD [ "/usr/bin/java", \
-        "-Dfile.encoding=UTF-8", \
-        "-Duser.timezone=UTC", \
-        "-Dcom.sun.management.jmxremote.port=7199", \
-        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
-        "-Dcom.sun.management.jmxremote.ssl=false", \
-        "-Dcom.sun.management.jmxremote.authenticate=false", \
-        "-Djava.security.egd=file:/dev/./urandom", \
--       "-XX:InitialRAMPercentage=85.0", \ <2>
--       "-XX:MaxRAMPercentage=85.0", \
-        "-XX:NativeMemoryTracking=summary", \
-        "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
-        "-javaagent:/agent-1.jar", \
-        "-javaagent:/agent-2.jar", \
-        "-Dsqreen.config_file=/sqreen.properties", \
-        "-jar", \
-        "/java-app-boot.jar", \
-        "--spring.config.additional-location=/etc/java-app/config.yaml", \
-        "--server.port=8080" ]
-
-  LABEL name="java-app"
-  LABEL build_path="../"
-  LABEL version_auto_semver="true"
-----
-<1> Defines a default empty https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
-<2> Removes the RAM percentage settings to get _default_ values.
-
-Now let's test this locally.
-
-.Build the container
-[source]
-----
-❯ DOCKER_BUILDKIT=1 docker build \
-  --tag test-java-app \ <1>
-  --build-arg REGISTRY=eu.gcr.io/cd-registry \
-  --file _infra/Dockerfile \
-  .
-[+] Building 1.4s (9/9) FINISHED
- => [internal] load build definition from Dockerfile                                                                                              0.0s
- => => transferring dockerfile: 1.34kB                                                                                                            0.0s
- => [internal] load .dockerignore                                                                                                                 0.0s
- => => transferring context: 35B                                                                                                                  0.0s
- => [internal] load metadata for eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                  0.0s
- => CACHED [1/4] FROM eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                             0.0s
- => [internal] load build context                                                                                                                 0.0s
- => => transferring context: 1.32kB                                                                                                               0.0s
- => [2/4] RUN mkdir -p /gclogs /etc/java-app                                                                                                      0.3s
- => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                   0.0s
- => [4/4] COPY ./build/libs/java-app-boot.jar   ./build/java-agents/agent-1.jar   ./build/java-agents/agent-2.jar   ./src/serviceability/*.sh   / 0.6s
- => exporting to image                                                                                                                            0.4s
- => => exporting layers                                                                                                                           0.4s
- => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                      0.0s
- => => naming to docker.io/library/test-java-app
-----
-<1> Custom tag to avoid collision with regular images in my cache
-
-=== Run the container locally with the Java app
-
-In this local test series, I'm using `3 GiB` as a memory limit and I chose 70% for the heap percentage.
-
-.*Without* `JDK_JAVA_OPTIONS`
-[source,role="primary"]
-----
-❯ docker run --rm --memory="3gb" --name j-mem test-java-app
-Picked up JDK_JAVA_OPTIONS:
-10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
-2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-...
-----
-
-.*With* `JDK_JAVA_OPTIONS`
-[source,role="secondary"]
-----
-❯ docker run --rm --memory="3gb" --env JDK_JAVA_OPTIONS="-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0" --name j-mem test-java-app
-Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0
-10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
-2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
-...
-----
-
-
-Then we can make sure we have the correct flags.
-
-.*Without* `JDK_JAVA_OPTIONS`
-[source, role="primary"]
-----
-❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
-6:
-...
--XX:MaxHeapSize=805306368 <1>
--XX:MaxNewSize=482344960
--XX:MinHeapDeltaBytes=1048576
-...
-----
-<1> Max heap is about `768 MiB`
-
-.*With* `JDK_JAVA_OPTIONS`
-[source, role="secondary"]
-----
-❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
-6:
-...
--XX:InitialHeapSize=2256535552
--XX:InitialRAMPercentage=70.000000
--XX:MarkStackSize=4194304
--XX:MaxHeapSize=2256535552 <1>
--XX:MaxNewSize=1353711616
--XX:MaxRAMPercentage=70.000000
-...
-----
-<1> Max heap is about `2.1 GiB`
-
-
-Notice when there's no RAM settings the JVM computed the max heap size at 25%
-of `3 GiB` memory limit, and at 70% the jvm uses `2.1 GiB`. Also, the heap values
-are the only one affected.
-
-
-== Going further
-
-As identified above there are two, maybe three memory areas whose usage may explain the surge in memory before
-the memory limit was increased. I don't have anything to back that idea except how I expect these memory areas
-to grow but not the others.
-
-1. The `Thread` stack memory zone, the increased actual memory pages is small, but enough to be mentioned.
-
-2. The `GC` internal memory zone, with more threads there are more allocations, and as such more
-things to track.
-
-3. The `Other` memory zones with more `DirectByteBuffers` usage.
-
-4. And anyway with more thread there could be a bit more allocations, which means more
-memory pages needed.
-
-image:/assets/maxrampercentage/app-file-descriptors.png[]
-
-The heap had a max value anyway, and if it was then the app would either trigger full GCs, or self terminate
-with an `OutOfMemoryError`, so that is not the heap. As for the offers it's unlikely with the workload they grow
-that much.
-
-My hypothesis is that when full traffic came to this pod, these zones grew by `100 MiB` to `200 MiB` (sum),
-while not much, it was sufficient to go over the 15% of memory left for the non heap memory, and thus triggered
-the system oom killer.
-
-
-Also, at some point in time this application worked well under way less memory in a different cluster `-Xmx=2g`.
-The code is not the culprit in this case. Let's explore that.
-
-=== Actual Java Heap usage
-
-While the previous section allowed to understand the actual memory usage, it didn't give any figure
-regarding the actual heap usage for this application :
-
-.GC.heap_info
-[source, role="primary"]
-----
-$ jcmd $(pgrep java) GC.heap_info
-6:
- garbage-first heap   total 4456448K, used 537569K [0x00000006f0000000, 0x0000000800000000) <1>
-  region size 2048K, 161 young (329728K), 13 survivors (26624K)
- Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
-  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
-----
-<1> Used heap : ~`525 MiB`
-
-.1
-[source, role="secondary"]
-----
-$ jcmd $(pgrep java) GC.heap_info
-6:
- garbage-first heap   total 4456448K, used 925702K [0x00000006f0000000, 0x0000000800000000) <1>
-  region size 2048K, 387 young (792576K), 12 survivors (24576K)
- Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
-  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
-----
-<1> Used heap : ~`904 MiB`
-
-.2
-[source, role="secondary"]
-----
-$ jcmd 6 GC.heap_info
-6:
- garbage-first heap   total 4456448K, used 1245902K [0x00000006f0000000, 0x0000000800000000) <1>
-  region size 2048K, 543 young (1112064K), 12 survivors (24576K)
- Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
-  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
-----
-<1> Used heap : ~`1,217 MiB`
-
-.3
-[source, role="secondary"]
-----
-$ jcmd 6 GC.heap_info
-6:
- garbage-first heap   total 4456448K, used 2421454K [0x00000006f0000000, 0x0000000800000000) <1>
-  region size 2048K, 1117 young (2287616K), 12 survivors (24576K)
- Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
-  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
-----
-<1> Used heap : ~`2,364 MiB`
-
-.4
-[source, role="secondary"]
-----
-$ jcmd 6 GC.heap_info
-6:
- garbage-first heap   total 4456448K, used 2715248K [0x00000006f0000000, 0x0000000800000000) <1>
-  region size 2048K, 1225 young (2508800K), 13 survivors (26624K)
- Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
-  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
-----
-<1> Used heap : ~`2,652 MiB`
-
-.5
-[source, role="secondary"]
-----
-$ jcmd 6 GC.heap_info
-6:
- garbage-first heap   total 4456448K, used 279521K [0x00000006f0000000, 0x0000000800000000) <1>
-  region size 2048K, 35 young (71680K), 13 survivors (26624K)
- Metaspace       used 154131K, capacity 160610K, committed 160976K, reserved 1189888K
-  class space    used 18070K, capacity 20474K, committed 20556K, reserved 1048576K
-----
-<1> Used heap : ~`273 MiB`
-
-On the application in production, limited with `5 GiB` of memory, the heap
-seems to increase between something like `273 MiB` to `2.7 GiB`. Graphing the trend of the heap usage
-over time suggests the memory usage for this app (for the current cluster topology
-(_replicaset_, traffic, etc.)).
-
-image:/assets/maxrampercentage/app-heap-usage-with-5GiB-limit-85p-max.png[]
-
-To keep things simple let's use the rough top usage of `2.7 GiB` of the heap. While the available
-allocated heap is `4.25 GiB`. As a reminder non-used memory pages are not physically in RAM,
-thanks to the OS (in that case Linux), look at the `RSS` column of the `pmap` output.
-
-So just using this heap usage with the non heap usage, plus some margin, gives this number :
-
-....
-2.7 GiB of used heap + 0.8 GiB of non heap + 0.2 GiB margin = 3.7 GiB
-....
-
-Again keep in mind this is the heap usage with the current GC activity. As said earlier
-this application worked with a lower heap `2 GiB`, this certainly worked at the cost of
-higher GC activity and CPU usage at that time, this is ok as this workload is mostly IO bound.
-But with restraints in Kubernetes care must be taken otherwise the pod may be throttled.
-
-Anyway this CPU usage may require some adjustment on the deployment CPU limit
-(https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes[millicores]).
-This is essential because on Kubernetes, if a pod reached its CPU limit it gets
-https://cloud.google.com/blog/products/gcp/kubernetes-best-practices-resource-requests-and-limits?hl=fa[throttled],
-and this very bad for a Java app to be throttled (this is the same for a Go application).
-
-Going back to our _equation_ above, those numbers yield the following percentage
-`-XX:MaxRAMPercentage=72.97` for a deployment limit of `3.7 GiB`.
-
-
- _____ ___  ____   ___
-|_   _/ _ \|  _ \ / _ \
-  | || | | | | | | | | |
-  | || |_| | |_| | |_| |
-  |_| \___/|____/ \___/
-
-                         TODO VALIDATE in prod
-                         TODO Use -Xmx=2g
-
-
-
-
-
-=== The lesson
-
-The thing is that when this flag appeared (before it was `*RAMFraction`), almost only blogs (like this
-https://merikan.com/2019/04/jvm-in-a-container/[one]) explored the options, thanks to them, but most are
-incomplete to get the big picture, not to mention those who have slight errors.
-
-The official documentation doesn't even mention `*RAMPercentage` flags:
-
-.Oracle documentation
-* https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`java` (JDK11)]
-* https://docs.oracle.com/en/java/javase/12/docs/specs/man/java.html[`java` (JDK12)]
-
-Fortunately there's still
-
-{{< wrapTable >}}
-
-.https://chriswhocodes.com/hotspot_options_jdk11.html[VM Options Explorer - JDK11 HotSpot]
-|===
-| Name             | Since | Deprecated | Type   | OS | CPU | Component | Default                   | Availability | Description                                                  | Defined in
-
-| MaxRAMPercentage | JDK10 |            | double |    |     | gc        | 25.0 range(0.0, 100.0) | product      | Maximum percentage of real memory used for maximum heap size | `share/gc/shared/gc_globals.hpp`
-
-|===
-
-{{< /wrapTable >}}
-
-
-Point taken, I already knew https://twitter.com/chriswhocodes[Chris Newland]'s useful websites
-but didn't visit them to use this option, *I should have !*
-
-Anyway after all, I don't think `*RAMPercentage` flags are quite useful (or those
-are used inadequately for this application ?!). For me they don't quite respect the _principle of
-the least surprise_. We've seen these percentages lacks any consideration of how non-heap usage grow,
-and the JVM didn't limit these zones according to the `cgroup` limits, which is unsettling, because
-if they were, the JVM would have crashed with an ``OutOfMemoryError``s from these zones.
-
-That being said, I believe that from now on it is actually just as ok if not better to prefer the usual
-`-Xmx` flags for Java applications running in a container for now, especially with the
-`JDK_JAVA_OPTIONS` environment variable, and this a bit less work because it's not anymore necessary
-to translate byte numbers in percentages but instead just use the actual max memory.
-
-
-== Take away
-
-* Use `JDK_JAVA_OPTIONS` in the image rather than setting memory in the `CMD` directive.
-* `RSS`, the amount of physical memory that is allocated & used by a process,
-* `RSS` maybe more or inferior to committed memory of the JVM due to OS virtual memory management
-* `/proc` filesystem and related tooling is great
-* Java ~= heap + metaspace + off-heap (DirectBuffer + threads + compiled code + GC data + ...)
-* Using `Xmx` in a container is still a very good choice compared to `MaxRAMPercentage`
-
-
-
-
-'''
-'''
-'''
-'''
-'''
-'''
-
-
-
-
-   __
-  /\ \
-  \ \ \____    ___     ___   __  __    ____
-   \ \ '__`\  / __`\ /' _ `\/\ \/\ \  /',__\
-    \ \ \L\ \/\ \L\ \/\ \/\ \ \ \_\ \/\__, `\
-     \ \_,__/\ \____/\ \_\ \_\ \____/\/\____/
-      \/___/  \/___/  \/_/\/_/\/___/  \/___/
-
-
-== Bonus
-
-The main topic of the blog post is over, but as it was interesting to look at this problem
-with some `cgroup` knowledge and Linux memory understanding, so I wrapped some
-information that was nice to refresh and explore.
-
-=== Interpreting cgroup's memory (cgroup v1)
-
-Before going further I'd like to mention that the Linux kernel documentation on
-https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt[cgroup v1]
-is a very good start.
-
-In our case let's see what `cgroup` have to say inside our container. A lot of interesting
-bits are available in the `/sys/fs/cgroup`, those are not process specific.
-They may help tackle issue with memory not directly related with the process itself:
-
-.memory.stat
-[source, bash]
-----
-❯ kubectl exec -it --container=java-app deployment/java-app -- cat /sys/fs/cgroup/memory/memory.stat
-cache 57434112 <7>
-rss 4822343680 <1>
-rss_huge 0
-shmem 0
-mapped_file 0
-dirty 0
-writeback 0
-swap 0 <6>
-pgpgin 7918680
-pgpgout 6726903
-pgfault 7682598
-pgmajfault 0
-pgmajfault_s 0
-pgmajfault_a 0
-pgmajfault_f 0
-inactive_anon 0 <2>
-active_anon 4823887872 <3>
-inactive_file 58806272 <4>
-active_file 188416 <5>
-unevictable 0
-hierarchical_memory_limit 5368709120
-hierarchical_memsw_limit 5368709120
-total_cache 57434112
-total_rss 4822343680
-total_rss_huge 0
-total_shmem 0
-total_mapped_file 0
-total_dirty 0
-total_writeback 0
-total_swap 0
-total_pgpgin 7918680
-total_pgpgout 6726903
-total_pgfault 7682598
-total_pgmajfault 0
-total_pgmajfault_s 0
-total_pgmajfault_a 0
-total_pgmajfault_f 0
-total_inactive_anon 0
-total_active_anon 4823887872
-total_inactive_file 58806272
-total_active_file 188416
-total_unevictable 0
-----
-<1> rss of the processes, anonymous memory and swap cache, without `tmpfs` (shmem) (~`4.49 GiB`)
-<2> anonymous memory and swap cache on active LRU list, with `tmpfs` (shmem)
-<3> anonymous memory and swap cache on inactive LRU list, with `tmpfs` (shmem) (~`4.49 GiB`)
-<4> file-backed memory on inactive LRU list, in bytes (~`56 MiB`)
-<5> file-backed memory on active LRU list, in bytes (~`184 KiB`)
-<6> swap usage, `0` is the only good value for java
-<7> page cache memory (~`54.8 MiB`)
-
-.From the https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/sec-memory[RHEL6 documentation]
-****
-When you interpret the values reported by memory.stat, note how the various statistics inter-relate:
-
-* `active_anon` + `inactive_anon` = anonymous memory + file cache for tmpfs + swap cache
-
-Therefore, `active_anon` + `inactive_anon` ≠ rss, because rss does not include tmpfs.
-
-* `active_file` + `inactive_file` = cache - size of tmpfs
-****
-
-There other memory settings to look at, some of these are being looked upon by the JVM
-to understand the contraint of the cgroup.
-
-.memory usage and limits
-[source, bash]
-----
-cat /sys/fs/cgroup/memory/memory.{usage_in_bytes,limit_in_bytes,memsw.usage_in_bytes,memsw.limit_in_bytes}
-4944756736 <1>
-5368709120 <2>
-4944748544 <3>
-5368709120 <4>
-----
-<1> current memory usage ~`4.61 GiB`, but for the whole memory it's recommended to read cache+rss+swap values in `memory.stat`
-<2> limit of the memory resource (~`5 GiB`)
-<3> current memory and swap usage (~`4.61 GiB`)
-<4> limit on memory and swap (~`5 GiB`)
-
-Note the `memory.limit_in_bytes` and `memory.memsw.limit_in_bytes` values are the same,
-that means that the processes in the cgroup can use all the memory before swaping,
-however it is not impossible for the process to be use the swap before this limit is reached.
-
-In fact due to the OS `swapiness` value the kernel may try to reclaim memory from RAM and put
-on the swap.
-There are other parameters related to the kernel and tcp allocations.
-
-On the swapiness side, it's possible to change that in the cgroup as well.
-
-.memory.swapiness
-[source, bash]
-----
-cat /proc/sys/vm/swappiness <1>
-60
-cat /sys/fs/cgroup/memory/memory.swappiness <2>
-60
-----
-<1> OS `swapiness`
-<2> cgroup `swapiness`, here the setting is unchanged.
-
-By the way, high `swappiness` is bad for applications with GC like the JVM.
-
-AS mentioned earlier the JVM look for some values in `memory.limit_in_bytes` and `memory.usage_in_bytes`,
-but not only, let's find out with this logger :
-
-.log container details
-[source]
-----
--Xlog:os,os+container=trace:file=/gclogs/%t-os-container.log:time,uptime,tags,level
-----
-
-
-
-.output
-[source]
-----
-$ head -n 200 /logs/2020-05-22_22-28-32-os-container.log
-[2020-05-22T23:17:44.775+0000][0.001s][trace][os,container] OSContainer::init: Initializing Container Support
-[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes <1>
-[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us <2>
-[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] CPU Quota is: 800000
-[2020-05-22T23:17:44.776+0000][0.001s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us <3>
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Period is: 100000
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares <4>
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Shares is: 3072
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Quota count based on quota/period: 8
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Share count based on shares: 3
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] OSContainer::active_processor_count: 8
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Quota is: 800000
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Period is: 100000
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Shares is: 3072
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Quota count based on quota/period: 8
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] CPU Share count based on shares: 3
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] OSContainer::active_processor_count: 8
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T23:17:44.776+0000][0.002s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] Use of CLOCK_MONOTONIC is supported
-[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] Use of pthread_condattr_setclock is supported
-[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
-[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] HotSpot is running with glibc 2.28, NPTL 2.28
-[2020-05-22T23:17:44.776+0000][0.002s][info ][os          ] SafePoint Polling address, bad (protected) page:0x00007f3b2efcf000, good (unprotected) page:0x00007f3b2efd0000
-[2020-05-22T23:17:44.777+0000][0.002s][info ][os,thread   ] Thread attached (tid: 2260, pthread id: 139892140738304).
-[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so
-[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libzip.so was successful
-[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] attempting shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so
-[2020-05-22T23:17:44.777+0000][0.003s][info ][os          ] shared library load of /usr/lib/jvm/java-11-amazon-corretto/lib/libjimage.so was successful
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Quota is: 800000
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Period is: 100000
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Shares is: 3072
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Quota count based on quota/period: 8
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] CPU Share count based on shares: 3
-[2020-05-22T23:17:44.777+0000][0.003s][trace][os,container] OSContainer::active_processor_count: 8
-[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] CPU:total 32 (initial active 8) (16 cores per cpu, 2 threads per core) family 6 model 85 stepping 3, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, rtm, 3dnowpref, lzcnt, ht, tsc, tscinvbit, bmi1, bmi2, adx, fma
-[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] CPU Model and flags from /proc/cpuinfo:
-[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] model name  : Intel(R) Xeon(R) CPU @ 2.00GHz
-[2020-05-22T23:17:44.778+0000][0.004s][info ][os,cpu      ] flags               : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single pti ssbd ibrs ibpb stibp fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx avx512f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves arat md_clear arch_capabilities
-[2020-05-22T23:17:44.779+0000][0.005s][info ][os,thread   ] Thread started (pthread id: 139892128659200, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T23:17:44.779+0000][0.005s][info ][os,thread   ] Thread is alive (tid: 2261, pthread id: 139892128659200).
-[2020-05-22T23:17:44.780+0000][0.005s][info ][os,thread   ] Thread started (pthread id: 139891649345280, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T23:17:44.780+0000][0.006s][info ][os,thread   ] Thread is alive (tid: 2262, pthread id: 139891649345280).
-[2020-05-22T23:17:44.780+0000][0.006s][info ][os,thread   ] Thread started (pthread id: 139891430127360, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T23:17:44.780+0000][0.006s][info ][os,thread   ] Thread is alive (tid: 2263, pthread id: 139891430127360).
-[2020-05-22T23:17:44.817+0000][0.043s][info ][os,thread   ] Thread started (pthread id: 139891387094784, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T23:17:44.817+0000][0.043s][info ][os,thread   ] Thread is alive (tid: 2264, pthread id: 139891387094784).
-[2020-05-22T23:17:44.818+0000][0.043s][info ][os,thread   ] Thread started (pthread id: 139891386038016, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T23:17:44.818+0000][0.043s][info ][os,thread   ] Thread is alive (tid: 2265, pthread id: 139891386038016).
-[2020-05-22T23:17:44.835+0000][0.060s][info ][os,thread   ] Thread started (pthread id: 139891384080128, attributes: stacksize: 1024k, guardsize: 4k, detached).
-[2020-05-22T23:17:44.835+0000][0.060s][info ][os,thread   ] Thread is alive (tid: 2266, pthread id: 139891384080128).
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] Path to /cpu.cfs_quota_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Quota is: 800000
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] Path to /cpu.cfs_period_us is /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Period is: 100000
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] Path to /cpu.shares is /sys/fs/cgroup/cpu,cpuacct/cpu.shares
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Shares is: 3072
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Quota count based on quota/period: 8
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] CPU Share count based on shares: 3
-[2020-05-22T23:17:44.840+0000][0.065s][trace][os,container] OSContainer::active_processor_count: 8
-[2020-05-22T23:17:44.841+0000][0.067s][info ][os,thread   ] Thread started (pthread id: 139891383023360, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T23:17:44.841+0000][0.067s][info ][os,thread   ] Thread is alive (tid: 2267, pthread id: 139891383023360).
-[2020-05-22T23:17:44.842+0000][0.067s][info ][os,thread   ] Thread started (pthread id: 139891381970688, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T23:17:44.842+0000][0.067s][info ][os,thread   ] Thread is alive (tid: 2268, pthread id: 139891381970688).
-[2020-05-22T23:17:44.851+0000][0.077s][info ][os,thread   ] Thread started (pthread id: 139891168560896, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T23:17:44.851+0000][0.077s][info ][os,thread   ] Thread is alive (tid: 2269, pthread id: 139891168560896).
-[2020-05-22T23:17:44.852+0000][0.077s][info ][os,thread   ] Thread started (pthread id: 139891167508224, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T23:17:44.852+0000][0.077s][info ][os,thread   ] Thread is alive (tid: 2270, pthread id: 139891167508224).
-[2020-05-22T23:17:44.852+0000][0.078s][info ][os,thread   ] Thread started (pthread id: 139891166455552, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T23:17:44.852+0000][0.078s][info ][os,thread   ] Thread is alive (tid: 2271, pthread id: 139891166455552).
-[2020-05-22T23:17:44.852+0000][0.078s][info ][os,thread   ] Thread started (pthread id: 139891165402880, attributes: stacksize: 1024k, guardsize: 0k, detached).
-[2020-05-22T23:17:44.853+0000][0.078s][info ][os,thread   ] Thread is alive (tid: 2272, pthread id: 139891165402880).
-[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes <1>
-[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes <5>
-[2020-05-22T23:17:44.858+0000][0.084s][trace][os,container] Memory Usage is: 4583374848
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Usage is: 4583374848
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.limit_in_bytes is /sys/fs/cgroup/memory/memory.limit_in_bytes
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Limit is: 5368709120
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Path to /memory.usage_in_bytes is /sys/fs/cgroup/memory/memory.usage_in_bytes
-[2020-05-22T23:17:44.859+0000][0.084s][trace][os,container] Memory Usage is: 4583505920
-...
-----
-<1> `/sys/fs/cgroup/memory/memory.limit_in_bytes` = 5368709120 bytes, in the k8s deployment object `spec.containers[0].resources.limits.memory: 5Gi`
-<2> `/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us` = 800000, in the k8s deployment object `spec.containers[0].resources.limits.cpu: 8`
-<3> `/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us` = 100000, 1/10 of a second, the minimal time slice the process can be scheduled on the CPU,
-<4> `/sys/fs/cgroup/cpu,cpuacct/cpu.shares` = 3072, in the k8s deployment object this comes from `spec.containers[0].resources.requests.cpu: 3`
-<5> `/sys/fs/cgroup/memory/memory.usage_in_bytes` = 4583374848 bytes => `4.27 GiB`
-
-Kubernetes documentation was lacking a bit in that regard, but I found
-https://medium.com/@betz.mark/understanding-resource-limits-in-kubernetes-cpu-time-9eff74d3161b[this blog post that
-explained a bit better how cpu resource limits work in kubernetes].
-And anyway the official documentation is https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run[here].
-
-
-
-
-
-////
-
-https://pangin.pro/posts/stack-overflow-handling
-
-https://stackoverflow.com/questions/25309748/what-is-thread-stack-size-option-xss-given-to-jvm-why-does-it-have-a-limit-of[What is thread stack size option(-Xss) given to jvm? Why does it have a limit of atleast 68k in a windows pc?]
-
-Memory footprint of a Java process by Andrei Pangin
-https://www.youtube.com/watch?v=c755fFv1Rnk
-
-////
+Using values with a unit encourage one to understand how an application is
+working, what the RSS actually means.
