@@ -2,7 +2,7 @@
 authors: ["brice.dutheil"]
 date: "2020-05-23T23:45:29+02:00"
 language: en
-#tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "pmap"]
+#tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "procfs", "pmap"]
 slug: "exploring-java-native-memory"
 title: "Exploring Java native memory"
 draft: true
@@ -14,103 +14,34 @@ CAUTION: Talk about the kubernetes scheduling aspect of setting memory request a
 CAUTION: Change _memory zone_ in NMT to memory by JVM components
 
 // quote https://landley.net/writing/memory-faq.txt
+// Related articles
+// - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
+// - http://trustmeiamadeveloper.com/2016/03/18/where-is-my-memory-java/
 
-Like many I was happy to see the JDK landed support for containers in Java 9,
-and that it was backported to Java 8 as well. Now the JDK 11 enables this
-support by default. This support make the JVM read information from ``cgroup``s,
-also the JVM has new way to tell the runtime the memory as a percentage of the
-cgroup value via the `-XX:MaxRAMPercentage` flag. After some experience with it
-I found this flag is not helpful in containers, at least for the application mileage
-I worked with.
+_This entry has been marinating for mast of the year 2020. Rewriting it 3 times
+to make it more digestible form, then I found out I should just split my thoughts
+in smaller articles that hopefully make sense on their own._
 
-So, this flag did not worked as I expected to be, and I'm a bit the culprit on this one.
-When this flag appeared –- as a fraction based flags first (`*RAMFraction`) -- mostly blogs
-explored these options (_like this https://merikan.com/2019/04/jvm-in-a-container/[one]_),
-many thanks to authors of these blogs. However I missed the most important part
-`MaxRamPercentage` is **only about the Java heap**, like most blog most on the topic, leaving
-the bigger picture.
-
-If I turned on blogs first it's because the official documentation doesn't even mention
-any `*RAMPercentage` flags:
-
-.Oracle documentation
-* https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`java` (JDK11)]
-* https://docs.oracle.com/en/java/javase/12/docs/specs/man/java.html[`java` (JDK12)]
-* https://docs.oracle.csom/apps/search/search.jsp?q=MaxRAMPercentage&search-scope=book&book=tools&product=en%2Fjava%2Fjavase%2F11&category=java[Searching Oracle's documentation]
-* ...
-
-
-Fortunately there's this awesome contribution from https://twitter.com/chriswhocodes[Chris Newland],
-this tool indexes JDK codebase and flag's documentations among other metadata.
-
-{{< wrapTable >}}
-
-.https://chriswhocodes.com/hotspot_options_jdk11.html[VM Options Explorer - JDK11 HotSpot]
-|===
-| Name             | Since | Deprecated | Type   | OS | CPU | Component | Default                   | Availability | Description                                                  | Defined in
-
-| MaxRAMPercentage | JDK10 |            | double |    |     | gc        | 25.0 range(0.0, 100.0) | product      | Maximum percentage of real memory used for maximum heap size | `share/gc/shared/gc_globals.hpp`
-
-|===
-
-{{< /wrapTable >}}
-
-
-I knew this tool beforehand yet I didn't use Chris's website first, I should have.
-Anyway. This entry is about figuring out the other memory _parts_ of a Java process.
-I will use as a specimen an issue that I experienced in production, the actual problem could
-be solved without diving in memory, but it served as an excuse to go down the rabbit hole.
-
-In doing so the following writing tries to piece together several elements
-from a few things I knew, things I grepped in the JDK codebase, blog post, stack overflow,
-and things learned from -- awesome -- people.
-
-If I ignored something or if I'm wrong please reach out.
 
 '''
 
+Anyway. This entry is about figuring out the native memory _parts_ of a Java process.
+I will use as a specimen one of the issue that I experienced in production, the actual
+problem could be solved without diving in memory, but other factors served as an excuse
+to go down the rabbit hole.
 
-To put things in context the application is running within a Kubernetes cluster
-and experienced memory problems after increasing HTTP traffic.
+In doing so the following writing tries to piece together elements
+from a few things I knew, things I grepped in the JDK codebase, blog posts, stack overflow,
+and things learned from -- awesome -- people.
 
-This application is deployed as a https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/[_replicaset_],
-this means that Kubernetes make sure there's always the right number of application
-instances, or _replicas_ using the Kubernetes terminology.
-Also this deployment is using an https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/[_horizontal pod auto-scaler_]
-whose role is to increase the number of instances based on some criteria, this application
-used the CPU usage.
-
-
-.Problem
-****
-The application was running with `-XX:MaxRAMPercentage=85` in a container constrained
-to `3 GiB` of memory and hit the memory limit. Naturally the application got killed by the
-OS. And more dramatically all replicas eventually got _oomkilled_ after some time, which led
-Kubernetes to always deploy new pods.
-
-This application worked very well on a different datacenter handling all the traffic with
-a heap of `2 GiB`. The instances in Kubernetes could handle half of the traffic well but not
-the entire traffic.
-
-In short when the traffic on kubernetes instances was increased to 100%
-the __pod__s started to get _oom killed_.
-****
-
-
-image:../../static/assets/maxrampercentage/app-jvm-memory-usage.png[JVM memory usage]
-
-On the graph above we can see the trend of the **R**esident **S**et **S**ize in green,
-the Java heap limit (85% of `3 GiB`), and in yellow the current heap usage.
-
-Note that this graph has a slight issue as it displays data in _metric bytes_
-while in reality this should be IEC bytes. Talking about this :
+If I ignored something or if I'm wrong please reach out.
 
 [NOTE]
 ====
 Most of the time, figures will use the https://en.wikipedia.org/wiki/Binary_prefix[IEC binary notation] (`1 KiB = 1024 B`),
 it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
 our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
-and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps` ; although I couldn't find a reference stating this).
+and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps` ; although I couldn't find a reference link stating this).
 
 Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 B`).
 
@@ -121,70 +52,6 @@ in this chapter; pretend I'm a disk manufacturer.
 _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21[tweet]._
 ====
 
-
-
-.Fixing the issue without understanding
-[%collapsible]
-====
-
-
-The application that became problematic runs on a Kubernetes cluster. As mentioned above
-this application worked fine before, and the people who handled the issue at that time were
-not well-prepared, and I certainly wouldn't be prepared much better, that means memory
-limits until it worked. `5 GiB` proved to be the lucky number.
-It was the right approach at this moment in this context as it quickly resolved production
-issues.
-
-
-.memory limits in the deployment object of the app
-[source,yaml]
-----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: java-app
-spec:
-  template:
-    spec:
-      containers:
-      - name: java-app
-        resources:
-          limits:
-            cpu: "8"
-            memory: 5Gi # <1>
-          requests:
-            cpu: "3"
-            memory: 3Gi
-----
-<1> The working memory limit.
-
-
-[TIP]
-=======
-The resources tree is equivalent to this docker params
-
-[source]
-----
-docker run \
-  --cpu-shares=3 \ # <1>
-  --cpu-quota=8 \ # <2>
-  --memory=5g \ # <3>
-  ...
-----
-<1> cpu request, this is the relative weight of that container for CPU time
-<2> cpu limit, this limits the CPU time of container’s processes, that means throttling
-<3> memory limit, tells the OS to kill (`oomkill`) the container's processes if they hit this limit
-
-The memory request is only used for scheduling the pod on a node.
-=======
-
-However, while increasing memory limit work this is not satisfactory because :
-
-1. This number comes from trial and error.
-2. This application worked with a `2 GiB` heap, `5 GiB` looks greedy.
-3. Why this his number work is not understood.
-
-====
 
 _Now let's answer this question: What is consuming the memory ?_
 
