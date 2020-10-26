@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 90 min read
+    <i class="fas fa-clock"></i> 83 min read
 
     
     
@@ -286,159 +286,24 @@ Change <em>memory zone</em> in NMT to memory by JVM components
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>Like many I was happy to see the JDK landed support for containers in Java 9,
-and that it was backported to Java 8 as well. Now the JDK 11 enables this
-support by default. This support make the JVM read information from <code>cgroup</code>s,
-also the JVM has new way to tell the runtime the memory as a percentage of the
-cgroup value via the <code>-XX:MaxRAMPercentage</code> flag. After some experience with it
-I found this flag is not helpful in containers, at least for the application mileage
-I worked with.</p>
+<p><em>This entry has been marinating for mast of the year 2020. Rewriting it 3 times
+to make it more digestible form, then I found out I should just split my thoughts
+in smaller articles that hopefully make sense on their own.</em></p>
+</div>
+<hr/>
+<div class="paragraph">
+<p>Anyway. This entry is about figuring out the native memory <em>parts</em> of a Java process.
+I will use as a specimen one of the issue that I experienced in production, the actual
+problem could be solved without diving in memory, but other factors served as an excuse
+to go down the rabbit hole.</p>
 </div>
 <div class="paragraph">
-<p>So, this flag did not worked as I expected to be, and I’m a bit the culprit on this one.
-When this flag appeared –- as a fraction based flags first (<code>*RAMFraction</code>) — mostly blogs
-explored these options (<em>like this <a href="https://merikan.com/2019/04/jvm-in-a-container/">one</a></em>),
-many thanks to authors of these blogs. However I missed the most important part
-<code>MaxRamPercentage</code> is <strong>only about the Java heap</strong>, like most blog most on the topic, leaving
-the bigger picture.</p>
-</div>
-<div class="paragraph">
-<p>If I turned on blogs first it’s because the official documentation doesn’t even mention
-any <code>*RAMPercentage</code> flags:</p>
-</div>
-<div class="ulist">
-<div class="title">Oracle documentation</div>
-<ul>
-<li>
-<p><a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>java</code> (JDK11)</a></p>
-</li>
-<li>
-<p><a href="https://docs.oracle.com/en/java/javase/12/docs/specs/man/java.html"><code>java</code> (JDK12)</a></p>
-</li>
-<li>
-<p><a href="https://docs.oracle.csom/apps/search/search.jsp?q=MaxRAMPercentage&amp;search-scope=book&amp;book=tools&amp;product=en%2Fjava%2Fjavase%2F11&amp;category=java">Searching Oracle’s documentation</a></p>
-</li>
-<li>
-<p>…​</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Fortunately there’s this awesome contribution from <a href="https://twitter.com/chriswhocodes">Chris Newland</a>,
-this tool indexes JDK codebase and flag’s documentations among other metadata.</p>
-</div>
-<div class="paragraph">
-
-
-
-<div class="table-wrapper">
-    <table class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. <a href="https://chriswhocodes.com/hotspot_options_jdk11.html">VM Options Explorer - JDK11 HotSpot</a></caption>
-<colgroup>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.0909%;"/>
-<col style="width: 9.091%;"/>
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Since</th>
-<th class="tableblock halign-left valign-top">Deprecated</th>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">OS</th>
-<th class="tableblock halign-left valign-top">CPU</th>
-<th class="tableblock halign-left valign-top">Component</th>
-<th class="tableblock halign-left valign-top">Default</th>
-<th class="tableblock halign-left valign-top">Availability</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Defined in</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">MaxRAMPercentage</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">JDK10</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">double</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">gc</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">25.0 range(0.0, 100.0)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">product</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Maximum percentage of real memory used for maximum heap size</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>share/gc/shared/gc_globals.hpp</code></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-
-</div>
-<div class="paragraph">
-<p>I knew this tool beforehand yet I didn’t use Chris’s website first, I should have.
-Anyway. This entry is about figuring out the other memory <em>parts</em> of a Java process.
-I will use as a specimen an issue that I experienced in production, the actual problem could
-be solved without diving in memory, but it served as an excuse to go down the rabbit hole.</p>
-</div>
-<div class="paragraph">
-<p>In doing so the following writing tries to piece together several elements
-from a few things I knew, things I grepped in the JDK codebase, blog post, stack overflow,
+<p>In doing so the following writing tries to piece together elements
+from a few things I knew, things I grepped in the JDK codebase, blog posts, stack overflow,
 and things learned from — awesome — people.</p>
 </div>
 <div class="paragraph">
 <p>If I ignored something or if I’m wrong please reach out.</p>
-</div>
-<hr/>
-<div class="paragraph">
-<p>To put things in context the application is running within a Kubernetes cluster
-and experienced memory problems after increasing HTTP traffic.</p>
-</div>
-<div class="paragraph">
-<p>This application is deployed as a <a href="https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/"><em>replicaset</em></a>,
-this means that Kubernetes make sure there’s always the right number of application
-instances, or <em>replicas</em> using the Kubernetes terminology.
-Also this deployment is using an <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/"><em>horizontal pod auto-scaler</em></a>
-whose role is to increase the number of instances based on some criteria, this application
-used the CPU usage.</p>
-</div>
-<div class="sidebarblock">
-<div class="content">
-<div class="title">Problem</div>
-<div class="paragraph">
-<p>The application was running with <code>-XX:MaxRAMPercentage=85</code> in a container constrained
-to <code>3 GiB</code> of memory and hit the memory limit. Naturally the application got killed by the
-OS. And more dramatically all replicas eventually got <em>oomkilled</em> after some time, which led
-Kubernetes to always deploy new pods.</p>
-</div>
-<div class="paragraph">
-<p>This application worked very well on a different datacenter handling all the traffic with
-a heap of <code>2 GiB</code>. The instances in Kubernetes could handle half of the traffic well but not
-the entire traffic.</p>
-</div>
-<div class="paragraph">
-<p>In short when the traffic on kubernetes instances was increased to 100%
-the <em>pod</em>s started to get <em>oom killed</em>.</p>
-</div>
-</div>
-</div>
-<div class="paragraph">
-<p><span class="image"><img src="../../static/assets/maxrampercentage/app-jvm-memory-usage.png" alt="JVM memory usage"/></span></p>
-</div>
-<div class="paragraph">
-<p>On the graph above we can see the trend of the <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize in green,
-the Java heap limit (85% of <code>3 GiB</code>), and in yellow the current heap usage.</p>
-</div>
-<div class="paragraph">
-<p>Note that this graph has a slight issue as it displays data in <em>metric bytes</em>
-while in reality this should be IEC bytes. Talking about this :</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -451,7 +316,7 @@ while in reality this should be IEC bytes. Talking about this :</p>
 <p>Most of the time, figures will use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">IEC binary notation</a> (<code>1 KiB = 1024 B</code>),
 it matches the <a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226">JVM</a>,
 our <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory">Kubernetes</a> usage,
-and Linux’s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code> ; although I couldn’t find a reference stating this).</p>
+and Linux’s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code> ; although I couldn’t find a reference link stating this).</p>
 </div>
 <div class="paragraph">
 <p>Some charts may however use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">SI metric notation</a> (<code>1 KB = 1000 B</code>).</p>
@@ -473,106 +338,6 @@ in this chapter; pretend I’m a disk manufacturer.
 </tr>
 </tbody></table>
 </div>
-<details>
-<summary class="title">Fixing the issue without understanding</summary>
-<div class="content">
-<div class="paragraph">
-<p>The application that became problematic runs on a Kubernetes cluster. As mentioned above
-this application worked fine before, and the people who handled the issue at that time were
-not well-prepared, and I certainly wouldn’t be prepared much better, that means memory
-limits until it worked. <code>5 GiB</code> proved to be the lucky number.
-It was the right approach at this moment in this context as it quickly resolved production
-issues.</p>
-</div>
-<div class="listingblock">
-<div class="title">memory limits in the deployment object of the app</div>
-<div class="content">
-<pre class="highlightjs highlight"><code data-lang="yaml" class="language-yaml hljs">apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: java-app
-spec:
-  template:
-    spec:
-      containers:
-      - name: java-app
-        resources:
-          limits:
-            cpu: &#34;8&#34;
-            memory: 5Gi <i class="conum" data-value="1"></i><b>(1)</b>
-          requests:
-            cpu: &#34;3&#34;
-            memory: 3Gi</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The working memory limit.</td>
-</tr>
-</tbody></table>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tbody><tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>The resources tree is equivalent to this docker params</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">docker run \
-  --cpu-shares=3 \ <i class="conum" data-value="1"></i><b>(1)</b>
-  --cpu-quota=8 \ <i class="conum" data-value="2"></i><b>(2)</b>
-  --memory=5g \ <i class="conum" data-value="3"></i><b>(3)</b>
-  ...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>cpu request, this is the relative weight of that container for CPU time</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>cpu limit, this limits the CPU time of container’s processes, that means throttling</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>memory limit, tells the OS to kill (<code>oomkill</code>) the container’s processes if they hit this limit</td>
-</tr>
-</tbody></table>
-</div>
-<div class="paragraph">
-<p>The memory request is only used for scheduling the pod on a node.</p>
-</div>
-</td>
-</tr>
-</tbody></table>
-</div>
-<div class="paragraph">
-<p>However, while increasing memory limit work this is not satisfactory because :</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>This number comes from trial and error.</p>
-</li>
-<li>
-<p>This application worked with a <code>2 GiB</code> heap, <code>5 GiB</code> looks greedy.</p>
-</li>
-<li>
-<p>Why this his number work is not understood.</p>
-</li>
-</ol>
-</div>
-</div>
-</details>
 <div class="paragraph">
 <p><em>Now let’s answer this question: What is consuming the memory ?</em></p>
 </div>
@@ -2586,6 +2351,11 @@ RSS counter may not reflect what is een in the <strong>committed</strong> memory
       <span class="navigation-tittle">Watchman</span>
     </a>
     
+    
+    <a href="/drafts/2020/06/23/simple-g1gc-tuning/" class="navigation-next">
+      <span class="navigation-tittle">Simple G1GC tuning</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
     
 </div>
 
