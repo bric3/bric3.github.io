@@ -1,18 +1,15 @@
 ---
 authors: ["brice.dutheil"]
-date: "2020-05-23T23:45:29+02:00"
+date: "2020-10-27T00:02:29+01:00"
 language: en
-#tags: ["cgroup", "java", "kubernetes", "docker", "memory", "heap"]
+tags: ["cgroup", "java", "kubernetes", "docker", "memory", "heap"]
 slug: "maxrampercentage-is-not-what-i-wished-for"
 title: "MaxRamPercentage is not what I wished for"
-draft: true
-#_build:
-#  list: never
 ---
 
-_This entry has been marinating for mast of the year 2020. Rewriting it 3 times
-to make it more digestible form, then I found out I should just split my thoughts
-in smaller articles that hopefully make sense on their own._
+_This entry has been marinating for most of the year 2020. I should have published
+this opinion way earlier maybe end of 2019, but it took me time to realise I should split
+a bigger piece in smaller articles that hopefully made sense on their own._
 
 
 == The stupid mistake
@@ -100,9 +97,9 @@ eventually hit the memory limit. Naturally the application got
 killed by the OS. More dramatically *all* replicas eventually got quickly _oomkilled_ after
 some time, which led Kubernetes to always deploy new pods.
 
-  This application worked very well on a different datacenter handling all the traffic with
-  a heap of `2 GiB`. The instances in Kubernetes could handle half of the traffic well but
-  not the entire traffic.
+This application worked very well on a different datacenter handling all the traffic with
+a heap of `2 GiB`. The instances in Kubernetes could handle half of the traffic well but
+not the entire traffic.
 
 In short when the traffic on kubernetes instances got increased to 100%
 the __pod__s started to get _oom-killed_.
@@ -229,4 +226,5 @@ I don't know if I'm old school, or mathematics-averse but I find `Xms` / `Xmx`
 easier to work with even in the context of containers.
 
 Using values with a unit encourage one to understand how an application is
-working, what the RSS actually means.
+working, what constitutes the RSS for a Java process (which I'll explore in
+an article maturing a bit longer).
