@@ -12,7 +12,7 @@ this opinion way earlier maybe end of 2019, but it took me time to realise I sho
 a bigger piece in smaller articles that hopefully made sense on their own._
 
 
-== The stupid mistake
+== The silly mistake
 
 Like many I was happy to see the JDK landed support for containers in Java 9,
 and that it was backported to Java 8 as well. Now the JDK 11 enables this
@@ -27,14 +27,16 @@ containers.
 _This opinion could be biased toward the application mileage and in the context they were run._
 
 This flag did not work as I expected it to be, and I'm a bit the culprit on this one
-as I failed to properly research. I didn't refresh this knowledge either at that time.
+as I failed to properly research.
+I didn't refresh this knowledge either at that time.
 When this flag appeared –- as a fraction based flags first (`*RAMFraction`) -- mostly blogs
 explored the new options (_like this https://merikan.com/2019/04/jvm-in-a-container/[one]_),
 many thanks to authors of these blogs who did the research.
 
 However, these blogs silently passed over the fact that `*RamPercentage` is
 **about the Java heap** (the same way `MaxRAM` is about Java heap), I simply
-overlooked that too.
+overlooked that too. In retrospect, even without research I should 
+have noticed this, as I wasn’t ignorant of Java native memory.
 
 If I turned on blogs first it's because the official documentation doesn't even mention
 any `*RAMPercentage` flags:
@@ -228,3 +230,5 @@ easier to work with even in the context of containers.
 Using values with a unit encourage one to understand how an application is
 working, what constitutes the RSS for a Java process (which I'll explore in
 an article maturing a bit longer).
+
+I’m not sure I had a proper expectation about what could have been `MaxRAMPercentage`, but nowadays I’m sure I don’t have any. Maybe the _soft max heap_ that is currently getting worked on.
