@@ -3,15 +3,17 @@ authors: ["brice.dutheil"]
 date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "procfs", "pmap"]
-slug: "exploring-java-native-memory"
-title: "Exploring Java native memory"
+slug: "exploring-jvm-native-memory"
+title: "Exploring JVM native memory"
 draft: true
 ---
 
 
 CAUTION: Talk about the kubernetes scheduling aspect of setting memory request and limits.
 
-CAUTION: Change _memory zone_ in NMT to memory by JVM components
+CAUTION: Change _memory zone_ in NMT to _memory by JVM components_
+
+CAUTION: Change JDK links to openjdk/jdk
 
 // quote https://landley.net/writing/memory-faq.txt
 // Related articles
@@ -20,12 +22,16 @@ CAUTION: Change _memory zone_ in NMT to memory by JVM components
 
 _This entry has been marinating for mast of the year 2020. Rewriting it 3 times
 to make it more digestible form, then I found out I should just split my thoughts
-in smaller articles that hopefully make sense on their own._
+in articles a bit smaller that hopefully make sense on their own._
+
+I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
+https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
+and https://twitter.com/ylegat[Yohan Legat] for the review.
 
 
 '''
 
-Anyway. This entry is about figuring out the native memory _parts_ of a Java process.
+This entry is about figuring out the native memory _parts_ of a Java process.
 I will use as a specimen one of the issue that I experienced in production, the actual
 problem could be solved without diving in memory, but other factors served as an excuse
 to go down the rabbit hole.
@@ -53,25 +59,29 @@ _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21
 ====
 
 
-_Now let's answer this question: What is consuming the memory ?_
+The motivation behind this exploration is to help understand: What is consuming the memory ?
 
 
-== Diagnosis
 
-=== The JVM options
+== Exploration begins
+
+=== The JVM flags as a starting points
 
 When assessing java memory one of the fist thing to look at are the Java heap parameters.
 
 It's likely anyone that reads this article is familiar with `Xms` or `Xmx`, but there are
 other ways to define the boundaries of the Java heap in particular if the process is started
-with `\*RAMPercentage`. With those the JVM will compute the actual values from the `cgroup`,
+with `\*RAMPercentage`. With these the JVM will compute the actual values from the `cgroup`,
 in this case it's possible to access the actual runtime values with `jcmd`.
+
+In short, it's possible to look at the command line options, but using the diagnostic
+command `jcmd {pid} VM.flags` lets you peek at the actual values that the JVM used.
 
 For example with a memory limit of `5 GiB`, if a process is started with
 `-XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0` the `VM.flags`
 diagnostic command will output this :
 
-.`VM.flags` in k8s
+.JVM current flags in a kubernetes container
 [source, bash]
 ----
 $ jcmd $(pidof java) VM.flags | tr ' ' '\n'
@@ -98,21 +108,22 @@ _command line_ and `VM.command_line` which will print the *raw* _command line_.
 The other Hotspot flag values comes are JVM defaults (which may either be static values,
 or computed from internal heuristics).
 
-The Java heap is only a part of the process memory usage. I intend
-to explain how memory is _concumed_ in the rest of this article, in the context
-of an application running inside a container.
+The Java heap is only a part of the process memory usage. So now let's dig into how memory
+is _consumed_. The values or snippet comes from an application running inside a container.
+
+
 
 === The real memory footprint of the java process in the container
 
 In the Java dream us developers shouldn't care much about the memory or the OS
-and if we did we should only look a the Java Heap usage.
+and if we ever had to we should only look at the Java Heap usage.
 
 This dream more or less lasted a long time until Java applications were put
 in containers.
 
-Indeed of the most the most critical thing to look at, in a containers in particlar,
+Indeed, one of the most critical things to look at, especially in a containers,
 is the _resident set size_, it can be obtained in various ways, using `ps`, `top` or
-reading the `/proc` filesystem. E.g. on the same than above
+reading the `/proc` filesystem. E.g. on the same application as above
 
 .`ps`
 [source, role="primary"]
@@ -140,8 +151,8 @@ what it actually measures.
 
 In order to understand how the Java process memory is consumed, we need to use
 _Native Memory Tracking_ (`-XX:NativeMemoryTracking=summary`) which produces
-an overview of the memory usage by components of the JVM. It actually gives
-a pretty good picture of the "cost" of the JVM.
+an overview of the memory usage by the _components of the JVM_. It actually gives
+a pretty good picture of the "cost" of running code the JVM.
 
 NOTE: Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10%
 performance overhead. The _summary_ mode merely has an impact in memory usage
@@ -151,7 +162,7 @@ NOTE: It is necessary to note that while the above command indicate a scale
 in `KB` for the JVM it really means `KiB`.
 
 
-.`VM.native_memory` instant snapshot
+.JVM native memory trcking report
 [source, bash]
 ----
 $ jcmd $(pidof java) VM.native_memory
@@ -268,10 +279,11 @@ Yet another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native
 by http://twitter.com/shipilev[Aleksey Shipilёv].
 
 NMT is a great tool to gain an insight on the memory usage of the various
-parts that compose the Java runtime. But it doesn't answer well
-what is actually accounted by the number reported in `ps`.
+parts that compose the Java runtime. It has interesting subcommands to compare
+the memory usage of the JVM component with a _baseline_. However, *it doesn't answer
+what is actually accounted in the RSS column of `ps`*.
 
-==== Let's pause a bit and revise memory management
+==== Let's pause a bit and revise OS memory management
 
 I mentioned this acronym already, _RSS_ or **R**esident **S**et **S**ize, what is it?
 What exactly means _committed_ memory or _reserved_ memory shown in NMT ? How do they
@@ -279,8 +291,8 @@ relate to each other?
 
 First let's break down the vocabulary when we talk about memory.
 
-.memory zones
-[ditaa,"memory-zones"]
+.memory vocabulary
+[ditaa,"memory-vocabulary"]
 ----
 
 |<--virtual memory----------------------------------------->|
@@ -304,7 +316,7 @@ First let's break down the vocabulary when we talk about memory.
 
 | *Committed* | Address ranges that have been mapped or ``malloc``ed.
 They may or may not be backed by physical or swap due to lazy allocation and paging.
-This applies to the JVM and the OS.
+This applies to the JVM and the OS. These ranges are actually not necessarily contiguous.
 
 | *Reserved* | The total address range that has been pre-mapped via `mmap` or `malloc`
 for a particular memory pool. In other words _reserved memory_ represents the maximum
@@ -326,16 +338,16 @@ This only relate to the OS.
 |===
 
 
-The graph above does not yet show resident memory. Indeed, the above graph most display
-the _layout_ of the address space of a process. In order explain resident memory
-it's necessary to revise how Linux (and other OSes by the way) manage memory
-using the concept of *paging*.
+The graph above does not yet show resident memory. Indeed, the above graph most
+display the relative size by memory _kind_ within an address space of a process.
+In order explain resident memory it's necessary to revise how Linux (and other OSes
+by the way) manage memory using the concept of *paging*.
 
 The virtual address space is divided into smaller chunks called _pages_. While I only
 saw pages of `4 KiB` other sizes exist and may even co-exist (e.g. having pages of
-4 KiB mixed with 2 MiB pages), it all depends on the processor architecture.
-That's something that is out of scope for this article. What is interesting is
-how paging and RSS relate to each other.
+4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
+working with different size of pages is something that is out of scope for this article.
+What is interesting is how paging and RSS relate to each other.
 
 
 .paging (for a single process)
@@ -379,7 +391,7 @@ how paging and RSS relate to each other.
 ----
 
 The graph above shows the addressable space of a process and its _pages_.
-The process can access these pages using the addresses of it's virtual space,
+The process can access these pages using the addresses of its virtual space,
 however these pages have to be stored physically, usually in RAM, sometime on disk,
 when referring to these chunks of memory on hardware we use the term _frame_.
 
@@ -387,18 +399,19 @@ The real memory address is naturally different from this virtual address space
 for the process. There's a specialized component called MMU (Memory Management Unit)
 to perform the translation between virtual addresses and physical addresses.
 
-The motivation behind virtual memory and paging comes from multi-tasking, to allows
-to run several program. Each process will have the illusion of a bigger memory.
-The OS is hard at work performing various tricks to keep these illusions for all processes.
-From this single observation "Not all memory is used at the same time",
-it's possible :
+The incentive behind virtual memory and paging comes from multi-tasking, it allows
+running multiple program concurrently. Each process will have the illusion of a single
+big block of memory.
+The OS is hard at work performing various tricks to keep this illusion for all processes.
+Since programs run concurrently, **not all memory pages is used at the same time**.
+From this observation it's possible :
 
 * to not use physical memory frames if the process didn't yet _touch_ this page, in
 other words such a page does not really exist.
-* to use a slower device to store pages, usually a disk, in special part called _swap_
+* to use a slower device to store pages, usually a disk, in a special place called _swap_.
 
 
-The _resident set size_ mean the total size of pages of a process that resides either
+The _resident set size_ mean the total set of pages of a process that resides either
 in RAM or in secondary storage, i.e. without untouched/unused pages.
 This contrasts with VSZ or virtual size which includes the total address space of
 a program, this value is usually way superior to RSS.
@@ -489,13 +502,13 @@ or `Xmx`.
 
 | *Heap Max Size* | The maximum amount of memory that the Java heap can occupy.
 It's the _reserved_ amount in Java Heap section of the NMT output.
-If the application requires more memory this will result in a `OutOfMemoryError`.
+If the application requires more memory, this will result in a `OutOfMemoryError`.
 
 |===
 
 
 So committed stands for writable memory and reserved stands for total addressable space
-of the memory. Hiw does it work concretely?
+of the memory. How does it work concretely?
 
 The JVM starts by https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444[_reserving_ the memory],
 then parts of this "reserve" will be made available by
@@ -505,8 +518,8 @@ using `malloc`, `mmap`, as well as `mprotect` calls in particular (on Linux).
 
 ===== `malloc` and `mmap`
 
-The `malloc` and `mmap` C calls ask the OS to allocate memory. And it's the job of the OS to
-provide the application the necessary memory, or fail if not possible.
+The `malloc` and `mmap` C calls ask the OS to allocate memory. It's the job of the OS to
+provide the application the necessary memory, or fail if it is not possible.
 
 Also, depending on the mapping in particular for `mmap` the OS can be asked to make a file
 accessible as a memory zone, in short it's the kernel that perform IOs, in contrast to perform
@@ -542,7 +555,7 @@ When the JVM bootstrap, it requests a main memory of a certain size with the `PR
 flag to prevent any access. This has the effect to tell the OS that this mapping should
 not be backed by physical memory. Then when memory is needed by the program,
 the JVM changes the mapping for a sub-range of that main memory by removing the
-`PROT_NONE` flag. When new java threads are created then the JVM will simply
+`PROT_NONE` flag. When new java threads are created, then the JVM will simply
 request another memory segment.
 
 
@@ -616,8 +629,9 @@ Executing: 'ps -p 2904 -o rss,vsz,command'
   3780  4301956 ./test-mem
 ----
 
-As the `stdout` shows the RSS of this program is very low until memory is actually written to. At the same time
-the virtual memory is much, much higher; it means this simple program could address up to
+As the `stdout` shows the RSS of this program is very low until memory
+is actually written to. At the same time the virtual memory is much,
+much higher; it means this simple program could address up to
 about `4 GiB`.
 
 _This program ran on a MacBook Pro 2018 running an Intel Core i7 CPU._
@@ -639,8 +653,9 @@ Memory pages of the file content that have been placed in RAM by the OS are acco
 
 First let's see the memory mappings of a process using the handy command : `pmap -x <pid>`.
 `pmap` is part of the https://gitlab.com/procps-ng/procps/[`procps`] utilities, that contains
-other tools like: `ps`, `pgrep`, `watch` or `vmstat`, so it's likely that no additional
-installation is required which is desirable when the container filesystem is read-only.
+other tools like: `ps`, `pgrep`, `watch` or `vmstat`. It's likely that no additional
+installation is required which is great as a container filesystem should be read-only
+for security reasons.
 
 For example on the same process on which I showed the native memory.
 
@@ -986,10 +1001,10 @@ this breaks out as :
 
 This happens because this pod may not have access all pages especially
 if the heap is big enough and the allocation rate is not big enough. While
-a pod like this may be health and stay that way. It should rise your eyebrow,
+a pod like this may be healthy and stay that way. It should rise your eyebrow,
 if the RSS grow then the pod is likely to be oomkilled.
 
-And this is where one need to review the memory parameter of either
+This is where one need to review the memory parameter of either
 the JVM or the memory limits of the pod. Either the JVM is over-sized
 or the JVM will eventually be oomkilled by the OS.
 
