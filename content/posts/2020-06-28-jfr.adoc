@@ -6,11 +6,9 @@ tags: ["jfr","profiling","java flight recorder", "java"]
 slug: "using-jdk-flight-recorder-and-jdk-mission-control"
 title: "Using JDK FlightRecorder and JDK Mission Control"
 series: ["Flight Recorder"]
-# Error in the published slug ~~JDK Flight Recorder~~ => JDK Flight Recorder
+# Error in the published slug ~~Java Flight Recorder~~ should be JDK Flight Recorder
 aliases:
 - "using-java-flight-recorder-and-jdk-mission-control"
-#_build:
-#  list: never
 ---
 
 
@@ -72,9 +70,9 @@ Here's great material provided by https://twitter.com/nitsanw[Nitsan Wakart] :
 
 One of the first interesting thing you can do is to start a recording at runtime ;
 `jcmd` is the tool for this job, it's the Swiss Army knife tool for to service your Java app.
-If you don't know it, use it's great !
+If you don't know it, use it, it's really great !
 
-Prior Java 11 FlightRecorder had to be enabled before use. Now it's not anymore necessary
+Prior to Java 11 FlightRecorder had to be enabled before use. Now it's not necessary anymore
 it's possible to _start_ a JFR session.
 
 .FlightRecorder is on by default
@@ -85,7 +83,7 @@ $ jcmd $(pgrep java) VM.flags -all | grep FlightRecorder
     ccstr FlightRecorderOptions                    =                                           {product} {default}
 ----
 
-Just runt `JFR.start` on the running java pid.
+Just run `JFR.start` on the running java pid.
 
 [source, shell]
 ----
@@ -98,7 +96,7 @@ Use jcmd 6 JFR.dump name=2 filename=FILEPATH to copy recording data to file.
 
 The output guides the user to the next useful commands, in particular `JFR.dump`.
 Also, this commands tells you that a recording by default is limited to 250Mb.
-`jcmd` provides an `help` command that describes document for each command options.
+`jcmd` provides the `help` command that describes document for each command options.
 
 .JFR.start example
 [source, shell, role="primary"]
@@ -899,7 +897,7 @@ new application are started, then Kubernetes has a mean to check when the applic
 *ready*, it's called the readiness probe. This probe can be a call to http endpoint or a script,
 ours is an HTTP endpoint.
 
-WHen the probe indicates the application is ready, the application starts receiving traffic,
+When the probe indicates the application is ready, the application starts receiving traffic,
 from this moment latencies increased from 10-20 milliseconds to seconds.
 
 Opening the recording JMC, it will start an automated analysis. Sometime it's helpful
@@ -907,7 +905,7 @@ and warning should be looked at. In this case the issue was elsewhere.
 
 To help in our case, I needed to go in the thread view, which as a _thread lanes_
 which displays each thread as an horizontal bar, and JFR event are painted on the bar
-at the time they happened and for how long. At the bottom there's a the time axis.
+at the time they happened and for how long. At the bottom there's the time axis.
 
 .Thread Lanes
 image::/assets/jfr/startup-0-thread-lanes.png[align="center"]
