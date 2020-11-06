@@ -9,13 +9,12 @@ draft: true
 ---
 
 
-CAUTION: Talk about the kubernetes scheduling aspect of setting memory request and limits.
+CAUTION: Talk :q:about the kubernetes scheduling aspect of setting memory request and limits.
 
 CAUTION: Change _memory zone_ in NMT to _memory by JVM components_
 
 CAUTION: Change JDK links to openjdk/jdk
 
-// quote https://landley.net/writing/memory-faq.txt
 // Related articles
 // - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
 // - http://trustmeiamadeveloper.com/2016/03/18/where-is-my-memory-java/
@@ -33,8 +32,25 @@ and https://twitter.com/ylegat[Yohan Legat] for the review.
 
 This entry is about figuring out the native memory _parts_ of a Java process.
 I will use as a specimen one of the issue that I experienced in production, the actual
-problem could be solved without diving in memory, but other factors served as an excuse
-to go down the rabbit hole.
+problem could be solved by adjusting cgroup limits, but the need to understand and
+other factors served as an excuse to go down the rabbit hole.
+
+[TIP]
+====
+*tl;dr*
+
+* Set the cgroup memory limit high enough, so the application isn't oomkilled, this will
+let you analyze how the app work, and adjust settings without fear (except from your
+colleagues that compare everything to _Go_ or _rust_).
+
+* If you don't think it's Java heap memory leak, i.e. the heap usage isn't alarming,
+try to inspect native memory, it's easier with the flag `-XX:+AlwaysPreTouch`,
+however keep in mind this will bump your RSS right from the start, so anticipate this
+increase in your cgroup memory limit.
+
+* Then inspect what's outside the JVM Java heap.
+
+====
 
 In doing so the following writing tries to piece together elements
 from a few things I knew, things I grepped in the JDK codebase, blog posts, stack overflow,
@@ -65,9 +81,9 @@ The motivation behind this exploration is to help understand: What is consuming 
 
 == Exploration begins
 
-=== The JVM flags as a starting points
+=== The JVM flags as a starting point
 
-When assessing java memory one of the fist thing to look at are the Java heap parameters.
+When assessing java memory, one of the fist thing to look at are the Java heap parameters.
 
 It's likely anyone that reads this article is familiar with `Xms` or `Xmx`, but there are
 other ways to define the boundaries of the Java heap in particular if the process is started
@@ -105,11 +121,12 @@ $ jcmd $(pidof java) VM.flags | tr ' ' '\n'
 TIP: Do not confuse the `VM.flags` command which will output parameters calculated *from* the
 _command line_ and `VM.command_line` which will print the *raw* _command line_.
 
-The other Hotspot flag values comes are JVM defaults (which may either be static values,
-or computed from internal heuristics).
+The other Hotspot flag values comes are JVM _defaults_, which may either be static values,
+or computed from internal heuristics.
 
-The Java heap is only a part of the process memory usage. So now let's dig into how memory
-is _consumed_. The values or snippet comes from an application running inside a container.
+As we tend to dismiss regularly, the Java heap is only a part of the process memory usage.
+So now let's dig into how memory is _consumed_. The values or snippet comes from an
+application running inside a container.
 
 
 
@@ -141,22 +158,22 @@ VmRSS:	 4701120 kB
 ----
 
 The RSS is `4.6 GiB`, and it's Java heap size is `4.25 GiB`, indicating
-this process uses around `0.35 GiB` of non Java heap memory, I'll refer
+this process uses around `0.35 GiB` of non-Java heap memory, I'll refer
 to this memory as _native memory_.
 
 Now I'd like to dig a bit to understand the reported number `4701120 KiB`,
 what it actually measures.
 
-==== The java memory zones
+==== The JVM component memory
 
 In order to understand how the Java process memory is consumed, we need to use
 _Native Memory Tracking_ (`-XX:NativeMemoryTracking=summary`) which produces
 an overview of the memory usage by the _components of the JVM_. It actually gives
-a pretty good picture of the "cost" of running code the JVM.
+a pretty good picture of the "cost" of having a JVM.
 
 NOTE: Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10%
 performance overhead. The _summary_ mode merely has an impact in memory usage
-as shown below.
+as shown below and is usually enough.
 
 NOTE: It is necessary to note that while the above command indicate a scale
 in `KB` for the JVM it really means `KiB`.
@@ -262,11 +279,6 @@ internal constants for about `28.2 MiB`.
 `DirectByteBuffers`, but from Java 11 those are accounted in the `Other` zone.
 <11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
 
-All possible memory types are defined there in
-https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/memory/allocation.hpp#L114-L141[this enumeration],
-and https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/services/nmtCommon.cpp#L28-L51[here]
-as they appear in the report.
-
 The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
 etc. Also, note that enabling other JVM features may show up if they are activated, like flight recorder.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
@@ -274,19 +286,30 @@ https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUI
 There's a lot more to read on the
 https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80[official documentation about NMT]
 and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77[how to Monitor VM Internal Memory].
-
 Yet another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
 by http://twitter.com/shipilev[Aleksey Shipilёv].
 
-NMT is a great tool to gain an insight on the memory usage of the various
+*In the rest of this article whe n talking the context of Native Memory Tracking
+I may use the term _memory type_ or _memory zones_, but the real definition would be :*
+
+> *the _memory allocation type_ performed by a _JVM component_*
+
+The different sections are defined there in
+https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/memory/allocation.hpp#L114-L141[this `MemoryType` enumeration],
+and https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/services/nmtCommon.cpp#L28-L51[here]
+as they appear in the report.
+
+_NMT_ is a great tool to gain an insight on the memory usage of the various
 parts that compose the Java runtime. It has interesting subcommands to compare
-the memory usage of the JVM component with a _baseline_. However, *it doesn't answer
+the memory usage of the JVM component with a _baseline_.
+
+However, and that's the important bit *it does not answer
 what is actually accounted in the RSS column of `ps`*.
 
-==== Let's pause a bit and revise OS memory management
+==== Revising OS virtual memory and memory management
 
 I mentioned this acronym already, _RSS_ or **R**esident **S**et **S**ize, what is it?
-What exactly means _committed_ memory or _reserved_ memory shown in NMT ? How do they
+What exactly means _committed_ memory or _reserved_ memory shown in _NMT_ ? How do they
 relate to each other?
 
 First let's break down the vocabulary when we talk about memory.
@@ -322,35 +345,33 @@ This applies to the JVM and the OS. These ranges are actually not necessarily co
 for a particular memory pool. In other words _reserved memory_ represents the maximum
 addressable memory.
 Those could be referred to as *uncommitted*.
-This applies to the JVM and the OS.
 
 | *Resident* | OS memory pages which are currently in physical ram. This means codes,
 stacks, part of the committed memory pools but also portions of ``mmap``ed files
 which have recently been accessed and allocations outside the control of the JVM.
-This only relate to the OS.
 
 | *Virtual* | The sum of all virtual address mappings. Covers committed, reserved
 memory pools but also mapped files or shared memory. This number is rarely informative
 since the JVM will reserve large address ranges upfront. We can see this number
 as the pessimistic memory usage.
-This only relate to the OS.
 
 |===
 
 
-The graph above does not yet show resident memory. Indeed, the above graph most
+The graph above does not yet show _resident memory_. Indeed, the above graph most
 display the relative size by memory _kind_ within an address space of a process.
 In order explain resident memory it's necessary to revise how Linux (and other OSes
 by the way) manage memory using the concept of *paging*.
 
-The virtual address space is divided into smaller chunks called _pages_. While I only
-saw pages of `4 KiB` other sizes exist and may even co-exist (e.g. having pages of
+The virtual address space is divided into smaller chunks called _pages_
+usually `4 KiB` in size.
+_Other page sizes do exist and may even co-exist (e.g. having pages of
 4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
 working with different size of pages is something that is out of scope for this article.
-What is interesting is how paging and RSS relate to each other.
+What is interesting is how paging and RSS relate to each other._
 
 
-.paging (for a single process)
+.virtual memmory and paging (for a single process)
 [ditaa,"memory-paging"]
 ----
 
@@ -392,24 +413,34 @@ What is interesting is how paging and RSS relate to each other.
 
 The graph above shows the addressable space of a process and its _pages_.
 The process can access these pages using the addresses of its virtual space,
-however these pages have to be stored physically, usually in RAM, sometime on disk,
-when referring to these chunks of memory on hardware we use the term _frame_.
+however these pages have to be stored physically, usually in RAM, sometime on disk.
+When referring to these chunks of memory on hardware, we use the term _frame_.
 
 The real memory address is naturally different from this virtual address space
 for the process. There's a specialized component called MMU (Memory Management Unit)
-to perform the translation between virtual addresses and physical addresses.
+that is part of the processor to perform the translation between virtual addresses
+and physical addresses.
 
 The incentive behind virtual memory and paging comes from multi-tasking, it allows
 running multiple program concurrently. Each process will have the illusion of a single
-big block of memory.
-The OS is hard at work performing various tricks to keep this illusion for all processes.
-Since programs run concurrently, **not all memory pages is used at the same time**.
-From this observation it's possible :
+big block of memory. In practice, it abstracts away useful tricks like
+lazy allocation, swapping, file mapping, defragmentation, caching, etc.
 
-* to not use physical memory frames if the process didn't yet _touch_ this page, in
-other words such a page does not really exist.
-* to use a slower device to store pages, usually a disk, in a special place called _swap_.
+The OS is hard at work performing these tricks while keeping this illusion for all
+processes. Since programs run concurrently, **not all memory pages is used at the
+same time**.
 
+In practical terms we can observe that:
+
+* A physical memory frame won't be used if the process didn't _touch_ a page, or
+we can say this page doesn't exist.
+
+* The kernel may choose to move the real location of the page to use a slower device
+to store pages, usually a disk, in a special place called _swap_, if it thinks there
+won't be enough physical memory (RAM).
+
+* The kernel may use unemployed physical frames for caching purpose, or other tasks
+like defragmentation.
 
 The _resident set size_ mean the total set of pages of a process that resides either
 in RAM or in secondary storage, i.e. without untouched/unused pages.
@@ -423,14 +454,17 @@ where they usually explain in depth how everything interacts._
 To put things in context I'd like to explain one last thing to memory management
 with the JVM perspective.
 
-===== Reserved and committed memory in the JVM
+===== Reserved and committed memory for NMT
 
-As mentioned above one of the idea of the *reserved* / *committed* memory is to
+As mentioned above, one of the idea of the *reserved* / *committed* memory is to
 provide the illusion of a single *continuous* memory space.
 
-Concretely for the JVM it means that the _committed_ memory is immediately usable,
-and the _reserved_ memory part means memory _put on hold_ and not usable.
-Now with a better understanding of how memory works let's look again at the output
+Concretely for the JVM it means that
+
+1. the _committed_ memory is immediately usable,
+2. and the _reserved_ memory part means memory _put on hold_ and not usable.
+
+With a better understanding of how memory works let's look again at the output
 of the `VM.native_memory` command to make more sense of it:
 
 [source, bash]
@@ -463,10 +497,10 @@ the size of a thread. I will expand on this later.
 are using a different memory management, these zones usually have the same reserved/committed
 amount.
 
-Iterating on the graph above the memory is split in smaller regions.
+Or with a picture :
 
-.JVM memory zones
-[ditaa, jvm-memory-zones, opts=inline]
+.JVM memory allocations
+[ditaa, jvm-memory-allocations]
 ----
 
 |<--virtual memory----------------------------------------------------->|
@@ -492,13 +526,14 @@ This immediately leads to new vocabulary :
 [%autowidth.stretch]
 |===
 
-| *Used Heap* | The amount of memory occupied by live objects and to a certain extent object
-that are unreachable but not yet collected by the GC. This only relate to the JVM Java heap.
+| *Used Heap* | The amount of memory occupied by live objects and to a certain
+extent object that are unreachable but not yet collected by the GC. This only
+relate to the JVM Java heap.
 
 | *Committed heap* | The current limit if the writable memory to write objects to.
-It's the current workspace of the GC. Upon process start this value should be equal to `Xms`,
-then the GC may expand it up to the Java heap reserved memory, or in Java terms the heap max size,
-or `Xmx`.
+It's the current workspace of the GC. Upon process start this value should be equal
+to `Xms`, then the GC may expand it up to the Java heap reserved memory, or in Java
+terms the heap max size, or `Xmx`.
 
 | *Heap Max Size* | The maximum amount of memory that the Java heap can occupy.
 It's the _reserved_ amount in Java Heap section of the NMT output.
@@ -507,8 +542,8 @@ If the application requires more memory, this will result in a `OutOfMemoryError
 |===
 
 
-So committed stands for writable memory and reserved stands for total addressable space
-of the memory. How does it work concretely?
+So committed stands for writable memory and, reserved stands for total addressable
+space of the memory. How does it work concretely?
 
 The JVM starts by https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444[_reserving_ the memory],
 then parts of this "reserve" will be made available by
@@ -559,7 +594,7 @@ the JVM changes the mapping for a sub-range of that main memory by removing the
 request another memory segment.
 
 
-.Simple code example
+.Simple C code example
 [%collapsible]
 ====
 
@@ -583,7 +618,12 @@ To help you understand here's a very simple program:
 int main (int argc, char *argv[])
 {
   char *heap1 = malloc(HEAP_SIZE);
-  char *heap2 = mmap(0, HEAP_SIZE, PROT_NONE|PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, -1, 0);
+  char *heap2 = mmap(0,
+                     HEAP_SIZE,
+                     PROT_NONE | PROT_WRITE,
+                     MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS,
+                     -1,
+                     0);
 
   pid_t pid = getpid();
   printf("pid: %d\n", pid);
@@ -614,10 +654,10 @@ int main (int argc, char *argv[])
 }
 ----
 
-.result
+.result (Linux / llvm)
 [source,shell,role="secondary"]
 ----
-$ gcc -Wall -Wpedantic -o heap-malloc heap-malloc.c && ./heap-mem
+$ clang -Wall -Wpedantic -o test-alloc test-alloc.c && ./test-alloc
 pid: 4301956
 
 Executing: 'ps -p 2904 -o rss,vsz,command'
@@ -660,7 +700,7 @@ for security reasons.
 For example on the same process on which I showed the native memory.
 
 .process memory mappings
-[source, bash]
+[source, shell]
 ----
 $ pmap -x $(pgrep java)
 6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
@@ -757,31 +797,27 @@ https://www.kernel.org/doc/Documentation/filesystems/proc.txt[access permissions
 
 [INFO]
 =======
-On a side note, `pmap` may show another mapping mode which I barely found any reference of,
-here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html[one]
+On a side note, `pmap` may show another mapping mode which I barely found any
+reference of, here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html[one]
 and https://linux.die.net/man/2/mmap[here]
 
 * `R`: if set, the map has no swap space reserved (`MAP_NORESERVE` flag of `mmap`).
 This means that we can get a segmentation fault by accessing that memory if it has not
 already been mapped to physical memory, and if the system is out of physical memory.
-
 =======
-
-_I was a bit unfamiliar with `pmap`, reading https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/[this process memory blog]
-helped me with this command._
 
 At this time the focus is to see what are the memory mapped files with the JVM.
 The `Mapping` column on the of `pmap -x $(pgrep java)` can be parsed to identify
 file mappings, but this is brittle and unnecessary, one can simply look at
 the output of `pmap -X $(pgrep java)` (notice the big `X`) or even at the
 `/proc/$(pidof java)/maps` content looking for a non-zero value of the `inode`
-column inidcating this is a file.
+column indicating this is a file.
 
 Using the output of `pmap -X $(pgrep java)` and selecting the matching lines
 with `awk` this is _easy_:
 
 .Shared application memory mapped files
-[source, bash]
+[source, shell]
 ----
 $ pmap -X $(pidof java) | awk '{ if (NR <= 2 || $5 >0 ) \ <1>
   printf "%12s %8s %8s %4s %s\n", \ <2>
@@ -921,10 +957,6 @@ $ pmap -X $(pidof java) | awk '{ if (NR <= 2 || $5 >0 ) \ <1>
 7f358149c000        4        4 r--p libpthread-2.28.so
 7f358149d000        4        4 rw-p libpthread-2.28.so
 7f35814a2000        4        4 r--p LC_IDENTIFICATION
-7f35814a5000      152      152 r-xp libtcmalloc_minimal.so.4.5.3
-7f35814cb000     2048        0 ---p libtcmalloc_minimal.so.4.5.3
-7f35816cb000        4        4 r--p libtcmalloc_minimal.so.4.5.3
-7f35816cc000        4        4 rw-p libtcmalloc_minimal.so.4.5.3
 7f3581878000        4        4 r--p ld-2.28.so
 7f3581879000      120      120 r-xp ld-2.28.so
 7f3581897000       32       32 r--p ld-2.28.so
@@ -936,9 +968,9 @@ $ pmap -X $(pidof java) | awk '{ if (NR <= 2 || $5 >0 ) \ <1>
 <1> Filter lines that have an Inode value over 0 and only from the 3rd line (included).
 <2> Print only some columns, `pmap -X {pid}`'s output is verbose.
 <3> The columns are select to match the output of `pmap -x`, `Size` column is in `KiB`.
-<4> The last two lines aren't filtered out due to my limited skills in `awk`. They are
-only valid for the complete output. The actual sum of the size and rss columns
-is respectively `195336 KiB` and `52316 KiB`.
+<4> The last two lines aren't filtered out due to my limited skills in `awk` ; the actual
+sums of the _size_ and _rss_ columns of the selected rows are respectively
+`195336 KiB` and `52316 KiB`.
 
 What may catch the eye is the multiple mapping for native libraries like `libjvm.so`.
 The reason is that some part of the file is executable, others are for exchanging information
@@ -1010,7 +1042,7 @@ or the JVM will eventually be oomkilled by the OS.
 
 ===== How many pages are used ?
 
-The _proc_ filesystem is nice as it gives the paging details on the current process.
+The _proc_ filesystem is gives the paging details on the current process.
 
 ----
 Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
@@ -1054,14 +1086,14 @@ Given a page size is `4 KiB`, it gives in particular :
 NOTE: If the kubernetes memory limit is `5 GiB` (`5242880 KiB`),
 then the process may be oom-killed if the program uses more than
 `1310720` used pages. If the program don't use more pages than this
-number this process will be fine.
+number, this process will be fine.
 
 
 
 ////
 [TIP]
 =====
-While NMT show you the total you can use this command to extract all relevant from the summary
+While NMT show you the total, you can use this command to extract all relevant from the summary
 in a simple addition
 
 [source,bash]
@@ -1074,7 +1106,7 @@ echo $(($(jcmd $(pidof java) VM.native_memory \
   | tee /dev/tty )))
 ----
 
-On macOs you should install the GNU coreutils and use `ggrep` and `ghead`.
+On macOS, you should install the GNU coreutils and use `ggrep` and `ghead`.
 =====
 ////
 
@@ -1093,7 +1125,7 @@ The JVM components reported by NMT can use different _types of memory management
 as such may have multiple allocation mechanisms. For example:
 
 . GC based
-`Java heap` and `Metaspace` (`Class`) are usually the biggest consumers of memory,
+The `Java heap` and the `Metaspace` (`Class`) are usually the biggest consumers of memory,
 they both rely on `mmap`.
 +
 .java heap and metaspace
@@ -1139,7 +1171,7 @@ to allocate 1000 threads.
 ----
 <1> The stack memory is where the JVM puts the thread stack, it's the sum
 of all thread stack memory mappings.
-<2> The thread sub-system performed 3103 ``malloc``s amounting to `1866 KiB`.
+<2> The thread sub-system performed 3103 ``malloc`` calls amounting to `1866 KiB`.
 <3> The thread local handles required 1033 arenas, amounting to `605 KiB`.
 
 
@@ -1155,7 +1187,7 @@ combination of these technics:
                             (malloc=30589KB #219593) <1>
                             (mmap: reserved=149916KB, committed=149916KB) <2>
 ----
-<1> Here the GC performed 219593 ``malloc``s amounting to `30589 KiB`.
+<1> Here the GC performed 219593 ``malloc`` calls amounting to `30589 KiB`.
 <2> Here the GC reserved and committed memory segment(s) amount to `149916 KiB`.
 +
 The JVM also implements its own
@@ -1177,7 +1209,7 @@ for example the GC system :
                             (malloc=6533KB #3575) <1>
                             (arena=133KB #5) <2>
 ----
-<1> The compiler performed 3575 ``malloc``s amounting to `6533 KiB`.
+<1> The compiler performed 3575 ``malloc`` calls amounting to `6533 KiB`.
 <2> The compiler uses 5 arenas totaling `133 KiB`.
 
 
