@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.75.1" />
+
+    
+    
+    
+
+<title>Tweakble JVM setting per helm release • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="Tweakble JVM setting per helm release">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/11/07/tweakble-jvm-setting-per-helm-release/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2020-11-07T00:40:00&#43;0200">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Tweakble JVM setting per helm release">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.157ebce1a9aa8d33b32dc026b8fa65847644aab3c1cb1ff0e1c25efc7ec2491e.css" integrity="sha256-FX684amqjTOzLcAmuPplhHZEqrPByx/w4cJe/H7CSR4=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.e42accb90675eefea7f835f9f36a333b2e088d399217fcac85044e672158d585.css" integrity="sha256-5CrMuQZ17v6n&#43;DX582ozOy4IjTmSF/yshQROZyFY1YU=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    
+
+<article>
+  <header>
+    <h1>Tweakble JVM setting per helm release</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-11-07
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 13 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+The example date back were I iterated on <code>*RAMPercentage</code>, now
+I think this flag familly is a inpractical.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect1">
+<h2 id="_choosing_a_better_value_for_the_ram_percentage"><a class="anchor" href="#_choosing_a_better_value_for_the_ram_percentage"></a><a class="link" href="#_choosing_a_better_value_for_the_ram_percentage">Choosing a better value for the RAM percentage</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>From the above, it’s now possible with NMT especially and with <code>pmap</code> to
+understand actual memory usage and to answer the question: &#34;What is a sensible
+RAM percentage setting for this application ?&#34;</p>
+</div>
+<div class="paragraph">
+<p>Really what drive the answer is the actual non-heap usage not accounted in
+<code>MaxRAMPercentage</code>, from the numbers above:</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>(total) 5417017 - (heap) 4456448 = 960569 KiB</pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all fit-content stretch">
+<caption class="title">Table 1. In percentages</caption>
+<colgroup>
+<col/>
+<col/>
+<col/>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Non heap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5417017 - 4456448 = 960569</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~17 %</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~83 %</p></td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5417017</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">100 %</p></td>
+</tr>
+</tfoot>
+</table>
+<div class="paragraph">
+<p><strong>This means, at that time the application needed around <code>960 MiB</code>, plus the heap to run.</strong></p>
+</div>
+<div class="paragraph">
+<p>The JVM was run this flag <code>-XX:MaxRAMPercentage=85.000000</code> which sets the heap maximum size
+to <code>4 563 402 752</code> Bytes or <code>4456448 KiB</code>, the value of this percentage is a lucky guess that
+worked for the <code>5 GiB</code> deployment memory limit, because the application never use the whole
+heap memory and as such it never used all the pages.</p>
+</div>
+<div class="paragraph">
+<p>This percentage is however <strong>wrong</strong>, if the JVM needed all the memory within the max
+heap plus higher thread usage be it more threads or deeper stack traces then the
+container/pod would have been <em>oom killed</em>. Also, it is necessary to give some free space
+in the container to be able to perform serviceability tasks, like profiling, etc.</p>
+</div>
+<div class="paragraph">
+<p>For a <code>5 GiB</code> memory limit it may be good to give a minimum of 20% space, my experience in this
+scenario is that 20% is too tight to handle surges. Supposing we’d like an additional <code>400 MiB</code>
+over <code>960 569 KiB</code> will give a percentage of 26%.</p>
+</div>
+<div class="paragraph">
+<p>Of course this number has to be adapted to the workload, e.g. if the application allocate a
+lot more <code>DirectByteBuffer</code>s or if it requires heavy filesystem usage, then it would be a
+different number to account the room needed for the filesystem cache.</p>
+</div>
+<div class="paragraph">
+<p>In our case the starting point for a <code>5 GiB</code> memory limit is 26% :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-XX:InitialRAMPercentage=74.0 <i class="conum" data-value="1"></i><b>(1)</b>
+-XX:MaxRAMPercentage=74.0 <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But if the cgroup limit is decreased, for our application it meant the non heap usage will take
+a more significant part. For example on this same application we saw <code>1.3 GiB</code> of non-heap memory
+for a heap sized at <code>3 GiB</code>.</p>
+</div>
+<div class="paragraph">
+<p>For a quick win let’s adapt the application image.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_make_the_docker_image_memory_settings_tweakable_per_environment"><a class="anchor" href="#_make_the_docker_image_memory_settings_tweakable_per_environment"></a><a class="link" href="#_make_the_docker_image_memory_settings_tweakable_per_environment">Make the docker image memory settings tweakable per environment</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>As seen at the beginning of this post, RAM settings are part of the command declaration,
+first these arguments turned out to be incorrect but they are more difficult to change or tweak.
+In addition, the deployment requirements / limits are likely to
+differ depending on the cluster / environment ; this can happen when you need to decrease the money
+spending on your cloud provider for non-production clusters, like staging, pre-production, etc.</p>
+</div>
+<div class="paragraph">
+<p>Let’s use <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
+environment variable for more flexibility and remove the RAM percentage in the <code>CMD</code> directive.</p>
+</div>
+<div class="listingblock">
+<div class="title">Application dockerfile</div>
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">  ARG REGISTRY
+  FROM $REGISTRY/corretto-java:11.0.6.10.1
++ ENV JDK_JAVA_OPTIONS=&#34;&#34; <i class="conum" data-value="1"></i><b>(1)</b>
+
+  RUN mkdir -p /gclogs /etc/java-app
+
+  COPY ./build/libs/java-app-boot.jar \
+    ./build/java-agents/agent-1.jar \
+    ./build/java-agents/agent-2.jar \
+    ./src/serviceability/*.sh \
+    /
+
+  CMD [ &#34;/usr/bin/java&#34;, \
+        &#34;-Dfile.encoding=UTF-8&#34;, \
+        &#34;-Duser.timezone=UTC&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.port=7199&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.rmi.port=7199&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.ssl=false&#34;, \
+        &#34;-Dcom.sun.management.jmxremote.authenticate=false&#34;, \
+        &#34;-Djava.security.egd=file:/dev/./urandom&#34;, \
+-       &#34;-XX:InitialRAMPercentage=85.0&#34;, \ <i class="conum" data-value="2"></i><b>(2)</b>
+-       &#34;-XX:MaxRAMPercentage=85.0&#34;, \
+        &#34;-XX:NativeMemoryTracking=summary&#34;, \
+        &#34;-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M&#34;, \
+        &#34;-javaagent:/agent-1.jar&#34;, \
+        &#34;-javaagent:/agent-2.jar&#34;, \
+        &#34;-Dsqreen.config_file=/sqreen.properties&#34;, \
+        &#34;-jar&#34;, \
+        &#34;/java-app-boot.jar&#34;, \
+        &#34;--spring.config.additional-location=/etc/java-app/config.yaml&#34;, \
+        &#34;--server.port=8080&#34; ]
+
+  LABEL name=&#34;java-app&#34;
+  LABEL build_path=&#34;../&#34;
+  LABEL version_auto_semver=&#34;true&#34;</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Defines a default empty <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Removes the RAM percentage settings to get <em>default</em> values.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Now let’s test this locally.</p>
+</div>
+<div class="listingblock">
+<div class="title">Build the container</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ DOCKER_BUILDKIT=1 docker build \
+  --tag test-java-app \ <i class="conum" data-value="1"></i><b>(1)</b>
+  --build-arg REGISTRY=eu.gcr.io/cd-registry \
+  --file _infra/Dockerfile \
+  .
+[+] Building 1.4s (9/9) FINISHED
+ =&gt; [internal] load build definition from Dockerfile                                                                                              0.0s
+ =&gt; =&gt; transferring dockerfile: 1.34kB                                                                                                            0.0s
+ =&gt; [internal] load .dockerignore                                                                                                                 0.0s
+ =&gt; =&gt; transferring context: 35B                                                                                                                  0.0s
+ =&gt; [internal] load metadata for eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                  0.0s
+ =&gt; CACHED [1/4] FROM eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                             0.0s
+ =&gt; [internal] load build context                                                                                                                 0.0s
+ =&gt; =&gt; transferring context: 1.32kB                                                                                                               0.0s
+ =&gt; [2/4] RUN mkdir -p /gclogs /etc/java-app                                                                                                      0.3s
+ =&gt; [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                   0.0s
+ =&gt; [4/4] COPY ./build/libs/java-app-boot.jar   ./build/java-agents/agent-1.jar   ./build/java-agents/agent-2.jar   ./src/serviceability/*.sh   / 0.6s
+ =&gt; exporting to image                                                                                                                            0.4s
+ =&gt; =&gt; exporting layers                                                                                                                           0.4s
+ =&gt; =&gt; writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                      0.0s
+ =&gt; =&gt; naming to docker.io/library/test-java-app</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Custom tag to avoid collision with regular images in my cache</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect2">
+<h3 id="_run_the_container_locally_with_the_java_app"><a class="anchor" href="#_run_the_container_locally_with_the_java_app"></a><a class="link" href="#_run_the_container_locally_with_the_java_app">Run the container locally with the Java app</a></h3>
+<div class="paragraph">
+<p>In this local test series, I’m using <code>3 GiB</code> as a memory limit and I chose 70% for the heap percentage.</p>
+</div>
+<div class="listingblock primary">
+<div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory=&#34;3gb&#34; --name j-mem test-java-app
+Picked up JDK_JAVA_OPTIONS:
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won&#39;t be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add &#34;com.fasterxml.jackson.module:jackson-module-kotlin&#34; to the classpath
+...</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title"><strong>With</strong> <code>JDK_JAVA_OPTIONS</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory=&#34;3gb&#34; --env JDK_JAVA_OPTIONS=&#34;-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0&#34; --name j-mem test-java-app
+Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won&#39;t be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add &#34;com.fasterxml.jackson.module:jackson-module-kotlin&#34; to the classpath
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then we can make sure we have the correct flags.</p>
+</div>
+<div class="listingblock primary">
+<div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c &#34;jcmd \$(pgrep java) VM.flags | tr &#39; &#39; &#39;\n&#39;&#34;
+6:
+...
+-XX:MaxHeapSize=805306368 <i class="conum" data-value="1"></i><b>(1)</b>
+-XX:MaxNewSize=482344960
+-XX:MinHeapDeltaBytes=1048576
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Max heap is about <code>768 MiB</code></td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title"><strong>With</strong> <code>JDK_JAVA_OPTIONS</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c &#34;jcmd \$(pgrep java) VM.flags | tr &#39; &#39; &#39;\n&#39;&#34;
+6:
+...
+-XX:InitialHeapSize=2256535552
+-XX:InitialRAMPercentage=70.000000
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=2256535552 <i class="conum" data-value="1"></i><b>(1)</b>
+-XX:MaxNewSize=1353711616
+-XX:MaxRAMPercentage=70.000000
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Max heap is about <code>2.1 GiB</code></td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Notice when there’s no RAM settings the JVM computed the max heap size at 25%
+of <code>3 GiB</code> memory limit, and at 70% the jvm uses <code>2.1 GiB</code>. Also, the heap values
+are the only one affected.</p>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/2020/06/23/simple-g1gc-tuning/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Simple G1GC tuning</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  
+
+</article>
+
+
+        </div>
+        
+    
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+    
+
+
+
+    </body>
+</html>
+
