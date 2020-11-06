@@ -17,7 +17,7 @@
     
     
 
-<title>Exploring Java native memory • Brice Dutheil</title>
+<title>Exploring JVM native memory • Brice Dutheil</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="Exploring Java native memory">
+<meta property="og:title" content="Exploring JVM native memory">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/05/23/exploring-java-native-memory/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/05/23/exploring-jvm-native-memory/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -53,7 +53,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Exploring Java native memory">
+<meta name="twitter:title" content="Exploring JVM native memory">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -234,7 +234,7 @@
 
 <article>
   <header>
-    <h1>Exploring Java native memory</h1>
+    <h1>Exploring JVM native memory</h1>
     
     
 <div class="post__meta">
@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 83 min read
+    <i class="fas fa-clock"></i> 85 min read
 
     
     
@@ -280,7 +280,19 @@ Talk about the kubernetes scheduling aspect of setting memory request and limits
 <i class="fa icon-caution" title="Caution"></i>
 </td>
 <td class="content">
-Change <em>memory zone</em> in NMT to memory by JVM components
+Change <em>memory zone</em> in NMT to <em>memory by JVM components</em>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+Change JDK links to openjdk/jdk
 </td>
 </tr>
 </tbody></table>
@@ -288,11 +300,16 @@ Change <em>memory zone</em> in NMT to memory by JVM components
 <div class="paragraph">
 <p><em>This entry has been marinating for mast of the year 2020. Rewriting it 3 times
 to make it more digestible form, then I found out I should just split my thoughts
-in smaller articles that hopefully make sense on their own.</em></p>
+in articles a bit smaller that hopefully make sense on their own.</em></p>
+</div>
+<div class="paragraph">
+<p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
+<a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
+and <a href="https://twitter.com/ylegat">Yohan Legat</a> for the review.</p>
 </div>
 <hr/>
 <div class="paragraph">
-<p>Anyway. This entry is about figuring out the native memory <em>parts</em> of a Java process.
+<p>This entry is about figuring out the native memory <em>parts</em> of a Java process.
 I will use as a specimen one of the issue that I experienced in production, the actual
 problem could be solved without diving in memory, but other factors served as an excuse
 to go down the rabbit hole.</p>
@@ -339,21 +356,25 @@ in this chapter; pretend I’m a disk manufacturer.
 </tbody></table>
 </div>
 <div class="paragraph">
-<p><em>Now let’s answer this question: What is consuming the memory ?</em></p>
+<p>The motivation behind this exploration is to help understand: What is consuming the memory ?</p>
 </div>
 <div class="sect1">
-<h2 id="_diagnosis"><a class="anchor" href="#_diagnosis"></a><a class="link" href="#_diagnosis">Diagnosis</a></h2>
+<h2 id="_exploration_begins"><a class="anchor" href="#_exploration_begins"></a><a class="link" href="#_exploration_begins">Exploration begins</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_the_jvm_options"><a class="anchor" href="#_the_jvm_options"></a><a class="link" href="#_the_jvm_options">The JVM options</a></h3>
+<h3 id="_the_jvm_flags_as_a_starting_points"><a class="anchor" href="#_the_jvm_flags_as_a_starting_points"></a><a class="link" href="#_the_jvm_flags_as_a_starting_points">The JVM flags as a starting points</a></h3>
 <div class="paragraph">
 <p>When assessing java memory one of the fist thing to look at are the Java heap parameters.</p>
 </div>
 <div class="paragraph">
 <p>It’s likely anyone that reads this article is familiar with <code>Xms</code> or <code>Xmx</code>, but there are
 other ways to define the boundaries of the Java heap in particular if the process is started
-with <code>\*RAMPercentage</code>. With those the JVM will compute the actual values from the <code>cgroup</code>,
+with <code>\*RAMPercentage</code>. With these the JVM will compute the actual values from the <code>cgroup</code>,
 in this case it’s possible to access the actual runtime values with <code>jcmd</code>.</p>
+</div>
+<div class="paragraph">
+<p>In short, it’s possible to look at the command line options, but using the diagnostic
+command <code>jcmd {pid} VM.flags</code> lets you peek at the actual values that the JVM used.</p>
 </div>
 <div class="paragraph">
 <p>For example with a memory limit of <code>5 GiB</code>, if a process is started with
@@ -361,7 +382,7 @@ in this case it’s possible to access the actual runtime values with <code>jcmd
 diagnostic command will output this :</p>
 </div>
 <div class="listingblock">
-<div class="title"><code>VM.flags</code> in k8s</div>
+<div class="title">JVM current flags in a kubernetes container</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) VM.flags | tr &#39; &#39; &#39;\n&#39;
 6:
@@ -415,25 +436,24 @@ Do not confuse the <code>VM.flags</code> command which will output parameters ca
 or computed from internal heuristics).</p>
 </div>
 <div class="paragraph">
-<p>The Java heap is only a part of the process memory usage. I intend
-to explain how memory is <em>concumed</em> in the rest of this article, in the context
-of an application running inside a container.</p>
+<p>The Java heap is only a part of the process memory usage. So now let’s dig into how memory
+is <em>consumed</em>. The values or snippet comes from an application running inside a container.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_the_real_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_the_real_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_the_real_memory_footprint_of_the_java_process_in_the_container">The real memory footprint of the java process in the container</a></h3>
 <div class="paragraph">
 <p>In the Java dream us developers shouldn’t care much about the memory or the OS
-and if we did we should only look a the Java Heap usage.</p>
+and if we ever had to we should only look at the Java Heap usage.</p>
 </div>
 <div class="paragraph">
 <p>This dream more or less lasted a long time until Java applications were put
 in containers.</p>
 </div>
 <div class="paragraph">
-<p>Indeed of the most the most critical thing to look at, in a containers in particlar,
+<p>Indeed, one of the most critical things to look at, especially in a containers,
 is the <em>resident set size</em>, it can be obtained in various ways, using <code>ps</code>, <code>top</code> or
-reading the <code>/proc</code> filesystem. E.g. on the same than above</p>
+reading the <code>/proc</code> filesystem. E.g. on the same application as above</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><code>ps</code></div>
@@ -464,8 +484,8 @@ what it actually measures.</p>
 <div class="paragraph">
 <p>In order to understand how the Java process memory is consumed, we need to use
 <em>Native Memory Tracking</em> (<code>-XX:NativeMemoryTracking=summary</code>) which produces
-an overview of the memory usage by components of the JVM. It actually gives
-a pretty good picture of the &#34;cost&#34; of the JVM.</p>
+an overview of the memory usage by the <em>components of the JVM</em>. It actually gives
+a pretty good picture of the &#34;cost&#34; of running code the JVM.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -495,7 +515,7 @@ in <code>KB</code> for the JVM it really means <code>KiB</code>.
 </tbody></table>
 </div>
 <div class="listingblock">
-<div class="title"><code>VM.native_memory</code> instant snapshot</div>
+<div class="title">JVM native memory trcking report</div>
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) VM.native_memory
 6:
@@ -653,12 +673,13 @@ by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
 </div>
 <div class="paragraph">
 <p>NMT is a great tool to gain an insight on the memory usage of the various
-parts that compose the Java runtime. But it doesn’t answer well
-what is actually accounted by the number reported in <code>ps</code>.</p>
+parts that compose the Java runtime. It has interesting subcommands to compare
+the memory usage of the JVM component with a <em>baseline</em>. However, <strong>it doesn’t answer
+what is actually accounted in the RSS column of <code>ps</code></strong>.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_lets_pause_a_bit_and_revise_memory_management"><a class="anchor" href="#_lets_pause_a_bit_and_revise_memory_management"></a><a class="link" href="#_lets_pause_a_bit_and_revise_memory_management">Let’s pause a bit and revise memory management</a></h4>
+<h4 id="_lets_pause_a_bit_and_revise_os_memory_management"><a class="anchor" href="#_lets_pause_a_bit_and_revise_os_memory_management"></a><a class="link" href="#_lets_pause_a_bit_and_revise_os_memory_management">Let’s pause a bit and revise OS memory management</a></h4>
 <div class="paragraph">
 <p>I mentioned this acronym already, <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it?
 What exactly means <em>committed</em> memory or <em>reserved</em> memory shown in NMT ? How do they
@@ -729,7 +750,7 @@ relate to each other?</p>
   </g>
 </svg>
 </div>
-<div class="title">memory zones</div>
+<div class="title">memory vocabulary</div>
 </div>
 <table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 1. vocabulary breakdown (<a href="https://stackoverflow.com/a/31178912/48136">source</a>)</caption>
@@ -742,7 +763,7 @@ relate to each other?</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Address ranges that have been mapped or <code>malloc</code>ed.
 They may or may not be backed by physical or swap due to lazy allocation and paging.
-This applies to the JVM and the OS.</p></td>
+This applies to the JVM and the OS. These ranges are actually not necessarily contiguous.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reserved</strong></p></td>
@@ -770,17 +791,17 @@ This only relate to the OS.</p></td>
 </tbody>
 </table>
 <div class="paragraph">
-<p>The graph above does not yet show resident memory. Indeed, the above graph most display
-the <em>layout</em> of the address space of a process. In order explain resident memory
-it’s necessary to revise how Linux (and other OSes by the way) manage memory
-using the concept of <strong>paging</strong>.</p>
+<p>The graph above does not yet show resident memory. Indeed, the above graph most
+display the relative size by memory <em>kind</em> within an address space of a process.
+In order explain resident memory it’s necessary to revise how Linux (and other OSes
+by the way) manage memory using the concept of <strong>paging</strong>.</p>
 </div>
 <div class="paragraph">
 <p>The virtual address space is divided into smaller chunks called <em>pages</em>. While I only
 saw pages of <code>4 KiB</code> other sizes exist and may even co-exist (e.g. having pages of
-4 KiB mixed with 2 MiB pages), it all depends on the processor architecture.
-That’s something that is out of scope for this article. What is interesting is
-how paging and RSS relate to each other.</p>
+4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
+working with different size of pages is something that is out of scope for this article.
+What is interesting is how paging and RSS relate to each other.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -1062,7 +1083,7 @@ how paging and RSS relate to each other.</p>
 </div>
 <div class="paragraph">
 <p>The graph above shows the addressable space of a process and its <em>pages</em>.
-The process can access these pages using the addresses of it’s virtual space,
+The process can access these pages using the addresses of its virtual space,
 however these pages have to be stored physically, usually in RAM, sometime on disk,
 when referring to these chunks of memory on hardware we use the term <em>frame</em>.</p>
 </div>
@@ -1072,11 +1093,12 @@ for the process. There’s a specialized component called MMU (Memory Management
 to perform the translation between virtual addresses and physical addresses.</p>
 </div>
 <div class="paragraph">
-<p>The motivation behind virtual memory and paging comes from multi-tasking, to allows
-to run several program. Each process will have the illusion of a bigger memory.
-The OS is hard at work performing various tricks to keep these illusions for all processes.
-From this single observation &#34;Not all memory is used at the same time&#34;,
-it’s possible :</p>
+<p>The incentive behind virtual memory and paging comes from multi-tasking, it allows
+running multiple program concurrently. Each process will have the illusion of a single
+big block of memory.
+The OS is hard at work performing various tricks to keep this illusion for all processes.
+Since programs run concurrently, <strong>not all memory pages is used at the same time</strong>.
+From this observation it’s possible :</p>
 </div>
 <div class="ulist">
 <ul>
@@ -1085,12 +1107,12 @@ it’s possible :</p>
 other words such a page does not really exist.</p>
 </li>
 <li>
-<p>to use a slower device to store pages, usually a disk, in special part called <em>swap</em></p>
+<p>to use a slower device to store pages, usually a disk, in a special place called <em>swap</em>.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>The <em>resident set size</em> mean the total size of pages of a process that resides either
+<p>The <em>resident set size</em> mean the total set of pages of a process that resides either
 in RAM or in secondary storage, i.e. without untouched/unused pages.
 This contrasts with VSZ or virtual size which includes the total address space of
 a program, this value is usually way superior to RSS.</p>
@@ -1306,13 +1328,13 @@ or <code>Xmx</code>.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Heap Max Size</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The maximum amount of memory that the Java heap can occupy.
 It’s the <em>reserved</em> amount in Java Heap section of the NMT output.
-If the application requires more memory this will result in a <code>OutOfMemoryError</code>.</p></td>
+If the application requires more memory, this will result in a <code>OutOfMemoryError</code>.</p></td>
 </tr>
 </tbody>
 </table>
 <div class="paragraph">
 <p>So committed stands for writable memory and reserved stands for total addressable space
-of the memory. Hiw does it work concretely?</p>
+of the memory. How does it work concretely?</p>
 </div>
 <div class="paragraph">
 <p>The JVM starts by <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444"><em>reserving</em> the memory</a>,
@@ -1324,8 +1346,8 @@ using <code>malloc</code>, <code>mmap</code>, as well as <code>mprotect</code> c
 <div class="sect4">
 <h5 id="_malloc_and_mmap"><a class="anchor" href="#_malloc_and_mmap"></a><a class="link" href="#_malloc_and_mmap"><code>malloc</code> and <code>mmap</code></a></h5>
 <div class="paragraph">
-<p>The <code>malloc</code> and <code>mmap</code> C calls ask the OS to allocate memory. And it’s the job of the OS to
-provide the application the necessary memory, or fail if not possible.</p>
+<p>The <code>malloc</code> and <code>mmap</code> C calls ask the OS to allocate memory. It’s the job of the OS to
+provide the application the necessary memory, or fail if it is not possible.</p>
 </div>
 <div class="paragraph">
 <p>Also, depending on the mapping in particular for <code>mmap</code> the OS can be asked to make a file
@@ -1376,7 +1398,7 @@ few and small allocations, <code>mmap</code> is preferred for few but large allo
 flag to prevent any access. This has the effect to tell the OS that this mapping should
 not be backed by physical memory. Then when memory is needed by the program,
 the JVM changes the mapping for a sub-range of that main memory by removing the
-<code>PROT_NONE</code> flag. When new java threads are created then the JVM will simply
+<code>PROT_NONE</code> flag. When new java threads are created, then the JVM will simply
 request another memory segment.</p>
 </div>
 <details>
@@ -1461,8 +1483,9 @@ Executing: &#39;ps -p 2904 -o rss,vsz,command&#39;
 </div>
 </div>
 <div class="paragraph">
-<p>As the <code>stdout</code> shows the RSS of this program is very low until memory is actually written to. At the same time
-the virtual memory is much, much higher; it means this simple program could address up to
+<p>As the <code>stdout</code> shows the RSS of this program is very low until memory
+is actually written to. At the same time the virtual memory is much,
+much higher; it means this simple program could address up to
 about <code>4 GiB</code>.</p>
 </div>
 <div class="paragraph">
@@ -1486,8 +1509,9 @@ Memory pages of the file content that have been placed in RAM by the OS are acco
 <div class="paragraph">
 <p>First let’s see the memory mappings of a process using the handy command : <code>pmap -x &lt;pid&gt;</code>.
 <code>pmap</code> is part of the <a href="https://gitlab.com/procps-ng/procps/"><code>procps</code></a> utilities, that contains
-other tools like: <code>ps</code>, <code>pgrep</code>, <code>watch</code> or <code>vmstat</code>, so it’s likely that no additional
-installation is required which is desirable when the container filesystem is read-only.</p>
+other tools like: <code>ps</code>, <code>pgrep</code>, <code>watch</code> or <code>vmstat</code>. It’s likely that no additional
+installation is required which is great as a container filesystem should be read-only
+for security reasons.</p>
 </div>
 <div class="paragraph">
 <p>For example on the same process on which I showed the native memory.</p>
@@ -1937,11 +1961,11 @@ this breaks out as :</p>
 <div class="paragraph">
 <p>This happens because this pod may not have access all pages especially
 if the heap is big enough and the allocation rate is not big enough. While
-a pod like this may be health and stay that way. It should rise your eyebrow,
+a pod like this may be healthy and stay that way. It should rise your eyebrow,
 if the RSS grow then the pod is likely to be oomkilled.</p>
 </div>
 <div class="paragraph">
-<p>And this is where one need to review the memory parameter of either
+<p>This is where one need to review the memory parameter of either
 the JVM or the memory limits of the pod. Either the JVM is over-sized
 or the JVM will eventually be oomkilled by the OS.</p>
 </div>
