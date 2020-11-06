@@ -1,0 +1,218 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-11-07T00:40:00+02:00"
+language: en
+#tags: ["cgroup", "java", "kubernetes", "helm", "docker", "memory", "jcmd", "heap", "procfs", "pmap"]
+slug: "tweakble-jvm-setting-per-helm-release"
+title: "Tweakble JVM setting per helm release"
+draft: true
+---
+
+// TODO: v
+CAUTION: The example date back were I iterated on `*RAMPercentage`, now 
+I think this flag familly is a inpractical.
+
+
+== Choosing a better value for the RAM percentage
+
+From the above, it's now possible with NMT especially and with `pmap` to
+understand actual memory usage and to answer the question: "What is a sensible
+RAM percentage setting for this application ?"
+
+Really what drive the answer is the actual non-heap usage not accounted in
+`MaxRAMPercentage`, from the numbers above:
+
+....
+(total) 5417017 - (heap) 4456448 = 960569 KiB
+....
+
+
+.In percentages
+[%autowidth.stretch,options="footer"]
+|===
+
+| Non heap | 5417017 - 4456448 = 960569 | ~17 %
+| Heap     | 4456448                    | ~83 %
+
+| Total    | 5417017                    | 100 %
+|===
+
+*This means, at that time the application needed around `960 MiB`, plus the heap to run.*
+
+The JVM was run this flag `-XX:MaxRAMPercentage=85.000000` which sets the heap maximum size
+to `4 563 402 752` Bytes or `4456448 KiB`, the value of this percentage is a lucky guess that
+worked for the `5 GiB` deployment memory limit, because the application never use the whole
+heap memory and as such it never used all the pages.
+
+This percentage is however *wrong*, if the JVM needed all the memory within the max
+heap plus higher thread usage be it more threads or deeper stack traces then the
+container/pod would have been _oom killed_. Also, it is necessary to give some free space
+in the container to be able to perform serviceability tasks, like profiling, etc.
+
+For a `5 GiB` memory limit it may be good to give a minimum of 20% space, my experience in this
+scenario is that 20% is too tight to handle surges. Supposing we'd like an additional `400 MiB`
+over `960 569 KiB` will give a percentage of 26%.
+
+Of course this number has to be adapted to the workload, e.g. if the application allocate a
+lot more ``DirectByteBuffer``s or if it requires heavy filesystem usage, then it would be a
+different number to account the room needed for the filesystem cache.
+
+In our case the starting point for a `5 GiB` memory limit is 26% :
+
+[source]
+----
+-XX:InitialRAMPercentage=74.0 <1>
+-XX:MaxRAMPercentage=74.0 <1>
+----
+
+But if the cgroup limit is decreased, for our application it meant the non heap usage will take
+a more significant part. For example on this same application we saw `1.3 GiB` of non-heap memory
+for a heap sized at `3 GiB`.
+
+
+
+
+For a quick win let's adapt the application image.
+
+== Make the docker image memory settings tweakable per environment
+
+As seen at the beginning of this post, RAM settings are part of the command declaration,
+first these arguments turned out to be incorrect but they are more difficult to change or tweak.
+In addition, the deployment requirements / limits are likely to
+differ depending on the cluster / environment ; this can happen when you need to decrease the money
+spending on your cloud provider for non-production clusters, like staging, pre-production, etc.
+
+Let's use https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
+environment variable for more flexibility and remove the RAM percentage in the `CMD` directive.
+
+.Application dockerfile
+[source,diff]
+----
+  ARG REGISTRY
+  FROM $REGISTRY/corretto-java:11.0.6.10.1
++ ENV JDK_JAVA_OPTIONS="" <1>
+
+  RUN mkdir -p /gclogs /etc/java-app
+
+  COPY ./build/libs/java-app-boot.jar \
+    ./build/java-agents/agent-1.jar \
+    ./build/java-agents/agent-2.jar \
+    ./src/serviceability/*.sh \
+    /
+
+  CMD [ "/usr/bin/java", \
+        "-Dfile.encoding=UTF-8", \
+        "-Duser.timezone=UTC", \
+        "-Dcom.sun.management.jmxremote.port=7199", \
+        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
+        "-Dcom.sun.management.jmxremote.ssl=false", \
+        "-Dcom.sun.management.jmxremote.authenticate=false", \
+        "-Djava.security.egd=file:/dev/./urandom", \
+-       "-XX:InitialRAMPercentage=85.0", \ <2>
+-       "-XX:MaxRAMPercentage=85.0", \
+        "-XX:NativeMemoryTracking=summary", \
+        "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
+        "-javaagent:/agent-1.jar", \
+        "-javaagent:/agent-2.jar", \
+        "-Dsqreen.config_file=/sqreen.properties", \
+        "-jar", \
+        "/java-app-boot.jar", \
+        "--spring.config.additional-location=/etc/java-app/config.yaml", \
+        "--server.port=8080" ]
+
+  LABEL name="java-app"
+  LABEL build_path="../"
+  LABEL version_auto_semver="true"
+----
+<1> Defines a default empty https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
+<2> Removes the RAM percentage settings to get _default_ values.
+
+Now let's test this locally.
+
+.Build the container
+[source]
+----
+❯ DOCKER_BUILDKIT=1 docker build \
+  --tag test-java-app \ <1>
+  --build-arg REGISTRY=eu.gcr.io/cd-registry \
+  --file _infra/Dockerfile \
+  .
+[+] Building 1.4s (9/9) FINISHED
+ => [internal] load build definition from Dockerfile                                                                                              0.0s
+ => => transferring dockerfile: 1.34kB                                                                                                            0.0s
+ => [internal] load .dockerignore                                                                                                                 0.0s
+ => => transferring context: 35B                                                                                                                  0.0s
+ => [internal] load metadata for eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                  0.0s
+ => CACHED [1/4] FROM eu.gcr.io/cd-registry/corretto-java:11.0.6.10.1                                                                             0.0s
+ => [internal] load build context                                                                                                                 0.0s
+ => => transferring context: 1.32kB                                                                                                               0.0s
+ => [2/4] RUN mkdir -p /gclogs /etc/java-app                                                                                                      0.3s
+ => [3/4] COPY ./build/async-profiler/linux-x64 /async-profiler                                                                                   0.0s
+ => [4/4] COPY ./build/libs/java-app-boot.jar   ./build/java-agents/agent-1.jar   ./build/java-agents/agent-2.jar   ./src/serviceability/*.sh   / 0.6s
+ => exporting to image                                                                                                                            0.4s
+ => => exporting layers                                                                                                                           0.4s
+ => => writing image sha256:5ceef8f5a4e23cb3bea7ca7cb7c90c0e338386b7f37992c92861cb119c312cb9                                                      0.0s
+ => => naming to docker.io/library/test-java-app
+----
+<1> Custom tag to avoid collision with regular images in my cache
+
+=== Run the container locally with the Java app
+
+In this local test series, I'm using `3 GiB` as a memory limit and I chose 70% for the heap percentage.
+
+.*Without* `JDK_JAVA_OPTIONS`
+[source,role="primary"]
+----
+❯ docker run --rm --memory="3gb" --name j-mem test-java-app
+Picked up JDK_JAVA_OPTIONS:
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...
+----
+
+.*With* `JDK_JAVA_OPTIONS`
+[source,role="secondary"]
+----
+❯ docker run --rm --memory="3gb" --env JDK_JAVA_OPTIONS="-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0" --name j-mem test-java-app
+Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0
+10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
+2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
+...
+----
+
+
+Then we can make sure we have the correct flags.
+
+.*Without* `JDK_JAVA_OPTIONS`
+[source, role="primary"]
+----
+❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
+6:
+...
+-XX:MaxHeapSize=805306368 <1>
+-XX:MaxNewSize=482344960
+-XX:MinHeapDeltaBytes=1048576
+...
+----
+<1> Max heap is about `768 MiB`
+
+.*With* `JDK_JAVA_OPTIONS`
+[source, role="secondary"]
+----
+❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
+6:
+...
+-XX:InitialHeapSize=2256535552
+-XX:InitialRAMPercentage=70.000000
+-XX:MarkStackSize=4194304
+-XX:MaxHeapSize=2256535552 <1>
+-XX:MaxNewSize=1353711616
+-XX:MaxRAMPercentage=70.000000
+...
+----
+<1> Max heap is about `2.1 GiB`
+
+
+Notice when there's no RAM settings the JVM computed the max heap size at 25%
+of `3 GiB` memory limit, and at 70% the jvm uses `2.1 GiB`. Also, the heap values
+are the only one affected.
