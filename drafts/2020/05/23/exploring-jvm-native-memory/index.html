@@ -261,48 +261,7 @@
   
   
   <div class="post adoc">
-    <div class="admonitionblock caution">
-<table>
-<tbody><tr>
-<td class="icon">
-<i class="fa icon-caution" title="Caution"></i>
-</td>
-<td class="content">
-Talk about the kubernetes scheduling aspect of setting memory request and limits.
-</td>
-</tr>
-</tbody></table>
-</div>
-<div class="admonitionblock caution">
-<table>
-<tbody><tr>
-<td class="icon">
-<i class="fa icon-caution" title="Caution"></i>
-</td>
-<td class="content">
-Change <em>memory zone</em> in NMT to <em>memory by JVM components</em>
-</td>
-</tr>
-</tbody></table>
-</div>
-<div class="admonitionblock caution">
-<table>
-<tbody><tr>
-<td class="icon">
-<i class="fa icon-caution" title="Caution"></i>
-</td>
-<td class="content">
-Change JDK links to openjdk/jdk
-</td>
-</tr>
-</tbody></table>
-</div>
-<div class="paragraph">
-<p><em>This entry has been marinating for mast of the year 2020. Rewriting it 3 times
-to make it more digestible form, then I found out I should just split my thoughts
-in articles a bit smaller that hopefully make sense on their own.</em></p>
-</div>
-<div class="paragraph">
+    <div class="paragraph">
 <p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
 <a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
 and <a href="https://twitter.com/ylegat">Yohan Legat</a> for the review.</p>
@@ -310,9 +269,41 @@ and <a href="https://twitter.com/ylegat">Yohan Legat</a> for the review.</p>
 <hr/>
 <div class="paragraph">
 <p>This entry is about figuring out the native memory <em>parts</em> of a Java process.
-I will use as a specimen one of the issue that I experienced in production, the actual
-problem could be solved without diving in memory, but other factors served as an excuse
-to go down the rabbit hole.</p>
+All snippet comes from Kubernetes pods under load, in production. The actual
+problem could be solved by adjusting cgroup limits, but the need to understand and
+other factors served as an excuse to go down the rabbit hole.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p><strong>tl;dr</strong></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set the cgroup memory limit high enough, so the application isn’t oomkilled, this will
+let you analyze how the app work, and adjust settings without fear (except from your
+colleagues that compare everything to <em>Go</em> or <em>rust</em>).</p>
+</li>
+<li>
+<p>If you don’t think it’s Java heap memory leak, i.e. the heap usage isn’t alarming,
+try to inspect native memory, it’s easier with the flag <code>-XX:+AlwaysPreTouch</code>,
+however keep in mind this will bump your RSS right from the start, so anticipate this
+increase in your cgroup memory limit.</p>
+</li>
+<li>
+<p>Then inspect what’s outside the JVM Java heap.</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>In doing so the following writing tries to piece together elements
@@ -362,9 +353,9 @@ in this chapter; pretend I’m a disk manufacturer.
 <h2 id="_exploration_begins"><a class="anchor" href="#_exploration_begins"></a><a class="link" href="#_exploration_begins">Exploration begins</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_the_jvm_flags_as_a_starting_points"><a class="anchor" href="#_the_jvm_flags_as_a_starting_points"></a><a class="link" href="#_the_jvm_flags_as_a_starting_points">The JVM flags as a starting points</a></h3>
+<h3 id="_the_jvm_flags_as_a_starting_point"><a class="anchor" href="#_the_jvm_flags_as_a_starting_point"></a><a class="link" href="#_the_jvm_flags_as_a_starting_point">The JVM flags as a starting point</a></h3>
 <div class="paragraph">
-<p>When assessing java memory one of the fist thing to look at are the Java heap parameters.</p>
+<p>When assessing java memory, one of the fist thing to look at are the Java heap parameters.</p>
 </div>
 <div class="paragraph">
 <p>It’s likely anyone that reads this article is familiar with <code>Xms</code> or <code>Xmx</code>, but there are
@@ -432,12 +423,13 @@ Do not confuse the <code>VM.flags</code> command which will output parameters ca
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>The other Hotspot flag values comes are JVM defaults (which may either be static values,
-or computed from internal heuristics).</p>
+<p>The other Hotspot flag values comes are JVM <em>defaults</em>, which may either be static values,
+or computed from internal heuristics.</p>
 </div>
 <div class="paragraph">
-<p>The Java heap is only a part of the process memory usage. So now let’s dig into how memory
-is <em>consumed</em>. The values or snippet comes from an application running inside a container.</p>
+<p>As we tend to dismiss regularly, the Java heap is only a part of the process memory usage.
+So now let’s dig into how memory is <em>consumed</em>. The values or snippet comes from an
+application running inside a container.</p>
 </div>
 </div>
 <div class="sect2">
@@ -472,7 +464,7 @@ VmRSS:	 4701120 kB</code></pre>
 </div>
 <div class="paragraph">
 <p>The RSS is <code>4.6 GiB</code>, and it’s Java heap size is <code>4.25 GiB</code>, indicating
-this process uses around <code>0.35 GiB</code> of non Java heap memory, I’ll refer
+this process uses around <code>0.35 GiB</code> of non-Java heap memory, I’ll refer
 to this memory as <em>native memory</em>.</p>
 </div>
 <div class="paragraph">
@@ -480,12 +472,12 @@ to this memory as <em>native memory</em>.</p>
 what it actually measures.</p>
 </div>
 <div class="sect3">
-<h4 id="_the_java_memory_zones"><a class="anchor" href="#_the_java_memory_zones"></a><a class="link" href="#_the_java_memory_zones">The java memory zones</a></h4>
+<h4 id="_the_jvm_component_memory"><a class="anchor" href="#_the_jvm_component_memory"></a><a class="link" href="#_the_jvm_component_memory">The JVM component memory</a></h4>
 <div class="paragraph">
 <p>In order to understand how the Java process memory is consumed, we need to use
 <em>Native Memory Tracking</em> (<code>-XX:NativeMemoryTracking=summary</code>) which produces
 an overview of the memory usage by the <em>components of the JVM</em>. It actually gives
-a pretty good picture of the &#34;cost&#34; of running code the JVM.</p>
+a pretty good picture of the &#34;cost&#34; of having a JVM.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -496,7 +488,7 @@ a pretty good picture of the &#34;cost&#34; of running code the JVM.</p>
 <td class="content">
 Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10%
 performance overhead. The <em>summary</em> mode merely has an impact in memory usage
-as shown below.
+as shown below and is usually enough.
 </td>
 </tr>
 </tbody></table>
@@ -652,12 +644,6 @@ internal constants for about <code>28.2 MiB</code>.</td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>All possible memory types are defined there in
-<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/memory/allocation.hpp#L114-L141">this enumeration</a>,
-and <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/services/nmtCommon.cpp#L28-L51">here</a>
-as they appear in the report.</p>
-</div>
-<div class="paragraph">
 <p>The remaining areas are much smaller in scale, NMT takes ~<code>8.2 MiB</code> itself, module system usage ~<code>1.3 MiB</code>,
 etc. Also, note that enabling other JVM features may show up if they are activated, like flight recorder.
 <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
@@ -665,24 +651,42 @@ etc. Also, note that enabling other JVM features may show up if they are activat
 <div class="paragraph">
 <p>There’s a lot more to read on the
 <a href="https://docs.oracle.com/en/java/javase/11/vm/native-memory-tracking.html#GUID-39676837-DA61-4F8D-9C5B-9DB1F5147D80">official documentation about NMT</a>
-and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">how to Monitor VM Internal Memory</a>.</p>
-</div>
-<div class="paragraph">
-<p>Yet another worthwhile read on <a href="https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/">native memory tracking</a>
+and <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-1F53A50E-86FF-491D-A023-8EC4F1D1AC77">how to Monitor VM Internal Memory</a>.
+Yet another worthwhile read on <a href="https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/">native memory tracking</a>
 by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
 </div>
 <div class="paragraph">
-<p>NMT is a great tool to gain an insight on the memory usage of the various
+<p><strong>In the rest of this article whe n talking the context of Native Memory Tracking
+I may use the term <em>memory type</em> or <em>memory zones</em>, but the real definition would be :</strong></p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p><strong>the <em>memory allocation type</em> performed by a <em>JVM component</em></strong></p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>The different sections are defined there in
+<a href="https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/memory/allocation.hpp#L114-L141">this <code>MemoryType</code> enumeration</a>,
+and <a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/services/nmtCommon.cpp#L28-L51">here</a>
+as they appear in the report.</p>
+</div>
+<div class="paragraph">
+<p><em>NMT</em> is a great tool to gain an insight on the memory usage of the various
 parts that compose the Java runtime. It has interesting subcommands to compare
-the memory usage of the JVM component with a <em>baseline</em>. However, <strong>it doesn’t answer
+the memory usage of the JVM component with a <em>baseline</em>.</p>
+</div>
+<div class="paragraph">
+<p>However, and that’s the important bit <strong>it does not answer
 what is actually accounted in the RSS column of <code>ps</code></strong>.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_lets_pause_a_bit_and_revise_os_memory_management"><a class="anchor" href="#_lets_pause_a_bit_and_revise_os_memory_management"></a><a class="link" href="#_lets_pause_a_bit_and_revise_os_memory_management">Let’s pause a bit and revise OS memory management</a></h4>
+<h4 id="_revising_os_virtual_memory_and_memory_management"><a class="anchor" href="#_revising_os_virtual_memory_and_memory_management"></a><a class="link" href="#_revising_os_virtual_memory_and_memory_management">Revising OS virtual memory and memory management</a></h4>
 <div class="paragraph">
 <p>I mentioned this acronym already, <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it?
-What exactly means <em>committed</em> memory or <em>reserved</em> memory shown in NMT ? How do they
+What exactly means <em>committed</em> memory or <em>reserved</em> memory shown in <em>NMT</em> ? How do they
 relate to each other?</p>
 </div>
 <div class="paragraph">
@@ -770,38 +774,36 @@ This applies to the JVM and the OS. These ranges are actually not necessarily co
 <td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> or <code>malloc</code>
 for a particular memory pool. In other words <em>reserved memory</em> represents the maximum
 addressable memory.
-Those could be referred to as <strong>uncommitted</strong>.
-This applies to the JVM and the OS.</p></td>
+Those could be referred to as <strong>uncommitted</strong>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">OS memory pages which are currently in physical ram. This means codes,
 stacks, part of the committed memory pools but also portions of <code>mmap</code>ed files
-which have recently been accessed and allocations outside the control of the JVM.
-This only relate to the OS.</p></td>
+which have recently been accessed and allocations outside the control of the JVM.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Virtual</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The sum of all virtual address mappings. Covers committed, reserved
 memory pools but also mapped files or shared memory. This number is rarely informative
 since the JVM will reserve large address ranges upfront. We can see this number
-as the pessimistic memory usage.
-This only relate to the OS.</p></td>
+as the pessimistic memory usage.</p></td>
 </tr>
 </tbody>
 </table>
 <div class="paragraph">
-<p>The graph above does not yet show resident memory. Indeed, the above graph most
+<p>The graph above does not yet show <em>resident memory</em>. Indeed, the above graph most
 display the relative size by memory <em>kind</em> within an address space of a process.
 In order explain resident memory it’s necessary to revise how Linux (and other OSes
 by the way) manage memory using the concept of <strong>paging</strong>.</p>
 </div>
 <div class="paragraph">
-<p>The virtual address space is divided into smaller chunks called <em>pages</em>. While I only
-saw pages of <code>4 KiB</code> other sizes exist and may even co-exist (e.g. having pages of
+<p>The virtual address space is divided into smaller chunks called <em>pages</em>
+usually <code>4 KiB</code> in size.
+<em>Other page sizes do exist and may even co-exist (e.g. having pages of
 4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
 working with different size of pages is something that is out of scope for this article.
-What is interesting is how paging and RSS relate to each other.</p>
+What is interesting is how paging and RSS relate to each other.</em></p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -1079,35 +1081,48 @@ What is interesting is how paging and RSS relate to each other.</p>
   </g>
 </svg>
 </div>
-<div class="title">paging (for a single process)</div>
+<div class="title">virtual memmory and paging (for a single process)</div>
 </div>
 <div class="paragraph">
 <p>The graph above shows the addressable space of a process and its <em>pages</em>.
 The process can access these pages using the addresses of its virtual space,
-however these pages have to be stored physically, usually in RAM, sometime on disk,
-when referring to these chunks of memory on hardware we use the term <em>frame</em>.</p>
+however these pages have to be stored physically, usually in RAM, sometime on disk.
+When referring to these chunks of memory on hardware, we use the term <em>frame</em>.</p>
 </div>
 <div class="paragraph">
 <p>The real memory address is naturally different from this virtual address space
 for the process. There’s a specialized component called MMU (Memory Management Unit)
-to perform the translation between virtual addresses and physical addresses.</p>
+that is part of the processor to perform the translation between virtual addresses
+and physical addresses.</p>
 </div>
 <div class="paragraph">
 <p>The incentive behind virtual memory and paging comes from multi-tasking, it allows
 running multiple program concurrently. Each process will have the illusion of a single
-big block of memory.
-The OS is hard at work performing various tricks to keep this illusion for all processes.
-Since programs run concurrently, <strong>not all memory pages is used at the same time</strong>.
-From this observation it’s possible :</p>
+big block of memory. In practice, it abstracts away useful tricks like
+lazy allocation, swapping, file mapping, defragmentation, caching, etc.</p>
+</div>
+<div class="paragraph">
+<p>The OS is hard at work performing these tricks while keeping this illusion for all
+processes. Since programs run concurrently, <strong>not all memory pages is used at the
+same time</strong>.</p>
+</div>
+<div class="paragraph">
+<p>In practical terms we can observe that:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p>to not use physical memory frames if the process didn’t yet <em>touch</em> this page, in
-other words such a page does not really exist.</p>
+<p>A physical memory frame won’t be used if the process didn’t <em>touch</em> a page, or
+we can say this page doesn’t exist.</p>
 </li>
 <li>
-<p>to use a slower device to store pages, usually a disk, in a special place called <em>swap</em>.</p>
+<p>The kernel may choose to move the real location of the page to use a slower device
+to store pages, usually a disk, in a special place called <em>swap</em>, if it thinks there
+won’t be enough physical memory (RAM).</p>
+</li>
+<li>
+<p>The kernel may use unemployed physical frames for caching purpose, or other tasks
+like defragmentation.</p>
 </li>
 </ul>
 </div>
@@ -1127,15 +1142,26 @@ where they usually explain in depth how everything interacts.</em></p>
 with the JVM perspective.</p>
 </div>
 <div class="sect4">
-<h5 id="_reserved_and_committed_memory_in_the_jvm"><a class="anchor" href="#_reserved_and_committed_memory_in_the_jvm"></a><a class="link" href="#_reserved_and_committed_memory_in_the_jvm">Reserved and committed memory in the JVM</a></h5>
+<h5 id="_reserved_and_committed_memory_for_nmt"><a class="anchor" href="#_reserved_and_committed_memory_for_nmt"></a><a class="link" href="#_reserved_and_committed_memory_for_nmt">Reserved and committed memory for NMT</a></h5>
 <div class="paragraph">
-<p>As mentioned above one of the idea of the <strong>reserved</strong> / <strong>committed</strong> memory is to
+<p>As mentioned above, one of the idea of the <strong>reserved</strong> / <strong>committed</strong> memory is to
 provide the illusion of a single <strong>continuous</strong> memory space.</p>
 </div>
 <div class="paragraph">
-<p>Concretely for the JVM it means that the <em>committed</em> memory is immediately usable,
-and the <em>reserved</em> memory part means memory <em>put on hold</em> and not usable.
-Now with a better understanding of how memory works let’s look again at the output
+<p>Concretely for the JVM it means that</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>the <em>committed</em> memory is immediately usable,</p>
+</li>
+<li>
+<p>and the <em>reserved</em> memory part means memory <em>put on hold</em> and not usable.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>With a better understanding of how memory works let’s look again at the output
 of the <code>VM.native_memory</code> command to make more sense of it:</p>
 </div>
 <div class="listingblock">
@@ -1188,7 +1214,7 @@ amount.</td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>Iterating on the graph above the memory is split in smaller regions.</p>
+<p>Or with a picture :</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -1300,7 +1326,7 @@ amount.</td>
   </g>
 </svg>
 </div>
-<div class="title">JVM memory zones</div>
+<div class="title">JVM memory allocations</div>
 </div>
 <div class="paragraph">
 <p>This immediately leads to new vocabulary :</p>
@@ -1314,15 +1340,16 @@ amount.</td>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Used Heap</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects and to a certain extent object
-that are unreachable but not yet collected by the GC. This only relate to the JVM Java heap.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The amount of memory occupied by live objects and to a certain
+extent object that are unreachable but not yet collected by the GC. This only
+relate to the JVM Java heap.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed heap</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The current limit if the writable memory to write objects to.
-It’s the current workspace of the GC. Upon process start this value should be equal to <code>Xms</code>,
-then the GC may expand it up to the Java heap reserved memory, or in Java terms the heap max size,
-or <code>Xmx</code>.</p></td>
+It’s the current workspace of the GC. Upon process start this value should be equal
+to <code>Xms</code>, then the GC may expand it up to the Java heap reserved memory, or in Java
+terms the heap max size, or <code>Xmx</code>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Heap Max Size</strong></p></td>
@@ -1333,8 +1360,8 @@ If the application requires more memory, this will result in a <code>OutOfMemory
 </tbody>
 </table>
 <div class="paragraph">
-<p>So committed stands for writable memory and reserved stands for total addressable space
-of the memory. How does it work concretely?</p>
+<p>So committed stands for writable memory and, reserved stands for total addressable
+space of the memory. How does it work concretely?</p>
 </div>
 <div class="paragraph">
 <p>The JVM starts by <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/os/linux/os_linux.cpp#L3421-L3444"><em>reserving</em> the memory</a>,
@@ -1402,7 +1429,7 @@ the JVM changes the mapping for a sub-range of that main memory by removing the
 request another memory segment.</p>
 </div>
 <details>
-<summary class="title">Simple code example</summary>
+<summary class="title">Simple C code example</summary>
 <div class="content">
 <div class="paragraph">
 <p>To help you understand here’s a very simple program:</p>
@@ -1436,7 +1463,12 @@ request another memory segment.</p>
 int main (int argc, char *argv[])
 {
   char *heap1 = malloc(HEAP_SIZE);
-  char *heap2 = mmap(0, HEAP_SIZE, PROT_NONE|PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS, -1, 0);
+  char *heap2 = mmap(0,
+                     HEAP_SIZE,
+                     PROT_NONE | PROT_WRITE,
+                     MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS,
+                     -1,
+                     0);
 
   pid_t pid = getpid();
   printf(&#34;pid: %d\n&#34;, pid);
@@ -1468,9 +1500,9 @@ int main (int argc, char *argv[])
 </div>
 </div>
 <div class="listingblock secondary">
-<div class="title">result</div>
+<div class="title">result (Linux / llvm)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ gcc -Wall -Wpedantic -o heap-malloc heap-malloc.c &amp;&amp; ./heap-mem
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ clang -Wall -Wpedantic -o test-alloc test-alloc.c &amp;&amp; ./test-alloc
 pid: 4301956
 
 Executing: &#39;ps -p 2904 -o rss,vsz,command&#39;
@@ -1501,6 +1533,256 @@ about <code>4 GiB</code>.</p>
 <div class="sect3">
 <h4 id="_exploring_what_nmt_does_not_show"><a class="anchor" href="#_exploring_what_nmt_does_not_show"></a><a class="link" href="#_exploring_what_nmt_does_not_show">Exploring what NMT does not show</a></h4>
 <div class="paragraph">
+<p>The previous section showed that NMT numbers only represents the sizes
+of the different JVM memory zones, but, does not reflect the real usage.</p>
+</div>
+<div class="paragraph">
+<p>The JVM components reported by NMT can use different <em>types of memory management</em> and
+as such may have multiple allocation mechanisms. For example:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>GC based
+The <code>Java heap</code> and the <code>Metaspace</code> (<code>Class</code>) are usually the biggest consumers of memory,
+they both rely on <code>mmap</code>.</p>
+<div class="listingblock">
+<div class="title">java heap and metaspace</div>
+<div class="content">
+<pre>-                 Java Heap (reserved=3145728KB, committed=3145728KB)
+                            (mmap: reserved=3145728KB, committed=3145728KB)
+
+-                     Class (reserved=1195111KB, committed=164967KB)
+                            (classes #27354)
+                            (  instance classes #25689, array classes #1665)
+                            (malloc=5223KB #86596)
+                            (mmap: reserved=1189888KB, committed=159744KB)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>These two <em>memory zones</em> are interesting in that they are managed by the GC algorithm,
+put in other words the GC is actually the memory manager of these zones, it is able to
+<em>arrange</em> the memory according to the options that are passed on the command line.
+E.g. with a fixed size heap (<code>Xms</code> = <code>Xmx</code>), the heap will be constituted of a large memory
+segment, in this case the <em>reserved</em> and <em>committed</em> values will be the same as well.</p>
+</div>
+<div class="paragraph">
+<p>Other options may trigger specific behavior for these memory zones, e.g. make
+the heap to grow or to shrink (I never saw that in practice,
+maybe I’ll see it once I use a JDK 12+ with <em>heap uncommit</em> with <a href="https://openjdk.java.net/jeps/346">JEP-346</a>,
+although even the JEP mention it’ll only happen if there is very low activity, which is unlikely to
+happen for some workload).</p>
+</div>
+</li>
+<li>
+<p>Threads
+The Java threads are constructs controlled by the JVM runtime,
+each thread is allocated on addressable space, their allocation size is always the
+same, but can be controlled via a few JVM parameters. Their usage depends on
+application usage. Eg. if the program request 1000 threads, then the JVM needs
+to allocate 1000 threads.</p>
+<div class="listingblock">
+<div class="title">thread</div>
+<div class="content">
+<pre>-                    Thread (reserved=533903KB, committed=70439KB)
+                            (thread #517)
+                            (stack: reserved=531432KB, committed=67968KB) <i class="conum" data-value="1"></i><b>(1)</b>
+                            (malloc=1866KB #3103) <i class="conum" data-value="2"></i><b>(2)</b>
+                            (arena=605KB #1033) <i class="conum" data-value="3"></i><b>(3)</b></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The stack memory is where the JVM puts the thread stack, it’s the sum
+of all thread stack memory mappings.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The thread sub-system performed 3103 <code>malloc</code> calls amounting to <code>1866 KiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The thread local handles required 1033 arenas, amounting to <code>605 KiB</code>.</td>
+</tr>
+</tbody></table>
+</div>
+</li>
+<li>
+<p>Other native zones
+The other component reported by NMT management uses different technics. Sometime using a
+combination of these technics:</p>
+<div class="paragraph">
+<p><code>GC</code> zone for example only works with <code>malloc</code> and <code>mmap</code>, and size can grow as needed.</p>
+</div>
+<div class="listingblock">
+<div class="title">gc</div>
+<div class="content">
+<pre>-                        GC (reserved=180505KB, committed=180505KB)
+                            (malloc=30589KB #219593) <i class="conum" data-value="1"></i><b>(1)</b>
+                            (mmap: reserved=149916KB, committed=149916KB) <i class="conum" data-value="2"></i><b>(2)</b></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Here the GC performed 219593 <code>malloc</code> calls amounting to <code>30589 KiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Here the GC reserved and committed memory segment(s) amount to <code>149916 KiB</code>.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The JVM also implements its own
+<a href="https://en.wikipedia.org/wiki/Region-based_memory_management">Arena based memory management</a>,
+(distinct from the arena memory management of glibc). It is used by some
+subsystems of the JVM or when native code uses internal objects that rely on JVM arenas
+<a href="https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src/src/hotspot/share/utilities/bitMap.hpp#L344-L345">[1]</a>
+<a href="https://github.com/corretto/corretto-11/blob/7ea9366e39d0650274e45ce966b36bb01d26ff26/src/src/hotspot/share/utilities/growableArray.hpp#L127">[2]</a></p>
+</div>
+<div class="paragraph">
+<p><code>Compiler</code>, <code>Symbol table</code> do use this memory management for example.
+Special mention of the <em>thread local handles</em> that also use JVM arenas.</p>
+</div>
+<div class="paragraph">
+<p>NMT reports all the memory allocation technics that are used by a JVM component,
+for example the GC system :</p>
+</div>
+<div class="listingblock">
+<div class="title">compiler</div>
+<div class="content">
+<pre>-                  Compiler (reserved=6666KB, committed=6666KB)
+                            (malloc=6533KB #3575) <i class="conum" data-value="1"></i><b>(1)</b>
+                            (arena=133KB #5) <i class="conum" data-value="2"></i><b>(2)</b></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The compiler performed 3575 <code>malloc</code> calls amounting to <code>6533 KiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The compiler uses 5 arenas totaling <code>133 KiB</code>.</td>
+</tr>
+</tbody></table>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>There are three kinds of segments we can easily guess in the memory
+mapping because we know their size, Java heap, metaspace, and threads.
+Other segments are difficult to guess for two reasons: the malloc
+implementation details, like the arenas in Glibc, and the number of
+different <code>malloc</code> calls for a single component.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_heu"><a class="anchor" href="#_heu"></a><a class="link" href="#_heu">heu</a></h4>
+<div class="paragraph">
+<p>Where to look for this number? While it’s easy to get the RSS of a process, to understand
+if the committed heap actually <em>resides</em> on physical memory you need to use <code>pmap</code> or
+inspect <code>/proc/{pid}/maps</code> or <code>/proc/{pid}/smaps</code>. You have to notice the one of the first
+memory zones is quite big and about the size of the committed heap as shown in NMT.
+It’s easier to spot with <code>pmap -X</code> (capital <code>X</code>).</p>
+</div>
+<div class="listingblock primary">
+<div class="title"><code>pmap -x &lt;pid&gt;</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -x $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- java
+0000000000600000       4       4       4 r---- java
+0000000000601000       4       4       4 rw--- java
+0000000001cfc000     412     224     224 rw---   [ anon ]
+00000006f0000000 4477472 2944744 2944744 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+0000000801488000 1027552       0       0 -----   [ anon ]
+00007f11b3744000   16388   16388   16388 rw---   [ anon ]
+00007f11b4745000      16       0       0 -----   [ anon ]
+00007f11b4749000   50688   49484   49484 rw---   [ anon ]
+00007f11b78c9000    1536       0       0 -----   [ anon ]
+00007f11b7a49000   32776   32776   32776 rw---   [ anon ]
+00007f11b9a4b000      16       0       0 -----   [ anon ] <i class="conum" data-value="2"></i><b>(2)</b>
+00007f11b9a4f000    1012      24      24 rw---   [ anon ] <i class="conum" data-value="3"></i><b>(3)</b>
+00007f11b9b4c000      16       0       0 -----   [ anon ]
+00007f11b9b50000    1012      92      92 rw---   [ anon ]
+00007f11b9c4d000      16       0       0 -----   [ anon ]
+00007f11b9c51000    1012     116     116 rw---   [ anon ]
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>heap memory</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>a thread guard pages</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>a thread stack</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title"><code>pmap- X &lt;pid&gt;</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -X $(pidof java) | less -S -X
+6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
+         Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
+        00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
+        00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        00601000 rw-p 00001000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
+        01cfc000 rw-p 00000000  00:00       0      412     224     224        224       224        0              0              0               0    0       0      0           0 [heap] <i class="conum" data-value="1"></i><b>(1)</b>
+       6f0000000 rw-p 00000000  00:00       0  4477472 2939592 2939592    2939592   2939592        0              0              0               0    0       0      0           0        <i class="conum" data-value="2"></i><b>(2)</b>
+       801488000 ---p 00000000  00:00       0  1027552       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4745000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b4749000 rw-p 00000000  00:00       0    50688   49472   49472      49472     49472        0              0              0               0    0       0      0           0
+    7f11b78c9000 ---p 00000000  00:00       0     1536       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b7a49000 rw-p 00000000  00:00       0    32776   32776   32776      32776     32776        0              0              0               0    0       0      0           0
+    7f11b9a4b000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        <i class="conum" data-value="3"></i><b>(3)</b>
+    7f11b9a4f000 rw-p 00000000  00:00       0     1012     112     112        112       112        0              0              0               0    0       0      0           0        <i class="conum" data-value="4"></i><b>(4)</b>
+    7f11b9b4c000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b9b50000 rw-p 00000000  00:00       0     1012      96      96         96        96        0              0              0               0    0       0      0           0
+    7f11b9c4d000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
+    7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>native heap memory</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>java heap</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>a thread guard pages</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>a thread stack</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_focusing_on_mapped_files"><a class="anchor" href="#_focusing_on_mapped_files"></a><a class="link" href="#_focusing_on_mapped_files">Focusing on mapped files</a></h4>
+<div class="paragraph">
 <p>The <code>NativeMemoryTracking</code> output showed memory usage of the JVM, but it didn’t report
 <code>MappedByteBuffers</code>, those are the files that are <em>memory mapped</em> to the virtual memory
 of a process as explained above via the native <code>mmap</code> call.
@@ -1519,7 +1801,7 @@ for security reasons.</p>
 <div class="listingblock">
 <div class="title">process memory mappings</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -x $(pgrep java)
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -x $(pgrep java)
 6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
 -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
 -Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
@@ -1627,8 +1909,8 @@ total kB         24035820 4776860 4720796</code></pre>
 <div class="exampleblock">
 <div class="content">
 <div class="paragraph">
-<p>On a side note, <code>pmap</code> may show another mapping mode which I barely found any reference of,
-here’s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a>
+<p>On a side note, <code>pmap</code> may show another mapping mode which I barely found any
+reference of, here’s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a>
 and <a href="https://linux.die.net/man/2/mmap">here</a></p>
 </div>
 <div class="ulist">
@@ -1643,16 +1925,12 @@ already been mapped to physical memory, and if the system is out of physical mem
 </div>
 </div>
 <div class="paragraph">
-<p><em>I was a bit unfamiliar with <code>pmap</code>, reading <a href="https://techtalk.intersec.com/2013/07/memory-part-2-understanding-process-memory/">this process memory blog</a>
-helped me with this command.</em></p>
-</div>
-<div class="paragraph">
 <p>At this time the focus is to see what are the memory mapped files with the JVM.
 The <code>Mapping</code> column on the of <code>pmap -x $(pgrep java)</code> can be parsed to identify
 file mappings, but this is brittle and unnecessary, one can simply look at
 the output of <code>pmap -X $(pgrep java)</code> (notice the big <code>X</code>) or even at the
 <code>/proc/$(pidof java)/maps</code> content looking for a non-zero value of the <code>inode</code>
-column inidcating this is a file.</p>
+column indicating this is a file.</p>
 </div>
 <div class="paragraph">
 <p>Using the output of <code>pmap -X $(pgrep java)</code> and selecting the matching lines
@@ -1661,7 +1939,7 @@ with <code>awk</code> this is <em>easy</em>:</p>
 <div class="listingblock">
 <div class="title">Shared application memory mapped files</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ pmap -X $(pidof java) | awk &#39;{ if (NR &lt;= 2 || $5 &gt;0 ) \ <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -X $(pidof java) | awk &#39;{ if (NR &lt;= 2 || $5 &gt;0 ) \ <i class="conum" data-value="1"></i><b>(1)</b>
   printf &#34;%12s %8s %8s %4s %s\n&#34;, \ <i class="conum" data-value="2"></i><b>(2)</b>
   $1, \
   $6, \
@@ -1799,10 +2077,6 @@ with <code>awk</code> this is <em>easy</em>:</p>
 7f358149c000        4        4 r--p libpthread-2.28.so
 7f358149d000        4        4 rw-p libpthread-2.28.so
 7f35814a2000        4        4 r--p LC_IDENTIFICATION
-7f35814a5000      152      152 r-xp libtcmalloc_minimal.so.4.5.3
-7f35814cb000     2048        0 ---p libtcmalloc_minimal.so.4.5.3
-7f35816cb000        4        4 r--p libtcmalloc_minimal.so.4.5.3
-7f35816cc000        4        4 rw-p libtcmalloc_minimal.so.4.5.3
 7f3581878000        4        4 r--p ld-2.28.so
 7f3581879000      120      120 r-xp ld-2.28.so
 7f3581897000       32       32 r--p ld-2.28.so
@@ -1828,9 +2102,9 @@ with <code>awk</code> this is <em>easy</em>:</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>The last two lines aren’t filtered out due to my limited skills in <code>awk</code>. They are
-only valid for the complete output. The actual sum of the size and rss columns
-is respectively <code>195336 KiB</code> and <code>52316 KiB</code>.</td>
+<td>The last two lines aren’t filtered out due to my limited skills in <code>awk</code> ; the actual
+sums of the <em>size</em> and <em>rss</em> columns of the selected rows are respectively
+<code>195336 KiB</code> and <code>52316 KiB</code>.</td>
 </tr>
 </tbody></table>
 </div>
@@ -1972,7 +2246,7 @@ or the JVM will eventually be oomkilled by the OS.</p>
 <div class="sect4">
 <h5 id="_how_many_pages_are_used"><a class="anchor" href="#_how_many_pages_are_used"></a><a class="link" href="#_how_many_pages_are_used">How many pages are used ?</a></h5>
 <div class="paragraph">
-<p>The <em>proc</em> filesystem is nice as it gives the paging details on the current process.</p>
+<p>The <em>proc</em> filesystem is gives the paging details on the current process.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2041,284 +2315,16 @@ $ cat /proc/$(pidof java)/statm | tr &#39; &#39; &#39;\n&#39;
 If the kubernetes memory limit is <code>5 GiB</code> (<code>5242880 KiB</code>),
 then the process may be oom-killed if the program uses more than
 <code>1310720</code> used pages. If the program don’t use more pages than this
-number this process will be fine.
+number, this process will be fine.
 </td>
 </tr>
 </tbody></table>
 </div>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_digging"><a class="anchor" href="#_digging"></a><a class="link" href="#_digging">Digging</a></h4>
-<div class="paragraph">
-<p>The previous section showed that NMT numbers only represents the sizes
-of the different JVM memory zones, but, does not reflect the real usage.</p>
 </div>
-<div class="paragraph">
-<p>Most of the time using <code>ps</code> is enough. If however you’d like to understand a bit more
-how much JVM components are actually consuming memory, then read on.</p>
-</div>
-<div class="paragraph">
-<p>The JVM components reported by NMT can use different <em>types of memory management</em> and
-as such may have multiple allocation mechanisms. For example:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>GC based
-<code>Java heap</code> and <code>Metaspace</code> (<code>Class</code>) are usually the biggest consumers of memory,
-they both rely on <code>mmap</code>.</p>
-<div class="listingblock">
-<div class="title">java heap and metaspace</div>
-<div class="content">
-<pre>-                 Java Heap (reserved=3145728KB, committed=3145728KB)
-                            (mmap: reserved=3145728KB, committed=3145728KB)
-
--                     Class (reserved=1195111KB, committed=164967KB)
-                            (classes #27354)
-                            (  instance classes #25689, array classes #1665)
-                            (malloc=5223KB #86596)
-                            (mmap: reserved=1189888KB, committed=159744KB)</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>These two <em>memory zones</em> are interesting in that they are managed by the GC algorithm,
-put in other words the GC is actually the memory manager of these zones, it is able to
-<em>arrange</em> the memory according to the options that are passed on the command line.
-E.g. with a fixed size heap (<code>Xms</code> = <code>Xmx</code>), the heap will be constituted of a large memory
-segment, in this case the <em>reserved</em> and <em>committed</em> values will be the same as well.</p>
-</div>
-<div class="paragraph">
-<p>Other options may trigger specific behavior for these memory zones, e.g. make
-the heap to grow or to shrink (I never saw that in practice,
-maybe I’ll see it once I use a JDK 12+ with <em>heap uncommit</em> with <a href="https://openjdk.java.net/jeps/346">JEP-346</a>,
-although even the JEP mention it’ll only happen if there is very low activity, which is unlikely to
-happen for some workload).</p>
-</div>
-</li>
-<li>
-<p>Threads
-The Java threads are constructs controlled by the JVM runtime,
-each thread is allocated on addressable space, their allocation size is always the
-same, but can be controlled via a few JVM parameters. Their usage depends on
-application usage. Eg. if the program request 1000 threads, then the JVM needs
-to allocate 1000 threads.</p>
-<div class="listingblock">
-<div class="title">thread</div>
-<div class="content">
-<pre>-                    Thread (reserved=533903KB, committed=70439KB)
-                            (thread #517)
-                            (stack: reserved=531432KB, committed=67968KB) <i class="conum" data-value="1"></i><b>(1)</b>
-                            (malloc=1866KB #3103) <i class="conum" data-value="2"></i><b>(2)</b>
-                            (arena=605KB #1033) <i class="conum" data-value="3"></i><b>(3)</b></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The stack memory is where the JVM puts the thread stack, it’s the sum
-of all thread stack memory mappings.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>The thread sub-system performed 3103 <code>malloc</code>s amounting to <code>1866 KiB</code>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>The thread local handles required 1033 arenas, amounting to <code>605 KiB</code>.</td>
-</tr>
-</tbody></table>
-</div>
-</li>
-<li>
-<p>Other native zones
-The other component reported by NMT management uses different technics. Sometime using a
-combination of these technics:</p>
-<div class="paragraph">
-<p><code>GC</code> zone for example only works with <code>malloc</code> and <code>mmap</code>, and size can grow as needed.</p>
-</div>
-<div class="listingblock">
-<div class="title">gc</div>
-<div class="content">
-<pre>-                        GC (reserved=180505KB, committed=180505KB)
-                            (malloc=30589KB #219593) <i class="conum" data-value="1"></i><b>(1)</b>
-                            (mmap: reserved=149916KB, committed=149916KB) <i class="conum" data-value="2"></i><b>(2)</b></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Here the GC performed 219593 <code>malloc</code>s amounting to <code>30589 KiB</code>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Here the GC reserved and committed memory segment(s) amount to <code>149916 KiB</code>.</td>
-</tr>
-</tbody></table>
-</div>
-<div class="paragraph">
-<p>The JVM also implements its own
-<a href="https://en.wikipedia.org/wiki/Region-based_memory_management">Arena based memory management</a>,
-(distinct from the arena memory management of glibc). It is used by some
-subsystems of the JVM or when native code uses internal objects that rely on JVM arenas
-<a href="https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src/src/hotspot/share/utilities/bitMap.hpp#L344-L345">[1]</a>
-<a href="https://github.com/corretto/corretto-11/blob/7ea9366e39d0650274e45ce966b36bb01d26ff26/src/src/hotspot/share/utilities/growableArray.hpp#L127">[2]</a></p>
-</div>
-<div class="paragraph">
-<p><code>Compiler</code>, <code>Symbol table</code> do use this memory management for example.
-Special mention of the <em>thread local handles</em> that also use JVM arenas.</p>
-</div>
-<div class="paragraph">
-<p>NMT reports all the memory allocation technics that are used by a JVM component,
-for example the GC system :</p>
-</div>
-<div class="listingblock">
-<div class="title">compiler</div>
-<div class="content">
-<pre>-                  Compiler (reserved=6666KB, committed=6666KB)
-                            (malloc=6533KB #3575) <i class="conum" data-value="1"></i><b>(1)</b>
-                            (arena=133KB #5) <i class="conum" data-value="2"></i><b>(2)</b></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The compiler performed 3575 <code>malloc</code>s amounting to <code>6533 KiB</code>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>The compiler uses 5 arenas totaling <code>133 KiB</code>.</td>
-</tr>
-</tbody></table>
-</div>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>There are three kinds of segments we can easily guess in the memory
-mapping because we know their size, Java heap, metaspace, and threads.
-Other segments are difficult to guess for two reasons: the malloc
-implementation details, like the arenas in Glibc, and the number of
-different <code>malloc</code> calls for a single component.</p>
-</div>
-<div class="admonitionblock caution">
-<table>
-<tbody><tr>
-<td class="icon">
-<i class="fa icon-caution" title="Caution"></i>
-</td>
-<td class="content">
-Todo
-</td>
-</tr>
-</tbody></table>
-</div>
-<div class="paragraph">
-<p>Where to look for this number? While it’s easy to get the RSS of a process, to understand
-if the committed heap actually <em>resides</em> on physical memory you need to use <code>pmap</code> or
-inspect <code>/proc/{pid}/maps</code> or <code>/proc/{pid}/smaps</code>. You have to notice the one of the first
-memory zones is quite big and about the size of the committed heap as shown in NMT. It’s easier
-to spot with <code>pmap -X</code> (capital <code>X</code>). <em>Note the captures below are from a different pod/process</em>.</p>
-</div>
-<div class="listingblock primary">
-<div class="title"><code>pmap -x &lt;pid&gt;</code></div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -x $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
-Address           Kbytes     RSS   Dirty Mode  Mapping
-0000000000400000       4       4       0 r-x-- java
-0000000000600000       4       4       4 r---- java
-0000000000601000       4       4       4 rw--- java
-0000000001cfc000     412     224     224 rw---   [ anon ]
-00000006f0000000 4477472 2944744 2944744 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
-0000000801488000 1027552       0       0 -----   [ anon ]
-00007f11b3744000   16388   16388   16388 rw---   [ anon ]
-00007f11b4745000      16       0       0 -----   [ anon ]
-00007f11b4749000   50688   49484   49484 rw---   [ anon ]
-00007f11b78c9000    1536       0       0 -----   [ anon ]
-00007f11b7a49000   32776   32776   32776 rw---   [ anon ]
-00007f11b9a4b000      16       0       0 -----   [ anon ] <i class="conum" data-value="2"></i><b>(2)</b>
-00007f11b9a4f000    1012      24      24 rw---   [ anon ] <i class="conum" data-value="3"></i><b>(3)</b>
-00007f11b9b4c000      16       0       0 -----   [ anon ]
-00007f11b9b50000    1012      92      92 rw---   [ anon ]
-00007f11b9c4d000      16       0       0 -----   [ anon ]
-00007f11b9c51000    1012     116     116 rw---   [ anon ]
-...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>heap memory</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>a thread guard pages</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>a thread stack</td>
-</tr>
-</tbody></table>
-</div>
-<div class="listingblock secondary">
-<div class="title"><code>pmap- X &lt;pid&gt;</code></div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -X $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
-         Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
-        00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
-        00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
-        00601000 rw-p 00001000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
-        01cfc000 rw-p 00000000  00:00       0      412     224     224        224       224        0              0              0               0    0       0      0           0 [heap] <i class="conum" data-value="1"></i><b>(1)</b>
-       6f0000000 rw-p 00000000  00:00       0  4477472 2939592 2939592    2939592   2939592        0              0              0               0    0       0      0           0        <i class="conum" data-value="2"></i><b>(2)</b>
-       801488000 ---p 00000000  00:00       0  1027552       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b4745000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b4749000 rw-p 00000000  00:00       0    50688   49472   49472      49472     49472        0              0              0               0    0       0      0           0
-    7f11b78c9000 ---p 00000000  00:00       0     1536       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b7a49000 rw-p 00000000  00:00       0    32776   32776   32776      32776     32776        0              0              0               0    0       0      0           0
-    7f11b9a4b000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        <i class="conum" data-value="3"></i><b>(3)</b>
-    7f11b9a4f000 rw-p 00000000  00:00       0     1012     112     112        112       112        0              0              0               0    0       0      0           0        <i class="conum" data-value="4"></i><b>(4)</b>
-    7f11b9b4c000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b9b50000 rw-p 00000000  00:00       0     1012      96      96         96        96        0              0              0               0    0       0      0           0
-    7f11b9c4d000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
-...</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>native heap memory</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>java heap</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>a thread guard pages</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>a thread stack</td>
-</tr>
-</tbody></table>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_move_elsewhere"><a class="anchor" href="#_move_elsewhere"></a><a class="link" href="#_move_elsewhere">Move elsewhere</a></h2>
-<div class="sectionbody">
 <div class="sect2">
-<h3 id="_virtual_memory_and_paging"><a class="anchor" href="#_virtual_memory_and_paging"></a><a class="link" href="#_virtual_memory_and_paging">virtual memory and paging</a></h3>
+<h3 id="_virtual_memory_and_paging_effect_on_the_java_heap"><a class="anchor" href="#_virtual_memory_and_paging_effect_on_the_java_heap"></a><a class="link" href="#_virtual_memory_and_paging_effect_on_the_java_heap">Virtual memory and paging effect on the Java heap</a></h3>
 <div class="paragraph">
 <p><strong>Virtual memory</strong> is a memory management scheme that is used by most operating systems ;
 it allows programs to use memory without dealing with hardware, or other concerns like
@@ -2364,7 +2370,6 @@ RSS counter may not reflect what is een in the <strong>committed</strong> memory
 </div>
 </div>
 </div>
-
   </div>
   
 
