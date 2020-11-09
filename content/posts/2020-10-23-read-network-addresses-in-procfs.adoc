@@ -157,13 +157,13 @@ $ cat /proc/$(pidof java)/net/tcp \
 7B202D0A
 ----
 
-Then we need to print these in human readable form. Notice they all are ending by
+Then we need to print these in human-readable form. Notice they all are ending by
 `2D0A`, those two octets are respectively `0x2D=0x45` and `10`. This insight
 suggests these IPs are actually reversed, I'm not sure why ; I only ever used
 reversed IPs for https://en.wikipedia.org/wiki/Reverse_DNS[reverse DNS lookup]
 before. (I you know the reason please drop a comment ;))
 
-So to get human readable form we need to separate the 4 bytes, convert them in
+So to get human-readable form we need to separate the 4 bytes, convert them in
 decimal, and reverse them.
 
 [source, shell]
@@ -174,9 +174,9 @@ $ echo "110C2D0A" \
   | sed 's/.$//' <3>
 ----
 <1> tell `sed` to split the stream every two characters, and
-prepend each bytes by `0x`, this is useful for `printf "%x"`.
+prepend each byte by `0x`, this is useful for `printf "%x"`.
 <2> reverse the order of each field, this simply a for-loop
-decrementing the index, for each fields printing it as a decimal.
+decrementing the index, for each field printing it as a decimal.
 For each line prints a new line (that's the role of `print ""`)
 Then the last `sed` simply removes the last dot.
 
@@ -314,7 +314,7 @@ $ echo "0100007F:3A98
 === Reading /proc/net/route
 
 Likewise, in stripped down container `/sbin/route` may be missing, in that cas using procfs
-offer an alternative :
+offers an alternative :
 
 [source, shell]
 ----
@@ -324,7 +324,7 @@ eth0	00000000	0104F80A	0003	0	0	0	00000000	0	0	0
 eth0	0204F80A	00000000	0001	0	0	0	00FFFFFF	0	0	0
 ----
 
-Reversed hexadecimal IPs are immediately identifiable, although having a human readable form
+Reversed hexadecimal IPs are immediately identifiable, although having a human-readable form
 would be better. Reusing our previous awk command is pure profit.
 
 [source,shell]
@@ -341,12 +341,12 @@ suggests to look at https://sourceforge.net/p/net-tools/code/ci/master/tree/lib/
 
 Which in turns suggest to look at https://github.com/torvalds/linux/blob/v3.6/include/linux/route.h#L50-L60[`include/linux/route.h` (v3.6)] file,
 which moved to https://github.com/torvalds/linux/blob/v3.7/include/uapi/linux/route.h#L50-L60[`include/uapi/linux/route.h#L50-L60`] since v3.7.
-This happend during this https://github.com/torvalds/linux/commit/607ca46e97a1b6594b29647d98a32d545c24bdff#diff-9a1cc27b54f86cc709009b1225d7579bc53ee715d133f6104e56782d3ec697da[commit]
+This happened during this https://github.com/torvalds/linux/commit/607ca46e97a1b6594b29647d98a32d545c24bdff#diff-9a1cc27b54f86cc709009b1225d7579bc53ee715d133f6104e56782d3ec697da[commit]
 for the creation of what is called the user space API of the kernel (uapi), or headers that can be used publicly.
 
 See this http://lwn.net/Articles/507794/[discussion], and thanks for this https://stackoverflow.com/a/18858544/48136[StackOverflow answer].
 
-Anyway here's the flags :
+Anyway here're the flags :
 
 
 .https://github.com/torvalds/linux/blob/v4.19/include/uapi/linux/route.h[include/uapi/linux/route.h (v4.19)]
@@ -372,9 +372,9 @@ $ cat /proc/$(pidof java)/net/tcp6
    4: 0000000000000000FFFF0000171F2D0A:3AAC 0000000000000000FFFF00000134D00A:9ED8 06 00000000:00000000 03:00000511 00000000     0        0 0 3 0000000000000000
 ----
 
-However it's a tad easier for IPv6 as those are expressed as hexadecimal anyway.
+However, it's a tad easier for IPv6 as those are expressed as hexadecimal anyway.
 This should be easy for those as only bit to do is formatting to remove leading ``0``s
-however ther's a catch, if you notice the last bytes they look exactly like
+however there's a catch, if you notice the last bytes they look exactly like
 the reversed IPv4, I'm not how exactly this reverse thing applies to the rest
 of the IPv6 though. But in this case the IPv6 is
 
@@ -387,7 +387,7 @@ As I'm qui unsure how tha applies to all IPv6 I'd rather be prudent there.
 
 == Closing thoughts
 
-When containers are stripped down and read-only, and you don't have the possibility
+When the containers are stripped down and read-only, and you don't have the possibility
 to _attach_ a debug container, I'm quite lucky to have the ability to introspect
 process _internals_ thanks to the pseudo filesystem `/proc`. However sometimes
 the information is not easily human accessible. I hope the few `awk` tricks here

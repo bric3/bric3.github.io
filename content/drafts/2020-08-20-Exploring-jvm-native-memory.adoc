@@ -65,15 +65,15 @@ If I ignored something or if I'm wrong please reach out.
 
 [NOTE]
 ====
-Most of the time, figures will use the https://en.wikipedia.org/wiki/Binary_prefix[IEC binary notation] (`1 KiB = 1024 B`),
+Most of the time, figures will use the https://en.wikipedia.org/wiki/Binary_prefix[IEC binary notation] (`1 KiB = 1024 B`),
 it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
 our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
 and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps` ; although I couldn't find a reference link stating this).
 
-Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 B`).
+Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 B`).
 
 [quote, Java Performance: The Definitive Guide, Getting the Most Out of Your Code (1st Edition)]
-Actually, 227,893 KB is only 222 MB. For ease of discussion, I'll truncate the KBs part by 1,000
+Actually, 227,893 KB is only 222 MB. For ease of discussion, I'll truncate the KBs part by 1,000
 in this chapter; pretend I'm a disk manufacturer.
 
 _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21[tweet]._
@@ -101,7 +101,7 @@ in this case it's possible to access the actual runtime values with `jcmd`.
 In short, it's possible to look at the command line options, but using the diagnostic
 command `jcmd {pid} VM.flags` lets you peek at the actual values that the JVM used.
 
-For example with a memory limit of `5 GiB`, if a process is started with
+For example with a memory limit of `5 GiB`, if a process is started with
 `-XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0` the `VM.flags`
 diagnostic command will output this :
 
@@ -123,8 +123,8 @@ $ jcmd $(pidof java) VM.flags | tr ' ' '\n'
 ----
 <1> Initial RAM at 85%
 <2> Max RAM at 85%
-<3> Initial heap size ~`4.25 GiB`
-<4> Max heap size ~`4.25 GiB`
+<3> Initial heap size ~`4.25 GiB`
+<4> Max heap size ~`4.25 GiB`
 
 TIP: Do not confuse the `VM.flags` command which will output parameters calculated *from* the
 _command line_ and `VM.command_line` which will print the *raw* _command line_.
@@ -164,14 +164,14 @@ PID   RSS
 [source, role="secondary"]
 ----
 $ cat /proc/$(pgrep java)/status | grep VmRSS
-VmRSS:	 4701120 kB
+VmRSS:	 4701120 kB
 ----
 
-The RSS is `4.6 GiB`, and it's Java heap size is `4.25 GiB`, indicating
-this process uses around `0.35 GiB` of non-Java heap memory, I'll refer
+The RSS is `4.6 GiB`, and it's Java heap size is `4.25 GiB`, indicating
+this process uses around `0.35 GiB` of non-Java heap memory, I'll refer
 to this memory as _native memory_.
 
-Now I'd like to dig a bit to understand the reported number `4701120 KiB`,
+Now I'd like to dig a bit to understand the reported number `4701120 KiB`,
 what it actually measures.
 
 
@@ -275,26 +275,26 @@ Total: reserved=7168324KB, committed=5380868KB                               <1>
 -                   Unknown (reserved=32KB, committed=32KB)
                             (mmap: reserved=32KB, committed=32KB)
 ----
-<1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount
-of addressable memory on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`))
+<1> This shows a `reserved` value (`7168324 KiB` (~`6.84 GiB`)), it's the amount
+of addressable memory on that container, and a `committed` value (`4456448 KiB` (~`4.25 GiB`))
 that represents what the JVM actually asked the OS to allocate.
-<2> `Heap` zone, note that reserved and committed values are the same `4456448 KiB`
+<2> `Heap` zone, note that reserved and committed values are the same `4456448 KiB`
 here because our `InitialRAMPercentage` is the same as max. I'm not sure why this number
 is different from the VM flags `-XX:MaxHeapSize=4563402752` though.
-<3> ~`162 MiB` of metaspace.
+<3> ~`162 MiB` of metaspace.
 <4> How many classes have been loaded : `28431`.
-<5> There are 674 threads whose stacks are using ~`80 MiB` at this time.
-<6> `Code` cache area (assembly of the used methods) ~`102 MiB` out of ~`246 MiB`.
+<5> There are 674 threads whose stacks are using ~`80 MiB` at this time.
+<6> `Code` cache area (assembly of the used methods) ~`102 MiB` out of ~`246 MiB`.
 <7> This section contains `GC` algorithms internal data structures, this is app
-is using G1GC which takes ~`225 MiB`.
-<8> C1 / C2 compilers (which compile bytecode to assembly) use ~`5.8 MiB`.
+is using G1GC which takes ~`225 MiB`.
+<8> C1 / C2 compilers (which compile bytecode to assembly) use ~`5.8 MiB`.
 <9> The `Symbol` section contains many things like interned strings and other
-internal constants for about `28.2 MiB`.
-<10> The `Internal` area takes ~`24 MiB`. Before Java 11 this area included
+internal constants for about `28.2 MiB`.
+<10> The `Internal` area takes ~`24 MiB`. Before Java 11 this area included
 `DirectByteBuffers`, but from Java 11 those are accounted in the `Other` zone.
-<11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
+<11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
 
-The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
+The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
 etc. Also, note that enabling other JVM features may show up if they are activated, like flight recorder.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
 
@@ -385,9 +385,9 @@ In order explain resident memory it's necessary to revise how Linux (and other O
 by the way) manage memory using the concept of *paging*.
 
 The virtual address space is divided into smaller chunks called _pages_
-usually `4 KiB` in size.
+usually `4 KiB` in size.
 _Other page sizes do exist and may even co-exist (e.g. having pages of
-4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
+4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
 working with different size of pages is something that is out of scope for this article.
 What is interesting is how paging and RSS relate to each other._
 
@@ -632,9 +632,9 @@ request another memory segment.
 
 To help you understand here's a very simple program:
 
-. that *reserves* `16 MiB` via a `malloc` call and `16 MiB` via the `mmap` call
+. that *reserves* `16 MiB` via a `malloc` call and `16 MiB` via the `mmap` call
 . then this program will invoke `ps` to show its actual memory consumption (RSS)
-. then it will touch/use memory by setting a bit every `1 KiB`
+. then it will touch/use memory by setting a bit every `1 KiB`
 . then this program will invoke `ps` again to show its actual memory consumption (RSS)
 
 .memory example
@@ -704,7 +704,7 @@ Executing: 'ps -p 2904 -o rss,vsz,command'
 As the `stdout` shows the RSS of this program is very low until memory
 is actually written to. At the same time the virtual memory is much,
 much higher; it means this simple program could address up to
-about `4 GiB`.
+about `4 GiB`.
 
 _This program ran on a MacBook Pro 2018 running an Intel Core i7 CPU._
 ====
@@ -774,8 +774,8 @@ to allocate 1000 threads.
 ----
 <1> The stack memory is where the JVM puts the thread stack, it's the sum
 of all thread stack memory mappings.
-<2> The thread sub-system performed 3103 ``malloc`` calls amounting to `1866 KiB`.
-<3> The thread local handles required 1033 arenas, amounting to `605 KiB`.
+<2> The thread sub-system performed 3103 ``malloc`` calls amounting to `1866 KiB`.
+<3> The thread local handles required 1033 arenas, amounting to `605 KiB`.
 
 
 . Other native zones
@@ -790,8 +790,8 @@ combination of these technics:
                             (malloc=30589KB #219593) <1>
                             (mmap: reserved=149916KB, committed=149916KB) <2>
 ----
-<1> Here the GC performed 219593 ``malloc`` calls amounting to `30589 KiB`.
-<2> Here the GC reserved and committed memory segment(s) amount to `149916 KiB`.
+<1> Here the GC performed 219593 ``malloc`` calls amounting to `30589 KiB`.
+<2> Here the GC reserved and committed memory segment(s) amount to `149916 KiB`.
 +
 The JVM also implements its own
 https://en.wikipedia.org/wiki/Region-based_memory_management[Arena based memory management],
@@ -812,198 +812,26 @@ for example the GC system :
                             (malloc=6533KB #3575) <1>
                             (arena=133KB #5) <2>
 ----
-<1> The compiler performed 3575 ``malloc`` calls amounting to `6533 KiB`.
-<2> The compiler uses 5 arenas totaling `133 KiB`.
-
-
-There are three kinds of segments we can easily guess in the memory
-mapping because we know their size, Java heap, metaspace, and threads.
-Other segments are difficult to guess for two reasons: the malloc
-implementation details, like the arenas in Glibc, and the number of
-different `malloc` calls for a single component.
+<1> The compiler performed 3575 ``malloc`` calls amounting to `6533 KiB`.
+<2> The compiler uses 5 arenas totaling `133 KiB`.
 
 
 
 
-// TODO: introduce pmap better
-==== heu
+==== Inspecting memory mappings which memory is resident
 
-Where to look for this number? While it's easy to get the RSS of a process, to understand
-if the committed heap actually _resides_ on physical memory you need to use `pmap` or
-inspect `/proc/{pid}/maps` or `/proc/{pid}/smaps`. You have to notice the one of the first
-memory zones is quite big and about the size of the committed heap as shown in NMT.
-It's easier to spot with `pmap -X` (capital `X`).
+It's easy to get the RSS of a process, to understand if the committed
+heap actually _resides_ on physical memory you need to use `pmap` or inspect
+`/proc/{pid}/maps` or `/proc/{pid}/smaps`.
 
-.`pmap -x <pid>`
-[source, role="primary"]
-----
-$ pmap -x $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
-Address           Kbytes     RSS   Dirty Mode  Mapping
-0000000000400000       4       4       0 r-x-- java
-0000000000600000       4       4       4 r---- java
-0000000000601000       4       4       4 rw--- java
-0000000001cfc000     412     224     224 rw---   [ anon ]
-00000006f0000000 4477472 2944744 2944744 rw---   [ anon ] <1>
-0000000801488000 1027552       0       0 -----   [ anon ]
-00007f11b3744000   16388   16388   16388 rw---   [ anon ]
-00007f11b4745000      16       0       0 -----   [ anon ]
-00007f11b4749000   50688   49484   49484 rw---   [ anon ]
-00007f11b78c9000    1536       0       0 -----   [ anon ]
-00007f11b7a49000   32776   32776   32776 rw---   [ anon ]
-00007f11b9a4b000      16       0       0 -----   [ anon ] <2>
-00007f11b9a4f000    1012      24      24 rw---   [ anon ] <3>
-00007f11b9b4c000      16       0       0 -----   [ anon ]
-00007f11b9b50000    1012      92      92 rw---   [ anon ]
-00007f11b9c4d000      16       0       0 -----   [ anon ]
-00007f11b9c51000    1012     116     116 rw---   [ anon ]
-...
-----
-<1> heap memory
-<2> a thread guard pages
-<3> a thread stack
-
-.`pmap- X <pid>`
-[source, role="secondary"]
-----
-$ pmap -X $(pidof java) | less -S -X
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
-         Address Perm   Offset Device   Inode     Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
-        00400000 r-xp 00000000  08:01 4054960        4       4       1          4         0        0              0              0               0    0       0      0           0 java
-        00600000 r--p 00000000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
-        00601000 rw-p 00001000  08:01 4054960        4       4       4          4         4        0              0              0               0    0       0      0           0 java
-        01cfc000 rw-p 00000000  00:00       0      412     224     224        224       224        0              0              0               0    0       0      0           0 [heap] <1>
-       6f0000000 rw-p 00000000  00:00       0  4477472 2939592 2939592    2939592   2939592        0              0              0               0    0       0      0           0        <2>
-       801488000 ---p 00000000  00:00       0  1027552       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b4745000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b4749000 rw-p 00000000  00:00       0    50688   49472   49472      49472     49472        0              0              0               0    0       0      0           0
-    7f11b78c9000 ---p 00000000  00:00       0     1536       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b7a49000 rw-p 00000000  00:00       0    32776   32776   32776      32776     32776        0              0              0               0    0       0      0           0
-    7f11b9a4b000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0        <3>
-    7f11b9a4f000 rw-p 00000000  00:00       0     1012     112     112        112       112        0              0              0               0    0       0      0           0        <4>
-    7f11b9b4c000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b9b50000 rw-p 00000000  00:00       0     1012      96      96         96        96        0              0              0               0    0       0      0           0
-    7f11b9c4d000 ---p 00000000  00:00       0       16       0       0          0         0        0              0              0               0    0       0      0           0
-    7f11b9c51000 rw-p 00000000  00:00       0     1012     116     116        116       116        0              0              0               0    0       0      0           0
-...
-----
-<1> native heap memory
-<2> java heap
-<3> a thread guard pages
-<4> a thread stack
-
-
-
-
-
-
-
-
-==== Focusing on mapped files
-
-
-The `NativeMemoryTracking` output showed memory usage of the JVM, but it didn't report
-`MappedByteBuffers`, those are the files that are _memory mapped_ to the virtual memory
-of a process as explained above via the native `mmap` call.
-Memory pages of the file content that have been placed in RAM by the OS are accounted in RSS.
-
-
-
-First let's see the memory mappings of a process using the handy command : `pmap -x <pid>`.
-`pmap` is part of the https://gitlab.com/procps-ng/procps/[`procps`] utilities, that contains
-other tools like: `ps`, `pgrep`, `watch` or `vmstat`. It's likely that no additional
+The `pmap` binary is part of the https://gitlab.com/procps-ng/procps/[`procps`] utilities, that
+contains other tools like: `ps`, `pgrep`, `watch` or `vmstat`. It's likely that no additional
 installation is required which is great as a container filesystem should be read-only
-for security reasons.
+for security reasons, if it isn't there, one could still look at the proc filesystem.
 
-For example on the same process on which I showed the native memory.
 
-.process memory mappings
-[source, shell]
-----
-$ pmap -x $(pgrep java)
-6:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom
--XX:InitialRAMPercentage=85.0 -XX:MaxRAMPercentage=85.0 -XX:NativeMemoryTracking=summary
--Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M -javaag
-Address           Kbytes     RSS   Dirty Mode  Mapping
-0000000000400000       4       4       0 r-x-- java
-0000000000600000       4       4       4 r---- java
-0000000000601000       4       4       4 rw--- java
-000000000216f000     404     272     272 rw---   [ anon ]
-00000006f0000000 4476620 3128252 3128252 rw---   [ anon ]
-00000008013b3000 1028404       0       0 -----   [ anon ]
-00007fc5de9ea000      16       0       0 -----   [ anon ]
-00007fc5de9ee000    1012     104     104 rw---   [ anon ]
-00007fc5deaeb000      16       0       0 -----   [ anon ]
-00007fc5deaef000    1012      24      24 rw---   [ anon ]
-00007fc5debec000      16       0       0 -----   [ anon ]
-00007fc5debf0000    1012      92      92 rw---   [ anon ]
-00007fc5deced000      16       0       0 -----   [ anon ]
-00007fc5decf1000    1012     100     100 rw---   [ anon ]
-00007fc5dedee000      16       0       0 -----   [ anon ]
-00007fc5dedf2000    1012     100     100 rw---   [ anon ]
-00007fc5deeef000      16       0       0 -----   [ anon ]
-00007fc5deef3000    1012     100     100 rw---   [ anon ]
-00007fc5deff0000      16       0       0 -----   [ anon ]
-00007fc5deff4000    1012     100     100 rw---   [ anon ]
-00007fc5df0f1000      16       0       0 -----   [ anon ]
-00007fc5df0f5000    1012     100     100 rw---   [ anon ]
-00007fc5df1f2000      16       0       0 -----   [ anon ]
-00007fc5df1f6000    1012     100     100 rw---   [ anon ]
-00007fc5df2f3000      16       0       0 -----   [ anon ]
-00007fc5df2f7000    1012     100     100 rw---   [ anon ]
-00007fc5df3f4000      16       0       0 -----   [ anon ]
-00007fc5df3f8000    1012     100     100 rw---   [ anon ]
-00007fc5df4f5000      16       0       0 -----   [ anon ]
-00007fc5df4f9000    1012     100     100 rw---   [ anon ]
-00007fc5df5f6000      16       0       0 -----   [ anon ]
-00007fc5df5fa000    1012     100     100 rw---   [ anon ]
-
-...
-
-00007fca48ba9000   17696   14876       0 r-x-- libjvm.so
-00007fca49cf1000    2044       0       0 ----- libjvm.so
-00007fca49ef0000     764     764     764 r---- libjvm.so
-00007fca49faf000     232     232     208 rw--- libjvm.so
-00007fca49fe9000     352     320     320 rw---   [ anon ]
-00007fca4a041000     136     136       0 r---- libc-2.28.so
-00007fca4a063000    1312    1140       0 r-x-- libc-2.28.so
-00007fca4a1ab000     304     148       0 r---- libc-2.28.so
-00007fca4a1f7000       4       0       0 ----- libc-2.28.so
-00007fca4a1f8000      16      16      16 r---- libc-2.28.so
-00007fca4a1fc000       8       8       8 rw--- libc-2.28.so
-00007fca4a1fe000      16      16      16 rw---   [ anon ]
-00007fca4a202000       4       4       0 r---- libdl-2.28.so
-00007fca4a203000       4       4       0 r-x-- libdl-2.28.so
-00007fca4a204000       4       4       0 r---- libdl-2.28.so
-00007fca4a205000       4       4       4 r---- libdl-2.28.so
-00007fca4a206000       4       4       4 rw--- libdl-2.28.so
-00007fca4a207000     100     100       0 r-x-- libjli.so
-00007fca4a220000    2048       0       0 ----- libjli.so
-00007fca4a420000       4       4       4 r---- libjli.so
-00007fca4a421000       4       4       4 rw--- libjli.so
-00007fca4a422000      24      24       0 r---- libpthread-2.28.so
-00007fca4a428000      60      60       0 r-x-- libpthread-2.28.so
-00007fca4a437000      24       0       0 r---- libpthread-2.28.so
-00007fca4a43d000       4       4       4 r---- libpthread-2.28.so
-00007fca4a43e000       4       4       4 rw--- libpthread-2.28.so
-00007fca4a43f000      16       4       4 rw---   [ anon ]
-00007fca4a443000       4       4       0 r---- LC_IDENTIFICATION
-00007fca4a444000       4       0       0 -----   [ anon ]
-00007fca4a445000       4       0       0 r----   [ anon ]
-00007fca4a446000       8       8       8 rw---   [ anon ]
-00007fca4a448000       4       4       0 r---- ld-2.28.so
-00007fca4a449000     120     120       0 r-x-- ld-2.28.so
-00007fca4a467000      32      32       0 r---- ld-2.28.so
-00007fca4a46f000       4       4       4 r---- ld-2.28.so
-00007fca4a470000       4       4       4 rw--- ld-2.28.so
-00007fca4a471000       4       4       4 rw---   [ anon ]
-00007ffe28536000     140      40      40 rw---   [ stack ]
-00007ffe28582000      12       0       0 r----   [ anon ]
-00007ffe28585000       8       4       0 r-x--   [ anon ]
-ffffffffff600000       4       0       0 r-x--   [ anon ]
----------------- ------- ------- -------
-total kB         24035820 4776860 4720796
-----
+You have to notice one of the first memory zones is quite big and about
+the size of the committed heap as shown in NMT.
 
 To select the file mappings we can filter on the
 https://www.kernel.org/doc/Documentation/filesystems/proc.txt[access permissions]:
@@ -1023,6 +851,201 @@ and https://linux.die.net/man/2/mmap[here]
 This means that we can get a segmentation fault by accessing that memory if it has not
 already been mapped to physical memory, and if the system is out of physical memory.
 =======
+
+There's also the value of the inode column, if it' i's greater than `0` then
+it means the address range is backed by a file, if it's `0` it's a memory
+allocation that the application has requested.
+
+
+.Identifying JVM memory components
+There are three kinds of memory segments we can easily guess in the memory
+mapping reported by `pmap` because we know their size, it's the Java heap,
+and the threads.
+
+Other type of allocations can be identified but that's for another post,
+the remaining address range are too difficult to guess for two reasons,
+they usually have unpredictable allocation behavior, and it
+also depends on the `malloc` implementation details, (like the arenas in Glibc),
+and the number of different `malloc` calls for a single component.
+
+On a pod running por let's have a quick look on the very first mappings. It's easier
+to spot with `pmap -X` (capital `X`).
+
+.`pmap -x {pid}`
+[source, role="primary"]
+----
+$ pmap -x 7 | head -n 20
+7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -jar /app/boot.jar
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000740000000 3163648 3163648 3163648 rw---   [ anon ] <1>
+0000000801180000 1030656       0       0 -----   [ anon ]
+000055bac4461000       4       4       0 r-x-- java
+000055bac4662000       4       4       4 r---- java
+000055bac4663000       4       4       4 rw--- java
+000055bac569c000  455704  438268  438268 rw---   [ anon ] <2>
+00007ff9b91e7000      16       0       0 -----   [ anon ] <3>
+00007ff9b91eb000    1012      24      24 rw---   [ anon ] <4>
+00007ff9b92e8000      16       0       0 -----   [ anon ]
+00007ff9b92ec000    1012      92      92 rw---   [ anon ]
+00007ff9b93e9000      16       0       0 -----   [ anon ]
+00007ff9b93ed000    1012      88      88 rw---   [ anon ]
+00007ff9b94ea000      16       0       0 -----   [ anon ]
+00007ff9b94ee000    1012      24      24 rw---   [ anon ]
+00007ff9b95eb000      16       0       0 -----   [ anon ]
+00007ff9b95ef000    1012      28      28 rw---   [ anon ]
+00007ff9b96ec000      16       0       0 -----   [ anon ]
+00007ff9b96f0000    1012      24      24 rw---   [ anon ]
+----
+<1> native heap memory heap
+<2> java heap
+<3> a thread guard pages
+<4> a thread stack
+
+.`pmap- X {pid}`
+[source, role="secondary"]
+----
+$ pmap -X 7 | head -n 20
+7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -javaagent:/newrelic-agent.jar -javaagent:/dd-java-agent.jar -jar /edge-api-boot.jar --spring.config.additional-location=/etc/edge-api/config.yaml --server.port=8080
+         Address Perm   Offset Device   Inode    Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
+       740000000 rw-p 00000000  00:00       0 3163648 3163648 3163648    3163648   3163648        0              0              0               0    0       0      0           0 <1>
+       801180000 ---p 00000000  00:00       0 1030656       0       0          0         0        0              0              0               0    0       0      0           0
+    55bac4461000 r-xp 00000000  08:01 5623642       4       4       4          4         0        0              0              0               0    0       0      0           0 java
+    55bac4662000 r--p 00001000  08:01 5623642       4       4       4          4         4        0              0              0               0    0       0      0           0 java
+    55bac4663000 rw-p 00002000  08:01 5623642       4       4       4          4         4        0              0              0               0    0       0      0           0 java
+    55bac569c000 rw-p 00000000  00:00       0  455704  438268  438268     438268    438268        0              0              0               0    0       0      0           0 [heap] <2>
+    7ff9b91e7000 ---p 00000000  00:00       0      16       0       0          0         0        0              0              0               0    0       0      0           0
+    7ff9b91eb000 rw-p 00000000  00:00       0    1012      28      28         28        28        0              0              0               0    0       0      0           0
+    7ff9b92e8000 ---p 00000000  00:00       0      16       0       0          0         0        0              0              0               0    0       0      0           0 <3>
+    7ff9b92ec000 rw-p 00000000  00:00       0    1012      92      92         92        92        0              0              0               0    0       0      0           0 <4>
+    7ff9b93e9000 ---p 00000000  00:00       0      16       0       0          0         0        0              0              0               0    0       0      0           0
+    7ff9b93ed000 rw-p 00000000  00:00       0    1012      88      88         88        88        0              0              0               0    0       0      0           0
+    7ff9b94ea000 ---p 00000000  00:00       0      16       0       0          0         0        0              0              0               0    0       0      0           0
+    7ff9b94ee000 rw-p 00000000  00:00       0    1012      24      24         24        24        0              0              0               0    0       0      0           0
+    7ff9b95eb000 ---p 00000000  00:00       0      16       0       0          0         0        0              0              0               0    0       0      0           0
+    7ff9b95ef000 rw-p 00000000  00:00       0    1012      28      28         28        28        0              0              0               0    0       0      0           0
+    7ff9b96ec000 ---p 00000000  00:00       0      16       0       0          0         0        0              0              0               0    0       0      0           0
+    7ff9b96f0000 rw-p 00000000  00:00       0    1012      24      24         24        24        0              0              0               0    0       0      0           0
+----
+<1> native heap memory heap
+<2> java heap
+<3> a thread guard pages
+<4> a thread stack
+
+
+.`/proc/{pid}/maps`
+[source, role="secondary"]
+----
+I have no name!@edge-api-769ccdd5f7-65rnq:/$ cat /proc/7/maps | head -n 20
+740000000-801180000 rw-p 00000000 00:00 0 <1>
+801180000-840000000 ---p 00000000 00:00 0
+55bac4461000-55bac4462000 r-xp 00000000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
+55bac4662000-55bac4663000 r--p 00001000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
+55bac4663000-55bac4664000 rw-p 00002000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
+55bac569c000-55bae13a2000 rw-p 00000000 00:00 0                          [heap] <2>
+7ff9b91e7000-7ff9b91eb000 ---p 00000000 00:00 0
+7ff9b91eb000-7ff9b92e8000 rw-p 00000000 00:00 0
+7ff9b92e8000-7ff9b92ec000 ---p 00000000 00:00 0 <3>
+7ff9b92ec000-7ff9b93e9000 rw-p 00000000 00:00 0 <4>
+7ff9b93e9000-7ff9b93ed000 ---p 00000000 00:00 0
+7ff9b93ed000-7ff9b94ea000 rw-p 00000000 00:00 0
+7ff9b94ea000-7ff9b94ee000 ---p 00000000 00:00 0
+7ff9b94ee000-7ff9b95eb000 rw-p 00000000 00:00 0
+7ff9b95eb000-7ff9b95ef000 ---p 00000000 00:00 0
+7ff9b95ef000-7ff9b96ec000 rw-p 00000000 00:00 0
+7ff9b96ec000-7ff9b96f0000 ---p 00000000 00:00 0
+7ff9b96f0000-7ff9b97ed000 rw-p 00000000 00:00 0
+7ff9b97ed000-7ff9b97f1000 ---p 00000000 00:00 0
+7ff9b97f1000-7ff9b99ee000 rw-p 00000000 00:00 0
+----
+<1> native heap memory heap
+<2> java heap
+<3> a thread guard pages
+<4> a thread stack
+
+The first thing to natice is that `pmap` choses to display the start address,
+and the size of the mapping in another column, while the `maps` _file_ is using
+address ranges. As you might have guessed, the sum of the size of these mapping
+is the value one can see in the `vsz` column of `ps`.
+
+
+.Explanation
+. `740000000-801180000` (`3163648 KiB`), around `3 GiB` in a simple mapping,
+this looks like the size of the heap, subtracting the addressed gives this number
+`3 239 575 552`, which very close to the VM actual flag for the heap
+`-XX:MaxHeapSize=3221225472`, the JVM must map additional space. We also note that
+the RSS on this mapping is equal to the size, this means that either this flag
+`-XX:+AlwaysPreTouch` is active, or that all pages in the heap have been touched once,
+for this app this is the former case.
++
+This single address range, also indicates that the minimum and the maximum value of
+the heap is the same `Xmx` = `Xms`. If they weren't we would have seen two adjacent
+segment with different permissions (`rw-p` then `---p`), the JVM can grow
+the read-and-write segment of the Java Heap.
++
+Just under this mapping there's another one `801180000-840000000` (`1030656 KiB`),
+around `1 GiB`, one could think it's the metaspace, but it isn't. Looking at
+the other columns, the mode or permissions or the RSS, we see respectively `---p`
+and `0`, this means this memory segment is reserved but it is not writeable.
++
+Finding the metaspace cannot be done this way.
+
+. `55bac569c000-55bae13a2000`, on the extended `pmap` output this mapping has a name
+`heap`, this one is the native java heap of the Java process.
+One can notice the next mapping address (`7ff9b91e7000`) is not adjacent, this allows
+the native heap to grow if necessary. The virtual size of this mapping is
+`~445 MiB` and the active pages amounts to `428 MiB`.
+
+. Then there's a lot of mapping with this pattern, first `16 KiB` with no permission (`---p`)
+immediately followed by a `1012 KiB` segment with read and write permissions (`rw-p`), those
+are the Java threads, by default the virtual size the of the thread stack size is `1 MiB`.
++
+The `16 KiB` are the thread guard pages (they are used when a stack overflow error happens,
+their permission will change in order to handle the error) ; read
+https://pangin.pro/posts/stack-overflow-handling[this explanation] from https://twitter.com/apangin[Andrei Pangin] 
+to learn more on this topic.
++
+[NOTE]
+====
+For the keen observer the virtual size of these two memory segment is `1028 KiB`,
+a bit more than `1 MiB`, I've learned a few months ago that
+https://code.woboq.org/userspace/glibc/nptl/allocatestack.c.html#550[glibc], and other
+allocators apparently adds one page to the allocated stack size, if the segment size is
+https://code.woboq.org/userspace/glibc/sysdeps/i386/i686/stack-aliasing.h.html#23[a multiple of 64K].
+
+This is due to http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/64k_Aliasing_Conflicts.htm[prevent aliasing on the CPU cache lines]
+
+> A 64K-aliasing conflict occurs when a virtual address memory references a cache line
+> that is modulo 64K bytes apart from another cache line that already resides in the first
+> level cache. Only one cache line with a virtual address modulo 64K bytes can reside
+> in the first level cache at the same time.
+>
+> For example, accessing a byte at virtual addresses 0x10000 and 0x3000F would cause
+> a 64K aliasing conflict. This is because the virtual addresses for the two bytes reside
+> on cache lines that are modulo 64K bytes apart.
+====
+
+
+The first thing we did is to ignore _file-backed_ memory mapping. Yet
+these memory mappings also consumes pages.
+
+
+==== Inspecting memory mapped files
+
+The `NativeMemoryTracking` output showed memory usage of the JVM, but it didn't report
+`MappedByteBuffers`, those are the files that are _memory mapped_ to the virtual memory
+of a process as explained above via the native `mmap` call.
+
+There are two ways to read a file using a file descriptor, generally it happens when
+opening a https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/FileInputStream.html[`FileInputStream`],
+or using memory mapping via a
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/FileChannel.html[`FileChannel`].
+
+Memory pages of the file content that have been placed in RAM by the OS are accounted in RSS
+and as such may deserve some attention if RSS usage is high but the app memory alone is not
+enough.
+
+
+
 
 At this time the focus is to see what are the memory mapped files with the JVM.
 The `Mapping` column on the of `pmap -x $(pgrep java)` can be parsed to identify
@@ -1188,7 +1211,7 @@ $ pmap -X $(pidof java) | awk '{ if (NR <= 2 || $5 >0 ) \ <1>
 <3> The columns are select to match the output of `pmap -x`, `Size` column is in `KiB`.
 <4> The last two lines aren't filtered out due to my limited skills in `awk` ; the actual
 sums of the _size_ and _rss_ columns of the selected rows are respectively
-`195336 KiB` and `52316 KiB`.
+`195336 KiB` and `52316 KiB`.
 
 What may catch the eye is the multiple mapping for native libraries like `libjvm.so`.
 The reason is that some part of the file is executable, others are for exchanging information
@@ -1202,15 +1225,89 @@ variables of thw library.
 (between executable and writable segments) makes me think it's about buffer overflow
 prevention.
 
-Mapped files represents `195.3 MiB` of the address space of which `52.3 MiB` are
-actually resident.
+Mapped files represents `195.3 MiB` of the address space of which `52.3 MiB` are
+actually resident. This app is OK, but I've seen in the past `FileChannel`
+mappings not well released, leading to increasing memory consumption, that weren't
+part of the Java heap. Other applications may just work with a lot of files.
+
+
+
+// TODO: circling back to pages
+==== How many pages are used ?
+
+The _proc_ filesystem is gives the paging details on the current process.
+
+----
+Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
+..............................................................................
+ Field    Content
+ size     total program size (pages)		(same as VmSize in status)
+ resident size of memory portions (pages)	(same as VmRSS in status)
+ shared   number of pages that are shared	(i.e. backed by a file, same
+						as RssFile+RssShmem in status)
+ trs      number of pages that are 'code'	(not including libs; broken,
+							includes data segment)
+ lrs      number of pages of library		(always 0 on 2.6)
+ drs      number of pages of data/stack		(including libs; broken,
+							includes library text)
+ dt       number of dirty pages			(always 0 on 2.6)
+
+----
+
+[source, shell]
+----
+$ ps -o rss,vsz,command $(pidof java)
+  RSS    VSZ COMMAND
+4346704 6507368 /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava
+
+$ cat /proc/$(pidof java)/statm | tr ' ' '\n'
+1626842 <1>
+1086676 <2>
+12638
+1
+0
+1283103
+0
+----
+<1> Total size in _pages_ of the addressing space, in bytes : `6507368 KiB`
+<2> Resident memory in _pages_, in bytes : `4346704 KiB`
+
+Given a page size is `4 KiB`, it gives in particular :
+
+* vsz = `1626842 * 4 = 6507368`
+* rss = `1086676 * 4 = 4346704`
+
+NOTE: If the kubernetes memory limit is `5 GiB` (`5242880 KiB`),
+then the process may be oom-killed if the program uses more than
+`1310720` used pages. If the program don't use more pages than this
+number, this process will be fine.
+
+
+
+////
+[TIP]
+=====
+While NMT show you the total, you can use this command to extract all relevant from the summary
+in a simple addition
+
+[source,bash]
+----
+echo $(($(jcmd $(pidof java) VM.native_memory \
+  | tee /dev/tty \
+  | grep -P "^-.*committed=" \
+  | grep -o -P "(?<=committed=)[0-9]+(?=KB)" \
+  | awk 'BEGIN { ORS=""; print "(" }; {print p$0; p=" + "} END { print ")\n"}' \
+  | tee /dev/tty )))
+----
+
+On macOS, you should install the GNU coreutils and use `ggrep` and `ghead`.
+=====
+////
 
 
 
 
-
-
-
+=== Sizing you cgroup
 
 
 
@@ -1247,14 +1344,14 @@ this breaks out as :
 | Malloc overhead                 | accounted in NMT
 | ...                             |
 
-| Total                           | 5576205 KiB
+| Total                           | 5576205 KiB
 |===
 
 
-`5576205 KiB` is what this container is supposedly actually using, but:
+`5576205 KiB` is what this container is supposedly actually using, but:
 
- - as expected this is way over the RSS (`4701120 KiB`) and,
- - also over the `5 GiB` (`5242880 KiB`) of the pod limit.
+ - as expected this is way over the RSS (`4701120 KiB`) and,
+ - also over the `5 GiB` (`5242880 KiB`) of the pod limit.
 
 This happens because this pod may not have access all pages especially
 if the heap is big enough and the allocation rate is not big enough. While
@@ -1269,76 +1366,6 @@ or the JVM will eventually be oomkilled by the OS.
 
 
 
-
-===== How many pages are used ?
-
-The _proc_ filesystem is gives the paging details on the current process.
-
-----
-Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
-..............................................................................
- Field    Content
- size     total program size (pages)		(same as VmSize in status)
- resident size of memory portions (pages)	(same as VmRSS in status)
- shared   number of pages that are shared	(i.e. backed by a file, same
-						as RssFile+RssShmem in status)
- trs      number of pages that are 'code'	(not including libs; broken,
-							includes data segment)
- lrs      number of pages of library		(always 0 on 2.6)
- drs      number of pages of data/stack		(including libs; broken,
-							includes library text)
- dt       number of dirty pages			(always 0 on 2.6)
-
-----
-
-[source, shell]
-----
-$ ps -o rss,vsz,command $(pidof java)
-  RSS    VSZ COMMAND
-4346704 6507368 /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava
-$ cat /proc/$(pidof java)/statm | tr ' ' '\n'
-1626842 <1>
-1086676 <2>
-12638
-1
-0
-1283103
-0
-----
-<1> Total size in _pages_ of the addressing space, in bytes : `6507368 KiB`
-<2> Resident memory in _pages_, in bytes : `4346704 KiB`
-
-Given a page size is `4 KiB`, it gives in particular :
-
-* vsz = `1626842 * 4 = 6507368`
-* rss = `1086676 * 4 = 4346704`
-
-NOTE: If the kubernetes memory limit is `5 GiB` (`5242880 KiB`),
-then the process may be oom-killed if the program uses more than
-`1310720` used pages. If the program don't use more pages than this
-number, this process will be fine.
-
-
-
-////
-[TIP]
-=====
-While NMT show you the total, you can use this command to extract all relevant from the summary
-in a simple addition
-
-[source,bash]
-----
-echo $(($(jcmd $(pidof java) VM.native_memory \
-  | tee /dev/tty \
-  | grep -P "^-.*committed=" \
-  | grep -o -P "(?<=committed=)[0-9]+(?=KB)" \
-  | awk 'BEGIN { ORS=""; print "(" }; {print p$0; p=" + "} END { print ")\n"}' \
-  | tee /dev/tty )))
-----
-
-On macOS, you should install the GNU coreutils and use `ggrep` and `ghead`.
-=====
-////
 
 
 
@@ -1360,8 +1387,8 @@ the OS may:
 
 image:../../static/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
 
-E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
-the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
+E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
+the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
 pages are only backed by physical memory once they're written to.
 
 Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
