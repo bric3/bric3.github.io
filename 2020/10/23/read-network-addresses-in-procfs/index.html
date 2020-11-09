@@ -487,14 +487,14 @@ Then we need to extract the IP.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Then we need to print these in human readable form. Notice they all are ending by
+<p>Then we need to print these in human-readable form. Notice they all are ending by
 <code>2D0A</code>, those two octets are respectively <code>0x2D=0x45</code> and <code>10</code>. This insight
 suggests these IPs are actually reversed, I’m not sure why ; I only ever used
 reversed IPs for <a href="https://en.wikipedia.org/wiki/Reverse_DNS">reverse DNS lookup</a>
 before. (I you know the reason please drop a comment ;))</p>
 </div>
 <div class="paragraph">
-<p>So to get human readable form we need to separate the 4 bytes, convert them in
+<p>So to get human-readable form we need to separate the 4 bytes, convert them in
 decimal, and reverse them.</p>
 </div>
 <div class="listingblock">
@@ -510,12 +510,12 @@ decimal, and reverse them.</p>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>tell <code>sed</code> to split the stream every two characters, and
-prepend each bytes by <code>0x</code>, this is useful for <code>printf &#34;%x&#34;</code>.</td>
+prepend each byte by <code>0x</code>, this is useful for <code>printf &#34;%x&#34;</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>reverse the order of each field, this simply a for-loop
-decrementing the index, for each fields printing it as a decimal.
+decrementing the index, for each field printing it as a decimal.
 For each line prints a new line (that’s the role of <code>print &#34;&#34;</code>)
 Then the last <code>sed</code> simply removes the last dot.</td>
 </tr>
@@ -699,7 +699,7 @@ Ending the line by printing the port field in decimal <code>printf &#34;%d%s&#34
 <h3 id="_reading_procnetroute"><a class="anchor" href="#_reading_procnetroute"></a><a class="link" href="#_reading_procnetroute">Reading /proc/net/route</a></h3>
 <div class="paragraph">
 <p>Likewise, in stripped down container <code>/sbin/route</code> may be missing, in that cas using procfs
-offer an alternative :</p>
+offers an alternative :</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -710,7 +710,7 @@ eth0	0204F80A	00000000	0001	0	0	0	00FFFFFF	0	0	0</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Reversed hexadecimal IPs are immediately identifiable, although having a human readable form
+<p>Reversed hexadecimal IPs are immediately identifiable, although having a human-readable form
 would be better. Reusing our previous awk command is pure profit.</p>
 </div>
 <div class="listingblock">
@@ -729,14 +729,14 @@ suggests to look at <a href="https://sourceforge.net/p/net-tools/code/ci/master/
 <div class="paragraph">
 <p>Which in turns suggest to look at <a href="https://github.com/torvalds/linux/blob/v3.6/include/linux/route.h#L50-L60"><code>include/linux/route.h</code> (v3.6)</a> file,
 which moved to <a href="https://github.com/torvalds/linux/blob/v3.7/include/uapi/linux/route.h#L50-L60"><code>include/uapi/linux/route.h#L50-L60</code></a> since v3.7.
-This happend during this <a href="https://github.com/torvalds/linux/commit/607ca46e97a1b6594b29647d98a32d545c24bdff#diff-9a1cc27b54f86cc709009b1225d7579bc53ee715d133f6104e56782d3ec697da">commit</a>
+This happened during this <a href="https://github.com/torvalds/linux/commit/607ca46e97a1b6594b29647d98a32d545c24bdff#diff-9a1cc27b54f86cc709009b1225d7579bc53ee715d133f6104e56782d3ec697da">commit</a>
 for the creation of what is called the user space API of the kernel (uapi), or headers that can be used publicly.</p>
 </div>
 <div class="paragraph">
 <p>See this <a href="http://lwn.net/Articles/507794/">discussion</a>, and thanks for this <a href="https://stackoverflow.com/a/18858544/48136">StackOverflow answer</a>.</p>
 </div>
 <div class="paragraph">
-<p>Anyway here’s the flags :</p>
+<p>Anyway here’re the flags :</p>
 </div>
 <div class="listingblock">
 <div class="title"><a href="https://github.com/torvalds/linux/blob/v4.19/include/uapi/linux/route.h">include/uapi/linux/route.h (v4.19)</a></div>
@@ -777,9 +777,9 @@ are in their related pseudo files, e.g <code>/proc/$(pidof java)/net/tcp6</code>
 </div>
 </div>
 <div class="paragraph">
-<p>However it’s a tad easier for IPv6 as those are expressed as hexadecimal anyway.
+<p>However, it’s a tad easier for IPv6 as those are expressed as hexadecimal anyway.
 This should be easy for those as only bit to do is formatting to remove leading <code>0</code>s
-however ther’s a catch, if you notice the last bytes they look exactly like
+however there’s a catch, if you notice the last bytes they look exactly like
 the reversed IPv4, I’m not how exactly this reverse thing applies to the rest
 of the IPv6 though. But in this case the IPv6 is</p>
 </div>
@@ -808,7 +808,7 @@ of the IPv6 though. But in this case the IPv6 is</p>
 <h2 id="_closing_thoughts"><a class="anchor" href="#_closing_thoughts"></a><a class="link" href="#_closing_thoughts">Closing thoughts</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>When containers are stripped down and read-only, and you don’t have the possibility
+<p>When the containers are stripped down and read-only, and you don’t have the possibility
 to <em>attach</em> a debug container, I’m quite lucky to have the ability to introspect
 process <em>internals</em> thanks to the pseudo filesystem <code>/proc</code>. However sometimes
 the information is not easily human accessible. I hope the few <code>awk</code> tricks here
