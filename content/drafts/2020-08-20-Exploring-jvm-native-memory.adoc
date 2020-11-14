@@ -24,7 +24,7 @@ how much JVM components are actually consuming memory.
 // - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
 // - http://trustmeiamadeveloper.com/2016/03/18/where-is-my-memory-java/
 
-_This entry has been marinating for mast of the year 2020. Rewriting it 3 times
+_This entry has been marinating for most of the year 2020. Rewriting it 3 times
 to make it more digestible form, then I found out I should just split my thoughts
 in articles a bit smaller that hopefully make sense on their own._
 
@@ -35,27 +35,25 @@ and https://twitter.com/ylegat[Yohan Legat] for the review.
 
 '''
 
-This entry is about figuring out the native memory _parts_ of a Java process.
-All snippet comes from Kubernetes pods under load, in production. The actual
-problem could be solved by adjusting cgroup limits, but the need to understand and
-other factors served as an excuse to go down the rabbit hole.
+Running applications in containers the density of containers forces
+us to be more careful with memory. The cgroups limit is a double edged
+sword, it ensures sibling containers won't be affected by a misbehaving
+application, however it may be harder to configure correctly, resulting
+in particular in _oomkills_ or inefficient memory settings thus affecting
+negatively the cost and pod scheduling on a Kubernetes cluster.
 
-[TIP]
-====
-*tl;dr*
+Java applications are trickier to get right this limit, and I think the
+`MaxRAMPercentage` flag is not the right tool to do this job.
 
-* Set the cgroup memory limit high enough, so the application isn't oomkilled, this will
-let you analyze how the app work, and adjust settings without fear (except from your
-colleagues that compare everything to _Go_ or _rust_).
+Moreover with a given limit, if an application gets oomkilled then
+one has to ask if it is the limit that needs adjustment or if it is the
+application that is misbehaving (memory leak in particular, but not always).
 
-* If you don't think it's Java heap memory leak, i.e. the heap usage isn't alarming,
-try to inspect native memory, it's easier with the flag `-XX:+AlwaysPreTouch`,
-however keep in mind this will bump your RSS right from the start, so anticipate this
-increase in your cgroup memory limit.
-
-* Then inspect what's outside the JVM Java heap.
-
-====
+To answer these questions this entry is about figuring out the native memory
+of a `java` process.
+//All snippet comes from Kubernetes pods under load, in production. The actual
+//problem could be solved by adjusting cgroup limits, but the need to understand and
+//other factors served as an excuse to go down the rabbit hole.
 
 In doing so the following writing tries to piece together elements
 from a few things I knew, things I grepped in the JDK codebase, blog posts, stack overflow,
@@ -81,6 +79,22 @@ _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21
 
 
 The motivation behind this exploration is to help understand: What is consuming the memory ?
+
+[TIP]
+.prepare your application
+====
+* Set the cgroup memory limit high enough, so the application isn't oomkilled, this will
+let you analyze how the app work, and adjust settings without fear (except from your
+colleagues that compare everything to _Go_ or _rust_).
+
+* If you don't think it's Java heap memory leak, i.e. the heap usage isn't alarming,
+try to inspect native memory, it's easier with the flag `-XX:+AlwaysPreTouch`,
+however keep in mind this will bump your RSS right from the start, so anticipate this
+increase in your cgroup memory limit.
+
+* Then inspect what's outside the JVM Java heap.
+
+====
 
 
 
@@ -195,7 +209,7 @@ in `KB` for the JVM it really means `KiB`.
 
 
 .JVM native memory trcking report
-[source, bash]
+[source, shell]
 ----
 $ jcmd $(pidof java) VM.native_memory
 6:
@@ -495,7 +509,7 @@ Concretely for the JVM it means that
 With a better understanding of how memory works let's look again at the output
 of the `VM.native_memory` command to make more sense of it:
 
-[source, bash]
+[source]
 ----
 Total: reserved=7168324KB, committed=5380868KB                               <1>
 -                 Java Heap (reserved=4456448KB, committed=4456448KB)        <2>
@@ -732,6 +746,7 @@ The `Java heap` and the `Metaspace` (`Class`) are usually the biggest consumers 
 they both rely on `mmap`.
 +
 .java heap and metaspace
+[source]
 ----
 -                 Java Heap (reserved=3145728KB, committed=3145728KB)
                             (mmap: reserved=3145728KB, committed=3145728KB)
@@ -785,6 +800,7 @@ combination of these technics:
 `GC` zone for example only works with `malloc` and `mmap`, and size can grow as needed.
 +
 .gc
+[source]
 ----
 -                        GC (reserved=180505KB, committed=180505KB)
                             (malloc=30589KB #219593) <1>
@@ -807,6 +823,7 @@ NMT reports all the memory allocation technics that are used by a JVM component,
 for example the GC system :
 +
 .compiler
+[source]
 ----
 -                  Compiler (reserved=6666KB, committed=6666KB)
                             (malloc=6533KB #3575) <1>
@@ -818,7 +835,7 @@ for example the GC system :
 
 
 
-==== Inspecting memory mappings which memory is resident
+==== Inspecting memory mappings
 
 It's easy to get the RSS of a process, to understand if the committed
 heap actually _resides_ on physical memory you need to use `pmap` or inspect
@@ -872,7 +889,7 @@ On a pod running por let's have a quick look on the very first mappings. It's ea
 to spot with `pmap -X` (capital `X`).
 
 .`pmap -x {pid}`
-[source, role="primary"]
+[source, shell, role="primary"]
 ----
 $ pmap -x 7 | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -jar /app/boot.jar
@@ -883,10 +900,10 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 000055bac4662000       4       4       4 r---- java
 000055bac4663000       4       4       4 rw--- java
 000055bac569c000  455704  438268  438268 rw---   [ anon ] <2>
-00007ff9b91e7000      16       0       0 -----   [ anon ] <3>
-00007ff9b91eb000    1012      24      24 rw---   [ anon ] <4>
-00007ff9b92e8000      16       0       0 -----   [ anon ]
-00007ff9b92ec000    1012      92      92 rw---   [ anon ]
+00007ff9b91e7000      16       0       0 -----   [ anon ]
+00007ff9b91eb000    1012      24      24 rw---   [ anon ]
+00007ff9b92e8000      16       0       0 -----   [ anon ] <3>
+00007ff9b92ec000    1012      92      92 rw---   [ anon ] <4>
 00007ff9b93e9000      16       0       0 -----   [ anon ]
 00007ff9b93ed000    1012      88      88 rw---   [ anon ]
 00007ff9b94ea000      16       0       0 -----   [ anon ]
@@ -901,8 +918,8 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <3> a thread guard pages
 <4> a thread stack
 
-.`pmap- X {pid}`
-[source, role="secondary"]
+.`pmap -X {pid}`
+[source, shell, role="secondary"]
 ----
 $ pmap -X 7 | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -javaagent:/newrelic-agent.jar -javaagent:/dd-java-agent.jar -jar /edge-api-boot.jar --spring.config.additional-location=/etc/edge-api/config.yaml --server.port=8080
@@ -933,9 +950,9 @@ $ pmap -X 7 | head -n 20
 
 
 .`/proc/{pid}/maps`
-[source, role="secondary"]
+[source, shell, role="secondary"]
 ----
-I have no name!@edge-api-769ccdd5f7-65rnq:/$ cat /proc/7/maps | head -n 20
+$ cat /proc/7/maps | head -n 20
 740000000-801180000 rw-p 00000000 00:00 0 <1>
 801180000-840000000 ---p 00000000 00:00 0
 55bac4461000-55bac4462000 r-xp 00000000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
@@ -997,10 +1014,14 @@ the native heap to grow if necessary. The virtual size of this mapping is
 
 . Then there's a lot of mapping with this pattern, first `16 KiB` with no permission (`---p`)
 immediately followed by a `1012 KiB` segment with read and write permissions (`rw-p`), those
-are the Java threads, by default the virtual size the of the thread stack size is `1 MiB`.
+are the Java threads, by default the virtual size the of the thread stack size is `1 MiB`,
+the `ThreadStackSize` flag control this maximum stack size.
 +
-The `16 KiB` are the thread guard pages (they are used when a stack overflow error happens,
-their permission will change in order to handle the error) ; read
+The `16 KiB` are the thread guard pages, the number of pages (`4 KiB`) is controlled by
+`StackReservedPages`, `StackYellowPages` and `StackRedPages` whose defaults are respectively
+`1`, `2`, and `1`.
+They are used when a stack overflow error happens, normally the guard pages cannot
+be written to, their permission will change in order to handle the error ; read
 https://pangin.pro/posts/stack-overflow-handling[this explanation] from https://twitter.com/apangin[Andrei Pangin] 
 to learn more on this topic.
 +
@@ -1023,10 +1044,17 @@ This is due to http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/64k_Alia
 > a 64K aliasing conflict. This is because the virtual addresses for the two bytes reside
 > on cache lines that are modulo 64K bytes apart.
 ====
++
+In other words one can see an additional `4 KiB` (a page), for stack size like
+`512 KiB`, `256 KiB`, `128 KiB`,`64 KiB`.
++
+That being said, if pages in the mapping are not touched, they do not account as
+resident memory. This `55bac569c000-55bae13a2000` mapping tells the stack was at most
+`92 KiB`.
 
 
-The first thing we did is to ignore _file-backed_ memory mapping. Yet
-these memory mappings also consumes pages.
+The other JVM components are harder to identify due to the way they are allocated.
+That being said `pmap` reveals _file-backed_ memory mapping, these consumes pages too.
 
 
 ==== Inspecting memory mapped files
@@ -1040,19 +1068,17 @@ opening a https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/io/F
 or using memory mapping via a
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/FileChannel.html[`FileChannel`].
 
-Memory pages of the file content that have been placed in RAM by the OS are accounted in RSS
-and as such may deserve some attention if RSS usage is high but the app memory alone is not
-enough.
+When a file is memory mapped, the range of the content is divided by pages too, and
+when accessed they are _copied_ in RAM by the OS, these are accounted in RSS.
+For this reason they may deserve some attention if RSS usage is high but the app
+memory alone is not enough.
 
 
-
-
-At this time the focus is to see what are the memory mapped files with the JVM.
 The `Mapping` column on the of `pmap -x $(pgrep java)` can be parsed to identify
 file mappings, but this is brittle and unnecessary, one can simply look at
 the output of `pmap -X $(pgrep java)` (notice the big `X`) or even at the
 `/proc/$(pidof java)/maps` content looking for a non-zero value of the `inode`
-column indicating this is a file.
+column meaning this mapping is file backed.
 
 Using the output of `pmap -X $(pgrep java)` and selecting the matching lines
 with `awk` this is _easy_:
@@ -1225,10 +1251,12 @@ variables of thw library.
 (between executable and writable segments) makes me think it's about buffer overflow
 prevention.
 
-Mapped files represents `195.3 MiB` of the address space of which `52.3 MiB` are
-actually resident. This app is OK, but I've seen in the past `FileChannel`
-mappings not well released, leading to increasing memory consumption, that weren't
-part of the Java heap. Other applications may just work with a lot of files.
+In the above snippet the mapped files represents `195.3 MiB` of the address space
+of which `52.3 MiB` are actually resident. This app is definitely OK. Some
+application's workload require to handle a lot of files suggesting raising the limit
+may be the right thing. I've seen in the past `FileChannel` unreleased mappings,
+leading to increasing memory consumption that weren't easily identifiable in the Java heap
+(unless you had to perform a heap dump and knew what to look at).
 
 
 
@@ -1284,6 +1312,46 @@ number, this process will be fine.
 
 
 
+
+// TODO: rewrite paging effect on Java Heap
+=== Virtual memory and paging effect on the Java heap
+
+*Virtual memory* is a memory management scheme that is used by most operating systems ;
+it allows programs to use memory without dealing with hardware, or other concerns like
+sharing the memory resource. In doing so it allows programs to request more memory than
+available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
+called *pages*. For any given page in the virtual memory, and depending on the application(s)
+the OS may:
+
+* Make this page resident in physical memory, if something has be written into it.
+* Do nothing if a page is not used, this page is virtually available.
+* Move a page from physical memory to swap, if the OS thinks there's not enough room for other pages.
+* Map a portion of a file to this page.
+
+image:../../static/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
+
+E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
+the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
+pages are only backed by physical memory once they're written to.
+
+Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
+the JVM to https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829[write a zero to every OS memory pages].
+This option has the effect of avoiding physical memory commit latencies at runtime, however this
+only affects the heap memory zone. Other areas like thread stack or metaspace work differently.
+
+In other words that means parts of the *committed* memory shown in NMT is not *resident* and as such
+RSS counter may not reflect what is een in the *committed* memory.
+
+
+
+
+== Sizing the cgroup / kubernetes `resources.memory.limit`
+
+
+
+Wrapping this information from NMT and memory mapped files leaves us with the
+following _equation_ to estimate the actual memory usage of a process:
+
 ////
 [TIP]
 =====
@@ -1304,15 +1372,6 @@ On macOS, you should install the GNU coreutils and use `ggrep` and `ghead`.
 =====
 ////
 
-
-
-
-=== Sizing you cgroup
-
-
-
-Wrapping this information from NMT and memory mapped files leaves us with the
-following _equation_ to estimate the actual memory usage of a process:
 
 ....
 Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
@@ -1369,33 +1428,4 @@ or the JVM will eventually be oomkilled by the OS.
 
 
 
-
-// TODO: move somewhere else ?
-=== Virtual memory and paging effect on the Java heap
-
-*Virtual memory* is a memory management scheme that is used by most operating systems ;
-it allows programs to use memory without dealing with hardware, or other concerns like
-sharing the memory resource. In doing so it allows programs to request more memory than
-available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
-called *pages*. For any given page in the virtual memory, and depending on the application(s)
-the OS may:
-
-* Make this page resident in physical memory, if something has be written into it.
-* Do nothing if a page is not used, this page is virtually available.
-* Move a page from physical memory to swap, if the OS thinks there's not enough room for other pages.
-* Map a portion of a file to this page.
-
-image:../../static/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
-
-E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
-the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
-pages are only backed by physical memory once they're written to.
-
-Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
-the JVM to https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829[write a zero to every OS memory pages].
-This option has the effect of avoiding physical memory commit latencies at runtime, however this
-only affects the heap memory zone. Other areas like thread stack or metaspace work differently.
-
-In other words that means parts of the *committed* memory shown in NMT is not *resident* and as such
-RSS counter may not reflect what is een in the *committed* memory.
 
