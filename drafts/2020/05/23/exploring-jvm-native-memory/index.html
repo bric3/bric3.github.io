@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 90 min read
+    <i class="fas fa-clock"></i> 93 min read
 
     
     
@@ -268,42 +268,27 @@ and <a href="https://twitter.com/ylegat">Yohan Legat</a> for the review.</p>
 </div>
 <hr/>
 <div class="paragraph">
-<p>This entry is about figuring out the native memory <em>parts</em> of a Java process.
-All snippet comes from Kubernetes pods under load, in production. The actual
-problem could be solved by adjusting cgroup limits, but the need to understand and
-other factors served as an excuse to go down the rabbit hole.</p>
+<p>Running applications in containers the density of containers forces
+us to be more careful with memory. The cgroups limit is a double edged
+sword, it ensures sibling containers won’t be affected by a misbehaving
+application, however it may be harder to configure correctly, resulting
+in particular in <em>oomkills</em> or inefficient memory settings thus affecting
+negatively the cost and pod scheduling on a Kubernetes cluster. And even memory
+settings that seems good but too tight may have bad implications on
+application performance.</p>
 </div>
-<div class="admonitionblock tip">
-<table>
-<tbody><tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
 <div class="paragraph">
-<p><strong>tl;dr</strong></p>
+<p>Java applications are trickier to get right this limit, and I think the
+<code>MaxRAMPercentage</code> flag is not the right tool to do this job.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>Set the cgroup memory limit high enough, so the application isn’t oomkilled, this will
-let you analyze how the app work, and adjust settings without fear (except from your
-colleagues that compare everything to <em>Go</em> or <em>rust</em>).</p>
-</li>
-<li>
-<p>If you don’t think it’s Java heap memory leak, i.e. the heap usage isn’t alarming,
-try to inspect native memory, it’s easier with the flag <code>-XX:+AlwaysPreTouch</code>,
-however keep in mind this will bump your RSS right from the start, so anticipate this
-increase in your cgroup memory limit.</p>
-</li>
-<li>
-<p>Then inspect what’s outside the JVM Java heap.</p>
-</li>
-</ul>
+<div class="paragraph">
+<p>Moreover with a given limit, if an application gets oomkilled then
+one has to ask if it is the limit that needs adjustment or if it is the
+application that is misbehaving (memory leak in particular, but not always).</p>
 </div>
-</td>
-</tr>
-</tbody></table>
+<div class="paragraph">
+<p>To answer these questions this entry is about figuring out the native memory
+of a <code>java</code> process.</p>
 </div>
 <div class="paragraph">
 <p>In doing so the following writing tries to piece together elements
@@ -348,6 +333,36 @@ in this chapter; pretend I’m a disk manufacturer.
 </div>
 <div class="paragraph">
 <p>The motivation behind this exploration is to help understand: What is consuming the memory ?</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">prepare your application</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set the cgroup memory limit high enough, so the application isn’t oomkilled, this will
+let you analyze how the app work, and adjust settings without fear (except from your
+colleagues that compare everything to <em>Go</em> or <em>rust</em>).</p>
+</li>
+<li>
+<p>If you don’t think it’s Java heap memory leak, i.e. the heap usage isn’t alarming,
+try to inspect native memory, it’s easier with the flag <code>-XX:+AlwaysPreTouch</code>,
+however keep in mind this will bump your RSS right from the start, so anticipate this
+increase in your cgroup memory limit.</p>
+</li>
+<li>
+<p>Then inspect what’s outside the JVM Java heap.</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="sect1">
 <h2 id="_exploration_begins"><a class="anchor" href="#_exploration_begins"></a><a class="link" href="#_exploration_begins">Exploration begins</a></h2>
@@ -509,7 +524,7 @@ in <code>KB</code> for the JVM it really means <code>KiB</code>.
 <div class="listingblock">
 <div class="title">JVM native memory trcking report</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) VM.native_memory
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) VM.native_memory
 6:
 
 Native Memory Tracking:
@@ -1166,7 +1181,7 @@ of the <code>VM.native_memory</code> command to make more sense of it:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">Total: reserved=7168324KB, committed=5380868KB                               <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="highlightjs highlight"><code class="language-none hljs">Total: reserved=7168324KB, committed=5380868KB                               <i class="conum" data-value="1"></i><b>(1)</b>
 -                 Java Heap (reserved=4456448KB, committed=4456448KB)        <i class="conum" data-value="2"></i><b>(2)</b>
                             (mmap: reserved=4456448KB, committed=4456448KB)
 ...
@@ -1382,7 +1397,7 @@ accessible as a memory zone, in short it’s the kernel that perform IOs, in con
 IOs with a file descriptor application side.</p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="../../static/assets/maxrampercentage/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"/></span></p>
+<p><span class="image"><img src="/assets/maxrampercentage/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"/></span></p>
 </div>
 <details>
 <summary class="title">Differences between <a href="https://linux.die.net/man/3/malloc"><code>malloc</code></a> and <a href="http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html"><code>mmap</code></a></summary>
@@ -1549,14 +1564,14 @@ they both rely on <code>mmap</code>.</p>
 <div class="listingblock">
 <div class="title">java heap and metaspace</div>
 <div class="content">
-<pre>-                 Java Heap (reserved=3145728KB, committed=3145728KB)
+<pre class="highlightjs highlight"><code class="language-none hljs">-                 Java Heap (reserved=3145728KB, committed=3145728KB)
                             (mmap: reserved=3145728KB, committed=3145728KB)
 
 -                     Class (reserved=1195111KB, committed=164967KB)
                             (classes #27354)
                             (  instance classes #25689, array classes #1665)
                             (malloc=5223KB #86596)
-                            (mmap: reserved=1189888KB, committed=159744KB)</pre>
+                            (mmap: reserved=1189888KB, committed=159744KB)</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1619,9 +1634,9 @@ combination of these technics:</p>
 <div class="listingblock">
 <div class="title">gc</div>
 <div class="content">
-<pre>-                        GC (reserved=180505KB, committed=180505KB)
+<pre class="highlightjs highlight"><code class="language-none hljs">-                        GC (reserved=180505KB, committed=180505KB)
                             (malloc=30589KB #219593) <i class="conum" data-value="1"></i><b>(1)</b>
-                            (mmap: reserved=149916KB, committed=149916KB) <i class="conum" data-value="2"></i><b>(2)</b></pre>
+                            (mmap: reserved=149916KB, committed=149916KB) <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1655,9 +1670,9 @@ for example the GC system :</p>
 <div class="listingblock">
 <div class="title">compiler</div>
 <div class="content">
-<pre>-                  Compiler (reserved=6666KB, committed=6666KB)
+<pre class="highlightjs highlight"><code class="language-none hljs">-                  Compiler (reserved=6666KB, committed=6666KB)
                             (malloc=6533KB #3575) <i class="conum" data-value="1"></i><b>(1)</b>
-                            (arena=133KB #5) <i class="conum" data-value="2"></i><b>(2)</b></pre>
+                            (arena=133KB #5) <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1677,7 +1692,7 @@ for example the GC system :</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_inspecting_memory_mappings_which_memory_is_resident"><a class="anchor" href="#_inspecting_memory_mappings_which_memory_is_resident"></a><a class="link" href="#_inspecting_memory_mappings_which_memory_is_resident">Inspecting memory mappings which memory is resident</a></h4>
+<h4 id="_inspecting_memory_mappings"><a class="anchor" href="#_inspecting_memory_mappings"></a><a class="link" href="#_inspecting_memory_mappings">Inspecting memory mappings</a></h4>
 <div class="paragraph">
 <p>It’s easy to get the RSS of a process, to understand if the committed
 heap actually <em>resides</em> on physical memory you need to use <code>pmap</code> or inspect
@@ -1756,7 +1771,7 @@ to spot with <code>pmap -X</code> (capital <code>X</code>).</p>
 <div class="listingblock primary">
 <div class="title"><code>pmap -x {pid}</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -x 7 | head -n 20
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -x 7 | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -jar /app/boot.jar
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000740000000 3163648 3163648 3163648 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
@@ -1765,10 +1780,10 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 000055bac4662000       4       4       4 r---- java
 000055bac4663000       4       4       4 rw--- java
 000055bac569c000  455704  438268  438268 rw---   [ anon ] <i class="conum" data-value="2"></i><b>(2)</b>
-00007ff9b91e7000      16       0       0 -----   [ anon ] <i class="conum" data-value="3"></i><b>(3)</b>
-00007ff9b91eb000    1012      24      24 rw---   [ anon ] <i class="conum" data-value="4"></i><b>(4)</b>
-00007ff9b92e8000      16       0       0 -----   [ anon ]
-00007ff9b92ec000    1012      92      92 rw---   [ anon ]
+00007ff9b91e7000      16       0       0 -----   [ anon ]
+00007ff9b91eb000    1012      24      24 rw---   [ anon ]
+00007ff9b92e8000      16       0       0 -----   [ anon ] <i class="conum" data-value="3"></i><b>(3)</b>
+00007ff9b92ec000    1012      92      92 rw---   [ anon ] <i class="conum" data-value="4"></i><b>(4)</b>
 00007ff9b93e9000      16       0       0 -----   [ anon ]
 00007ff9b93ed000    1012      88      88 rw---   [ anon ]
 00007ff9b94ea000      16       0       0 -----   [ anon ]
@@ -1800,9 +1815,9 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 </tbody></table>
 </div>
 <div class="listingblock secondary">
-<div class="title"><code>pmap- X {pid}</code></div>
+<div class="title"><code>pmap -X {pid}</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ pmap -X 7 | head -n 20
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -X 7 | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -javaagent:/newrelic-agent.jar -javaagent:/dd-java-agent.jar -jar /edge-api-boot.jar --spring.config.additional-location=/etc/edge-api/config.yaml --server.port=8080
          Address Perm   Offset Device   Inode    Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
        740000000 rw-p 00000000  00:00       0 3163648 3163648 3163648    3163648   3163648        0              0              0               0    0       0      0           0 <i class="conum" data-value="1"></i><b>(1)</b>
@@ -1848,7 +1863,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <div class="listingblock secondary">
 <div class="title"><code>/proc/{pid}/maps</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">I have no name!@edge-api-769ccdd5f7-65rnq:/$ cat /proc/7/maps | head -n 20
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/7/maps | head -n 20
 740000000-801180000 rw-p 00000000 00:00 0 <i class="conum" data-value="1"></i><b>(1)</b>
 801180000-840000000 ---p 00000000 00:00 0
 55bac4461000-55bac4462000 r-xp 00000000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
@@ -1934,10 +1949,14 @@ the native heap to grow if necessary. The virtual size of this mapping is
 <li>
 <p>Then there’s a lot of mapping with this pattern, first <code>16 KiB</code> with no permission (<code>---p</code>)
 immediately followed by a <code>1012 KiB</code> segment with read and write permissions (<code>rw-p</code>), those
-are the Java threads, by default the virtual size the of the thread stack size is <code>1 MiB</code>.</p>
+are the Java threads, by default the virtual size the of the thread stack size is <code>1 MiB</code>,
+the <code>ThreadStackSize</code> flag control this maximum stack size.</p>
 <div class="paragraph">
-<p>The <code>16 KiB</code> are the thread guard pages (they are used when a stack overflow error happens,
-their permission will change in order to handle the error) ; read
+<p>The <code>16 KiB</code> are the thread guard pages, the number of pages (<code>4 KiB</code>) is controlled by
+<code>StackReservedPages</code>, <code>StackYellowPages</code> and <code>StackRedPages</code> whose defaults are respectively
+<code>1</code>, <code>2</code>, and <code>1</code>.
+They are used when a stack overflow error happens, normally the guard pages cannot
+be written to, their permission will change in order to handle the error ; read
 <a href="https://pangin.pro/posts/stack-overflow-handling">this explanation</a> from <a href="https://twitter.com/apangin">Andrei Pangin</a>
 to learn more on this topic.</p>
 </div>
@@ -1977,12 +1996,22 @@ on cache lines that are modulo 64K bytes apart.</p>
 </tr>
 </tbody></table>
 </div>
+<div class="paragraph">
+<p>In other words one can see an additional <code>4 KiB</code> (a page), for stack size like
+<code>512 KiB</code>, <code>256 KiB</code>, <code>128 KiB</code>,<code>64 KiB</code>.</p>
+</div>
+<div class="paragraph">
+<p>That being said, if pages in the mapping are not touched, they do not account as
+resident memory. This <code>55bac569c000-55bae13a2000</code> mapping tells the stack was at most
+<code>92 KiB</code>. Anyway with more threads there will be naturally more consumed resident
+memory.</p>
+</div>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>The first thing we did is to ignore <em>file-backed</em> memory mapping. Yet
-these memory mappings also consumes pages.</p>
+<p>The other JVM components are harder to identify due to the way they are allocated.
+That being said <code>pmap</code> reveals <em>file-backed</em> memory mapping, these consumes pages too.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1999,17 +2028,17 @@ or using memory mapping via a
 <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/FileChannel.html"><code>FileChannel</code></a>.</p>
 </div>
 <div class="paragraph">
-<p>Memory pages of the file content that have been placed in RAM by the OS are accounted in RSS
-and as such may deserve some attention if RSS usage is high but the app memory alone is not
-enough.</p>
+<p>When a file is memory mapped, the range of the content is divided by pages too, and
+when accessed they are <em>copied</em> in RAM by the OS, these are accounted in RSS.
+For this reason they may deserve some attention if RSS usage is high but the app
+memory alone is not enough.</p>
 </div>
 <div class="paragraph">
-<p>At this time the focus is to see what are the memory mapped files with the JVM.
-The <code>Mapping</code> column on the of <code>pmap -x $(pgrep java)</code> can be parsed to identify
+<p>The <code>Mapping</code> column on the of <code>pmap -x $(pgrep java)</code> can be parsed to identify
 file mappings, but this is brittle and unnecessary, one can simply look at
 the output of <code>pmap -X $(pgrep java)</code> (notice the big <code>X</code>) or even at the
 <code>/proc/$(pidof java)/maps</code> content looking for a non-zero value of the <code>inode</code>
-column indicating this is a file.</p>
+column meaning this mapping is file backed.</p>
 </div>
 <div class="paragraph">
 <p>Using the output of <code>pmap -X $(pgrep java)</code> and selecting the matching lines
@@ -2212,10 +2241,12 @@ prevention.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>Mapped files represents <code>195.3 MiB</code> of the address space of which <code>52.3 MiB</code> are
-actually resident. This app is OK, but I’ve seen in the past <code>FileChannel</code>
-mappings not well released, leading to increasing memory consumption, that weren’t
-part of the Java heap. Other applications may just work with a lot of files.</p>
+<p>In the above snippet the mapped files represents <code>195.3 MiB</code> of the address space
+of which <code>52.3 MiB</code> are actually resident. This app is definitely OK. Some
+application’s workload require to handle a lot of files suggesting raising the limit
+may be the right thing. I’ve seen in the past <code>FileChannel</code> unreleased mappings,
+leading to increasing memory consumption that weren’t easily identifiable in the Java heap
+(unless you had to perform a heap dump and knew what to look at).</p>
 </div>
 </div>
 <div class="sect3">
@@ -2299,117 +2330,7 @@ number, this process will be fine.
 </div>
 </div>
 <div class="sect2">
-<h3 id="_sizing_you_cgroup"><a class="anchor" href="#_sizing_you_cgroup"></a><a class="link" href="#_sizing_you_cgroup">Sizing you cgroup</a></h3>
-<div class="paragraph">
-<p>Wrapping this information from NMT and memory mapped files leaves us with the
-following <em>equation</em> to estimate the actual memory usage of a process:</p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
-               + Compiler + Other JVM structures + Thread stacks
-               + Direct buffers + Mapped files +
-               + Native Libraries + Malloc overhead + ...</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Using the <strong>committed</strong> values from the NMT output above, and the <strong>mapping size</strong>
-this breaks out as :</p>
-</div>
-<table class="tableblock frame-all grid-all fit-content stretch">
-<colgroup>
-<col/>
-<col/>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">GC</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">230739</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Metaspace</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">165788</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Code Cache</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">105201</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Symbol tables</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">28915</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Compiler</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5914</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Other JVM structures
-(Internal + NMT + smaller area)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">24460 + 8433 + 217 + 7 + 19 + 1362 + 837 + 8 + 32 = (35375)</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Thread stacks</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">85455</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Direct buffers (Other)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">267034</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Total accounted by NMT</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5380868</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Mapped files (and native libs)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">195336</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Malloc overhead</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">accounted in NMT</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">…​</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-<tfoot>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5576205 KiB</p></td>
-</tr>
-</tfoot>
-</table>
-<div class="paragraph">
-<p><code>5576205 KiB</code> is what this container is supposedly actually using, but:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>as expected this is way over the RSS (<code>4701120 KiB</code>) and,</p>
-</li>
-<li>
-<p>also over the <code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>This happens because this pod may not have access all pages especially
-if the heap is big enough and the allocation rate is not big enough. While
-a pod like this may be healthy and stay that way. It should rise your eyebrow,
-if the RSS grow then the pod is likely to be oomkilled.</p>
-</div>
-<div class="paragraph">
-<p>This is where one need to review the memory parameter of either
-the JVM or the memory limits of the pod. Either the JVM is over-sized
-or the JVM will eventually be oomkilled by the OS.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_virtual_memory_and_paging_effect_on_the_java_heap"><a class="anchor" href="#_virtual_memory_and_paging_effect_on_the_java_heap"></a><a class="link" href="#_virtual_memory_and_paging_effect_on_the_java_heap">Virtual memory and paging effect on the Java heap</a></h3>
+<h3 id="_paging_and_the_java_heap"><a class="anchor" href="#_paging_and_the_java_heap"></a><a class="link" href="#_paging_and_the_java_heap">Paging and the Java heap</a></h3>
 <div class="paragraph">
 <p><strong>Virtual memory</strong> is a memory management scheme that is used by most operating systems ;
 it allows programs to use memory without dealing with hardware, or other concerns like
@@ -2435,7 +2356,7 @@ the OS may:</p>
 </ul>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="../../static/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging" title="Simple overview of OS paging"/></span></p>
+<p><span class="image"><img src="/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging" title="Simple overview of OS paging"/></span></p>
 </div>
 <div class="paragraph">
 <p>E.g at the moment this report was executed the committed memory is <code>5380868 KiB</code> (<code>5.13 GiB</code>) while
@@ -2452,6 +2373,82 @@ only affects the heap memory zone. Other areas like thread stack or metaspace wo
 <p>In other words that means parts of the <strong>committed</strong> memory shown in NMT is not <strong>resident</strong> and as such
 RSS counter may not reflect what is een in the <strong>committed</strong> memory.</p>
 </div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sizing_the_cgroup_kubernetes_resources_memory_limit"><a class="anchor" href="#_sizing_the_cgroup_kubernetes_resources_memory_limit"></a><a class="link" href="#_sizing_the_cgroup_kubernetes_resources_memory_limit">Sizing the cgroup / kubernetes <code>resources.memory.limit</code></a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In the end this investigation is useful to determine what is wrong,
+the memory settings or the application.</p>
+</div>
+<div class="paragraph">
+<p>Using the gathered information from JVM’s native memory tracking and
+from memory mapping is it possible to build this simple <em>equation</em> to
+estimate the probable maximum memory usage of a process ?</p>
+</div>
+<div class="paragraph">
+<p>We already can suppose there’s every reported componenet from the JVM,
+and the mapped files. Is it enough</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files +
+               + Native Libraries + Malloc overhead + ...</pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) VM.native_memory \
+   | grep -P &#34;Total.*committed=&#34; \
+   | grep -o -P &#34;(?&lt;=committed=)[0-9]+(?=KB)&#34;
+3841302
+
+$ ps --no-header -o rss $(pidof java)
+4204512
+
+$ pmap -X $(pidof java) | head -n -2 | awk &#39;{ if (NR &gt; 2 &amp;&amp; $5 &gt;0 ) sum += $7 } END { print sum } &#39;
+52668
+
+$ echo $((4204512 - 3841303 - 52668))
+363209</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Using the <strong>committed</strong> value in the first line
+<code>Total: reserved=5737038KB, committed=3841302KB</code> from the NMT output,
+the JVM sees <code>3841302 KiB</code>, the RSS seen by the OS is <code>4204512 KiB</code>, mapped files
+weigh <code>52668 KiB</code>. This leaves <code>310541 KiB</code> unaccounted for.
+These <code>300 MiB</code> are actually quite difficult to identify in <code>pmap</code> they could
+be done by native libraries or due to what I’ll call the <code>malloc</code> overhead, I’ll write
+about this in another article.</p>
+</div>
+<div class="paragraph">
+<p><code>5576205 KiB</code> is what this container is supposedly actually using, but:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>as expected this is way over the RSS (<code>4701120 KiB</code>) and,</p>
+</li>
+<li>
+<p>also over the <code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This happens because this pod may not have access all pages especially
+if the heap is big enough and the allocation rate is not big enough. While
+a pod like this may be healthy and stay that way. It should rise your eyebrow,
+if the RSS grow then the pod is likely to be oomkilled.</p>
+</div>
+<div class="paragraph">
+<p>This is where one need to review the memory parameter of either
+the JVM or the memory limits of the pod. Either the JVM is over-sized
+or the JVM will eventually be oomkilled by the OS.</p>
 </div>
 </div>
 </div>
