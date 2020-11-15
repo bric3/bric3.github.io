@@ -20,6 +20,8 @@ how much JVM components are actually consuming memory.
 
 // TODO: Change JDK links to openjdk/jdk
 
+// TODO: Mention NMT baseline summary.diff
+
 // Related articles
 // - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
 // - http://trustmeiamadeveloper.com/2016/03/18/where-is-my-memory-java/
@@ -40,7 +42,9 @@ us to be more careful with memory. The cgroups limit is a double edged
 sword, it ensures sibling containers won't be affected by a misbehaving
 application, however it may be harder to configure correctly, resulting
 in particular in _oomkills_ or inefficient memory settings thus affecting
-negatively the cost and pod scheduling on a Kubernetes cluster.
+negatively the cost and pod scheduling on a Kubernetes cluster. And even memory
+settings that seems good but too tight may have bad implications on
+application performance.
 
 Java applications are trickier to get right this limit, and I think the
 `MaxRAMPercentage` flag is not the right tool to do this job.
@@ -606,7 +610,7 @@ Also, depending on the mapping in particular for `mmap` the OS can be asked to m
 accessible as a memory zone, in short it's the kernel that perform IOs, in contrast to perform
 IOs with a file descriptor application side.
 
-image:../../static/assets/maxrampercentage/malloc-mmap.svg[align="center", title="Simple overview of malloc and mmap"]
+image:/assets/maxrampercentage/malloc-mmap.svg[align="center", title="Simple overview of malloc and mmap"]
 
 .Differences between https://linux.die.net/man/3/malloc[`malloc`] and http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html[`mmap`]
 [%collapsible]
@@ -1050,7 +1054,8 @@ In other words one can see an additional `4 KiB` (a page), for stack size like
 +
 That being said, if pages in the mapping are not touched, they do not account as
 resident memory. This `55bac569c000-55bae13a2000` mapping tells the stack was at most
-`92 KiB`.
+`92 KiB`. Anyway with more threads there will be naturally more consumed resident
+memory.
 
 
 The other JVM components are harder to identify due to the way they are allocated.
@@ -1086,7 +1091,9 @@ with `awk` this is _easy_:
 .Shared application memory mapped files
 [source, shell]
 ----
-$ pmap -X $(pidof java) | awk '{ if (NR <= 2 || $5 >0 ) \ <1>
+$ pmap -X $(pidof java) \
+  | head -n -2 \ <4>
+  | awk '{ if (NR <= 2 || $5 >0 ) \ <1>
   printf "%12s %8s %8s %4s %s\n", \ <2>
   $1, \
   $6, \
@@ -1229,16 +1236,15 @@ $ pmap -X $(pidof java) | awk '{ if (NR <= 2 || $5 >0 ) \ <1>
 7f3581897000       32       32 r--p ld-2.28.so
 7f358189f000        4        4 r--p ld-2.28.so
 7f35818a0000        4        4 rw-p ld-2.28.so
-     ======= ======== ============== =======
-     6172856        0        0 4245724 <4>
 ----
 <1> Filter lines that have an Inode value over 0 and only from the 3rd line (included).
 <2> Print only some columns, `pmap -X {pid}`'s output is verbose.
 <3> The columns are select to match the output of `pmap -x`, `Size` column is in `KiB`.
-<4> The last two lines aren't filtered out due to my limited skills in `awk` ; the actual
+<4> The last two lines are filtered out; the actual
 sums of the _size_ and _rss_ columns of the selected rows are respectively
 `195336 KiB` and `52316 KiB`.
 
+// TODO: re-review, source
 What may catch the eye is the multiple mapping for native libraries like `libjvm.so`.
 The reason is that some part of the file is executable, others are for exchanging information
 with the library.
@@ -1314,7 +1320,7 @@ number, this process will be fine.
 
 
 // TODO: rewrite paging effect on Java Heap
-=== Virtual memory and paging effect on the Java heap
+=== Paging and the Java heap
 
 *Virtual memory* is a memory management scheme that is used by most operating systems ;
 it allows programs to use memory without dealing with hardware, or other concerns like
@@ -1328,7 +1334,7 @@ the OS may:
 * Move a page from physical memory to swap, if the OS thinks there's not enough room for other pages.
 * Map a portion of a file to this page.
 
-image:../../static/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
+image:/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
 
 E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
 the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
@@ -1347,65 +1353,163 @@ RSS counter may not reflect what is een in the *committed* memory.
 
 == Sizing the cgroup / kubernetes `resources.memory.limit`
 
+In the end this investigation is useful to determine what is wrong,
+the memory settings or the application.
+
+Using the gathered information from JVM's native memory tracking and
+from memory mapping is it possible to build this simple _equation_ to
+estimate the probable maximum memory usage of a process ?
+
+We already can suppose there's every reported components from the JVM,
+and the mapped files. Is it enough ?
+
+....
+Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files
+....
 
 
-Wrapping this information from NMT and memory mapped files leaves us with the
-following _equation_ to estimate the actual memory usage of a process:
+
 
 ////
-[TIP]
-=====
 While NMT show you the total, you can use this command to extract all relevant from the summary
-in a simple addition
+in a simple addition and get back to the total committed.
 
-[source,bash]
+[source, shell]
 ----
-echo $(($(jcmd $(pidof java) VM.native_memory \
+$ echo $(($(jcmd $(pidof java) VM.native_memory \
   | tee /dev/tty \
   | grep -P "^-.*committed=" \
   | grep -o -P "(?<=committed=)[0-9]+(?=KB)" \
   | awk 'BEGIN { ORS=""; print "(" }; {print p$0; p=" + "} END { print ")\n"}' \
   | tee /dev/tty )))
+6:
+
+Native Memory Tracking:
+
+Total: reserved=5737038KB, committed=3841302KB
+-                 Java Heap (reserved=3145728KB, committed=3145728KB)
+                            (mmap: reserved=3145728KB, committed=3145728KB)
+
+-                     Class (reserved=1171965KB, committed=138749KB)
+                            (classes #22488)
+                            (  instance classes #21256, array classes #1232)
+                            (malloc=4605KB #74627)
+                            (mmap: reserved=1167360KB, committed=134144KB)
+                            (  Metadata:   )
+                            (    reserved=118784KB, committed=117248KB)
+                            (    used=111699KB)
+                            (    free=5549KB)
+                            (    waste=0KB =0.00%)
+                            (  Class space:)
+                            (    reserved=1048576KB, committed=16896KB)
+                            (    used=13862KB)
+                            (    free=3034KB)
+                            (    waste=0KB =0.00%)
+
+-                    Thread (reserved=811723KB, committed=109231KB)
+                            (thread #786)
+                            (stack: reserved=807964KB, committed=105472KB)
+                            (malloc=2839KB #4717)
+                            (arena=920KB #1571)
+
+-                      Code (reserved=251954KB, committed=91926KB)
+                            (malloc=4266KB #12700)
+                            (mmap: reserved=247688KB, committed=87660KB)
+
+-                        GC (reserved=184627KB, committed=184627KB)
+                            (malloc=34711KB #211249)
+                            (mmap: reserved=149916KB, committed=149916KB)
+
+-                  Compiler (reserved=10844KB, committed=10844KB)
+                            (malloc=10711KB #5305)
+                            (arena=133KB #5)
+
+-                  Internal (reserved=44162KB, committed=44162KB)
+                            (malloc=44162KB #19577)
+
+-                     Other (reserved=6209KB, committed=6209KB)
+                            (malloc=6209KB #932)
+
+-                    Symbol (reserved=23576KB, committed=23576KB)
+                            (malloc=20020KB #260085)
+                            (arena=3556KB #1)
+
+-    Native Memory Tracking (reserved=10695KB, committed=10695KB)
+                            (malloc=207KB #2877)
+                            (tracking overhead=10488KB)
+
+-               Arena Chunk (reserved=201KB, committed=201KB)
+                            (malloc=201KB)
+
+-                   Tracing (reserved=72985KB, committed=72985KB)
+                            (malloc=72985KB #63695)
+
+-                   Logging (reserved=7KB, committed=7KB)
+                            (malloc=7KB #273)
+
+-                 Arguments (reserved=19KB, committed=19KB)
+                            (malloc=19KB #515)
+
+-                    Module (reserved=1502KB, committed=1502KB)
+                            (malloc=1502KB #6469)
+
+-              Synchronizer (reserved=802KB, committed=802KB)
+                            (malloc=802KB #6526)
+
+-                 Safepoint (reserved=8KB, committed=8KB)
+                            (mmap: reserved=8KB, committed=8KB)
+
+-                   Unknown (reserved=32KB, committed=32KB)
+                            (mmap: reserved=32KB, committed=32KB)
+
+(3145728 + 138749 + 109231 + 91926 + 184627 + 10844 + 44162 + 6209 + 23576 + 10695 + 201 + 72985 + 7 + 19 + 1502 + 802 + 8 + 32)
+3841303
+////
+
+[source, shell]
+----
+$ jcmd $(pidof java) VM.native_memory \
+   | grep -P "Total.*committed=" \
+   | grep -o -P "(?<=committed=)[0-9]+(?=KB)"
+3841302
+
+$ ps --no-header -o rss $(pidof java)
+4204512
+
+$ pmap -X $(pidof java) | head -n -2 | awk '{ if (NR > 2 && $5 >0 ) sum += $7 } END { print sum } '
+52668
+
+$ echo $((4204512 - 3841303 - 52668))
+363209
 ----
 
-On macOS, you should install the GNU coreutils and use `ggrep` and `ghead`.
-=====
-////
+//On macOS, you should install the GNU coreutils and use `ggrep` and `ghead`.
+
+
+Using the *committed* value on the first line
+`Total: reserved=5737038KB, committed=3841302KB` from the NMT output,
+the JVM sees `3841302 KiB`, the RSS seen by the OS is `4204512 KiB`, mapped files
+weigh `52668 KiB`. This leaves `310541 KiB` unaccounted for.
+These `300 MiB` are actually quite difficult to identify in `pmap` they could
+be done by native libraries or due to what I'll call the `malloc` overhead, I'll write
+about this in another article.
 
 
 ....
 Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Compiler + Other JVM structures + Thread stacks
                + Direct buffers + Mapped files +
-               + Native Libraries + Malloc overhead + ...
+               + Native libraries allocations + Malloc overhead + ...
 ....
 
-Using the *committed* values from the NMT output above, and the *mapping size*
-this breaks out as :
 
-[%autowidth.stretch,options="footer"]
-|===
 
-| Heap                            | 4456448
-| GC                              |  230739
-| Metaspace                       |  165788
-| Code Cache                      |  105201
-| Symbol tables                   |   28915
-| Compiler                        |    5914
-| Other JVM structures
-(Internal + NMT + smaller area)   |   24460 + 8433 + 217 + 7 + 19 + 1362 + 837 + 8 + 32 = (35375)
-| Thread stacks                   |   85455
-| Direct buffers (Other)          |  267034
 
-| Total accounted by NMT          | 5380868
 
-| Mapped files (and native libs)  |  195336
-| Malloc overhead                 | accounted in NMT
-| ...                             |
 
-| Total                           | 5576205 KiB
-|===
-
+// Move in paging effect in heap
 
 `5576205 KiB` is what this container is supposedly actually using, but:
 
