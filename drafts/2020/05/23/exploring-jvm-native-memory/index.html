@@ -2047,7 +2047,9 @@ with <code>awk</code> this is <em>easy</em>:</p>
 <div class="listingblock">
 <div class="title">Shared application memory mapped files</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -X $(pidof java) | awk &#39;{ if (NR &lt;= 2 || $5 &gt;0 ) \ <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -X $(pidof java) \
+  | head -n -2 \ <i class="conum" data-value="4"></i><b>(4)</b>
+  | awk &#39;{ if (NR &lt;= 2 || $5 &gt;0 ) \ <i class="conum" data-value="1"></i><b>(1)</b>
   printf &#34;%12s %8s %8s %4s %s\n&#34;, \ <i class="conum" data-value="2"></i><b>(2)</b>
   $1, \
   $6, \
@@ -2189,9 +2191,7 @@ with <code>awk</code> this is <em>easy</em>:</p>
 7f3581879000      120      120 r-xp ld-2.28.so
 7f3581897000       32       32 r--p ld-2.28.so
 7f358189f000        4        4 r--p ld-2.28.so
-7f35818a0000        4        4 rw-p ld-2.28.so
-     ======= ======== ============== =======
-     6172856        0        0 4245724 <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+7f35818a0000        4        4 rw-p ld-2.28.so</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -2210,7 +2210,7 @@ with <code>awk</code> this is <em>easy</em>:</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>The last two lines aren’t filtered out due to my limited skills in <code>awk</code> ; the actual
+<td>The last two lines are filtered out; the actual
 sums of the <em>size</em> and <em>rss</em> columns of the selected rows are respectively
 <code>195336 KiB</code> and <code>52316 KiB</code>.</td>
 </tr>
@@ -2389,15 +2389,14 @@ from memory mapping is it possible to build this simple <em>equation</em> to
 estimate the probable maximum memory usage of a process ?</p>
 </div>
 <div class="paragraph">
-<p>We already can suppose there’s every reported componenet from the JVM,
-and the mapped files. Is it enough</p>
+<p>We already can suppose there’s every reported components from the JVM,
+and the mapped files. Is it enough ?</p>
 </div>
 <div class="literalblock">
 <div class="content">
 <pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Compiler + Other JVM structures + Thread stacks
-               + Direct buffers + Mapped files +
-               + Native Libraries + Malloc overhead + ...</pre>
+               + Direct buffers + Mapped files</pre>
 </div>
 </div>
 <div class="listingblock">
@@ -2418,13 +2417,21 @@ $ echo $((4204512 - 3841303 - 52668))
 </div>
 </div>
 <div class="paragraph">
-<p>Using the <strong>committed</strong> value in the first line
+<p>Using the <strong>committed</strong> value on the first line
 <code>Total: reserved=5737038KB, committed=3841302KB</code> from the NMT output,
 the JVM sees <code>3841302 KiB</code>, the RSS seen by the OS is <code>4204512 KiB</code>, mapped files
 weigh <code>52668 KiB</code>. This leaves <code>310541 KiB</code> unaccounted for.
 These <code>300 MiB</code> are actually quite difficult to identify in <code>pmap</code> they could
 be done by native libraries or due to what I’ll call the <code>malloc</code> overhead, I’ll write
 about this in another article.</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files +
+               + Native libraries allocations + Malloc overhead + ...</pre>
+</div>
 </div>
 <div class="paragraph">
 <p><code>5576205 KiB</code> is what this container is supposedly actually using, but:</p>
