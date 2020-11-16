@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 93 min read
+    <i class="fas fa-clock"></i> 95 min read
 
     
     
@@ -261,42 +261,42 @@
   
   
   <div class="post adoc">
-    <div class="paragraph">
-<p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
-<a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
-and <a href="https://twitter.com/ylegat">Yohan Legat</a> for the review.</p>
-</div>
-<hr/>
+    <hr/>
+<div class="sect1">
+<h2 id="_motivation"><a class="anchor" href="#_motivation"></a><a class="link" href="#_motivation">Motivation</a></h2>
+<div class="sectionbody">
 <div class="paragraph">
 <p>Running applications in containers the density of containers forces
-us to be more careful with memory. The cgroups limit is a double edged
-sword, it ensures sibling containers won’t be affected by a misbehaving
-application, however it may be harder to configure correctly, resulting
-in particular in <em>oomkills</em> or inefficient memory settings thus affecting
-negatively the cost and pod scheduling on a Kubernetes cluster. And even memory
-settings that seems good but too tight may have bad implications on
-application performance.</p>
+us to be more careful with memory. A cgroup is a double-edged
+sword, it constrains misbehaving application to avoid or to limit damage to
+other sibling containers, however it may be harder to get a suitable configuration.
+Improper configurations results in <em>oomkills</em> in particular or inefficient memory
+settings thus affecting negatively the cost and pod scheduling on a Kubernetes
+cluster. And even memory settings that seems good but too tight may have bad
+implications on application performance.</p>
 </div>
 <div class="paragraph">
-<p>Java applications are trickier to get right this limit, and I think the
-<code>MaxRAMPercentage</code> flag is not the right tool to do this job.</p>
+<p>Java applications are trickier to get the memory limit right, and I think the
+<code>MaxRAMPercentage</code> flag is not the right tool for this job.</p>
 </div>
 <div class="paragraph">
-<p>Moreover with a given limit, if an application gets oomkilled then
+<p>Moreover, with a given limit, if an application gets oomkilled then
 one has to ask if it is the limit that needs adjustment or if it is the
 application that is misbehaving (memory leak in particular, but not always).</p>
 </div>
 <div class="paragraph">
-<p>To answer these questions this entry is about figuring out the native memory
-of a <code>java</code> process.</p>
+<p>To answer questions a out memory usage there are various things to look at,
+Java Heap, Metaspace other JVM components, etc. I faced a few incidents,
+where the JVM settings and the Kubernetes memory limit where seemingly
+appropriate, yet the apps were constantly oomkilled because the RSS kept
+growing toward this limit. Some of these issues have been solved just
+by raising the memory limit. However, in some other cases it wasn’t that
+crystal clear, this served as excuse to go down the rabbit hole.</p>
 </div>
 <div class="paragraph">
-<p>In doing so the following writing tries to piece together elements
-from a few things I knew, things I grepped in the JDK codebase, blog posts, stack overflow,
-and things learned from — awesome — people.</p>
-</div>
-<div class="paragraph">
-<p>If I ignored something or if I’m wrong please reach out.</p>
+<p>This entry is about understanding the basics of how a <code>java</code> process works
+uses native memory and some rudiments of OS memory management. In doing so,
+I hope it lays out the foundation for another writing I had in mind.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -364,6 +364,8 @@ increase in your cgroup memory limit.</p>
 </tr>
 </tbody></table>
 </div>
+</div>
+</div>
 <div class="sect1">
 <h2 id="_exploration_begins"><a class="anchor" href="#_exploration_begins"></a><a class="link" href="#_exploration_begins">Exploration begins</a></h2>
 <div class="sectionbody">
@@ -390,7 +392,7 @@ diagnostic command will output this :</p>
 <div class="listingblock">
 <div class="title">JVM current flags in a kubernetes container</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">$ jcmd $(pidof java) VM.flags | tr &#39; &#39; &#39;\n&#39;
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ jcmd $(pidof java) VM.flags | tr &#39; &#39; &#39;\n&#39;
 6:
 ...
 -XX:InitialHeapSize=4563402752 <i class="conum" data-value="3"></i><b>(3)</b>
@@ -524,7 +526,7 @@ in <code>KB</code> for the JVM it really means <code>KiB</code>.
 <div class="listingblock">
 <div class="title">JVM native memory trcking report</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) VM.native_memory
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jcmd $(pidof java) VM.native_memory
 6:
 
 Native Memory Tracking:
@@ -671,7 +673,7 @@ Yet another worthwhile read on <a href="https://shipilev.net/jvm/anatomy-quarks/
 by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
 </div>
 <div class="paragraph">
-<p><strong>In the rest of this article whe n talking the context of Native Memory Tracking
+<p><strong>In the rest of this article when talking the context of Native Memory Tracking
 I may use the term <em>memory type</em> or <em>memory zones</em>, but the real definition would be :</strong></p>
 </div>
 <div class="quoteblock">
@@ -690,10 +692,13 @@ as they appear in the report.</p>
 <div class="paragraph">
 <p><em>NMT</em> is a great tool to gain an insight on the memory usage of the various
 parts that compose the Java runtime. It has interesting subcommands to compare
-the memory usage of the JVM component with a <em>baseline</em>.</p>
+the memory usage of the JVM components with a <em>baseline</em>
+(<code>jcmd $(pidof java) VM.native_memory baseline</code>, followed at some point by
+<code>jcmd $(pidof java) VM.native_memory summary.diff</code>).</p>
 </div>
 <div class="paragraph">
-<p>However, and that’s the important bit <strong>it does not answer
+<p>This is very useful for JVM components and a good complement to what I would
+like to show in this article, because NMT alone <strong>does not answer
 what is actually accounted in the RSS column of <code>ps</code></strong>.</p>
 </div>
 </div>
@@ -709,7 +714,7 @@ relate to each other?</p>
 </div>
 <div class="imageblock">
 <div class="content">
-<svg xmlns="http://www.w3.org/2000/svg" version="1.0" shape-rendering="geometricPrecision" preserveAspectRatio="xMidYMid meet" viewBox="0 0 650 224" width="650px" height="224px">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.0" shape-rendering="geometricPrecision" preserveAspectRatio="xMidYMid meet" viewBox="0 0 650 224" width="650" height="224">
   <defs>
     <style type="text/css">
       @font-face { font-family: sans-serif; }
@@ -822,7 +827,7 @@ What is interesting is how paging and RSS relate to each other.</em></p>
 </div>
 <div class="imageblock">
 <div class="content">
-<svg xmlns="http://www.w3.org/2000/svg" version="1.0" shape-rendering="geometricPrecision" preserveAspectRatio="xMidYMid meet" viewBox="0 0 660 532" width="660px" height="532px">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.0" shape-rendering="geometricPrecision" preserveAspectRatio="xMidYMid meet" viewBox="0 0 660 532" width="660" height="532">
   <defs>
     <style type="text/css">
       @font-face { font-family: sans-serif; }
@@ -1233,7 +1238,7 @@ amount.</td>
 </div>
 <div class="imageblock">
 <div class="content">
-<svg xmlns="http://www.w3.org/2000/svg" version="1.0" shape-rendering="geometricPrecision" preserveAspectRatio="xMidYMid meet" viewBox="0 0 770 266" width="770px" height="266px">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.0" shape-rendering="geometricPrecision" preserveAspectRatio="xMidYMid meet" viewBox="0 0 770 266" width="770" height="266">
   <defs>
     <style type="text/css">
       @font-face { font-family: sans-serif; }
@@ -1468,7 +1473,7 @@ request another memory segment.</p>
 <div class="listingblock primary">
 <div class="title">memory example</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">#include &lt;stdio.h&gt;
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
 #include &lt;unistd.h&gt;
 #include &lt;sys/mman.h&gt;
@@ -1517,7 +1522,7 @@ int main (int argc, char *argv[])
 <div class="listingblock secondary">
 <div class="title">result (Linux / llvm)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ clang -Wall -Wpedantic -o test-alloc test-alloc.c &amp;&amp; ./test-alloc
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ clang -Wall -Wpedantic -o test-alloc test-alloc.c &amp;&amp; ./test-alloc
 pid: 4301956
 
 Executing: &#39;ps -p 2904 -o rss,vsz,command&#39;
@@ -1771,7 +1776,7 @@ to spot with <code>pmap -X</code> (capital <code>X</code>).</p>
 <div class="listingblock primary">
 <div class="title"><code>pmap -x {pid}</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -x 7 | head -n 20
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ pmap -x 7 | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -jar /app/boot.jar
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000740000000 3163648 3163648 3163648 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
@@ -1817,7 +1822,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <div class="listingblock secondary">
 <div class="title"><code>pmap -X {pid}</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -X 7 | head -n 20
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ pmap -X 7 | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -javaagent:/newrelic-agent.jar -javaagent:/dd-java-agent.jar -jar /edge-api-boot.jar --spring.config.additional-location=/etc/edge-api/config.yaml --server.port=8080
          Address Perm   Offset Device   Inode    Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
        740000000 rw-p 00000000  00:00       0 3163648 3163648 3163648    3163648   3163648        0              0              0               0    0       0      0           0 <i class="conum" data-value="1"></i><b>(1)</b>
@@ -1863,7 +1868,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <div class="listingblock secondary">
 <div class="title"><code>/proc/{pid}/maps</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/7/maps | head -n 20
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/7/maps | head -n 20
 740000000-801180000 rw-p 00000000 00:00 0 <i class="conum" data-value="1"></i><b>(1)</b>
 801180000-840000000 ---p 00000000 00:00 0
 55bac4461000-55bac4462000 r-xp 00000000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
@@ -2047,7 +2052,7 @@ with <code>awk</code> this is <em>easy</em>:</p>
 <div class="listingblock">
 <div class="title">Shared application memory mapped files</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ pmap -X $(pidof java) \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ pmap -X $(pidof java) \
   | head -n -2 \ <i class="conum" data-value="4"></i><b>(4)</b>
   | awk &#39;{ if (NR &lt;= 2 || $5 &gt;0 ) \ <i class="conum" data-value="1"></i><b>(1)</b>
   printf &#34;%12s %8s %8s %4s %s\n&#34;, \ <i class="conum" data-value="2"></i><b>(2)</b>
@@ -2273,7 +2278,7 @@ leading to increasing memory consumption that weren’t easily identifiable in t
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ ps -o rss,vsz,command $(pidof java)
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ps -o rss,vsz,command $(pidof java)
   RSS    VSZ COMMAND
 4346704 6507368 /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava
 
@@ -2401,7 +2406,7 @@ and the mapped files. Is it enough ?</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ jcmd $(pidof java) VM.native_memory \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jcmd $(pidof java) VM.native_memory \
    | grep -P &#34;Total.*committed=&#34; \
    | grep -o -P &#34;(?&lt;=committed=)[0-9]+(?=KB)&#34;
 3841302
@@ -2456,6 +2461,22 @@ if the RSS grow then the pod is likely to be oomkilled.</p>
 <p>This is where one need to review the memory parameter of either
 the JVM or the memory limits of the pod. Either the JVM is over-sized
 or the JVM will eventually be oomkilled by the OS.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_thanks"><a class="anchor" href="#_thanks"></a><a class="link" href="#_thanks">Thanks</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The above writing tries to piece together elements from a few things I knew,
+things I grepped in the JDK codebase, blog posts, stack overflow,
+and things learned from — awesome — people. I hope I didn’t forget someone,
+if I did or if I’m wrong please reach out.</p>
+</div>
+<div class="paragraph">
+<p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
+<a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
+and <a href="https://twitter.com/ylegat">Yohan Legat</a> for their help in proofreading.</p>
 </div>
 </div>
 </div>

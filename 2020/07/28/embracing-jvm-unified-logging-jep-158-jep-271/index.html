@@ -420,7 +420,7 @@ is your tool.</p>
 <div class="listingblock primary">
 <div class="title"><code>java</code> command</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:help
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java -Xlog:help
 -Xlog Usage: -Xlog[:[selections][:[output][:[decorators][:output-options]]]]
          where &#39;selections&#39; are combinations of tags and levels of the form tag1[+tag2...][*][=level][,...]
          NOTE: Unless wildcard (*) is specified, only log messages tagged with exactly the tags specified will be matched.
@@ -597,7 +597,7 @@ Options: (options must be specified using the &lt;key&gt; or &lt;key&gt;=&lt;val
 <div class="listingblock">
 <div class="title"><code>jcmd</code> command</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="role" secondary""="" class="language-role" secondary"="" hljs"="">$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagesise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level</code></pre>
+<pre class="highlightjs highlight"><code class="language-role" secondary"="" hljs"="" data-lang="role" secondary""="">$ jcmd $(pidof java) VM.log output=/var/log/%t-os-container-pagesise.log what=pagesize,os*,os+container=trace decorators=uptime,tags,level</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -811,7 +811,7 @@ which I found somewhat lacking in this regard.</p>
 <thead>
 <tr>
 <th class="tableblock halign-left valign-top">Old GC log flags usually set with <code>-XX:+…​</code></th>
-<th class="tableblock halign-left valign-top">`Equivalent` tags with log level</th>
+<th class="tableblock halign-left valign-top"><code>Equivalent</code> tags with log level</th>
 <th class="tableblock halign-left valign-top">Definition of the the old flag</th>
 </tr>
 </thead>
@@ -1425,7 +1425,7 @@ more thoroughly G1GC regions:</p>
 <div class="listingblock">
 <div class="title">Activate a new log configuration</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">jcmd $(pidof java) \
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">jcmd $(pidof java) \
   VM.log \
     what=&#34;gc*=debug,gc+ergo*=trace,gc+age*=trace,gc+region=trace,gc+liveness=trace,safepoint*&#34; \
     decorators=time,tags,level \
@@ -1547,7 +1547,7 @@ and some application servers back in the days.</p>
 <div class="listingblock">
 <div class="title"><a href="https://github.com/corretto/corretto-11/blob/2b351313740f148597cf680d8443df93931de813/src/src/hotspot/share/runtime/arguments.cpp#L602-L636">src/hotspot/share/runtime/arguments.cpp</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c++" class="language-c++ hljs">// NOTE: A compatibility request will be necessary for each alias to be removed.
+<pre class="highlightjs highlight"><code class="language-c++ hljs" data-lang="c++">// NOTE: A compatibility request will be necessary for each alias to be removed.
 static AliasedLoggingFlag const aliased_logging_flags[] = {
   { &#34;PrintCompressedOopsMode&#34;,   LogLevel::Info,  true,  LOG_TAGS(gc, heap, coops) },
   { &#34;PrintSharedSpaces&#34;,         LogLevel::Info,  true,  LOG_TAGS(cds) },
@@ -2868,7 +2868,7 @@ Two subsystems stands out in the way they describe their <em>tagsets</em>: JFR a
 <div class="listingblock">
 <div class="title"><a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/commit/e68804acbb0c9c66931a7c494a6722efc0eefb1c#diff-d3a85490aacada1ec0d907692afcd069">src/hotspot/share/jfr/utilities/jfrLogTagSets.hpp</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c++" class="language-c++ hljs">#define JFR_LOG_TAG_SET_LIST \
+<pre class="highlightjs highlight"><code class="language-c++ hljs" data-lang="c++">#define JFR_LOG_TAG_SET_LIST \
   JFR_LOG_TAG(jfr) \
   JFR_LOG_TAG(jfr, system) \
   JFR_LOG_TAG(jfr, system, event) \
@@ -2900,7 +2900,7 @@ class.</p>
 <div class="listingblock">
 <div class="title"><a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/logging/logPrefix.hpp#L45-L90">src/hotspot/share/logging/logPrefix.hpp#L45-L90</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="cpp" class="language-cpp hljs">#define LOG_PREFIX_LIST \
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">#define LOG_PREFIX_LIST \
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc)) \
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, age)) \
   LOG_PREFIX(GCId::print_prefix, LOG_TAGS(gc, alloc)) \
@@ -3295,7 +3295,7 @@ os and container tags:</p>
 <div class="listingblock">
 <div class="title">os, container, pagesize logs</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ head -n 200 /var/log/2020-05-22_22-28-32-os-container-pagezise.log
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ head -n 200 /var/log/2020-05-22_22-28-32-os-container-pagezise.log
 [0.003s][trace][os,container] OSContainer::init: Initializing Container Support
 [0.003s][trace][os,container] Path to /memory.use_hierarchy is /sys/fs/cgroup/memory/memory.use_hierarchy
 [0.003s][trace][os,container] Use Hierarchy is: 1
@@ -3414,7 +3414,7 @@ os and container tags:</p>
 <h4 id="_class_redefinition"><a class="anchor" href="#_class_redefinition"></a><a class="link" href="#_class_redefinition">Class redefinition</a></h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class AgentTest {
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class AgentTest {
 
     public static void main(String[] args) {
         Foo foo = new Foo();
@@ -3446,7 +3446,7 @@ os and container tags:</p>
 <div class="listingblock">
 <div class="title">Logs when running the code snippet</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java -Xlog:redefine+class*=debug -cp .:./lib/byte-buddy-agent-1.10.13.jar:./lib/byte-buddy-1.10.13.jar AgentTest
 [0.151s][stdout] m(): foo
 [0.688s][debug][redefine,class,load] loading name=AgentTest$Foo kind=101 (avail_mem=108304K)
 [0.688s][info ][redefine,class,constantpool] old_cp_len=25, scratch_cp_len=29
@@ -3471,7 +3471,7 @@ os and container tags:</p>
 <h4 id="_during_debug"><a class="anchor" href="#_during_debug"></a><a class="link" href="#_during_debug">During debug</a></h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">import java.lang.annotation.Retention;
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.management.ManagementFactory;
 
@@ -3512,7 +3512,7 @@ adds another instruction, change the return values of <code>m()</code>, etc.</td
 <div class="listingblock">
 <div class="title">Change <code>Foo.m()</code> class after instantiation during debug</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp . DebugTest
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java -Xlog:redefine*=trace,jvmti*=trace -agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=61222 -cp . DebugTest
 [51.942s][debug][redefine,class,load] loading name=sandbox.DebugTest kind=102 (avail_mem=1416012K)         <i class="conum" data-value="1"></i><b>(1)</b>
 [51.942s][trace][redefine,class,normalize] Method matched: new: sandbox.DebugTest.&lt;init&gt;()V [0] == old: sandbox.DebugTest.&lt;init&gt;()V [0]
 [51.942s][trace][redefine,class,normalize] Method matched: new: sandbox.DebugTest.main([Ljava/lang/String;)V [1] == old: sandbox.DebugTest.main([Ljava/lang/String;)V [1]
@@ -3706,7 +3706,7 @@ expected, one may want to toggle the logs for the just-in-time and compilation l
 <div class="listingblock">
 <div class="title">Just-in-Time compilation and inlining</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ java -Xlog:jit*=debug,compilation*=debug -cp . JustStartMainTest
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java -Xlog:jit*=debug,compilation*=debug -cp . JustStartMainTest
 ...
 [0.053s][debug][jit,compilation      ]   30       3       java.util.ImmutableCollections$SetN$SetNIterator::hasNext (13 bytes)
 [0.053s][debug][compilation,codecache] CodeHeap &#39;non-profiled nmethods&#39;: size=120032Kb used=2Kb max_used=2Kb free=120029Kb
@@ -3759,7 +3759,7 @@ The content of this file is actually an XML document.</p>
 <h4 id="_safepoints_and_jvm_operations"><a class="anchor" href="#_safepoints_and_jvm_operations"></a><a class="link" href="#_safepoints_and_jvm_operations">Safepoints and JVM operations</a></h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class DebugTest {
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class DebugTest {
     public static void main(String[] args) {
         System.out.printf(&#34;[%.3fs][stdout] ping%n&#34;, ManagementFactory.getRuntimeMXBean().getUptime() / 1000d);
         System.out.printf(&#34;[%.3fs][stdout] pong%n&#34;, ManagementFactory.getRuntimeMXBean().getUptime() / 1000d); <i class="conum" data-value="1"></i><b>(1)</b>
@@ -3861,7 +3861,7 @@ So it’s useful to always log safepoints.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ grep &#34;Entering safepoint&#34; /var/log/2020-01-28_13-36-23-vm.log
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ grep &#34;Entering safepoint&#34; /var/log/2020-01-28_13-36-23-vm.log
 [6.880s][info ][safepoint     ] Entering safepoint region: Deoptimize
 [6.880s][info ][safepoint        ] Entering safepoint region: Deoptimize
 [6.884s][info ][safepoint        ] Entering safepoint region: Deoptimize
@@ -3990,7 +3990,7 @@ these command programmatically.</p>
 <div class="listingblock">
 <div class="title">Enable GC logging programmatically</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">import javax.management.InstanceNotFoundException;
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">import javax.management.InstanceNotFoundException;
 import javax.management.IntrospectionException;
 import javax.management.MBeanException;
 import javax.management.MBeanInfo;

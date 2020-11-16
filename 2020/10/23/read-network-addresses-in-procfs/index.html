@@ -297,7 +297,7 @@ however procfs displays some data in hexadecimal.</p>
 <div class="listingblock">
 <div class="title">lists destination IPs on port 9042</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk -v DPORT=$(printf &#34;:%x&#34; 9042) &#39;$3 ~ DPORT { print $3}&#39; \
   | sort -u \
   | cut -f1 -d&#39;:&#39; \
@@ -331,7 +331,7 @@ of this command other use cases.</p>
 <div class="listingblock">
 <div class="title">output of procfs net/tcp</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp
   sl  local_address rem_address   st tx_queue rx_queue tr tm-&gt;when retrnsmt   uid  timeout inode
    0: 0100007F:3A98 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 1694605946 1 0000000000000000 100 0 0 10 0
    1: 00000000:3A99 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 1694637598 1 0000000000000000 100 0 0 10 0
@@ -407,7 +407,7 @@ port 9042, I’ll need the 3rd column.</p>
 <div class="listingblock">
 <div class="title">remote address</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk &#39;{print $3}&#39;
 rem_address
 00000000:0000
@@ -430,7 +430,7 @@ to match the hexadecimal value of 9042.</p>
 <div class="listingblock">
 <div class="title">connection’s destination addresses for port 9042</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk &#39;{print $3}&#39; \
   | grep $(printf &#34;:%x&#34; 9042)
 1148D00A:2352
@@ -455,7 +455,7 @@ to match the hexadecimal value of 9042.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk -v DPORT=$(printf &#34;:%x&#34; 9042) &#39;$3 ~ DPORT { print $3}&#39;</code></pre>
 </div>
 </div>
@@ -468,7 +468,7 @@ Then we need to extract the IP.</p>
 <div class="listingblock">
 <div class="title">all destination IP (hexa reversed) on port 9042</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk -v DPORT=$(printf &#34;:%x&#34; 9042) &#39;$3 ~ DPORT { print $3}&#39; \
   | sort -u \
   | cut -f1 -d:
@@ -499,7 +499,7 @@ decimal, and reverse them.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ echo &#34;110C2D0A&#34; \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ echo &#34;110C2D0A&#34; \
   | sed &#39;s/../0x&amp; /g&#39; \ <i class="conum" data-value="1"></i><b>(1)</b>
   | awk &#39;{ for(i=NF;i&gt;0;i--) printf &#34;%d.&#34;,$i; print &#34;&#34; }&#39; \ <i class="conum" data-value="2"></i><b>(2)</b>
   | sed &#39;s/.$//&#39; <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
@@ -526,7 +526,7 @@ Then the last <code>sed</code> simply removes the last dot.</td>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ echo &#34;110C2D0A&#34; \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ echo &#34;110C2D0A&#34; \
   | awk &#39;{gsub(/../,&#34;0x&amp; &#34;)} OFS=&#34;.&#34; {for(i=NF;i&gt;0;i--) printf &#34;%d%s&#34;, $i, (i == 1 ? ORS : OFS)}&#39;</code></pre>
 </div>
 </div>
@@ -546,7 +546,7 @@ with <code>OFS</code> <em>output field separator</em> to separate each IP’s oc
 <div class="listingblock">
 <div class="title">human readable list of destination IPs on port 9042</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk -v DPORT=$(printf &#34;:%x&#34; 9042) &#39;$3 ~ DPORT { print $3}&#39; \
   | sort -u \
   | cut -f1 -d&#39;:&#39; \
@@ -586,7 +586,7 @@ e.g. the fourth field is about the connection state.</p>
 <div class="listingblock">
 <div class="title"><a href="https://github.com/torvalds/linux/blob/v4.19/include/net/tcp_states.h">include/net/tcp_states.h (v4.19)</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">#define _LINUX_TCP_STATES_H
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#define _LINUX_TCP_STATES_H
 
 enum {
 	TCP_ESTABLISHED = 1,
@@ -617,7 +617,7 @@ indicates what addresses have been bound by the process.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk -v TCP_STATE=0A &#39;($4 == TCP_STATE) { print $2 }&#39;
 00000000:1F90
 00000000:3AF2
@@ -631,7 +631,7 @@ indicates what addresses have been bound by the process.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ echo &#34;110C2D0A&#34; \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ echo &#34;110C2D0A&#34; \
   | awk &#39;{gsub(/../,&#34;0x&amp; &#34;)} OFS=&#34;.&#34; {for(i=NF;i&gt;0;i--) printf &#34;%d%s&#34;, $i, (i == 1 ? ORS : OFS)}&#39;</code></pre>
 </div>
 </div>
@@ -640,7 +640,7 @@ indicates what addresses have been bound by the process.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ echo &#34;0100007F:3A98&#34; \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ echo &#34;0100007F:3A98&#34; \
   | awk -F: &#39;{gsub(/../,&#34;0x&amp; &#34;, $1)} {l=split($1,hip,&#34; &#34;); for(i=l;i&gt;0;i--) printf &#34;%d%s&#34;, hip[i], (i == 1 ? &#34;:&#34; : &#34;.&#34;); printf &#34;%d%s&#34;,&#34;0x&#34;$2, ORS}&#39;</code></pre>
 </div>
 </div>
@@ -662,7 +662,7 @@ Ending the line by printing the port field in decimal <code>printf &#34;%d%s&#34
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp \
   | awk -v TCP_STATE=0A &#39;($4 == TCP_STATE) { print $2 }&#39; \
   | awk -F: &#39;{gsub(/../,&#34;0x&amp; &#34;, $1)} {l=split($1,hip,&#34; &#34;); for(i=l;i&gt;0;i--) printf &#34;%d%s&#34;, hip[i], (i == 1 ? &#34;:&#34; : &#34;.&#34;); printf &#34;%d%s&#34;,&#34;0x&#34;$2, ORS}&#39;
 0.0.0.0:8080
@@ -677,7 +677,7 @@ Ending the line by printing the port field in decimal <code>printf &#34;%d%s&#34
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="diff" class="language-diff hljs">- awk -F: &#39;{gsub(/../,&#34;0x&amp; &#34;, $1)} {l=split($1,hip,&#34; &#34;); for(i=l;i&gt;0;i--) printf &#34;%d%s&#34;, hip[i], (i == 1 ? &#34;:&#34; : &#34;.&#34;); printf &#34;%d%s&#34;,&#34;0x&#34;$2, ORS}&#39;
+<pre class="highlightjs highlight"><code class="language-diff hljs" data-lang="diff">- awk -F: &#39;{gsub(/../,&#34;0x&amp; &#34;, $1)} {l=split($1,hip,&#34; &#34;); for(i=l;i&gt;0;i--) printf &#34;%d%s&#34;, hip[i], (i == 1 ? &#34;:&#34; : &#34;.&#34;); printf &#34;%d%s&#34;,&#34;0x&#34;$2, ORS}&#39;
 + awk -F: &#39;{gsub(/../,&#34;0x&amp; &#34;, $1)} {l=split($1,hip,&#34; &#34;); for(i=l;i&gt;0;i--) printf &#34;%d%s&#34;, hip[i], (i == 1 ? &#34;&#34; : &#34;.&#34;); if ($2 != &#34;&#34;) printf &#34;:%d%s&#34;,&#34;0x&#34;$2, ORS}&#39;</code></pre>
 </div>
 </div>
@@ -687,7 +687,7 @@ Ending the line by printing the port field in decimal <code>printf &#34;%d%s&#34
 <div class="listingblock">
 <div class="title">formal hexadecimal IPs or network addresses</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ echo &#34;0100007F:3A98
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ echo &#34;0100007F:3A98
 0100007F&#34; \
   | awk -F: &#39;{gsub(/../,&#34;0x&amp; &#34;, $1)} {l=split($1,hip,&#34; &#34;); for(i=l;i&gt;0;i--) printf &#34;%d%s&#34;, hip[i], (i == 1 ? &#34;&#34; : &#34;.&#34;); if ($2 != &#34;&#34;) printf &#34;:%d%s&#34;,&#34;0x&#34;$2, ORS}&#39;
 127.0.0.1:15000
@@ -703,7 +703,7 @@ offers an alternative :</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/route
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/route
 Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
 eth0	00000000	0104F80A	0003	0	0	0	00000000	0	0	0
 eth0	0204F80A	00000000	0001	0	0	0	00FFFFFF	0	0	0</code></pre>
@@ -715,7 +715,7 @@ would be better. Reusing our previous awk command is pure profit.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/route \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/route \
   | awk &#39;$1 == &#34;eth0&#34; {print $3}&#39; \
   | awk &#39;{gsub(/../,&#34;0x&amp; &#34;)} OFS=&#34;.&#34; {for(i=NF;i&gt;0;i--) printf &#34;%d%s&#34;, $i, (i == 1 ? ORS : OFS)}&#39;
 10.248.4.1
@@ -741,7 +741,7 @@ for the creation of what is called the user space API of the kernel (uapi), or h
 <div class="listingblock">
 <div class="title"><a href="https://github.com/torvalds/linux/blob/v4.19/include/uapi/linux/route.h">include/uapi/linux/route.h (v4.19)</a></div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="c" class="language-c hljs">#define	RTF_UP		0x0001		/* route usable		  	*/
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#define	RTF_UP		0x0001		/* route usable		  	*/
 #define	RTF_GATEWAY	0x0002		/* destination is a gateway	*/
 #define	RTF_HOST	0x0004		/* host entry (net otherwise)	*/
 #define RTF_REINSTATE	0x0008		/* reinstate route after tmout	*/
@@ -767,7 +767,7 @@ are in their related pseudo files, e.g <code>/proc/$(pidof java)/net/tcp6</code>
 <div class="listingblock">
 <div class="title">/proc/$(pidof java)/net/tcp6</div>
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="shell" class="language-shell hljs">$ cat /proc/$(pidof java)/net/tcp6
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/net/tcp6
   sl  local_address                         remote_address                        st tx_queue rx_queue tr tm-&gt;when retrnsmt   uid  timeout inode
    0: 00000000000000000000000000000000:3AAC 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000  1337        0 2247569106 1 0000000000000000 100 0 0 10 0
    1: 00000000000000000000000000000000:FFFD 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000 65533        0 2247536566 1 0000000000000000 100 0 0 10 0
