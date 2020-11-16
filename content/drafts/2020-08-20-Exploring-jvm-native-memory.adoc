@@ -30,40 +30,38 @@ _This entry has been marinating for most of the year 2020. Rewriting it 3 times
 to make it more digestible form, then I found out I should just split my thoughts
 in articles a bit smaller that hopefully make sense on their own._
 
-I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
-https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
-and https://twitter.com/ylegat[Yohan Legat] for the review.
-
 
 '''
 
+== Motivation
+
 Running applications in containers the density of containers forces
-us to be more careful with memory. The cgroups limit is a double edged
-sword, it ensures sibling containers won't be affected by a misbehaving
-application, however it may be harder to configure correctly, resulting
-in particular in _oomkills_ or inefficient memory settings thus affecting
-negatively the cost and pod scheduling on a Kubernetes cluster. And even memory
-settings that seems good but too tight may have bad implications on
-application performance.
+us to be more careful with memory. A cgroup is a double-edged
+sword, it constrains misbehaving application to avoid or to limit damage to
+other sibling containers, however it may be harder to get a suitable configuration.
+Improper configurations results in _oomkills_ in particular or inefficient memory
+settings thus affecting negatively the cost and pod scheduling on a Kubernetes
+cluster. And even memory settings that seems good but too tight may have bad
+implications on application performance.
 
-Java applications are trickier to get right this limit, and I think the
-`MaxRAMPercentage` flag is not the right tool to do this job.
+Java applications are trickier to get the memory limit right, and I think the
+`MaxRAMPercentage` flag is not the right tool for this job.
 
-Moreover with a given limit, if an application gets oomkilled then
+Moreover, with a given limit, if an application gets oomkilled then
 one has to ask if it is the limit that needs adjustment or if it is the
 application that is misbehaving (memory leak in particular, but not always).
 
-To answer these questions this entry is about figuring out the native memory
-of a `java` process.
-//All snippet comes from Kubernetes pods under load, in production. The actual
-//problem could be solved by adjusting cgroup limits, but the need to understand and
-//other factors served as an excuse to go down the rabbit hole.
+To answer questions a out memory usage there are various things to look at,
+Java Heap, Metaspace other JVM components, etc. I faced a few incidents,
+where the JVM settings and the Kubernetes memory limit where seemingly
+appropriate, yet the apps were constantly oomkilled because the RSS kept
+growing toward this limit. Some of these issues have been solved just
+by raising the memory limit. However, in some other cases it wasn't that
+crystal clear, this served as excuse to go down the rabbit hole.
 
-In doing so the following writing tries to piece together elements
-from a few things I knew, things I grepped in the JDK codebase, blog posts, stack overflow,
-and things learned from -- awesome -- people.
-
-If I ignored something or if I'm wrong please reach out.
+This entry is about understanding the basics of how a `java` process works
+uses native memory and some rudiments of OS memory management. In doing so,
+I hope it lays out the foundation for another writing I had in mind.
 
 [NOTE]
 ====
@@ -322,7 +320,7 @@ and https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html
 Yet another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native-memory-tracking/[native memory tracking]
 by http://twitter.com/shipilev[Aleksey Shipilёv].
 
-*In the rest of this article whe n talking the context of Native Memory Tracking
+*In the rest of this article when talking the context of Native Memory Tracking
 I may use the term _memory type_ or _memory zones_, but the real definition would be :*
 
 > *the _memory allocation type_ performed by a _JVM component_*
@@ -334,9 +332,13 @@ as they appear in the report.
 
 _NMT_ is a great tool to gain an insight on the memory usage of the various
 parts that compose the Java runtime. It has interesting subcommands to compare
-the memory usage of the JVM component with a _baseline_.
+the memory usage of the JVM components with a _baseline_
+(`jcmd $(pidof java) VM.native_memory baseline`, followed at some point by
+`jcmd $(pidof java) VM.native_memory summary.diff`).
 
-However, and that's the important bit *it does not answer
+
+This is very useful for JVM components and a good complement to what I would
+like to show in this article, because NMT alone *does not answer
 what is actually accounted in the RSS column of `ps`*.
 
 
@@ -1531,5 +1533,13 @@ or the JVM will eventually be oomkilled by the OS.
 
 
 
+== Thanks
 
+The above writing tries to piece together elements from a few things I knew,
+things I grepped in the JDK codebase, blog posts, stack overflow,
+and things learned from -- awesome -- people. I hope I didn't forget someone,
+if I did or if I'm wrong please reach out.
 
+I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
+https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
+and https://twitter.com/ylegat[Yohan Legat] for their help in proofreading.
