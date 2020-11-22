@@ -16,11 +16,8 @@ how much JVM components are actually consuming memory.
 <!--more-->
 ++++
 
-// TODO: Talk about the kubernetes scheduling aspect of setting memory request and limits ?
 
 // TODO: Change JDK links to openjdk/jdk
-
-// TODO: Mention NMT baseline summary.diff
 
 // Related articles
 // - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
@@ -41,7 +38,7 @@ sword, it constrains misbehaving application to avoid or to limit damage to
 other sibling containers, however it may be harder to get a suitable configuration.
 Improper configurations results in _oomkills_ in particular or inefficient memory
 settings thus affecting negatively the cost and pod scheduling on a Kubernetes
-cluster. And even memory settings that seems good but too tight may have bad
+cluster. Even memory settings that seems good but too tight may have bad
 implications on application performance.
 
 Java applications are trickier to get the memory limit right, and I think the
@@ -334,7 +331,7 @@ _NMT_ is a great tool to gain an insight on the memory usage of the various
 parts that compose the Java runtime. It has interesting subcommands to compare
 the memory usage of the JVM components with a _baseline_
 (`jcmd $(pidof java) VM.native_memory baseline`, followed at some point by
-`jcmd $(pidof java) VM.native_memory summary.diff`).
+one or several `jcmd $(pidof java) VM.native_memory summary.diff`).
 
 
 This is very useful for JVM components and a good complement to what I would
@@ -1246,18 +1243,122 @@ $ pmap -X $(pidof java) \
 sums of the _size_ and _rss_ columns of the selected rows are respectively
 `195336 KiB` and `52316 KiB`.
 
-// TODO: re-review, source
-What may catch the eye is the multiple mapping for native libraries like `libjvm.so`.
-The reason is that some part of the file is executable, others are for exchanging information
-with the library.
 
-* `r-xp` means an executable segment of the library
-* `r\--p` means readable memory of the library, e.g. constants
-* `rw-p` means writable memory, this is usually where the process can set global
-variables of thw library.
+
+// https://unix.stackexchange.com/questions/200348/memory-layout-of-dynamic-loaded-linked-library
+// https://unix.stackexchange.com/questions/116327/loading-of-shared-libraries-and-ram-usage
+// https://manybutfinite.com/post/anatomy-of-a-program-in-memory/
+
+What may catch the eye is the multiple mapping for native libraries like `libjvm.so`.
+The reason for these different memory mapping is how dynamic libraries are loaded
+(with `dl_open`, e.g. here https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1947-L1966[os::Linux::dlopen_helper]).
+I didn't have any system courses, but from what I believe I know https://linux.die.net/man/3/dlopen[`dl_open`]
+will make multiple memory mapping with different objectives and permissions:
+
+* `r-xp` means an executable segment of the library, probably the native execution stack
+of the native library
+* `r\--p` means readable memory of the library, I believe its the library constants or symbols
+* `rw-p` means writable memory, I think its purpose is for the main process to set global
+variables of the library
 *  `---p` is a no permission segment, I'm not sure about this one, but it's location
 (between executable and writable segments) makes me think it's about buffer overflow
-prevention.
+prevention
+
+.Simple C code example that performs a `dlopen`
+[%collapsible]
+====
+
+The program below will simply load the shared dynamic library `libjvm.so`,
+and won't even interact with it. The result shows the 4 mappings
+with the different modes.
+
+.c
+[source, c, role="primary"]
+----
+#include <stdio.h>
+#include <unistd.h>
+#include <dlfcn.h>
+
+int main (int argc, char *argv[])
+{
+pid_t pid = getpid();
+printf("pid: %d\n", pid);
+
+  void* libjava_handle=dlopen("lib/server/libjvm.so", RTLD_LAZY);
+  if (!libjava_handle) {
+    fputs (dlerror(), stderr);
+    exit(1);
+  }
+
+  char buffer[50];
+  sprintf(buffer, "pmap -X %d", pid);
+  printf("Executing: '%s'\n", buffer);
+  system(buffer);
+
+  return 0;
+}
+----
+
+
+.result
+[source, shell, role="secondary"]
+----
+$ env LD_LIBRARY_PATH=$JAVA_HOME/lib/server ./test-dlopen
+pid: 608
+Executing: 'pmap -x -p 608'
+608:   ./test-dlopen
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- /src/build/exe/dlopen/test-dlopen
+0000000000600000       4       4       4 r---- /src/build/exe/dlopen/test-dlopen
+0000000000601000       4       4       4 rw--- /src/build/exe/dlopen/test-dlopen
+0000000001ba0000     132      16      16 rw---   [ anon ]
+00007f3374f11000      92      92       0 r-x-- /usr/lib64/libpthread-2.17.so
+00007f3374f28000    2044       0       0 ----- /usr/lib64/libpthread-2.17.so
+00007f3375127000       4       4       4 r---- /usr/lib64/libpthread-2.17.so
+00007f3375128000       4       4       4 rw--- /usr/lib64/libpthread-2.17.so
+00007f3375129000      16       4       4 rw---   [ anon ]
+00007f337512d000   18516    5324       0 r-x-- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <1>
+00007f3376342000    2048       0       0 ----- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <2>
+00007f3376542000     836     836     836 r---- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <3>
+00007f3376613000     236     216     216 rw--- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <4>
+00007f337664e000     360     240     240 rw---   [ anon ]
+00007f33766a8000    1808    1184       0 r-x-- /usr/lib64/libc-2.17.so
+00007f337686c000    2044       0       0 ----- /usr/lib64/libc-2.17.so
+00007f3376a6b000      16      16      16 r---- /usr/lib64/libc-2.17.so
+00007f3376a6f000       8       8       8 rw--- /usr/lib64/libc-2.17.so
+00007f3376a71000      20      12      12 rw---   [ anon ]
+00007f3376a76000      84      64       0 r-x-- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376a8b000    2044       0       0 ----- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376c8a000       4       4       4 r---- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376c8b000       4       4       4 rw--- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376c8c000    1028     208       0 r-x-- /usr/lib64/libm-2.17.so
+00007f3376d8d000    2044       0       0 ----- /usr/lib64/libm-2.17.so
+00007f3376f8c000       4       4       4 r---- /usr/lib64/libm-2.17.so
+00007f3376f8d000       4       4       4 rw--- /usr/lib64/libm-2.17.so
+00007f3376f8e000     932     520       0 r-x-- /usr/lib64/libstdc++.so.6.0.19
+00007f3377077000    2048       0       0 ----- /usr/lib64/libstdc++.so.6.0.19
+00007f3377277000      32      32      32 r---- /usr/lib64/libstdc++.so.6.0.19
+00007f337727f000       8       8       8 rw--- /usr/lib64/libstdc++.so.6.0.19
+00007f3377281000      84      12      12 rw---   [ anon ]
+00007f3377296000       8       8       0 r-x-- /usr/lib64/libdl-2.17.so
+00007f3377298000    2048       0       0 ----- /usr/lib64/libdl-2.17.so
+00007f3377498000       4       4       4 r---- /usr/lib64/libdl-2.17.so
+00007f3377499000       4       4       4 rw--- /usr/lib64/libdl-2.17.so
+00007f337749a000     136     136       0 r-x-- /usr/lib64/ld-2.17.so
+00007f33776af000      24      24      24 rw---   [ anon ]
+00007f33776b9000       8       8       8 rw---   [ anon ]
+00007f33776bb000       4       4       4 r---- /usr/lib64/ld-2.17.so
+00007f33776bc000       4       4       4 rw--- /usr/lib64/ld-2.17.so
+00007f33776bd000       4       4       4 rw---   [ anon ]
+00007ffc83b1d000     132      12      12 rw---   [ stack ]
+00007ffc83b41000      12       0       0 r----   [ anon ]
+00007ffc83b44000       4       4       0 r-x--   [ anon ]
+ffffffffff600000       4       0       0 r-x--   [ anon ]
+---------------- ------- ------- -------
+total kB           38912    9040    1496
+----
+
+====
 
 In the above snippet the mapped files represents `195.3 MiB` of the address space
 of which `52.3 MiB` are actually resident. This app is definitely OK. Some
@@ -1266,6 +1367,11 @@ may be the right thing. I've seen in the past `FileChannel` unreleased mappings,
 leading to increasing memory consumption that weren't easily identifiable in the Java heap
 (unless you had to perform a heap dump and knew what to look at).
 
+
+_If `pmap` is run with `-X`, it's likely you'll notice segments named `vsyscall`
+`vdso` these appear to be
+https://stackoverflow.com/a/19942352[two mechanisms that can accelerate some system calls].
+https://lwn.net/Articles/615809/[`vvar` is used to exchange Kernel data without requiring a system call]._
 
 
 // TODO: circling back to pages
@@ -1511,7 +1617,7 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
 
 
 
-// Move in paging effect in heap
+// TODO: Move in paging effect in heap
 
 `5576205 KiB` is what this container is supposedly actually using, but:
 
