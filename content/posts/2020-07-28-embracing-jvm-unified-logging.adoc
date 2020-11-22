@@ -829,7 +829,9 @@ that declares all logging tags (138 in total). From there I searched where these
 | reloc                 | `gc`                           | ZGC object set relocation.
 | remset                | `gc`                           | G1GC remembered set. The `tracking` and `exit` tag can come along if level is `trace`.
 | resolve               | `class`, `aot`                 | Logs about constant pool resolutions, e.g. when loading classes, lambdas, doing reflection, jni
-| safepoint             | `safepoint`                    | JVM stop-the-world operations Heap Dump, some GC tasks, de-optimization, biased locking revocation, library loading, etc... (https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134[src/hotspot/share/runtime/vm_operations.hpp], the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone `vmoperation`.
+| safepoint             | `safepoint`                    | JVM stop-the-world operations Heap Dump, some GC tasks, de-optimization, biased locking revocation, library loading, etc...
+(https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/runtime/vm_operations.hpp#L42-L134[src/hotspot/share/runtime/vm_operations.hpp],
+the operation in this enum are not all in safepoint though). Specific operation logs can be logged with the standalone `vmoperation`.
 | sampling              | `jfr`                          | Old object sampling in JFR. `trace` level only.
 | scavenge              | `gc`                           | CMS, Parallel, and Serial GC scavenge traces.
 | setting               | `jfr`                          | Part of `jfr`, mostly about JFR configuration.
@@ -959,6 +961,10 @@ class.
 ----
 ====
 
+.Classes, Classloading, JVMTI, compiler, etc.
+[%collapsible]
+====
+
 The other _tag-sets_ are not declared, so I'm listing some of them in a non exhaustive way for the other major
 JVM component.
 
@@ -1082,14 +1088,14 @@ Interpreter
 * `log_debug(interpreter, oopmap)` https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src/src/hotspot/share/interpreter/oopMapCache.cpp[src/hotspot/share/interpreter/oopMapCache.cpp]
 * `log_debug(interpreter, safepoint)` https://github.com/corretto/corretto-11/blob/caa2f4cad666b508a88b92db01054ace8647a820/src/src/hotspot/share/interpreter/templateInterpreter.cpp[src/hotspot/share/interpreter/templateInterpreter.cpp]
 
-
+====
 
 === Other tags combinations examples
 
 ==== OS and container related
 
 If the workload you are working on is running on containers you may have heard of the
-os and container tags:
+`os` and `container` tags:
 
 .os, container, pagesize logs
 [source, shell]
