@@ -1,0 +1,157 @@
+
+https://openjdk.java.net/groups/hotspot/docs/RuntimeOverview.html
+
+.VM Lifecycle
+The following sections gives an overview of the general purpose java launcher pertaining to the lifecyle of the HotSpot VM.
+Launcher
+
+https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src%2Fsrc%2Fjava.base%2Fshare%2Fnative%2Flauncher%2Fmain.c#L96-L215[main.c main]
+  https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src%2Fsrc%2Fjava.base%2Fshare%2Fnative%2Flauncher%2Fmain.c#L206[JLI_Launch]
+    https://github.com/corretto/corretto-11/blob/6cfe3b0b02ffcc8c15680f940f5dc89ba63c0738/src%2Fsrc%2Fjava.base%2Fshare%2Fnative%2Flibjli%2Fjava.c#L216-L342[java.c JLI_Launch]
+
+
+.Launcher
+There are several HotSpot VM launchers in the Java Standard Edition, the general purpose launcher typically used is the java command on Unix and on Windows java and javaw commands, not to be confused with javaws which is a network based launcher.
+
+The launcher operations pertaining to VM startup are:
+
+. Parse the command line options, some of the command line options are
+consumed by the launcher itself, for example `-client` or `-server` is used
+to determine and load the appropriate VM library, others are passed to
+the VM using `JavaVMInitArgs`.
+
+. Establish the heap sizes and the compiler type (client or server) if
+these options are not explicitly specified on the command line.
+
+. Establishes the environment variables such as `LD_LIBRARY_PATH` and `CLASSPATH`.
+
+. If the java Main-Class is not specified on the command line it fetches
+the `Main-Class` name from the JAR's manifest.
+
+. Creates the VM using `JNI_CreateJavaVM` in a newly created thread
+(non primordial thread). Note: creating the VM in the primordial thread
+greatly reduces the ability to customize the VM, for example the stack
+size on Windows, and many other limitations
+
+. Once the VM is created and initialized, the `Main-Class` is loaded,
+and the launcher gets the main method's attributes from the `Main-Class`.
+
+. The java `main` method is then invoked in the VM using `CallStaticVoidMethod`,
+using the marshalled arguments from the command line.
+
+. Once the java main method completes, its very important to check and clear
+any pending exceptions that may have occurred and also pass back the exit status,
+the exception is cleared by calling `ExceptionOccurred`, the return value of
+this method is `0` if successful, any other value otherwise, this value is passed
+back to the calling process.
+
+. The main thread is detached using `DetachCurrentThread`, by doing so
+we decrement the thread count so the `DestroyJavaVM` can be called safely,
+also to ensure that the thread is not performing operations in the vm and
+that there are no active java frames on its stack.
+
+The most important phases are the `JNI_CreateJavaVM` and `DestroyJavaVM`
+these are described in the next sections.
+
+https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src%2Fsrc%2Fhotspot%2Fshare%2Fprims%2Fjni.cpp#L3898-L4059[jni.cpp `JNI_CreateJavaVM`]
+  https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src%2Fsrc%2Fhotspot%2Fshare%2Fruntime%2Fthread.cpp#L3647-L4028[threads.cpp `Threads::create_vm`]
+  https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src%2Fsrc%2Fhotspot%2Fshare%2Fruntime%2Fjava.cpp#L675-L704[java.cpp `JDK_Version_init`]
+
+.JNI_CreateJavaVM
+The JNI invocation method performs, the following:
+
+. Ensures that no two threads call this method at the same time and that
+no two VM instances are created in the same process. Noting that a VM cannot
+be created in the same process space once a point in initialization is reached,
+“point of no return”. This is so because the VM creates static data structures
+that cannot be re-initialized, at this time.
+
+. Checks to make sure the JNI version is supported, and the `ostream` is initialized
+for gc logging. The OS modules are initialized such as the random number generator,
+the current pid, high-resolution time, memory page sizes, and the guard pages.
+
+. The arguments and properties passed in are parsed and stored away for later use.
+The standard java system properties are initialized.
+
+. The OS modules are further created and initialized, based on the parsed arguments
+and properties, are initialized for synchronization, stack, memory, and safepoint
+pages. At this time other libraries such as `libzip`, `libhpi`, `libjava`, `libthread` are
+loaded, signal handlers are initialized and set, and the thread library is
+initialized.
+
+. The output stream logger is initialized. Any agent libraries (`hprof`, `jdi`)
+required are initialized and started.
+
+. The _thread states_ and the _thread local storage_ (TLS), which holds several
+thread specific data required for the operation of threads, are initialized.
+
+. The global data is initialized as part of the I phase, such as event log,
+OS synchronization primitives, perfMemory (performance memory), chunkPool
+(memory allocator).
+
+. At this point, we can create Threads. The Java version of the main thread
+is created and attached to the current OS thread. However this thread will
+not be yet added to the known list of the Threads. The Java level synchronization
+is initialized and enabled.
+
+. The rest of the global modules are initialized such as the `BootClassLoader`,
+`CodeCache`, `Interpreter`, `Compiler`, `JNI`, `SystemDictionary`, and `Universe`.
+Noting that, we have reached our “point of no return”, ie. We can no longer
+create another VM in the same process address space.
+
+. The main thread is added to the list, by first locking the `Thread_Lock`.
+The `Universe`, a set of required global data structures, is sanity checked.
+The `VMThread`, which performs all the VM's critical functions, is created.
+At this point the appropriate JVMTI events are posted to notify the current state.
+
+. The following classes `java.lang.String`, `java.lang.System`, `java.lang.Thread`,
+`java.lang.ThreadGroup`, `java.lang.reflect.Method`, `java.lang.ref.Finalizer`,
+`java.lang.Class`, and the rest of the `System` classes, are loaded and initialized.
+At this point, the VM is initialized and operational, but not yet fully functional.
+
+. The `Signal Handler` thread is started, the compilers are initialized and the
+`CompileBroker` thread is started. The other helper threads `StatSampler` and
+`WatcherThreads` are started, at this time the VM is fully functional,
+the `JNIEnv` is populated and returned to the caller, and the VM is ready to
+service new JNI requests.
+
+
+
+
+[source, c++]
+----
+// https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L5230
+os::init {
+  clock_tics_per_sec = sysconf(_SC_CLK_TCK);
+
+  init_random
+
+  Linux::set_page_size(sysconf(_SC_PAGESIZE));
+
+  Linux::initialize_system_info(); {
+    set_processor_count(sysconf(_SC_NPROCESSORS_CONF));
+    _physical_memory = (julong)sysconf(_SC_PHYS_PAGES) * (julong)sysconf(_SC_PAGESIZE);
+  }
+
+  Linux::initialize_os_info(); {
+    uname(&_uname);
+  }
+
+  bool res = os::Linux::get_tick_information(&pticks, -1); // cpu ticks
+
+  Linux::_main_thread = pthread_self();
+
+  // https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1315
+  os::Linux::clock_init {
+    dlopen(lib_rt)
+  }
+  initial_time_count = javaTimeNanos();
+
+  check_pax(); // checks PaX security feature e.g. on Alpine (and fails if enabled)
+
+  os::Posix::init(void) {
+    pthread_init_common();
+  }
+}
+
+----
