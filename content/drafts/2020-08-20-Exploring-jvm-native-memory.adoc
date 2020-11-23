@@ -58,7 +58,7 @@ crystal clear, this served as excuse to go down the rabbit hole.
 
 This entry is about understanding the basics of how a `java` process works
 uses native memory and some rudiments of OS memory management. In doing so,
-I hope it lays out the foundation for another writing I had in mind.
+I hope it lays out the foundation for other writing(s) I have in mind.
 
 [NOTE]
 ====
@@ -77,26 +77,10 @@ _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21
 ====
 
 
-The motivation behind this exploration is to help understand: What is consuming the memory ?
-
-[TIP]
-.prepare your application
-====
-* Set the cgroup memory limit high enough, so the application isn't oomkilled, this will
-let you analyze how the app work, and adjust settings without fear (except from your
-colleagues that compare everything to _Go_ or _rust_).
-
-* If you don't think it's Java heap memory leak, i.e. the heap usage isn't alarming,
-try to inspect native memory, it's easier with the flag `-XX:+AlwaysPreTouch`,
-however keep in mind this will bump your RSS right from the start, so anticipate this
-increase in your cgroup memory limit.
-
-* Then inspect what's outside the JVM Java heap.
-
-====
-
-
-
+Getting comfortable with memory of a (JVM) process is a tedious task
+for most of us that wrote code in Java for their entire professional life.
+However, this is a rewarding task, and it's possible to extract useful
+findings.
 
 
 
@@ -1368,10 +1352,151 @@ leading to increasing memory consumption that weren't easily identifiable in the
 (unless you had to perform a heap dump and knew what to look at).
 
 
-_If `pmap` is run with `-X`, it's likely you'll notice segments named `vsyscall`
-`vdso` these appear to be
-https://stackoverflow.com/a/19942352[two mechanisms that can accelerate some system calls].
-https://lwn.net/Articles/615809/[`vvar` is used to exchange Kernel data without requiring a system call]._
+==== Inspecting the other segments
+
+Going beyond what has been mentioned is a tad more intricate due
+to how native code is performing allocations.
+Even identifying direct `ByteBuffer` is almost impossible, the little program below
+allocates 16 MiB segments and print the address of these memory segments, as well
+as the current process mapping.
+
+.DirectByteBuffers.main
+[source, java]
+----
+System.out.printf("max: %d%n", Runtime.getRuntime().maxMemory());
+
+new ProcessBuilder("pmap", "-x", Long.toString(ProcessHandle.current().pid()))
+        .redirectOutput(Redirect.INHERIT)
+        .start();
+
+var address = Buffer.class.getDeclaredField("address");
+address.setAccessible(true);
+System.out.printf("native heap (pmap shows [heap] mapping");
+for (var i = 0; i < 30; i++) {
+    var byteBuffer = ByteBuffer.allocateDirect(16 * 1024 * 1024)
+            .putInt(0, 0x01);
+    System.out.printf("%s%n", Long.toHexString(address.getLong(byteBuffer)));
+}
+
+new ProcessBuilder("pmap", "-x", Long.toString(ProcessHandle.current().pid()))
+        .redirectOutput(Redirect.INHERIT)
+        .start();
+----
+
+{{< wrapTable >}}
+
+The mapping output _after_ the buffers have been ``malloc``ed shows
+that the direct ``ByteBuffer``s do not have their own segment, they are
+part of a bigger area.
+
+.result
+[cols="2a,6a", frame=none, grid=none, stripes=none]
+|===
+
+|
+[source]
+----
+7faa5afff010
+7faa59ffe010
+7faa58ffd010
+7faa52fff010
+7faa51ffe010
+7faa50ffd010
+7faa4fffc010
+7faa4effb010
+7faa4dffa010
+7faa4cff9010
+7faa4bff8010
+7faa4aff7010
+7faa49ff6010
+7faa48ff5010
+7faa47ff4010
+7faa46ff3010
+7faa45ff2010
+7faa44ff1010
+7faa43ff0010
+7faa42fef010
+7faa41fee010
+7faa40fed010
+7faa3ffec010
+7faa3efeb010
+7faa3dfea010
+7faa3cfe9010
+7faa3bfe8010
+7faa3afe7010
+7faa39fe6010
+7faa38fe5010
+----
+
+|
+.before
+[source, role="primary"]
+----
+485:   java --add-opens java.base/java.nio=ALL-UNNAMED DirectByteBuffers.java
+Address           Kbytes     RSS   Dirty Mode  Mapping
+00000000e0e00000   32768   19992   19992 rw---   [ anon ]
+00000000e2e00000  477184       0       0 -----   [ anon ]
+0000000100000000    1792    1776    1776 rw---   [ anon ]
+00000001001c0000 1046784       0       0 -----   [ anon ]
+000055d4549ed000       4       4       0 r-x-- java
+000055d454bee000       4       4       4 r---- java
+000055d454bef000       4       4       4 rw--- java
+000055d455d9d000     132      28      28 rw---   [ anon ] <1>
+00007faa5c000000     132      56      56 rw---   [ anon ] <1>
+00007faa5c021000   65404       0       0 -----   [ anon ] <1>
+00007faa60000000     132       4       4 rw---   [ anon ]
+...
+----
+<1> These segments are here before the creation of the dire ``ByteBuffer``s.
+
+.after
+[source, role="secondary"]
+----
+485:   java --add-opens java.base/java.nio=ALL-UNNAMED DirectByteBuffers.java
+Address           Kbytes     RSS   Dirty Mode  Mapping
+00000000e0e00000   32768   19992   19992 rw---   [ anon ]
+00000000e2e00000  477184       0       0 -----   [ anon ]
+0000000100000000    1920    1792    1792 rw---   [ anon ]
+00000001001e0000 1046656       0       0 -----   [ anon ]
+000055d4549ed000       4       4       0 r-x-- java
+000055d454bee000       4       4       4 r---- java
+000055d454bef000       4       4       4 rw--- java
+000055d455d9d000     132      28      28 rw---   [ anon ] <1>
+00007faa38fe5000  442476  442476  442476 rw---   [ anon ] <3>
+00007faa54000000     132       8       8 rw---   [ anon ] <4>
+00007faa54021000   65404       0       0 -----   [ anon ] <4>
+00007faa58ffd000   49164   49164   49164 rw---   [ anon ] <2>
+00007faa5c000000     132      56      56 rw---   [ anon ] <1>
+00007faa5c021000   65404       0       0 -----   [ anon ] <1>
+00007faa60000000     132       4       4 rw---   [ anon ]
+...
+----
+<1> The segments before the creation of the dire ``ByteBuffer``s.
+<2> New segments, likely direct ``ByteBuffer``s
+<3> New segments, likely direct ``ByteBuffer``s
+<4> Unknown glibc `malloc` arena.
+
+|===
+
+{{< /wrapTable >}}
+
+Here I can say those are likely our ``ByteBuffer``s, because I had the opportunity
+to diff the `pmap` output around code that specifically created the new direct
+buffers. Also, I know that direct ``ByteBuffer``s are __zero__ed, i.e. pages
+are touched/dirty, i.e. direct byte buffers immediately count toward the RSS.
+
+In a real application it's impossible to identify them with certainty without
+the address. The possible criteria would be RSS and size are the same for the segment,
+permissionsare read write and of course it's anonymous mapping, but any other
+allocation pattern or usage could meet these criteria.
+
+
+
+
+Finally, if `pmap` is run with `-X` it's likely you'll notice segments named
+`vsyscall` `vdso`, these are
+https://stackoverflow.com/a/19942352[mechanisms that can accelerate some system calls].
+https://lwn.net/Articles/615809/[`vvar` is used to exchange Kernel data without requiring a system call].
 
 
 // TODO: circling back to pages
@@ -1459,7 +1584,7 @@ RSS counter may not reflect what is een in the *committed* memory.
 
 
 
-== Sizing the cgroup / kubernetes `resources.memory.limit`
+== Sizing a cgroup / kubernetes `resources.memory.limit`
 
 In the end this investigation is useful to determine what is wrong,
 the memory settings or the application.
@@ -1612,6 +1737,20 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Native libraries allocations + Malloc overhead + ...
 ....
 
+
+
+[TIP]
+.prepare your application
+====
+* Set the cgroup memory limit high enough, so the application isn't oomkilled, this will
+let you analyze how the app work, and adjust settings without fear (except from your
+colleagues that compare everything to _Go_ or _rust_).
+
+* If you don't think it's Java heap memory leak, i.e. the heap usage isn't alarming,
+try to inspect native memory, it's easier with the flag `-XX:+AlwaysPreTouch`,
+however keep in mind this will bump your RSS right from the start, so anticipate this
+increase in your cgroup memory limit.
+====
 
 
 
