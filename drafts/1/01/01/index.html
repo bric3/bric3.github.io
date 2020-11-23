@@ -17,7 +17,7 @@
     
     
 
-<title>The Quest to API versioning with JAX-RS • Brice Dutheil</title>
+<title> • Brice Dutheil</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="The Quest to API versioning with JAX-RS">
+<meta property="og:title" content="">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2017/11/20/api-versioning-with-jax-rs/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/1/01/01/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -47,13 +47,13 @@
 <meta property="og:image:height" content="192">
     
 
-<meta property="og:updated_time" content="2017-11-20T00:00:00Z">
+
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="The Quest to API versioning with JAX-RS">
+<meta name="twitter:title" content="">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -102,7 +102,7 @@
 </head>
 
 
-    <body class="draft">
+    <body class="">
     
 <div class="sidebar">
   <div class="container ">
@@ -234,20 +234,18 @@
 
 <article>
   <header>
-    <h1>The Quest to API versioning with JAX-RS</h1>
+    <h1></h1>
     
     
 <div class="post__meta">
     
-    
-      <i class="fas fa-calendar-alt"></i> 2017-11-20
     
     
     
     
     
     <br/>
-    <i class="fas fa-clock"></i> 5 min read
+    <i class="fas fa-clock"></i> 13 min read
 
     
     
@@ -260,96 +258,205 @@
   
   
   
-  <div class="post md">
-    <h1 id="the-quest-to-api-versioning-with-jax-rs">The Quest to API versioning with JAX-RS</h1>
-<blockquote>
-<p>In another post Nottingham adds that we <a href="http://www.mnot.net/blog/2012/07/11/header_versioning">shouldn’t use a custom header for versioning</a>
-and touches on versioning through the Accept header but there is a fundamental
-thread here: try as hard as possible to not introduce breaking changes so that
-versioning isn’t a big issue.</p>
-</blockquote>
-<p>There is multiple way to address that need.</p>
-<p>No versioning within the app, i.e. using a different backend (and as such a
-different authority, host and/or port) for each version</p>
-<ul>
-<li>Versioning via the path</li>
-<li>Query param</li>
-<li>Custom request header</li>
-<li>Via mime-type</li>
-</ul>
-<p>The trend is to use the Accept header with the mime-type to express versions.</p>
-<p>In this situation there&rsquo;s different approaches, that are not mutually exclusive</p>
-<ol>
+  <div class="post adoc">
+    <div class="paragraph">
+<p><a href="https://openjdk.java.net/groups/hotspot/docs/RuntimeOverview.html" class="bare">https://openjdk.java.net/groups/hotspot/docs/RuntimeOverview.html</a></p>
+</div>
+<div class="paragraph">
+<div class="title">VM Lifecycle</div>
+<p>The following sections gives an overview of the general purpose java launcher pertaining to the lifecyle of the HotSpot VM.
+Launcher</p>
+</div>
+<div class="paragraph">
+<p><a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src%2Fsrc%2Fjava.base%2Fshare%2Fnative%2Flauncher%2Fmain.c#L96-L215">main.c main</a>
+  <a href="https://github.com/corretto/corretto-11/blob/8bb50b6fcf0613dc85010c45f96fa048ecd5dba4/src%2Fsrc%2Fjava.base%2Fshare%2Fnative%2Flauncher%2Fmain.c#L206">JLI_Launch</a>
+    <a href="https://github.com/corretto/corretto-11/blob/6cfe3b0b02ffcc8c15680f940f5dc89ba63c0738/src%2Fsrc%2Fjava.base%2Fshare%2Fnative%2Flibjli%2Fjava.c#L216-L342">java.c JLI_Launch</a></p>
+</div>
+<div class="paragraph">
+<div class="title">Launcher</div>
+<p>There are several HotSpot VM launchers in the Java Standard Edition, the general purpose launcher typically used is the java command on Unix and on Windows java and javaw commands, not to be confused with javaws which is a network based launcher.</p>
+</div>
+<div class="paragraph">
+<p>The launcher operations pertaining to VM startup are:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
-<p>Using the media type <a href="https://tools.ietf.org/html/rfc6838#section-3.2">vendor tree</a> (RFC 6838)</p>
-<p>In the following request the client asks for the server to produce an <code>edge.v2.0</code>
-json. The <code>vnd</code> facet indicate the beginning of the  vendor tree.</p>
-<pre><code>GET /token HTTP/1.1
-Accept: application/vnd.app-api.v2.0+json
-</code></pre>
+<p>Parse the command line options, some of the command line options are
+consumed by the launcher itself, for example <code>-client</code> or <code>-server</code> is used
+to determine and load the appropriate VM library, others are passed to
+the VM using <code>JavaVMInitArgs</code>.</p>
 </li>
 <li>
-<p>Using <a href="https://tools.ietf.org/html/rfc6838#section-4.3">media-type parameters</a> (RFC 6838)</p>
-<p>In the following request the client asks the server to produce the version 2.
-The media type is accompanied by the custom version parameter (same way as
-passing the charset)</p>
-<pre><code>GET /token HTTP/1.1
-Accept: application/json; version=2.0
-</code></pre>
-<p>The benefit of this approach is that, the code keeps using the standard know
-media-type here <code>application/json</code>, but that it can be customized with named
-parameters (<code>version</code>, <code>kind</code>, <code>experiment</code>, etc. along with the usual ones
-like <code>charset</code> or <code>q</code>).</p>
+<p>Establish the heap sizes and the compiler type (client or server) if
+these options are not explicitly specified on the command line.</p>
+</li>
+<li>
+<p>Establishes the environment variables such as <code>LD_LIBRARY_PATH</code> and <code>CLASSPATH</code>.</p>
+</li>
+<li>
+<p>If the java Main-Class is not specified on the command line it fetches
+the <code>Main-Class</code> name from the JAR’s manifest.</p>
+</li>
+<li>
+<p>Creates the VM using <code>JNI_CreateJavaVM</code> in a newly created thread
+(non primordial thread). Note: creating the VM in the primordial thread
+greatly reduces the ability to customize the VM, for example the stack
+size on Windows, and many other limitations</p>
+</li>
+<li>
+<p>Once the VM is created and initialized, the <code>Main-Class</code> is loaded,
+and the launcher gets the main method’s attributes from the <code>Main-Class</code>.</p>
+</li>
+<li>
+<p>The java <code>main</code> method is then invoked in the VM using <code>CallStaticVoidMethod</code>,
+using the marshalled arguments from the command line.</p>
+</li>
+<li>
+<p>Once the java main method completes, its very important to check and clear
+any pending exceptions that may have occurred and also pass back the exit status,
+the exception is cleared by calling <code>ExceptionOccurred</code>, the return value of
+this method is <code>0</code> if successful, any other value otherwise, this value is passed
+back to the calling process.</p>
+</li>
+<li>
+<p>The main thread is detached using <code>DetachCurrentThread</code>, by doing so
+we decrement the thread count so the <code>DestroyJavaVM</code> can be called safely,
+also to ensure that the thread is not performing operations in the vm and
+that there are no active java frames on its stack.</p>
 </li>
 </ol>
-<p>The good news is that JAX-RS specification also supports parameter constructs
-since version JAX-RS 1.0 : <a href="https://docs.oracle.com/javaee/7/api/javax/ws/rs/core/MediaType.html">MediaType</a>.
-The bad news is that JAX-RS doesn&rsquo;t specify how content negotiation is supposed
-to be handled further that the raw media-type (i.e. without parameters), in
-practice Jersey for example does not handle this case. How to solve the problem :</p>
-<ul>
+</div>
+<div class="paragraph">
+<p>The most important phases are the <code>JNI_CreateJavaVM</code> and <code>DestroyJavaVM</code>
+these are described in the next sections.</p>
+</div>
+<div class="paragraph">
+<p><a href="https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src%2Fsrc%2Fhotspot%2Fshare%2Fprims%2Fjni.cpp#L3898-L4059">jni.cpp <code>JNI_CreateJavaVM</code></a>
+  <a href="https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src%2Fsrc%2Fhotspot%2Fshare%2Fruntime%2Fthread.cpp#L3647-L4028">threads.cpp <code>Threads::create_vm</code></a>
+  <a href="https://github.com/corretto/corretto-11/blob/885a3859f47627467a15adaef36fd90ceb517f5e/src%2Fsrc%2Fhotspot%2Fshare%2Fruntime%2Fjava.cpp#L675-L704">java.cpp <code>JDK_Version_init</code></a></p>
+</div>
+<div class="paragraph">
+<div class="title">JNI_CreateJavaVM</div>
+<p>The JNI invocation method performs, the following:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
-<p>The problem can be alleviated by using a pre-matching <code>ContainerRequestFilter</code>
-that will transform the media-type parameter to the vendor tree form.</p>
+<p>Ensures that no two threads call this method at the same time and that
+no two VM instances are created in the same process. Noting that a VM cannot
+be created in the same process space once a point in initialization is reached,
+“point of no return”. This is so because the VM creates static data structures
+that cannot be re-initialized, at this time.</p>
 </li>
 <li>
-<p>It seems that RestEasy (from JBoss / Redhat) understands media-type parameter.</p>
+<p>Checks to make sure the JNI version is supported, and the <code>ostream</code> is initialized
+for gc logging. The OS modules are initialized such as the random number generator,
+the current pid, high-resolution time, memory page sizes, and the guard pages.</p>
 </li>
-</ul>
-<p>In any case if <code>version</code> is not supported the server must send back a
-<code>406 Not Acceptable</code> status instead of <code>404 Not Found</code>.</p>
-<p>Client side, OkHttp 3.9.0 don&rsquo;t understand media-type parameters, but this is
-not a problem in practice as strings constants can be used.</p>
+<li>
+<p>The arguments and properties passed in are parsed and stored away for later use.
+The standard java system properties are initialized.</p>
+</li>
+<li>
+<p>The OS modules are further created and initialized, based on the parsed arguments
+and properties, are initialized for synchronization, stack, memory, and safepoint
+pages. At this time other libraries such as <code>libzip</code>, <code>libhpi</code>, <code>libjava</code>, <code>libthread</code> are
+loaded, signal handlers are initialized and set, and the thread library is
+initialized.</p>
+</li>
+<li>
+<p>The output stream logger is initialized. Any agent libraries (<code>hprof</code>, <code>jdi</code>)
+required are initialized and started.</p>
+</li>
+<li>
+<p>The <em>thread states</em> and the <em>thread local storage</em> (TLS), which holds several
+thread specific data required for the operation of threads, are initialized.</p>
+</li>
+<li>
+<p>The global data is initialized as part of the I phase, such as event log,
+OS synchronization primitives, perfMemory (performance memory), chunkPool
+(memory allocator).</p>
+</li>
+<li>
+<p>At this point, we can create Threads. The Java version of the main thread
+is created and attached to the current OS thread. However this thread will
+not be yet added to the known list of the Threads. The Java level synchronization
+is initialized and enabled.</p>
+</li>
+<li>
+<p>The rest of the global modules are initialized such as the <code>BootClassLoader</code>,
+<code>CodeCache</code>, <code>Interpreter</code>, <code>Compiler</code>, <code>JNI</code>, <code>SystemDictionary</code>, and <code>Universe</code>.
+Noting that, we have reached our “point of no return”, ie. We can no longer
+create another VM in the same process address space.</p>
+</li>
+<li>
+<p>The main thread is added to the list, by first locking the <code>Thread_Lock</code>.
+The <code>Universe</code>, a set of required global data structures, is sanity checked.
+The <code>VMThread</code>, which performs all the VM’s critical functions, is created.
+At this point the appropriate JVMTI events are posted to notify the current state.</p>
+</li>
+<li>
+<p>The following classes <code>java.lang.String</code>, <code>java.lang.System</code>, <code>java.lang.Thread</code>,
+<code>java.lang.ThreadGroup</code>, <code>java.lang.reflect.Method</code>, <code>java.lang.ref.Finalizer</code>,
+<code>java.lang.Class</code>, and the rest of the <code>System</code> classes, are loaded and initialized.
+At this point, the VM is initialized and operational, but not yet fully functional.</p>
+</li>
+<li>
+<p>The <code>Signal Handler</code> thread is started, the compilers are initialized and the
+<code>CompileBroker</code> thread is started. The other helper threads <code>StatSampler</code> and
+<code>WatcherThreads</code> are started, at this time the VM is fully functional,
+the <code>JNIEnv</code> is populated and returned to the caller, and the VM is ready to
+service new JNI requests.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c++ hljs" data-lang="c++">// https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L5230
+os::init {
+  clock_tics_per_sec = sysconf(_SC_CLK_TCK);
 
+  init_random
 
+  Linux::set_page_size(sysconf(_SC_PAGESIZE));
 
-<h2 id="end-words">End words</h2>
-<p>JAX-RS is NOT HTTP. I really think JAX-RS is one the best specification of the
-JEE bag, but yet again JAX-RS falls short in term of helping Java developers to
-design an HTTP API.</p>
-<h2 id="motivational-reads-">Motivational reads :</h2>
-<ul>
-<li><a href="http://www.mnot.net/blog/2012/12/04/api-evolution">http://www.mnot.net/blog/2012/12/04/api-evolution</a></li>
-<li><a href="https://content.pivotal.io/blog/api-versioning">https://content.pivotal.io/blog/api-versioning</a></li>
-<li><a href="https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/">https://www.troyhunt.com/your-api-versioning-is-wrong-which-is/</a></li>
-<li><a href="http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned">http://blog.steveklabnik.com/posts/2011-07-03-nobody-understands-rest-or-http#i_want_my_api_to_be_versioned</a></li>
-<li><a href="https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/">https://www.suse.com/communities/blog/best-practice-api-versioning-http-rest-interfaces/</a></li>
-<li><a href="https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html">https://www.daveyshafik.com/archives/35507-mimetypes-and-apis.html</a></li>
-</ul>
+  Linux::initialize_system_info(); {
+    set_processor_count(sysconf(_SC_NPROCESSORS_CONF));
+    _physical_memory = (julong)sysconf(_SC_PHYS_PAGES) * (julong)sysconf(_SC_PAGESIZE);
+  }
+
+  Linux::initialize_os_info(); {
+    uname(&amp;_uname);
+  }
+
+  bool res = os::Linux::get_tick_information(&amp;pticks, -1); // cpu ticks
+
+  Linux::_main_thread = pthread_self();
+
+  // https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1315
+  os::Linux::clock_init {
+    dlopen(lib_rt)
+  }
+  initial_time_count = javaTimeNanos();
+
+  check_pax(); // checks PaX security feature e.g. on Alpine (and fails if enabled)
+
+  os::Posix::init(void) {
+    pthread_init_common();
+  }
+}</code></pre>
+</div>
+</div>
 
   </div>
   
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/1/01/01/" class="navigation-prev">
-      <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle"></span>
-    </a>
     
-    
-    <a href="/drafts/2018/02/20/uri_paths_with_trailing_or_leading_slashes/" class="navigation-next">
-      <span class="navigation-tittle">Opinion, should we prefix JAX-RS Path value with a slash ?</span>
+    <a href="/drafts/2017/11/20/api-versioning-with-jax-rs/" class="navigation-next">
+      <span class="navigation-tittle">The Quest to API versioning with JAX-RS</span>
       <i aria-hidden="true" class="fa fa-chevron-right"></i>
     </a>
     
@@ -358,7 +465,29 @@ design an HTTP API.</p>
 
   
 
-  
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/drafts/1/01/01/';
+        this.page.title = '';
+        this.page.url = 'https://blog.arkey.fr/drafts/1/01/01/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 
 </article>
 

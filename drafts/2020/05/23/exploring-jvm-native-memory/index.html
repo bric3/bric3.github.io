@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 95 min read
+    <i class="fas fa-clock"></i> 108 min read
 
     
     
@@ -272,7 +272,7 @@ sword, it constrains misbehaving application to avoid or to limit damage to
 other sibling containers, however it may be harder to get a suitable configuration.
 Improper configurations results in <em>oomkills</em> in particular or inefficient memory
 settings thus affecting negatively the cost and pod scheduling on a Kubernetes
-cluster. And even memory settings that seems good but too tight may have bad
+cluster. Even memory settings that seems good but too tight may have bad
 implications on application performance.</p>
 </div>
 <div class="paragraph">
@@ -296,7 +296,7 @@ crystal clear, this served as excuse to go down the rabbit hole.</p>
 <div class="paragraph">
 <p>This entry is about understanding the basics of how a <code>java</code> process works
 uses native memory and some rudiments of OS memory management. In doing so,
-I hope it lays out the foundation for another writing I had in mind.</p>
+I hope it lays out the foundation for other writing(s) I have in mind.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -332,37 +332,10 @@ in this chapter; pretend I’m a disk manufacturer.
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>The motivation behind this exploration is to help understand: What is consuming the memory ?</p>
-</div>
-<div class="admonitionblock tip">
-<table>
-<tbody><tr>
-<td class="icon">
-<i class="fa icon-tip" title="Tip"></i>
-</td>
-<td class="content">
-<div class="title">prepare your application</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Set the cgroup memory limit high enough, so the application isn’t oomkilled, this will
-let you analyze how the app work, and adjust settings without fear (except from your
-colleagues that compare everything to <em>Go</em> or <em>rust</em>).</p>
-</li>
-<li>
-<p>If you don’t think it’s Java heap memory leak, i.e. the heap usage isn’t alarming,
-try to inspect native memory, it’s easier with the flag <code>-XX:+AlwaysPreTouch</code>,
-however keep in mind this will bump your RSS right from the start, so anticipate this
-increase in your cgroup memory limit.</p>
-</li>
-<li>
-<p>Then inspect what’s outside the JVM Java heap.</p>
-</li>
-</ul>
-</div>
-</td>
-</tr>
-</tbody></table>
+<p>Getting comfortable with memory of a (JVM) process is a tedious task
+for most of us that wrote code in Java for their entire professional life.
+However, this is a rewarding task, and it’s possible to extract useful
+findings.</p>
 </div>
 </div>
 </div>
@@ -694,7 +667,7 @@ as they appear in the report.</p>
 parts that compose the Java runtime. It has interesting subcommands to compare
 the memory usage of the JVM components with a <em>baseline</em>
 (<code>jcmd $(pidof java) VM.native_memory baseline</code>, followed at some point by
-<code>jcmd $(pidof java) VM.native_memory summary.diff</code>).</p>
+one or several <code>jcmd $(pidof java) VM.native_memory summary.diff</code>).</p>
 </div>
 <div class="paragraph">
 <p>This is very useful for JVM components and a good complement to what I would
@@ -2223,28 +2196,126 @@ sums of the <em>size</em> and <em>rss</em> columns of the selected rows are resp
 </div>
 <div class="paragraph">
 <p>What may catch the eye is the multiple mapping for native libraries like <code>libjvm.so</code>.
-The reason is that some part of the file is executable, others are for exchanging information
-with the library.</p>
+The reason for these different memory mapping is how dynamic libraries are loaded
+(with <code>dl_open</code>, e.g. here <a href="https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1947-L1966">os::Linux::dlopen_helper</a>).
+I didn’t have any system courses, but from what I believe I know <a href="https://linux.die.net/man/3/dlopen"><code>dl_open</code></a>
+will make multiple memory mapping with different objectives and permissions:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>r-xp</code> means an executable segment of the library</p>
+<p><code>r-xp</code> means an executable segment of the library, probably the native execution stack
+of the native library</p>
 </li>
 <li>
-<p><code>r--p</code> means readable memory of the library, e.g. constants</p>
+<p><code>r--p</code> means readable memory of the library, I believe its the library constants or symbols</p>
 </li>
 <li>
-<p><code>rw-p</code> means writable memory, this is usually where the process can set global
-variables of thw library.</p>
+<p><code>rw-p</code> means writable memory, I think its purpose is for the main process to set global
+variables of the library</p>
 </li>
 <li>
 <p><code>---p</code> is a no permission segment, I’m not sure about this one, but it’s location
 (between executable and writable segments) makes me think it’s about buffer overflow
-prevention.</p>
+prevention</p>
 </li>
 </ul>
 </div>
+<details>
+<summary class="title">Simple C code example that performs a <code>dlopen</code></summary>
+<div class="content">
+<div class="paragraph">
+<p>The program below will simply load the shared dynamic library <code>libjvm.so</code>,
+and won’t even interact with it. The result shows the 4 mappings
+with the different modes.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">c</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;dlfcn.h&gt;
+
+int main (int argc, char *argv[])
+{
+pid_t pid = getpid();
+printf(&#34;pid: %d\n&#34;, pid);
+
+  void* libjava_handle=dlopen(&#34;lib/server/libjvm.so&#34;, RTLD_LAZY);
+  if (!libjava_handle) {
+    fputs (dlerror(), stderr);
+    exit(1);
+  }
+
+  char buffer[50];
+  sprintf(buffer, &#34;pmap -X %d&#34;, pid);
+  printf(&#34;Executing: &#39;%s&#39;\n&#34;, buffer);
+  system(buffer);
+
+  return 0;
+}</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">result</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env LD_LIBRARY_PATH=$JAVA_HOME/lib/server ./test-dlopen
+pid: 608
+Executing: &#39;pmap -x -p 608&#39;
+608:   ./test-dlopen
+Address           Kbytes     RSS   Dirty Mode  Mapping
+0000000000400000       4       4       0 r-x-- /src/build/exe/dlopen/test-dlopen
+0000000000600000       4       4       4 r---- /src/build/exe/dlopen/test-dlopen
+0000000000601000       4       4       4 rw--- /src/build/exe/dlopen/test-dlopen
+0000000001ba0000     132      16      16 rw---   [ anon ]
+00007f3374f11000      92      92       0 r-x-- /usr/lib64/libpthread-2.17.so
+00007f3374f28000    2044       0       0 ----- /usr/lib64/libpthread-2.17.so
+00007f3375127000       4       4       4 r---- /usr/lib64/libpthread-2.17.so
+00007f3375128000       4       4       4 rw--- /usr/lib64/libpthread-2.17.so
+00007f3375129000      16       4       4 rw---   [ anon ]
+00007f337512d000   18516    5324       0 r-x-- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <i class="conum" data-value="1"></i><b>(1)</b>
+00007f3376342000    2048       0       0 ----- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <i class="conum" data-value="2"></i><b>(2)</b>
+00007f3376542000     836     836     836 r---- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <i class="conum" data-value="3"></i><b>(3)</b>
+00007f3376613000     236     216     216 rw--- /usr/lib/jvm/java-11-openjdk-11.0.9.11-0.el7_9.x86_64/lib/server/libjvm.so <i class="conum" data-value="4"></i><b>(4)</b>
+00007f337664e000     360     240     240 rw---   [ anon ]
+00007f33766a8000    1808    1184       0 r-x-- /usr/lib64/libc-2.17.so
+00007f337686c000    2044       0       0 ----- /usr/lib64/libc-2.17.so
+00007f3376a6b000      16      16      16 r---- /usr/lib64/libc-2.17.so
+00007f3376a6f000       8       8       8 rw--- /usr/lib64/libc-2.17.so
+00007f3376a71000      20      12      12 rw---   [ anon ]
+00007f3376a76000      84      64       0 r-x-- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376a8b000    2044       0       0 ----- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376c8a000       4       4       4 r---- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376c8b000       4       4       4 rw--- /usr/lib64/libgcc_s-4.8.5-20150702.so.1
+00007f3376c8c000    1028     208       0 r-x-- /usr/lib64/libm-2.17.so
+00007f3376d8d000    2044       0       0 ----- /usr/lib64/libm-2.17.so
+00007f3376f8c000       4       4       4 r---- /usr/lib64/libm-2.17.so
+00007f3376f8d000       4       4       4 rw--- /usr/lib64/libm-2.17.so
+00007f3376f8e000     932     520       0 r-x-- /usr/lib64/libstdc++.so.6.0.19
+00007f3377077000    2048       0       0 ----- /usr/lib64/libstdc++.so.6.0.19
+00007f3377277000      32      32      32 r---- /usr/lib64/libstdc++.so.6.0.19
+00007f337727f000       8       8       8 rw--- /usr/lib64/libstdc++.so.6.0.19
+00007f3377281000      84      12      12 rw---   [ anon ]
+00007f3377296000       8       8       0 r-x-- /usr/lib64/libdl-2.17.so
+00007f3377298000    2048       0       0 ----- /usr/lib64/libdl-2.17.so
+00007f3377498000       4       4       4 r---- /usr/lib64/libdl-2.17.so
+00007f3377499000       4       4       4 rw--- /usr/lib64/libdl-2.17.so
+00007f337749a000     136     136       0 r-x-- /usr/lib64/ld-2.17.so
+00007f33776af000      24      24      24 rw---   [ anon ]
+00007f33776b9000       8       8       8 rw---   [ anon ]
+00007f33776bb000       4       4       4 r---- /usr/lib64/ld-2.17.so
+00007f33776bc000       4       4       4 rw--- /usr/lib64/ld-2.17.so
+00007f33776bd000       4       4       4 rw---   [ anon ]
+00007ffc83b1d000     132      12      12 rw---   [ stack ]
+00007ffc83b41000      12       0       0 r----   [ anon ]
+00007ffc83b44000       4       4       0 r-x--   [ anon ]
+ffffffffff600000       4       0       0 r-x--   [ anon ]
+---------------- ------- ------- -------
+total kB           38912    9040    1496</code></pre>
+</div>
+</div>
+</div>
+</details>
 <div class="paragraph">
 <p>In the above snippet the mapped files represents <code>195.3 MiB</code> of the address space
 of which <code>52.3 MiB</code> are actually resident. This app is definitely OK. Some
@@ -2252,6 +2323,186 @@ application’s workload require to handle a lot of files suggesting raising the
 may be the right thing. I’ve seen in the past <code>FileChannel</code> unreleased mappings,
 leading to increasing memory consumption that weren’t easily identifiable in the Java heap
 (unless you had to perform a heap dump and knew what to look at).</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_inspecting_the_other_segments"><a class="anchor" href="#_inspecting_the_other_segments"></a><a class="link" href="#_inspecting_the_other_segments">Inspecting the other segments</a></h4>
+<div class="paragraph">
+<p>Going beyond what has been mentioned is a tad more intricate due
+to how native code is performing allocations.
+Even identifying direct <code>ByteBuffer</code> is almost impossible, the little program below
+allocates 16 MiB segments and print the address of these memory segments, as well
+as the current process mapping.</p>
+</div>
+<div class="listingblock">
+<div class="title">DirectByteBuffers.main</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">System.out.printf(&#34;max: %d%n&#34;, Runtime.getRuntime().maxMemory());
+
+new ProcessBuilder(&#34;pmap&#34;, &#34;-x&#34;, Long.toString(ProcessHandle.current().pid()))
+        .redirectOutput(Redirect.INHERIT)
+        .start();
+
+var address = Buffer.class.getDeclaredField(&#34;address&#34;);
+address.setAccessible(true);
+System.out.printf(&#34;native heap (pmap shows [heap] mapping&#34;);
+for (var i = 0; i &lt; 30; i++) {
+    var byteBuffer = ByteBuffer.allocateDirect(16 * 1024 * 1024)
+            .putInt(0, 0x01);
+    System.out.printf(&#34;%s%n&#34;, Long.toHexString(address.getLong(byteBuffer)));
+}
+
+new ProcessBuilder(&#34;pmap&#34;, &#34;-x&#34;, Long.toString(ProcessHandle.current().pid()))
+        .redirectOutput(Redirect.INHERIT)
+        .start();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+
+
+
+<div class="table-wrapper">
+    <div class="paragraph">
+<p>The mapping output <em>after</em> the buffers have been <code>malloc</code>ed shows
+that the direct <code>ByteBuffer</code>s do not have their own segment, they are
+part of a bigger area.</p>
+</div>
+<table class="tableblock frame-none grid-none stripes-none stretch">
+<caption class="title">Table 1. result</caption>
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 75%;"/>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">7faa5afff010
+7faa59ffe010
+7faa58ffd010
+7faa52fff010
+7faa51ffe010
+7faa50ffd010
+7faa4fffc010
+7faa4effb010
+7faa4dffa010
+7faa4cff9010
+7faa4bff8010
+7faa4aff7010
+7faa49ff6010
+7faa48ff5010
+7faa47ff4010
+7faa46ff3010
+7faa45ff2010
+7faa44ff1010
+7faa43ff0010
+7faa42fef010
+7faa41fee010
+7faa40fed010
+7faa3ffec010
+7faa3efeb010
+7faa3dfea010
+7faa3cfe9010
+7faa3bfe8010
+7faa3afe7010
+7faa39fe6010
+7faa38fe5010</code></pre>
+</div>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="listingblock primary">
+<div class="title">before</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">485:   java --add-opens java.base/java.nio=ALL-UNNAMED DirectByteBuffers.java
+Address           Kbytes     RSS   Dirty Mode  Mapping
+00000000e0e00000   32768   19992   19992 rw---   [ anon ]
+00000000e2e00000  477184       0       0 -----   [ anon ]
+0000000100000000    1792    1776    1776 rw---   [ anon ]
+00000001001c0000 1046784       0       0 -----   [ anon ]
+000055d4549ed000       4       4       0 r-x-- java
+000055d454bee000       4       4       4 r---- java
+000055d454bef000       4       4       4 rw--- java
+000055d455d9d000     132      28      28 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007faa5c000000     132      56      56 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007faa5c021000   65404       0       0 -----   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007faa60000000     132       4       4 rw---   [ anon ]
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>These segments are here before the creation of the dire <code>ByteBuffer</code>s.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title">after</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">485:   java --add-opens java.base/java.nio=ALL-UNNAMED DirectByteBuffers.java
+Address           Kbytes     RSS   Dirty Mode  Mapping
+00000000e0e00000   32768   19992   19992 rw---   [ anon ]
+00000000e2e00000  477184       0       0 -----   [ anon ]
+0000000100000000    1920    1792    1792 rw---   [ anon ]
+00000001001e0000 1046656       0       0 -----   [ anon ]
+000055d4549ed000       4       4       0 r-x-- java
+000055d454bee000       4       4       4 r---- java
+000055d454bef000       4       4       4 rw--- java
+000055d455d9d000     132      28      28 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007faa38fe5000  442476  442476  442476 rw---   [ anon ] <i class="conum" data-value="3"></i><b>(3)</b>
+00007faa54000000     132       8       8 rw---   [ anon ] <i class="conum" data-value="4"></i><b>(4)</b>
+00007faa54021000   65404       0       0 -----   [ anon ] <i class="conum" data-value="4"></i><b>(4)</b>
+00007faa58ffd000   49164   49164   49164 rw---   [ anon ] <i class="conum" data-value="2"></i><b>(2)</b>
+00007faa5c000000     132      56      56 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007faa5c021000   65404       0       0 -----   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007faa60000000     132       4       4 rw---   [ anon ]
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The segments before the creation of the dire <code>ByteBuffer</code>s.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>New segments, likely direct <code>ByteBuffer</code>s</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>New segments, likely direct <code>ByteBuffer</code>s</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Unknown glibc <code>malloc</code> arena.</td>
+</tr>
+</tbody></table>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+</div>
+<div class="paragraph">
+<p>Here I can say those are likely our <code>ByteBuffer</code>s, because I had the opportunity
+to diff the <code>pmap</code> output around code that specifically created the new direct
+buffers. Also, I know that direct <code>ByteBuffer</code>s are <em>zero</em>ed, i.e. pages
+are touched/dirty, i.e. direct byte buffers immediately count toward the RSS.</p>
+</div>
+<div class="paragraph">
+<p>In a real application it’s impossible to identify them with certainty without
+the address. The possible criteria would be RSS and size are the same for the segment,
+permissionsare read write and of course it’s anonymous mapping, but any other
+allocation pattern or usage could meet these criteria.</p>
+</div>
+<div class="paragraph">
+<p>Finally, if <code>pmap</code> is run with <code>-X</code> it’s likely you’ll notice segments named
+<code>vsyscall</code> <code>vdso</code>, these are
+<a href="https://stackoverflow.com/a/19942352">mechanisms that can accelerate some system calls</a>.
+<a href="https://lwn.net/Articles/615809/"><code>vvar</code> is used to exchange Kernel data without requiring a system call</a>.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2382,7 +2633,7 @@ RSS counter may not reflect what is een in the <strong>committed</strong> memory
 </div>
 </div>
 <div class="sect1">
-<h2 id="_sizing_the_cgroup_kubernetes_resources_memory_limit"><a class="anchor" href="#_sizing_the_cgroup_kubernetes_resources_memory_limit"></a><a class="link" href="#_sizing_the_cgroup_kubernetes_resources_memory_limit">Sizing the cgroup / kubernetes <code>resources.memory.limit</code></a></h2>
+<h2 id="_sizing_a_cgroup_kubernetes_resources_memory_limit"><a class="anchor" href="#_sizing_a_cgroup_kubernetes_resources_memory_limit"></a><a class="link" href="#_sizing_a_cgroup_kubernetes_resources_memory_limit">Sizing a cgroup / kubernetes <code>resources.memory.limit</code></a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>In the end this investigation is useful to determine what is wrong,
@@ -2437,6 +2688,33 @@ about this in another article.</p>
                + Direct buffers + Mapped files +
                + Native libraries allocations + Malloc overhead + ...</pre>
 </div>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="title">prepare your application</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set the cgroup memory limit high enough, so the application isn’t oomkilled, this will
+let you analyze how the app work, and adjust settings without fear (except from your
+colleagues that compare everything to <em>Go</em> or <em>rust</em>).</p>
+</li>
+<li>
+<p>If you don’t think it’s Java heap memory leak, i.e. the heap usage isn’t alarming,
+try to inspect native memory, it’s easier with the flag <code>-XX:+AlwaysPreTouch</code>,
+however keep in mind this will bump your RSS right from the start, so anticipate this
+increase in your cgroup memory limit.</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p><code>5576205 KiB</code> is what this container is supposedly actually using, but:</p>
