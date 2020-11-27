@@ -1499,11 +1499,22 @@ https://stackoverflow.com/a/19942352[mechanisms that can accelerate some system 
 https://lwn.net/Articles/615809/[`vvar` is used to exchange Kernel data without requiring a system call].
 
 
-// TODO: circling back to pages
 ==== How many pages are used ?
 
-The _proc_ filesystem is gives the paging details on the current process.
+> In  fact,  ps  uses  the  proc  file  system  to  obtain its
+information.
 
+While not immediately useful, it's interesting that the displayed RSS value
+by `ps` is in fact the number of page times the page size. (I suppose the
+equation is a tad more complex than a single multiplication when huge pages
+are involved).
+
+For example in the https://www.kernel.org/doc/Documentation/filesystems/proc.txt[procfs documentation]
+(the latest, as in `latest` kernel, documentation is
+https://www.kernel.org/doc/html/latest/filesystems/proc.html[there]) gives the
+description of the `statm` object.
+
+.statm description
 ----
 Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
 ..............................................................................
@@ -1521,6 +1532,7 @@ Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
 
 ----
 
+.ps and statm
 [source, shell]
 ----
 $ ps -o rss,vsz,command $(pidof java)
@@ -1530,7 +1542,7 @@ $ ps -o rss,vsz,command $(pidof java)
 $ cat /proc/$(pidof java)/statm | tr ' ' '\n'
 1626842 <1>
 1086676 <2>
-12638
+12638 <3>
 1
 0
 1283103
@@ -1538,16 +1550,73 @@ $ cat /proc/$(pidof java)/statm | tr ' ' '\n'
 ----
 <1> Total size in _pages_ of the addressing space, in bytes : `6507368 KiB`
 <2> Resident memory in _pages_, in bytes : `4346704 KiB`
+<3> pages backed by a file plus shared memory
 
-Given a page size is `4 KiB`, it gives in particular :
+Given the page size of `4 KiB`, the following numbers comes naturally :
 
 * vsz = `1626842 * 4 = 6507368`
 * rss = `1086676 * 4 = 4346704`
 
-NOTE: If the kubernetes memory limit is `5 GiB` (`5242880 KiB`),
-then the process may be oom-killed if the program uses more than
-`1310720` used pages. If the program don't use more pages than this
-number, this process will be fine.
+For example lets say there is a Kubernetes memory limit of `6 GiB`
+(`6442450944 Bytes` ), a `java` process is started with a bigger memory
+`-Xmx16g` that the cgroup limit, we can observe that
+
+. a process can _over-commit_ this is not an issue as long as
+. the memory used by the resident pages do not go over the cgroup limit.
+. The process will be oom-killed if it uses more than `6442450944 / 4 = 1310720`
+pages (of `4 KiB`).
+
+.SelfPs.java
+[source, java]
+----
+import java.io.*;
+
+public class SelfPs {
+  public static void main(String[] args) throws Exception {
+    var h = new ProcessBuilder("ps", "--no-header", "-orss,vsz", Long.toString(ProcessHandle.current().pid())).start();
+    try(var br = new BufferedReader(new InputStreamReader(h.getInputStream()))) {
+      System.out.println(br.readLine());
+    }
+  }
+}
+----
+
+.result
+[source, shell]
+----
+$ env -u JDK_JAVA_OPTIONS java -Xms16g -Xmx16g SelfPs.java
+143584 18996472 <1> <2>
+$ cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+6442450944 <3>
+$ echo $((18996472 * 1024))
+19452387328 <4>
+----
+<1> RSS in KiB
+<2> virtual address space in KiB
+<3> cgroup limit
+<4> virtual address space in bytes
+
+Another interesting element of `statm` is that it shows how many files.
+In the output above, the third line, give the number of pages that
+are backed by files, it maybe a good indication to look at when sizing
+the container.
+
+[source, shell]
+----
+$ cat /proc/7/statm | tr ' ' '\n'
+1514761
+1009054
+11222 <1>
+1
+0
+1164939
+0
+$ pmap -X $(pidof java) | head -n -2 | awk '{ if (NR > 2 && $5 >0 ) sum += $7 } END { print sum }'
+46796 <2>
+----
+<1> Number of pages backed by files or shared memory, so `11222 * 4 = 44888`
+<2> Resident set size of memory mapped files in KiB, not including shared
+pages that are not file backed.
 
 
 
@@ -1555,35 +1624,78 @@ number, this process will be fine.
 // TODO: rewrite paging effect on Java Heap
 === Paging and the Java heap
 
-*Virtual memory* is a memory management scheme that is used by most operating systems ;
-it allows programs to use memory without dealing with hardware, or other concerns like
-sharing the memory resource. In doing so it allows programs to request more memory than
-available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
-called *pages*. For any given page in the virtual memory, and depending on the application(s)
-the OS may:
+Before wrapping this article I'd like to mention an interesting effect of
+virtual memory, over-commit and Java Heap.
 
-* Make this page resident in physical memory, if something has be written into it.
-* Do nothing if a page is not used, this page is virtually available.
-* Move a page from physical memory to swap, if the OS thinks there's not enough room for other pages.
-* Map a portion of a file to this page.
 
-image:/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
+The pages of the Java heap memory segment count if these pages have initialized
+at least once, during the life of the program, the activity of the program and
+the GC will increase the number of touched pages, pages that count in the RSS.
 
-E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
-the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
-pages are only backed by physical memory once they're written to.
+For G1GC
+. New allocation will happen in a GC region called _Eden_, and more specifically
+in a sub-segment called TLAB dedicated for the thread that perform the allocation.
 
-Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option. This option tells
-the JVM to https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829[write a zero to every OS memory pages].
-This option has the effect of avoiding physical memory commit latencies at runtime, however this
-only affects the heap memory zone. Other areas like thread stack or metaspace work differently.
+. After some time the GC will kick in and move (or evacuate) the live objects to
+GC region called _Survivor_.
+
+. This cycle will go on until the object is considered old enough to be
+evacuated to a GC region called _Old_.
+
+After each evacuation, the regions that previously held the objects,
+are cleaned up, and their bits set to `0`, but the page are still considered dirty
+and count in the RSS. This region will return to a pool of _Free_ regions.
+
+For the evacuation, the live objects can go to existing region if they have some
+space or if there's not enough space in the existing regions, G1GC will
+convert a _Free_ region to either a _Survivor_ or an _Old_ region. If the _Free_
+region has been used before then no new pages will get dirty, however if the
+_Free_ region has never been in use before then this will touch more pages.
+
+
+image::/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
+
+
+This can lead to a situation if the Java heap is large enough, where
+many never-used-before _Free_ region exists. In this situation
+it is not obvious to distinguish from metrics what is consuming the memory.
+
+
+image::/assets/maxrampercentage/memory-usage-by-pool.png[align="center", title="Memory usage by pool"]
+
+
+
+
+//*Virtual memory* is a memory management scheme that is used by most operating systems ;
+//it allows programs to use memory without dealing with hardware, or other concerns like
+//sharing the memory resource. In doing so it allows programs to request more memory than
+//available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
+//called *pages*. For any given page in the virtual memory, and depending on the application(s)
+//the OS may:
+//
+//* Make this page resident in physical memory, if something has be written into it.
+//* Do nothing if a page is not used, this page is virtually available.
+//* Move a page from physical memory to swap, if the OS thinks there's not enough room for other pages.
+//* Map a portion of a file to this page.
+
+//E.g at the moment this report was executed the committed memory is `5380868 KiB` (`5.13 GiB`) while
+//the process RSS is `4701120 KiB`. The difference relates to how `mmap` works (on Linux), memory
+//pages are only backed by physical memory once they're written to.
+
+Some people may have heard of the `-XX:+AlwaysPreTouch` Hotspot option.
+This option tells the JVM to
+https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829[write a zero to every OS memory pages during the JVM startup].
+This option has also the effect of avoiding physical memory commit
+latencies later at runtime, however this only affects the heap memory zone.
+Other JVM component that manage areas like thread stack or metaspace work
+differently.
 
 In other words that means parts of the *committed* memory shown in NMT is not *resident* and as such
 RSS counter may not reflect what is een in the *committed* memory.
 
 
 
-
+// TODO: Re-read
 == Sizing a cgroup / kubernetes `resources.memory.limit`
 
 In the end this investigation is useful to determine what is wrong,
@@ -1711,7 +1823,7 @@ $ jcmd $(pidof java) VM.native_memory \
 $ ps --no-header -o rss $(pidof java)
 4204512
 
-$ pmap -X $(pidof java) | head -n -2 | awk '{ if (NR > 2 && $5 >0 ) sum += $7 } END { print sum } '
+$ pmap -X $(pidof java) | head -n -2 | awk '{ if (NR > 2 && $5 >0 ) sum += $7 } END { print sum }'
 52668
 
 $ echo $((4204512 - 3841303 - 52668))
