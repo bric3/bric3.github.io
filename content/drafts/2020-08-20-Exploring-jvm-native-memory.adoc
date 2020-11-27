@@ -821,6 +821,125 @@ for example the GC system :
 
 
 
+// TODO: direct byte buffers
+
+==== Track DirectByteBuffer with NMT
+
+Using NMT `baseline` and `summary.diff` modes, it is possible to
+track the evolution of the JVM components. ``DirectByteBuffer``s
+allow to allocate native memory segments. They are not cheap to create
+and they are only deallocated when a GC actually finalize the
+references. Usually these byte buffers have a long life and
+they are big.
+
+As the snippet of code will try to show they are reported in the
+`Other` section of NMT.
+
+.Exercise DIrectByteBuffer and NMT
+[source, java]
+----
+// env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+import java.nio.*;
+import java.lang.ProcessBuilder.*;
+
+public class DBB {
+  public static void main(String[] args) throws Exception {
+    System.out.printf("nmt baseline: %n");
+    new ProcessBuilder("jcmd", Long.toString(ProcessHandle.current().pid()), "VM.native_memory", "baseline")
+            .redirectOutput(Redirect.INHERIT)
+            .redirectError(Redirect.INHERIT)
+            .start()
+            .waitFor();
+
+    var bbCount = Integer.parseInt(args[0]);
+    var bbSizeMiB = Integer.parseInt(args[1]);
+    for (var i = 0; i < bbCount; i++) {
+        var byteBuffer = ByteBuffer.allocateDirect(bbSizeMiB * 1024 * 1024)
+                .putInt(0, 0x01);
+    }
+
+    System.out.printf("nmt summary.diff: %n");
+    new ProcessBuilder("jcmd", Long.toString(ProcessHandle.current().pid()), "VM.native_memory", "summary.diff")
+            .redirectOutput(Redirect.INHERIT)
+            .redirectError(Redirect.INHERIT)
+            .start()
+            .waitFor();
+  }
+}
+----
+
+.1 x 1MiB
+[source,role="primary"]
+----
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+nmt baseline:
+779:
+Baseline succeeded
+nmt summary.diff:
+779:
+
+Native Memory Tracking:
+
+Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
+
+...
+
+-                     Other (reserved=1034KB +1024KB, committed=1034KB +1024KB) <1>
+                            (malloc=1034KB +1024KB #3 +1) <2>
+
+...
+----
+<1> The `DirectByteBuffer` of `1 MiB`
+<2> `DirectByteBuffer` use `malloc` underneath.
+
+
+.10 x 1MiB
+[source,role="secondary"]
+----
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 10 1
+nmt baseline:
+839:
+Baseline succeeded
+nmt summary.diff:
+839:
+
+Native Memory Tracking:
+
+Total: reserved=1933553KB +10243KB, committed=132061KB +10247KB
+
+...
+
+-                     Other (reserved=10250KB +10240KB, committed=10250KB +10240KB)
+                            (malloc=10250KB +10240KB #12 +10)
+
+...
+----
+
+.20 x 100MiB
+[source,role="secondary"]
+----
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 20 100
+nmt baseline:
+898:
+Baseline succeeded
+nmt summary.diff:
+898:
+
+Native Memory Tracking:
+
+Total: reserved=2331899KB +408590KB, committed=512275KB +390462KB
+
+...
+
+-                     Other (reserved=409610KB +409600KB, committed=409610KB +409600KB)
+                            (malloc=409610KB +409600KB #6 +4)
+
+...
+----
+
+
+
+
 
 ==== Inspecting memory mappings
 
@@ -1367,7 +1486,8 @@ System.out.printf("max: %d%n", Runtime.getRuntime().maxMemory());
 
 new ProcessBuilder("pmap", "-x", Long.toString(ProcessHandle.current().pid()))
         .redirectOutput(Redirect.INHERIT)
-        .start();
+        .start()
+        .waitFor();
 
 var address = Buffer.class.getDeclaredField("address");
 address.setAccessible(true);
@@ -1380,7 +1500,8 @@ for (var i = 0; i < 30; i++) {
 
 new ProcessBuilder("pmap", "-x", Long.toString(ProcessHandle.current().pid()))
         .redirectOutput(Redirect.INHERIT)
-        .start();
+        .start()
+        .waitFor();
 ----
 
 {{< wrapTable >}}
@@ -1567,13 +1688,17 @@ For example lets say there is a Kubernetes memory limit of `6 GiB`
 pages (of `4 KiB`).
 
 .SelfPs.java
-[source, java]
+[source,java]
 ----
 import java.io.*;
 
 public class SelfPs {
   public static void main(String[] args) throws Exception {
-    var h = new ProcessBuilder("ps", "--no-header", "-orss,vsz", Long.toString(ProcessHandle.current().pid())).start();
+    var h = new ProcessBuilder("ps",
+                               "--no-header",
+                               "-orss,vsz",
+                               Long.toString(ProcessHandle.current().pid()))
+                    .start();
     try(var br = new BufferedReader(new InputStreamReader(h.getInputStream()))) {
       System.out.println(br.readLine());
     }
@@ -1620,8 +1745,6 @@ pages that are not file backed.
 
 
 
-
-// TODO: rewrite paging effect on Java Heap
 === Paging and the Java heap
 
 Before wrapping this article I'd like to mention an interesting effect of
@@ -1652,7 +1775,7 @@ convert a _Free_ region to either a _Survivor_ or an _Old_ region. If the _Free_
 region has been used before then no new pages will get dirty, however if the
 _Free_ region has never been in use before then this will touch more pages.
 
-
+// TODO: redo
 image::/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
 
 
@@ -1698,15 +1821,33 @@ RSS counter may not reflect what is een in the *committed* memory.
 // TODO: Re-read
 == Sizing a cgroup / kubernetes `resources.memory.limit`
 
-In the end this investigation is useful to determine what is wrong,
-the memory settings or the application.
+With containerization getting traction it is likely that
+one has to face a memory related issue. Being equipped with
+the right tooling and the tool manual is a precious help.
+
+When a container is oomkilled either the application has problem
+or its configuration is too tight.
 
 Using the gathered information from JVM's native memory tracking and
-from memory mapping is it possible to build this simple _equation_ to
+from memory mapping, is it possible to build a simple _equation_ to
 estimate the probable maximum memory usage of a process ?
 
-We already can suppose there's every reported components from the JVM,
-and the mapped files. Is it enough ?
+
+[TIP]
+====
+* Set the cgroup memory limit high enough, so the application isn't oomkilled, this will
+let you analyze how the app work, and adjust settings without fear (except from your
+colleagues that compare everything to _Go_ or _rust_).
+
+* If you don't think it's Java heap memory leak, i.e. the heap usage isn't alarming,
+try to inspect native memory, it's easier with the flag `-XX:+AlwaysPreTouch`,
+however keep in mind this will bump your RSS right from the start, so anticipate this
+increase in your cgroup memory limit.
+====
+
+
+We can already suppose there's every reported components from the JVM,
+and the mapped files reported by NMT.
 
 ....
 Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
@@ -1715,7 +1856,7 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
 ....
 
 
-
+Above in this writing I noted NMT is not enough to account used memory.
 
 ////
 While NMT show you the total, you can use this command to extract all relevant from the summary
@@ -1813,76 +1954,46 @@ Total: reserved=5737038KB, committed=3841302KB
 3841303
 ////
 
+//On macOS if working on captures, you should install the GNU coreutils and use `ggrep` and `ghead`.
+
+
+.On a loaded application
 [source, shell]
 ----
 $ jcmd $(pidof java) VM.native_memory \
    | grep -P "Total.*committed=" \
    | grep -o -P "(?<=committed=)[0-9]+(?=KB)"
-3841302
+3841302 <1>
 
 $ ps --no-header -o rss $(pidof java)
-4204512
+4204512 <2>
 
 $ pmap -X $(pidof java) | head -n -2 | awk '{ if (NR > 2 && $5 >0 ) sum += $7 } END { print sum }'
-52668
+52668 <3>
 
 $ echo $((4204512 - 3841303 - 52668))
-363209
+363209 <4>
 ----
+<1> Total committed memory reported by NMT
+<2> RSS of the JVM process
+<3> RSS of the JVM process's mapped files
+<4> The rest of the used memory possibly `malloc` or `mmap` performed by native libs, native allocator overhead
 
-//On macOS, you should install the GNU coreutils and use `ggrep` and `ghead`.
-
-
-Using the *committed* value on the first line
-`Total: reserved=5737038KB, committed=3841302KB` from the NMT output,
-the JVM sees `3841302 KiB`, the RSS seen by the OS is `4204512 KiB`, mapped files
-weigh `52668 KiB`. This leaves `310541 KiB` unaccounted for.
-These `300 MiB` are actually quite difficult to identify in `pmap` they could
-be done by native libraries or due to what I'll call the `malloc` overhead, I'll write
-about this in another article.
+Basically this shows that one must account at least this amount of data
+when defining the kubernetes limit.
 
 
 ....
 Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + Compiler + Other JVM structures + Thread stacks
                + Direct buffers + Mapped files +
-               + Native libraries allocations + Malloc overhead + ...
+               + Native libraries allocations + Malloc overhead
+               + ...
 ....
 
-
-
-[TIP]
-.prepare your application
-====
-* Set the cgroup memory limit high enough, so the application isn't oomkilled, this will
-let you analyze how the app work, and adjust settings without fear (except from your
-colleagues that compare everything to _Go_ or _rust_).
-
-* If you don't think it's Java heap memory leak, i.e. the heap usage isn't alarming,
-try to inspect native memory, it's easier with the flag `-XX:+AlwaysPreTouch`,
-however keep in mind this will bump your RSS right from the start, so anticipate this
-increase in your cgroup memory limit.
-====
-
-
-
-
-
-// TODO: Move in paging effect in heap
-
-`5576205 KiB` is what this container is supposedly actually using, but:
-
- - as expected this is way over the RSS (`4701120 KiB`) and,
- - also over the `5 GiB` (`5242880 KiB`) of the pod limit.
-
-This happens because this pod may not have access all pages especially
-if the heap is big enough and the allocation rate is not big enough. While
-a pod like this may be healthy and stay that way. It should rise your eyebrow,
-if the RSS grow then the pod is likely to be oomkilled.
-
-This is where one need to review the memory parameter of either
-the JVM or the memory limits of the pod. Either the JVM is over-sized
-or the JVM will eventually be oomkilled by the OS.
+In my experience if the application doe not exhibit leaky behavor but just need
+memory limit adjustment. The job is way easier using `AlwaysPreTouch`, then it's
+easier to track evolution of "off-heap" memory.
 
 
 
