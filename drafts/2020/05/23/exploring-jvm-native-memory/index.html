@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 108 min read
+    <i class="fas fa-clock"></i> 113 min read
 
     
     
@@ -2507,10 +2507,28 @@ allocation pattern or usage could meet these criteria.</p>
 </div>
 <div class="sect3">
 <h4 id="_how_many_pages_are_used"><a class="anchor" href="#_how_many_pages_are_used"></a><a class="link" href="#_how_many_pages_are_used">How many pages are used ?</a></h4>
+<div class="quoteblock">
+<blockquote>
 <div class="paragraph">
-<p>The <em>proc</em> filesystem is gives the paging details on the current process.</p>
+<p>In  fact,  ps  uses  the  proc  file  system  to  obtain its
+information.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>While not immediately useful, it’s interesting that the displayed RSS value
+by <code>ps</code> is in fact the number of page times the page size. (I suppose the
+equation is a tad more complex than a single multiplication when huge pages
+are involved).</p>
+</div>
+<div class="paragraph">
+<p>For example in the <a href="https://www.kernel.org/doc/Documentation/filesystems/proc.txt">procfs documentation</a>
+(the latest, as in <code>latest</code> kernel, documentation is
+<a href="https://www.kernel.org/doc/html/latest/filesystems/proc.html">there</a>) gives the
+description of the <code>statm</code> object.</p>
 </div>
 <div class="listingblock">
+<div class="title">statm description</div>
 <div class="content">
 <pre>Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
 ..............................................................................
@@ -2528,6 +2546,7 @@ allocation pattern or usage could meet these criteria.</p>
 </div>
 </div>
 <div class="listingblock">
+<div class="title">ps and statm</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ps -o rss,vsz,command $(pidof java)
   RSS    VSZ COMMAND
@@ -2536,7 +2555,7 @@ allocation pattern or usage could meet these criteria.</p>
 $ cat /proc/$(pidof java)/statm | tr &#39; &#39; &#39;\n&#39;
 1626842 <i class="conum" data-value="1"></i><b>(1)</b>
 1086676 <i class="conum" data-value="2"></i><b>(2)</b>
-12638
+12638 <i class="conum" data-value="3"></i><b>(3)</b>
 1
 0
 1283103
@@ -2553,10 +2572,14 @@ $ cat /proc/$(pidof java)/statm | tr &#39; &#39; &#39;\n&#39;
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Resident memory in <em>pages</em>, in bytes : <code>4346704 KiB</code></td>
 </tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>pages backed by a file plus shared memory</td>
+</tr>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>Given a page size is <code>4 KiB</code>, it gives in particular :</p>
+<p>Given the page size of <code>4 KiB</code>, the following numbers comes naturally :</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2568,18 +2591,101 @@ $ cat /proc/$(pidof java)/statm | tr &#39; &#39; &#39;\n&#39;
 </li>
 </ul>
 </div>
-<div class="admonitionblock note">
+<div class="paragraph">
+<p>For example lets say there is a Kubernetes memory limit of <code>6 GiB</code>
+(<code>6442450944 Bytes</code> ), a <code>java</code> process is started with a bigger memory
+<code>-Xmx16g</code> that the cgroup limit, we can observe that</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>a process can <em>over-commit</em> this is not an issue as long as</p>
+</li>
+<li>
+<p>the memory used by the resident pages do not go over the cgroup limit.</p>
+</li>
+<li>
+<p>The process will be oom-killed if it uses more than <code>6442450944 / 4 = 1310720</code>
+pages (of <code>4 KiB</code>).</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="title">SelfPs.java</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">import java.io.*;
+
+public class SelfPs {
+  public static void main(String[] args) throws Exception {
+    var h = new ProcessBuilder(&#34;ps&#34;, &#34;--no-header&#34;, &#34;-orss,vsz&#34;, Long.toString(ProcessHandle.current().pid())).start();
+    try(var br = new BufferedReader(new InputStreamReader(h.getInputStream()))) {
+      System.out.println(br.readLine());
+    }
+  }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">result</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS java -Xms16g -Xmx16g SelfPs.java
+143584 18996472 <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
+$ cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+6442450944 <i class="conum" data-value="3"></i><b>(3)</b>
+$ echo $((18996472 * 1024))
+19452387328 <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
 <table>
 <tbody><tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-If the kubernetes memory limit is <code>5 GiB</code> (<code>5242880 KiB</code>),
-then the process may be oom-killed if the program uses more than
-<code>1310720</code> used pages. If the program don’t use more pages than this
-number, this process will be fine.
-</td>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>RSS in KiB</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>virtual address space in KiB</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>cgroup limit</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>virtual address space in bytes</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Another interesting element of <code>statm</code> is that it shows how many files.
+In the output above, the third line, give the number of pages that
+are backed by files, it maybe a good indication to look at when sizing
+the container.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/7/statm | tr &#39; &#39; &#39;\n&#39;
+1514761
+1009054
+11222 <i class="conum" data-value="1"></i><b>(1)</b>
+1
+0
+1164939
+0
+$ pmap -X $(pidof java) | head -n -2 | awk &#39;{ if (NR &gt; 2 &amp;&amp; $5 &gt;0 ) sum += $7 } END { print sum }&#39;
+46796 <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Number of pages backed by files or shared memory, so <code>11222 * 4 = 44888</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Resident set size of memory mapped files in KiB, not including shared
+pages that are not file backed.</td>
 </tr>
 </tbody></table>
 </div>
@@ -2588,42 +2694,68 @@ number, this process will be fine.
 <div class="sect2">
 <h3 id="_paging_and_the_java_heap"><a class="anchor" href="#_paging_and_the_java_heap"></a><a class="link" href="#_paging_and_the_java_heap">Paging and the Java heap</a></h3>
 <div class="paragraph">
-<p><strong>Virtual memory</strong> is a memory management scheme that is used by most operating systems ;
-it allows programs to use memory without dealing with hardware, or other concerns like
-sharing the memory resource. In doing so it allows programs to request more memory than
-available. In this scheme the OS splits the virtual memory and the memory in smaller chunks
-called <strong>pages</strong>. For any given page in the virtual memory, and depending on the application(s)
-the OS may:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Make this page resident in physical memory, if something has be written into it.</p>
-</li>
-<li>
-<p>Do nothing if a page is not used, this page is virtually available.</p>
-</li>
-<li>
-<p>Move a page from physical memory to swap, if the OS thinks there’s not enough room for other pages.</p>
-</li>
-<li>
-<p>Map a portion of a file to this page.</p>
-</li>
-</ul>
+<p>Before wrapping this article I’d like to mention an interesting effect of
+virtual memory, over-commit and Java Heap.</p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging" title="Simple overview of OS paging"/></span></p>
+<p>The pages of the Java heap memory segment count if these pages have initialized
+at least once, during the life of the program, the activity of the program and
+the GC will increase the number of touched pages, pages that count in the RSS.</p>
 </div>
 <div class="paragraph">
-<p>E.g at the moment this report was executed the committed memory is <code>5380868 KiB</code> (<code>5.13 GiB</code>) while
-the process RSS is <code>4701120 KiB</code>. The difference relates to how <code>mmap</code> works (on Linux), memory
-pages are only backed by physical memory once they’re written to.</p>
+<p>For G1GC
+. New allocation will happen in a GC region called <em>Eden</em>, and more specifically
+in a sub-segment called TLAB dedicated for the thread that perform the allocation.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>After some time the GC will kick in and move (or evacuate) the live objects to
+GC region called <em>Survivor</em>.</p>
+</li>
+<li>
+<p>This cycle will go on until the object is considered old enough to be
+evacuated to a GC region called <em>Old</em>.</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p>Some people may have heard of the <code>-XX:+AlwaysPreTouch</code> Hotspot option. This option tells
-the JVM to <a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829">write a zero to every OS memory pages</a>.
-This option has the effect of avoiding physical memory commit latencies at runtime, however this
-only affects the heap memory zone. Other areas like thread stack or metaspace work differently.</p>
+<p>After each evacuation, the regions that previously held the objects,
+are cleaned up, and their bits set to <code>0</code>, but the page are still considered dirty
+and count in the RSS. This region will return to a pool of <em>Free</em> regions.</p>
+</div>
+<div class="paragraph">
+<p>For the evacuation, the live objects can go to existing region if they have some
+space or if there’s not enough space in the existing regions, G1GC will
+convert a <em>Free</em> region to either a <em>Survivor</em> or an <em>Old</em> region. If the <em>Free</em>
+region has been used before then no new pages will get dirty, however if the
+<em>Free</em> region has never been in use before then this will touch more pages.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="../../static/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging"/>
+</div>
+<div class="title">Simple overview of OS paging</div>
+</div>
+<div class="paragraph">
+<p>This can lead to a situation if the Java heap is large enough, where
+many never-used-before <em>Free</em> region exists. In this situation
+it is not obvious to distinguish from metrics what is consuming the memory.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="../../static/assets/maxrampercentage/memory-usage-by-pool.png" alt="memory usage by pool"/>
+</div>
+<div class="title">Memory usage by pool</div>
+</div>
+<div class="paragraph">
+<p>Some people may have heard of the <code>-XX:+AlwaysPreTouch</code> Hotspot option.
+This option tells the JVM to
+<a href="https://github.com/corretto/corretto-11/blob/3b31d243a19774bebde63df21cc84e994a89439a/src/src/hotspot/share/runtime/os.cpp#L1825-L1829">write a zero to every OS memory pages during the JVM startup</a>.
+This option has also the effect of avoiding physical memory commit
+latencies later at runtime, however this only affects the heap memory zone.
+Other JVM component that manage areas like thread stack or metaspace work
+differently.</p>
 </div>
 <div class="paragraph">
 <p>In other words that means parts of the <strong>committed</strong> memory shown in NMT is not <strong>resident</strong> and as such
@@ -2665,7 +2797,7 @@ and the mapped files. Is it enough ?</p>
 $ ps --no-header -o rss $(pidof java)
 4204512
 
-$ pmap -X $(pidof java) | head -n -2 | awk &#39;{ if (NR &gt; 2 &amp;&amp; $5 &gt;0 ) sum += $7 } END { print sum } &#39;
+$ pmap -X $(pidof java) | head -n -2 | awk &#39;{ if (NR &gt; 2 &amp;&amp; $5 &gt;0 ) sum += $7 } END { print sum }&#39;
 52668
 
 $ echo $((4204512 - 3841303 - 52668))
