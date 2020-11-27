@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 113 min read
+    <i class="fas fa-clock"></i> 115 min read
 
     
     
@@ -1670,6 +1670,132 @@ for example the GC system :</p>
 </div>
 </div>
 <div class="sect3">
+<h4 id="_track_directbytebuffer_with_nmt"><a class="anchor" href="#_track_directbytebuffer_with_nmt"></a><a class="link" href="#_track_directbytebuffer_with_nmt">Track DirectByteBuffer with NMT</a></h4>
+<div class="paragraph">
+<p>Using NMT <code>baseline</code> and <code>summary.diff</code> modes, it is possible to
+track the evolution of the JVM components. <code>DirectByteBuffer</code>s
+allow to allocate native memory segments. They are not cheap to create
+and they are only deallocated when a GC actually finalize the
+references. Usually these byte buffers have a long life and
+they are big.</p>
+</div>
+<div class="paragraph">
+<p>As the snippet of code will try to show they are reported in the
+<code>Other</code> section of NMT.</p>
+</div>
+<div class="listingblock">
+<div class="title">Exercise DIrectByteBuffer and NMT</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+import java.nio.*;
+import java.lang.ProcessBuilder.*;
+
+public class DBB {
+  public static void main(String[] args) throws Exception {
+    System.out.printf(&#34;nmt baseline: %n&#34;);
+    new ProcessBuilder(&#34;jcmd&#34;, Long.toString(ProcessHandle.current().pid()), &#34;VM.native_memory&#34;, &#34;baseline&#34;)
+            .redirectOutput(Redirect.INHERIT)
+            .redirectError(Redirect.INHERIT)
+            .start()
+            .waitFor();
+
+    var bbCount = Integer.parseInt(args[0]);
+    var bbSizeMiB = Integer.parseInt(args[1]);
+    for (var i = 0; i &lt; bbCount; i++) {
+        var byteBuffer = ByteBuffer.allocateDirect(bbSizeMiB * 1024 * 1024)
+                .putInt(0, 0x01);
+    }
+
+    System.out.printf(&#34;nmt summary.diff: %n&#34;);
+    new ProcessBuilder(&#34;jcmd&#34;, Long.toString(ProcessHandle.current().pid()), &#34;VM.native_memory&#34;, &#34;summary.diff&#34;)
+            .redirectOutput(Redirect.INHERIT)
+            .redirectError(Redirect.INHERIT)
+            .start()
+            .waitFor();
+  }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock primary">
+<div class="title">1 x 1MiB</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+nmt baseline:
+779:
+Baseline succeeded
+nmt summary.diff:
+779:
+
+Native Memory Tracking:
+
+Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
+
+...
+
+-                     Other (reserved=1034KB +1024KB, committed=1034KB +1024KB) <i class="conum" data-value="1"></i><b>(1)</b>
+                            (malloc=1034KB +1024KB #3 +1) <i class="conum" data-value="2"></i><b>(2)</b>
+
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>DirectByteBuffer</code> of <code>1 MiB</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>DirectByteBuffer</code> use <code>malloc</code> underneath.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title">10 x 1MiB</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 10 1
+nmt baseline:
+839:
+Baseline succeeded
+nmt summary.diff:
+839:
+
+Native Memory Tracking:
+
+Total: reserved=1933553KB +10243KB, committed=132061KB +10247KB
+
+...
+
+-                     Other (reserved=10250KB +10240KB, committed=10250KB +10240KB)
+                            (malloc=10250KB +10240KB #12 +10)
+
+...</code></pre>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">20 x 100MiB</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 20 100
+nmt baseline:
+898:
+Baseline succeeded
+nmt summary.diff:
+898:
+
+Native Memory Tracking:
+
+Total: reserved=2331899KB +408590KB, committed=512275KB +390462KB
+
+...
+
+-                     Other (reserved=409610KB +409600KB, committed=409610KB +409600KB)
+                            (malloc=409610KB +409600KB #6 +4)
+
+...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
 <h4 id="_inspecting_memory_mappings"><a class="anchor" href="#_inspecting_memory_mappings"></a><a class="link" href="#_inspecting_memory_mappings">Inspecting memory mappings</a></h4>
 <div class="paragraph">
 <p>It’s easy to get the RSS of a process, to understand if the committed
@@ -2341,7 +2467,8 @@ as the current process mapping.</p>
 
 new ProcessBuilder(&#34;pmap&#34;, &#34;-x&#34;, Long.toString(ProcessHandle.current().pid()))
         .redirectOutput(Redirect.INHERIT)
-        .start();
+        .start()
+        .waitFor();
 
 var address = Buffer.class.getDeclaredField(&#34;address&#34;);
 address.setAccessible(true);
@@ -2354,7 +2481,8 @@ for (var i = 0; i &lt; 30; i++) {
 
 new ProcessBuilder(&#34;pmap&#34;, &#34;-x&#34;, Long.toString(ProcessHandle.current().pid()))
         .redirectOutput(Redirect.INHERIT)
-        .start();</code></pre>
+        .start()
+        .waitFor();</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2617,7 +2745,11 @@ pages (of <code>4 KiB</code>).</p>
 
 public class SelfPs {
   public static void main(String[] args) throws Exception {
-    var h = new ProcessBuilder(&#34;ps&#34;, &#34;--no-header&#34;, &#34;-orss,vsz&#34;, Long.toString(ProcessHandle.current().pid())).start();
+    var h = new ProcessBuilder(&#34;ps&#34;,
+                               &#34;--no-header&#34;,
+                               &#34;-orss,vsz&#34;,
+                               Long.toString(ProcessHandle.current().pid()))
+                    .start();
     try(var br = new BufferedReader(new InputStreamReader(h.getInputStream()))) {
       System.out.println(br.readLine());
     }
@@ -2768,58 +2900,18 @@ RSS counter may not reflect what is een in the <strong>committed</strong> memory
 <h2 id="_sizing_a_cgroup_kubernetes_resources_memory_limit"><a class="anchor" href="#_sizing_a_cgroup_kubernetes_resources_memory_limit"></a><a class="link" href="#_sizing_a_cgroup_kubernetes_resources_memory_limit">Sizing a cgroup / kubernetes <code>resources.memory.limit</code></a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>In the end this investigation is useful to determine what is wrong,
-the memory settings or the application.</p>
+<p>With containerization getting traction it is likely that
+one has to face a memory related issue. Being equipped with
+the right tooling and the tool manual is a precious help.</p>
+</div>
+<div class="paragraph">
+<p>When a container is oomkilled either the application has problem
+or its configuration is too tight.</p>
 </div>
 <div class="paragraph">
 <p>Using the gathered information from JVM’s native memory tracking and
-from memory mapping is it possible to build this simple <em>equation</em> to
+from memory mapping, is it possible to build a simple <em>equation</em> to
 estimate the probable maximum memory usage of a process ?</p>
-</div>
-<div class="paragraph">
-<p>We already can suppose there’s every reported components from the JVM,
-and the mapped files. Is it enough ?</p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
-               + Compiler + Other JVM structures + Thread stacks
-               + Direct buffers + Mapped files</pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jcmd $(pidof java) VM.native_memory \
-   | grep -P &#34;Total.*committed=&#34; \
-   | grep -o -P &#34;(?&lt;=committed=)[0-9]+(?=KB)&#34;
-3841302
-
-$ ps --no-header -o rss $(pidof java)
-4204512
-
-$ pmap -X $(pidof java) | head -n -2 | awk &#39;{ if (NR &gt; 2 &amp;&amp; $5 &gt;0 ) sum += $7 } END { print sum }&#39;
-52668
-
-$ echo $((4204512 - 3841303 - 52668))
-363209</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Using the <strong>committed</strong> value on the first line
-<code>Total: reserved=5737038KB, committed=3841302KB</code> from the NMT output,
-the JVM sees <code>3841302 KiB</code>, the RSS seen by the OS is <code>4204512 KiB</code>, mapped files
-weigh <code>52668 KiB</code>. This leaves <code>310541 KiB</code> unaccounted for.
-These <code>300 MiB</code> are actually quite difficult to identify in <code>pmap</code> they could
-be done by native libraries or due to what I’ll call the <code>malloc</code> overhead, I’ll write
-about this in another article.</p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
-               + Compiler + Other JVM structures + Thread stacks
-               + Direct buffers + Mapped files +
-               + Native libraries allocations + Malloc overhead + ...</pre>
-</div>
 </div>
 <div class="admonitionblock tip">
 <table>
@@ -2828,7 +2920,6 @@ about this in another article.</p>
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-<div class="title">prepare your application</div>
 <div class="ulist">
 <ul>
 <li>
@@ -2849,28 +2940,74 @@ increase in your cgroup memory limit.</p>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p><code>5576205 KiB</code> is what this container is supposedly actually using, but:</p>
+<p>We can already suppose there’s every reported components from the JVM,
+and the mapped files reported by NMT.</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p>as expected this is way over the RSS (<code>4701120 KiB</code>) and,</p>
-</li>
-<li>
-<p>also over the <code>5 GiB</code> (<code>5242880 KiB</code>) of the pod limit.</p>
-</li>
-</ul>
+<div class="literalblock">
+<div class="content">
+<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files</pre>
+</div>
 </div>
 <div class="paragraph">
-<p>This happens because this pod may not have access all pages especially
-if the heap is big enough and the allocation rate is not big enough. While
-a pod like this may be healthy and stay that way. It should rise your eyebrow,
-if the RSS grow then the pod is likely to be oomkilled.</p>
+<p>Above in this writing I noted NMT is not enough to account used memory.</p>
+</div>
+<div class="listingblock">
+<div class="title">On a loaded application</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jcmd $(pidof java) VM.native_memory \
+   | grep -P &#34;Total.*committed=&#34; \
+   | grep -o -P &#34;(?&lt;=committed=)[0-9]+(?=KB)&#34;
+3841302 <i class="conum" data-value="1"></i><b>(1)</b>
+
+$ ps --no-header -o rss $(pidof java)
+4204512 <i class="conum" data-value="2"></i><b>(2)</b>
+
+$ pmap -X $(pidof java) | head -n -2 | awk &#39;{ if (NR &gt; 2 &amp;&amp; $5 &gt;0 ) sum += $7 } END { print sum }&#39;
+52668 <i class="conum" data-value="3"></i><b>(3)</b>
+
+$ echo $((4204512 - 3841303 - 52668))
+363209 <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Total committed memory reported by NMT</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>RSS of the JVM process</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>RSS of the JVM process’s mapped files</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>The rest of the used memory possibly <code>malloc</code> or <code>mmap</code> performed by native libs, native allocator overhead</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
-<p>This is where one need to review the memory parameter of either
-the JVM or the memory limits of the pod. Either the JVM is over-sized
-or the JVM will eventually be oomkilled by the OS.</p>
+<p>Basically this shows that one must account at least this amount of data
+when defining the kubernetes limit.</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
+               + Compiler + Other JVM structures + Thread stacks
+               + Direct buffers + Mapped files +
+               + Native libraries allocations + Malloc overhead
+               + ...</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In my experience if the application doe not exhibit leaky behavor but just need
+memory limit adjustment. The job is way easier using <code>AlwaysPreTouch</code>, then it’s
+easier to track evolution of &#34;off-heap&#34; memory.</p>
 </div>
 </div>
 </div>
