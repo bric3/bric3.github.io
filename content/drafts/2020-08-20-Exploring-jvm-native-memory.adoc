@@ -829,17 +829,17 @@ for example the GC system :
 
 Using NMT `baseline` and `summary.diff` modes, it is possible to
 track the evolution of the JVM components. ``DirectByteBuffer``s
-allow to allocate native memory segments. They are not cheap to create
+allow allocating native memory segments. They are not cheap to create,
 and they are only deallocated when a GC actually finalize the
 references. Usually these byte buffers have a long life and
 they are big.
 
-As the snippet of code will try to show they are reported in the
+The following snippet of code will try to show they are reported in the
 `Other` section of NMT. Note that in this snippet I'm just invoking
 the external process `jcmd` for brevity and clarity, but it's possible
 to invoke the diagnostic command in pure Java.
 
-.Exercise DIrectByteBuffer and NMT
+.Exercise `DirectByteBuffer` and NMT
 [source, java]
 ----
 // env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 1 1
@@ -1016,7 +1016,138 @@ will require a System.gc(), this suggest a max memory limit in this range `[4194
 and indeed the reported size of Java Heap section is `522190848` (`509952 KiB`).
 
 
+==== Track memory mapped file with NMT
 
+Using NMT `baseline` and `summary.diff` modes, is it possible to
+track the memory mapped file usage? And their mapping is not freed
+until the next GC cycle. Let's try out.
+
+.Exercise `MappedByteBuffer` and NMT
+[source, java]
+----
+package sandbox;
+
+import java.nio.channels.FileChannel;
+import java.nio.file.*;
+
+public class MappedFiles {
+  public static void main(String[] args) throws Exception {
+    System.out.printf("nmt baseline: %n");
+    new ProcessBuilder("jcmd", Long.toString(ProcessHandle.current().pid()), "VM.native_memory", "baseline")
+        .start()
+        .waitFor();
+
+    Path src = Paths.get("/usr/lib/jvm/java-11-amazon-corretto/lib/src.zip"); // <1>
+    try (var fileChannel = (FileChannel) Files.newByteChannel(src, StandardOpenOption.READ)) {
+      var mappedByteBuffer = fileChannel.map(
+          FileChannel.MapMode.READ_ONLY,
+          0, // <2>
+          fileChannel.size()); // <2>
+      mappedByteBuffer.load(); // <3>
+
+      System.out.printf("nmt summary.diff: %n");
+      new ProcessBuilder("jcmd", Long.toString(ProcessHandle.current().pid()), "VM.native_memory", "summary.diff")
+          .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+          .redirectError(ProcessBuilder.Redirect.INHERIT)
+          .start()
+          .waitFor();
+    }
+  }
+}
+----
+<1> Opens a binary file about `50 MiB` in size.
+<2> Range of the memory mapping starts at `0`, up to the total file size.
+<3> The `load` method will actually instruct the OS to load the range defined above
+in resident memory.
+
+Let's look at what NMT reports.
+
+[source, shell]
+----
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary MappedFiles.java
+nmt baseline:
+nmt summary.diff:
+1760:
+
+Native Memory Tracking:
+
+Total: reserved=1929764KB -1028KB, committed=127588KB -44KB
+
+-                 Java Heap (reserved=509952KB, committed=32768KB)
+                            (mmap: reserved=509952KB, committed=32768KB)
+
+-                     Class (reserved=1065377KB +1KB, committed=16929KB +1KB)
+                            (classes #2650 +17)
+                            (  instance classes #2378 +15, array classes #272 +2)
+                            (malloc=417KB +1KB #5031 +35)
+                            (mmap: reserved=1064960KB, committed=16512KB)
+                            (  Metadata:   )
+                            (    reserved=16384KB, committed=14592KB)
+                            (    used=14167KB +34KB)
+                            (    free=425KB -34KB)
+                            (    waste=0KB =0.00%)
+                            (  Class space:)
+                            (    reserved=1048576KB, committed=1920KB)
+                            (    used=1720KB +9KB)
+                            (    free=200KB -9KB)
+                            (    waste=0KB =0.00%)
+
+-                    Thread (reserved=19723KB -1032KB, committed=1027KB -48KB)
+                            (thread #20 -1)
+                            (stack: reserved=19632KB -1028KB, committed=936KB -44KB)
+                            (malloc=69KB -4KB #122 -6)
+                            (arena=22KB #38 -1)
+
+-                      Code (reserved=247935KB +1KB, committed=7795KB +1KB)
+                            (malloc=247KB +1KB #1692 +9)
+                            (mmap: reserved=247688KB, committed=7548KB)
+
+-                        GC (reserved=60330KB, committed=42622KB)
+                            (malloc=8570KB #1516 +1)
+                            (mmap: reserved=51760KB, committed=34052KB)
+
+-                  Compiler (reserved=154KB -1KB, committed=154KB -1KB)
+                            (malloc=21KB #138 -6)
+                            (arena=133KB -1 #5 -1)
+
+-                  Internal (reserved=579KB, committed=579KB)
+                            (malloc=547KB #1040 -1)
+                            (mmap: reserved=32KB, committed=32KB)
+
+-                     Other (reserved=10KB, committed=10KB)
+                            (malloc=10KB #2)
+
+-                    Symbol (reserved=4386KB, committed=4386KB)
+                            (malloc=3163KB #28643 +18)
+                            (arena=1223KB #1)
+
+-    Native Memory Tracking (reserved=650KB +2KB, committed=650KB +2KB)
+                            (malloc=7KB +1KB #94 +18)
+                            (tracking overhead=643KB +1KB)
+
+-               Arena Chunk (reserved=20529KB +1KB, committed=20529KB +1KB)
+                            (malloc=20529KB +1KB)
+
+-                   Logging (reserved=4KB, committed=4KB)
+                            (malloc=4KB #191)
+
+-                 Arguments (reserved=18KB, committed=18KB)
+                            (malloc=18KB #492)
+
+-                    Module (reserved=60KB, committed=60KB)
+                            (malloc=60KB #1041)
+
+-              Synchronizer (reserved=48KB, committed=48KB)
+                            (malloc=48KB #404 -2)
+
+-                 Safepoint (reserved=8KB, committed=8KB)
+                            (mmap: reserved=8KB, committed=8KB)
+
+----
+
+
+Nothing. We'll see in a later section how to see how much these files
+can account in the resident memory.
 
 ==== Inspecting memory mappings
 
