@@ -823,8 +823,6 @@ for example the GC system :
 
 
 
-// TODO: direct byte buffers
-
 ==== Track `DirectByteBuffer` with NMT
 
 Using NMT `baseline` and `summary.diff` modes, it is possible to
@@ -1019,8 +1017,7 @@ and indeed the reported size of Java Heap section is `522190848` (`509952 KiB`).
 ==== Track memory mapped file with NMT
 
 Using NMT `baseline` and `summary.diff` modes, is it possible to
-track the memory mapped file usage? And their mapping is not freed
-until the next GC cycle. Let's try out.
+track the memory mapped file usage? Let's try out.
 
 .Exercise `MappedByteBuffer` and NMT
 [source, java]
@@ -1149,6 +1146,9 @@ Total: reserved=1929764KB -1028KB, committed=127588KB -44KB
 Nothing. We'll see in a later section how to see how much these files
 can account in the resident memory.
 
+As a side note before switching to OS tooling, the memory segment
+used for the memory mapping is not freed until the next GC cycle.
+
 ==== Inspecting memory mappings
 
 It's easy to get the RSS of a process, to understand if the committed
@@ -1174,7 +1174,7 @@ https://www.kernel.org/doc/Documentation/filesystems/proc.txt[access permissions
 
 [INFO]
 =======
-On a side note, `pmap` may show another mapping mode which I barely found any
+`pmap` may show another mapping mode which I barely found any
 reference of, here's https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html[one]
 and https://linux.die.net/man/2/mmap[here]
 
@@ -2026,7 +2026,6 @@ RSS counter may not reflect what is een in the *committed* memory.
 
 
 
-// TODO: Re-read
 == Sizing a cgroup / kubernetes `resources.memory.limit`
 
 With containerization getting traction it is likely that
@@ -2199,12 +2198,28 @@ Total memory = Heap + GC + Metaspace + Code Cache + Symbol tables
                + ...
 ....
 
-In my experience if the application doe not exhibit leaky behavor but just need
+In my experience if the application doe not exhibit leaky behavior but just need
 memory limit adjustment. The job is way easier using `AlwaysPreTouch`, then it's
 easier to track evolution of "off-heap" memory.
 
+Additionally, when sizing the memory limit, it's really important
+to think about the OS page cache. Linux uses the _unused resident
+memory_ to cache pages, usually the one backed by files.
+
+Workloads that access the filesystem for a living, like Cassandra
+or ElasticSearch will profit of the OS page cache. It's a good bet
+to increase the memory limit for this cgroup.
+
+By how much, that depends. I believe page faults is a good indicator.
+It's likely that if there's page faults of the container,
+it means that the OS don't have the wanted pages in resident memory
+and as such the kernel must fetch the backing data, likely on the
+slower storage device. This is likely something that will negatively
+affect the workload latencies.
 
 
+
+== Closing words
 
 
 
@@ -2218,4 +2233,5 @@ if I did or if I'm wrong please reach out.
 
 I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
 https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
-and https://twitter.com/ylegat[Yohan Legat] for their help in proofreading.
+and https://twitter.com/ylegat[Yohan Legat] for their early help in
+proofreading.
