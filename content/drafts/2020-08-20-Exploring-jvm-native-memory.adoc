@@ -77,7 +77,9 @@ _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21
 ====
 
 
-Getting comfortable with memory of a (JVM) process is a tedious task
+NOTE: Also all java snippet and command have been run with Java 11.
+
+Getting comfortable with the memory of a (JVM) process is a tedious task
 for most of us that wrote code in Java for their entire professional life.
 However, this is a rewarding task, and it's possible to extract useful
 findings.
@@ -823,7 +825,7 @@ for example the GC system :
 
 // TODO: direct byte buffers
 
-==== Track DirectByteBuffer with NMT
+==== Track `DirectByteBuffer` with NMT
 
 Using NMT `baseline` and `summary.diff` modes, it is possible to
 track the evolution of the JVM components. ``DirectByteBuffer``s
@@ -833,12 +835,14 @@ references. Usually these byte buffers have a long life and
 they are big.
 
 As the snippet of code will try to show they are reported in the
-`Other` section of NMT.
+`Other` section of NMT. Note that in this snippet I'm just invoking
+the external process `jcmd` for brevity and clarity, but it's possible
+to invoke the diagnostic command in pure Java.
 
 .Exercise DIrectByteBuffer and NMT
 [source, java]
 ----
-// env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+// env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 1 1
 import java.nio.*;
 import java.lang.ProcessBuilder.*;
 
@@ -871,7 +875,7 @@ public class DBB {
 .1 x 1MiB
 [source,role="primary"]
 ----
-$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 1 1
 nmt baseline:
 779:
 Baseline succeeded
@@ -882,6 +886,9 @@ Native Memory Tracking:
 
 Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
 
+-                 Java Heap (reserved=509952KB, committed=32768KB)
+                            (mmap: reserved=509952KB, committed=32768KB)
+
 ...
 
 -                     Other (reserved=1034KB +1024KB, committed=1034KB +1024KB) <1>
@@ -889,14 +896,14 @@ Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
 
 ...
 ----
-<1> The `DirectByteBuffer` of `1 MiB`
-<2> `DirectByteBuffer` use `malloc` underneath.
+<1> The `DirectByteBuffer` of `1 MiB`.
+<2> ``DirectByteBuffer``s use `malloc` underneath.
 
 
 .10 x 1MiB
 [source,role="secondary"]
 ----
-$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 10 1
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 10 1
 nmt baseline:
 839:
 Baseline succeeded
@@ -907,18 +914,23 @@ Native Memory Tracking:
 
 Total: reserved=1933553KB +10243KB, committed=132061KB +10247KB
 
+-                 Java Heap (reserved=509952KB, committed=32768KB)
+                            (mmap: reserved=509952KB, committed=32768KB)
+
 ...
 
--                     Other (reserved=10250KB +10240KB, committed=10250KB +10240KB)
-                            (malloc=10250KB +10240KB #12 +10)
+-                     Other (reserved=10250KB +10240KB, committed=10250KB +10240KB) <1>
+                            (malloc=10250KB +10240KB #12 +10) <2>
 
 ...
 ----
+<1> The 10 ``DirectByteBuffer``s of `1 MiB`.
+<2> ``DirectByteBuffer``s use `malloc` underneath.
 
 .20 x 100MiB
 [source,role="secondary"]
 ----
-$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 20 100
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 20 100
 nmt baseline:
 898:
 Baseline succeeded
@@ -929,14 +941,79 @@ Native Memory Tracking:
 
 Total: reserved=2331899KB +408590KB, committed=512275KB +390462KB
 
+Total: reserved=2323817KB +409608KB, committed=498961KB +386252KB
+
+-                 Java Heap (reserved=509952KB, committed=10240KB -22528KB) <3>
+                            (mmap: reserved=509952KB, committed=10240KB -22528KB)
+
 ...
 
--                     Other (reserved=409610KB +409600KB, committed=409610KB +409600KB)
-                            (malloc=409610KB +409600KB #6 +4)
+-                     Other (reserved=409610KB +409600KB, committed=409610KB +409600KB) <1>
+                            (malloc=409610KB +409600KB #6 +4) <2>
 
 ...
 ----
+<1> The 20 ``DirectByteBuffer``s of `100 MiB`. Uh wait, `409600 KiB` is nothing near ~`2 GiB` (`2048000 KiB`),
+it looks more like 4 buffers of `100 MiB`
+<2> ``DirectByteBuffer``s use `malloc` underneath.
+<3> This times there is also a reduction in the Java Heap.
 
+As one can see the total reserved and commited memory are actually increased
+by the amount of allocated memory.
+
+The last exercise, `20 x 100 MiB`, is more captivating: the low amount of
+allocated memory by ``DirectByteBuffer``s is simply explained by the GC
+that kicked in, if run the last command with `-Xlog:gc*` you'll notice 4 Full GC
+happenening in the middle of the loop.
+
+[source]
+----
+[1.671s][info][gc,start       ] GC(4) Pause Full (System.gc())
+----
+
+Since this loop don't keep the _wrapping_
+buffers references the direct memory get collected at this time. It's not part of
+this article but it's well worth to understand to know how ``DirectByteBuffer``s
+handle their garbage collection (using a https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/ref/Cleaner.html[`Cleaner`]).
+
+Now I mentionned that there was 4 Full GCs, that should have raised eyebrows.
+If it didn't the full GC cause should provoke the attention, `System.gc()`.
+Pretending I don't know where this came from I'll search where these are happening
+
+[source, shell]
+----
+$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary \
+  -agentpath:async-profiler-1.8.2-linux-x64/build/libasyncProfiler.so=start,event=java.lang.System.gc,traces,file=traces.txt \
+  DBB.java 20 100 > /dev/null 2>&1
+
+$ cat traces.txt
+--- Execution profile ---
+Total samples       : 4
+
+Frame buffer usage  : 0.0012%
+
+--- 4 calls (100.00%), 4 samples
+  [ 0] java.lang.System.gc
+  [ 1] java.nio.Bits.reserveMemory
+  [ 2] java.nio.DirectByteBuffer.<init>
+  [ 3] java.nio.ByteBuffer.allocateDirect
+  [ 4] DBB.main
+  [ 5] jdk.internal.reflect.NativeMethodAccessorImpl.invoke0
+  [ 6] jdk.internal.reflect.NativeMethodAccessorImpl.invoke
+  [ 7] jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke
+  [ 8] java.lang.reflect.Method.invoke
+  [ 9] com.sun.tools.javac.launcher.Main.execute
+  [10] com.sun.tools.javac.launcher.Main.run
+  [11] com.sun.tools.javac.launcher.Main.main
+
+----
+
+By default the VM limits the total size or capacity of direct byte buffers to
+to https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122[somewhat the size of the heap].
+This can be tuned via `-XX:MaxDirectMemorySize`. The 4 Full GC cycles indicates
+for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
+will require a System.gc(), this suggest a max memory limit in this range `[419430400;524288000[`,
+and indeed the reported size of Java Heap section is `522190848` (`509952 KiB`).
 
 
 
