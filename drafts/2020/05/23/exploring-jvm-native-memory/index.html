@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 120 min read
+    <i class="fas fa-clock"></i> 125 min read
 
     
     
@@ -1686,19 +1686,19 @@ for example the GC system :</p>
 <div class="paragraph">
 <p>Using NMT <code>baseline</code> and <code>summary.diff</code> modes, it is possible to
 track the evolution of the JVM components. <code>DirectByteBuffer</code>s
-allow to allocate native memory segments. They are not cheap to create
+allow allocating native memory segments. They are not cheap to create,
 and they are only deallocated when a GC actually finalize the
 references. Usually these byte buffers have a long life and
 they are big.</p>
 </div>
 <div class="paragraph">
-<p>As the snippet of code will try to show they are reported in the
+<p>The following snippet of code will try to show they are reported in the
 <code>Other</code> section of NMT. Note that in this snippet I’m just invoking
 the external process <code>jcmd</code> for brevity and clarity, but it’s possible
 to invoke the diagnostic command in pure Java.</p>
 </div>
 <div class="listingblock">
-<div class="title">Exercise DIrectByteBuffer and NMT</div>
+<div class="title">Exercise <code>DirectByteBuffer</code> and NMT</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 1 1
 import java.nio.*;
@@ -1908,6 +1908,154 @@ This can be tuned via <code>-XX:MaxDirectMemorySize</code>. The 4 Full GC cycles
 for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
 will require a System.gc(), this suggest a max memory limit in this range <code>[419430400;524288000[</code>,
 and indeed the reported size of Java Heap section is <code>522190848</code> (<code>509952 KiB</code>).</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_track_memory_mapped_file_with_nmt"><a class="anchor" href="#_track_memory_mapped_file_with_nmt"></a><a class="link" href="#_track_memory_mapped_file_with_nmt">Track memory mapped file with NMT</a></h4>
+<div class="paragraph">
+<p>Using NMT <code>baseline</code> and <code>summary.diff</code> modes, is it possible to
+track the memory mapped file usage? And their mapping is not freed
+until the next GC cycle. Let’s try out.</p>
+</div>
+<div class="listingblock">
+<div class="title">Exercise <code>MappedByteBuffer</code> and NMT</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">package sandbox;
+
+import java.nio.channels.FileChannel;
+import java.nio.file.*;
+
+public class MappedFiles {
+  public static void main(String[] args) throws Exception {
+    System.out.printf(&#34;nmt baseline: %n&#34;);
+    new ProcessBuilder(&#34;jcmd&#34;, Long.toString(ProcessHandle.current().pid()), &#34;VM.native_memory&#34;, &#34;baseline&#34;)
+        .start()
+        .waitFor();
+
+    Path src = Paths.get(&#34;/usr/lib/jvm/java-11-amazon-corretto/lib/src.zip&#34;); <i class="conum" data-value="1"></i><b>(1)</b>
+    try (var fileChannel = (FileChannel) Files.newByteChannel(src, StandardOpenOption.READ)) {
+      var mappedByteBuffer = fileChannel.map(
+          FileChannel.MapMode.READ_ONLY,
+          0, <i class="conum" data-value="2"></i><b>(2)</b>
+          fileChannel.size()); <i class="conum" data-value="2"></i><b>(2)</b>
+      mappedByteBuffer.load(); <i class="conum" data-value="3"></i><b>(3)</b>
+
+      System.out.printf(&#34;nmt summary.diff: %n&#34;);
+      new ProcessBuilder(&#34;jcmd&#34;, Long.toString(ProcessHandle.current().pid()), &#34;VM.native_memory&#34;, &#34;summary.diff&#34;)
+          .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+          .redirectError(ProcessBuilder.Redirect.INHERIT)
+          .start()
+          .waitFor();
+    }
+  }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Opens a binary file about <code>50 MiB</code> in size.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Range of the memory mapping starts at <code>0</code>, up to the total file size.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The <code>load</code> method will actually instruct the OS to load the range defined above
+in resident memory.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Let’s look at what NMT reports.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary MappedFiles.java
+nmt baseline:
+nmt summary.diff:
+1760:
+
+Native Memory Tracking:
+
+Total: reserved=1929764KB -1028KB, committed=127588KB -44KB
+
+-                 Java Heap (reserved=509952KB, committed=32768KB)
+                            (mmap: reserved=509952KB, committed=32768KB)
+
+-                     Class (reserved=1065377KB +1KB, committed=16929KB +1KB)
+                            (classes #2650 +17)
+                            (  instance classes #2378 +15, array classes #272 +2)
+                            (malloc=417KB +1KB #5031 +35)
+                            (mmap: reserved=1064960KB, committed=16512KB)
+                            (  Metadata:   )
+                            (    reserved=16384KB, committed=14592KB)
+                            (    used=14167KB +34KB)
+                            (    free=425KB -34KB)
+                            (    waste=0KB =0.00%)
+                            (  Class space:)
+                            (    reserved=1048576KB, committed=1920KB)
+                            (    used=1720KB +9KB)
+                            (    free=200KB -9KB)
+                            (    waste=0KB =0.00%)
+
+-                    Thread (reserved=19723KB -1032KB, committed=1027KB -48KB)
+                            (thread #20 -1)
+                            (stack: reserved=19632KB -1028KB, committed=936KB -44KB)
+                            (malloc=69KB -4KB #122 -6)
+                            (arena=22KB #38 -1)
+
+-                      Code (reserved=247935KB +1KB, committed=7795KB +1KB)
+                            (malloc=247KB +1KB #1692 +9)
+                            (mmap: reserved=247688KB, committed=7548KB)
+
+-                        GC (reserved=60330KB, committed=42622KB)
+                            (malloc=8570KB #1516 +1)
+                            (mmap: reserved=51760KB, committed=34052KB)
+
+-                  Compiler (reserved=154KB -1KB, committed=154KB -1KB)
+                            (malloc=21KB #138 -6)
+                            (arena=133KB -1 #5 -1)
+
+-                  Internal (reserved=579KB, committed=579KB)
+                            (malloc=547KB #1040 -1)
+                            (mmap: reserved=32KB, committed=32KB)
+
+-                     Other (reserved=10KB, committed=10KB)
+                            (malloc=10KB #2)
+
+-                    Symbol (reserved=4386KB, committed=4386KB)
+                            (malloc=3163KB #28643 +18)
+                            (arena=1223KB #1)
+
+-    Native Memory Tracking (reserved=650KB +2KB, committed=650KB +2KB)
+                            (malloc=7KB +1KB #94 +18)
+                            (tracking overhead=643KB +1KB)
+
+-               Arena Chunk (reserved=20529KB +1KB, committed=20529KB +1KB)
+                            (malloc=20529KB +1KB)
+
+-                   Logging (reserved=4KB, committed=4KB)
+                            (malloc=4KB #191)
+
+-                 Arguments (reserved=18KB, committed=18KB)
+                            (malloc=18KB #492)
+
+-                    Module (reserved=60KB, committed=60KB)
+                            (malloc=60KB #1041)
+
+-              Synchronizer (reserved=48KB, committed=48KB)
+                            (malloc=48KB #404 -2)
+
+-                 Safepoint (reserved=8KB, committed=8KB)
+                            (mmap: reserved=8KB, committed=8KB)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Nothing. We’ll see in a later section how to see how much these files
+can account in the resident memory.</p>
 </div>
 </div>
 <div class="sect3">
