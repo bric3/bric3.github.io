@@ -17,7 +17,7 @@
     
     
 
-<title>Exploring JVM native memory • Brice Dutheil</title>
+<title>Off-Heap memory reconnaissance • Brice Dutheil</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="Exploring JVM native memory">
+<meta property="og:title" content="Off-Heap memory reconnaissance">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/05/23/exploring-jvm-native-memory/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/05/23/off-heap-reconnaissance/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -53,7 +53,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Exploring JVM native memory">
+<meta name="twitter:title" content="Off-Heap memory reconnaissance">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -234,7 +234,7 @@
 
 <article>
   <header>
-    <h1>Exploring JVM native memory</h1>
+    <h1>Off-Heap memory reconnaissance</h1>
     
     
 <div class="post__meta">
@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 125 min read
+    <i class="fas fa-clock"></i> 128 min read
 
     
     
@@ -1387,7 +1387,7 @@ accessible as a memory zone, in short it’s the kernel that perform IOs, in con
 IOs with a file descriptor application side.</p>
 </div>
 <div class="paragraph">
-<p><span class="image"><img src="/assets/maxrampercentage/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"/></span></p>
+<p><span class="image"><img src="/assets/off-heap-recon/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"/></span></p>
 </div>
 <details>
 <summary class="title">Differences between <a href="https://linux.die.net/man/3/malloc"><code>malloc</code></a> and <a href="http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html"><code>mmap</code></a></summary>
@@ -1914,8 +1914,7 @@ and indeed the reported size of Java Heap section is <code>522190848</code> (<co
 <h4 id="_track_memory_mapped_file_with_nmt"><a class="anchor" href="#_track_memory_mapped_file_with_nmt"></a><a class="link" href="#_track_memory_mapped_file_with_nmt">Track memory mapped file with NMT</a></h4>
 <div class="paragraph">
 <p>Using NMT <code>baseline</code> and <code>summary.diff</code> modes, is it possible to
-track the memory mapped file usage? And their mapping is not freed
-until the next GC cycle. Let’s try out.</p>
+track the memory mapped file usage? Let’s try out.</p>
 </div>
 <div class="listingblock">
 <div class="title">Exercise <code>MappedByteBuffer</code> and NMT</div>
@@ -2057,6 +2056,10 @@ Total: reserved=1929764KB -1028KB, committed=127588KB -44KB
 <p>Nothing. We’ll see in a later section how to see how much these files
 can account in the resident memory.</p>
 </div>
+<div class="paragraph">
+<p>As a side note before switching to OS tooling, the memory segment
+used for the memory mapping is not freed until the next GC cycle.</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="_inspecting_memory_mappings"><a class="anchor" href="#_inspecting_memory_mappings"></a><a class="link" href="#_inspecting_memory_mappings">Inspecting memory mappings</a></h4>
@@ -2098,7 +2101,7 @@ the size of the committed heap as shown in NMT.</p>
 <div class="exampleblock">
 <div class="content">
 <div class="paragraph">
-<p>On a side note, <code>pmap</code> may show another mapping mode which I barely found any
+<p><code>pmap</code> may show another mapping mode which I barely found any
 reference of, here’s <a href="https://johanlouwers.blogspot.com/2017/07/oracle-linux-understanding-linux.html">one</a>
 and <a href="https://linux.die.net/man/2/mmap">here</a></p>
 </div>
@@ -3128,7 +3131,7 @@ region has been used before then no new pages will get dirty, however if the
 </div>
 <div class="imageblock text-center">
 <div class="content">
-<img src="/assets/maxrampercentage/os-memory-paging.svg" alt="os memory paging"/>
+<img src="/assets/off-heap-recon/os-memory-paging.svg" alt="os memory paging"/>
 </div>
 <div class="title">Simple overview of OS paging</div>
 </div>
@@ -3139,7 +3142,7 @@ it is not obvious to distinguish from metrics what is consuming the memory.</p>
 </div>
 <div class="imageblock text-center">
 <div class="content">
-<img src="/assets/maxrampercentage/memory-usage-by-pool.png" alt="memory usage by pool"/>
+<img src="/assets/off-heap-recon/memory-usage-by-pool.png" alt="memory usage by pool"/>
 </div>
 <div class="title">Memory usage by pool</div>
 </div>
@@ -3268,10 +3271,34 @@ when defining the kubernetes limit.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>In my experience if the application doe not exhibit leaky behavor but just need
+<p>In my experience if the application doe not exhibit leaky behavior but just need
 memory limit adjustment. The job is way easier using <code>AlwaysPreTouch</code>, then it’s
 easier to track evolution of &#34;off-heap&#34; memory.</p>
 </div>
+<div class="paragraph">
+<p>Additionally, when sizing the memory limit, it’s really important
+to think about the OS page cache. Linux uses the <em>unused resident
+memory</em> to cache pages, usually the one backed by files.</p>
+</div>
+<div class="paragraph">
+<p>Workloads that access the filesystem for a living, like Cassandra
+or ElasticSearch will profit of the OS page cache. It’s a good bet
+to increase the memory limit for this cgroup.</p>
+</div>
+<div class="paragraph">
+<p>By how much, that depends. I believe page faults is a good indicator.
+It’s likely that if there’s page faults of the container,
+it means that the OS don’t have the wanted pages in resident memory
+and as such the kernel must fetch the backing data, likely on the
+slower storage device. This is likely something that will negatively
+affect the workload latencies.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_closing_words"><a class="anchor" href="#_closing_words"></a><a class="link" href="#_closing_words">Closing words</a></h2>
+<div class="sectionbody">
+
 </div>
 </div>
 <div class="sect1">
@@ -3286,7 +3313,8 @@ if I did or if I’m wrong please reach out.</p>
 <div class="paragraph">
 <p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
 <a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
-and <a href="https://twitter.com/ylegat">Yohan Legat</a> for their help in proofreading.</p>
+and <a href="https://twitter.com/ylegat">Yohan Legat</a> for their early help in
+proofreading.</p>
 </div>
 </div>
 </div>
