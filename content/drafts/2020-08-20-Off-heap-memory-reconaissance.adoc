@@ -3,8 +3,8 @@ authors: ["brice.dutheil"]
 date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "procfs", "pmap"]
-slug: "exploring-jvm-native-memory"
-title: "Exploring JVM native memory"
+slug: "off-heap-reconnaissance"
+title: "Off-Heap memory reconnaissance"
 draft: true
 ---
 
@@ -595,7 +595,7 @@ Also, depending on the mapping in particular for `mmap` the OS can be asked to m
 accessible as a memory zone, in short it's the kernel that perform IOs, in contrast to perform
 IOs with a file descriptor application side.
 
-image:/assets/maxrampercentage/malloc-mmap.svg[align="center", title="Simple overview of malloc and mmap"]
+image:/assets/off-heap-recon/malloc-mmap.svg[align="center", title="Simple overview of malloc and mmap"]
 
 .Differences between https://linux.die.net/man/3/malloc[`malloc`] and http://www.kernel.org/doc/man-pages/online/pages/man2/mmap.2.html[`mmap`]
 [%collapsible]
@@ -1984,7 +1984,7 @@ region has been used before then no new pages will get dirty, however if the
 _Free_ region has never been in use before then this will touch more pages.
 
 // TODO: redo
-image::/assets/maxrampercentage/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
+image::/assets/off-heap-recon/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
 
 
 This can lead to a situation if the Java heap is large enough, where
@@ -1992,7 +1992,7 @@ many never-used-before _Free_ region exists. In this situation
 it is not obvious to distinguish from metrics what is consuming the memory.
 
 
-image::/assets/maxrampercentage/memory-usage-by-pool.png[align="center", title="Memory usage by pool"]
+image::/assets/off-heap-recon/memory-usage-by-pool.png[align="center", title="Memory usage by pool"]
 
 
 
