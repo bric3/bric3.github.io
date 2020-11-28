@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 115 min read
+    <i class="fas fa-clock"></i> 120 min read
 
     
     
@@ -331,8 +331,20 @@ in this chapter; pretend I’m a disk manufacturer.
 </tr>
 </tbody></table>
 </div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Also all java snippet and command have been run with Java 11.
+</td>
+</tr>
+</tbody></table>
+</div>
 <div class="paragraph">
-<p>Getting comfortable with memory of a (JVM) process is a tedious task
+<p>Getting comfortable with the memory of a (JVM) process is a tedious task
 for most of us that wrote code in Java for their entire professional life.
 However, this is a rewarding task, and it’s possible to extract useful
 findings.</p>
@@ -1670,7 +1682,7 @@ for example the GC system :</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_track_directbytebuffer_with_nmt"><a class="anchor" href="#_track_directbytebuffer_with_nmt"></a><a class="link" href="#_track_directbytebuffer_with_nmt">Track DirectByteBuffer with NMT</a></h4>
+<h4 id="_track_directbytebuffer_with_nmt"><a class="anchor" href="#_track_directbytebuffer_with_nmt"></a><a class="link" href="#_track_directbytebuffer_with_nmt">Track <code>DirectByteBuffer</code> with NMT</a></h4>
 <div class="paragraph">
 <p>Using NMT <code>baseline</code> and <code>summary.diff</code> modes, it is possible to
 track the evolution of the JVM components. <code>DirectByteBuffer</code>s
@@ -1681,12 +1693,14 @@ they are big.</p>
 </div>
 <div class="paragraph">
 <p>As the snippet of code will try to show they are reported in the
-<code>Other</code> section of NMT.</p>
+<code>Other</code> section of NMT. Note that in this snippet I’m just invoking
+the external process <code>jcmd</code> for brevity and clarity, but it’s possible
+to invoke the diagnostic command in pure Java.</p>
 </div>
 <div class="listingblock">
 <div class="title">Exercise DIrectByteBuffer and NMT</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 1 1
 import java.nio.*;
 import java.lang.ProcessBuilder.*;
 
@@ -1719,7 +1733,7 @@ public class DBB {
 <div class="listingblock primary">
 <div class="title">1 x 1MiB</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 1 1
+<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 1 1
 nmt baseline:
 779:
 Baseline succeeded
@@ -1729,6 +1743,9 @@ nmt summary.diff:
 Native Memory Tracking:
 
 Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
+
+-                 Java Heap (reserved=509952KB, committed=32768KB)
+                            (mmap: reserved=509952KB, committed=32768KB)
 
 ...
 
@@ -1742,18 +1759,18 @@ Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The <code>DirectByteBuffer</code> of <code>1 MiB</code></td>
+<td>The <code>DirectByteBuffer</code> of <code>1 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td><code>DirectByteBuffer</code> use <code>malloc</code> underneath.</td>
+<td><code>DirectByteBuffer</code>s use <code>malloc</code> underneath.</td>
 </tr>
 </tbody></table>
 </div>
 <div class="listingblock secondary">
 <div class="title">10 x 1MiB</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 10 1
+<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 10 1
 nmt baseline:
 839:
 Baseline succeeded
@@ -1764,18 +1781,33 @@ Native Memory Tracking:
 
 Total: reserved=1933553KB +10243KB, committed=132061KB +10247KB
 
+-                 Java Heap (reserved=509952KB, committed=32768KB)
+                            (mmap: reserved=509952KB, committed=32768KB)
+
 ...
 
--                     Other (reserved=10250KB +10240KB, committed=10250KB +10240KB)
-                            (malloc=10250KB +10240KB #12 +10)
+-                     Other (reserved=10250KB +10240KB, committed=10250KB +10240KB) <i class="conum" data-value="1"></i><b>(1)</b>
+                            (malloc=10250KB +10240KB #12 +10) <i class="conum" data-value="2"></i><b>(2)</b>
 
 ...</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The 10 <code>DirectByteBuffer</code>s of <code>1 MiB</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>DirectByteBuffer</code>s use <code>malloc</code> underneath.</td>
+</tr>
+</tbody></table>
+</div>
 <div class="listingblock secondary">
 <div class="title">20 x 100MiB</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary BDD.java 20 100
+<pre class="highlightjs highlight"><code class="language-none hljs">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary DBB.java 20 100
 nmt baseline:
 898:
 Baseline succeeded
@@ -1786,13 +1818,96 @@ Native Memory Tracking:
 
 Total: reserved=2331899KB +408590KB, committed=512275KB +390462KB
 
+Total: reserved=2323817KB +409608KB, committed=498961KB +386252KB
+
+-                 Java Heap (reserved=509952KB, committed=10240KB -22528KB) <i class="conum" data-value="3"></i><b>(3)</b>
+                            (mmap: reserved=509952KB, committed=10240KB -22528KB)
+
 ...
 
--                     Other (reserved=409610KB +409600KB, committed=409610KB +409600KB)
-                            (malloc=409610KB +409600KB #6 +4)
+-                     Other (reserved=409610KB +409600KB, committed=409610KB +409600KB) <i class="conum" data-value="1"></i><b>(1)</b>
+                            (malloc=409610KB +409600KB #6 +4) <i class="conum" data-value="2"></i><b>(2)</b>
 
 ...</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The 20 <code>DirectByteBuffer</code>s of <code>100 MiB</code>. Uh wait, <code>409600 KiB</code> is nothing near ~<code>2 GiB</code> (<code>2048000 KiB</code>),
+it looks more like 4 buffers of <code>100 MiB</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>DirectByteBuffer</code>s use <code>malloc</code> underneath.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>This times there is also a reduction in the Java Heap.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>As one can see the total reserved and commited memory are actually increased
+by the amount of allocated memory.</p>
+</div>
+<div class="paragraph">
+<p>The last exercise, <code>20 x 100 MiB</code>, is more captivating: the low amount of
+allocated memory by <code>DirectByteBuffer</code>s is simply explained by the GC
+that kicked in, if run the last command with <code>-Xlog:gc*</code> you’ll notice 4 Full GC
+happenening in the middle of the loop.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">[1.671s][info][gc,start       ] GC(4) Pause Full (System.gc())</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Since this loop don’t keep the <em>wrapping</em>
+buffers references the direct memory get collected at this time. It’s not part of
+this article but it’s well worth to understand to know how <code>DirectByteBuffer</code>s
+handle their garbage collection (using a <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/ref/Cleaner.html"><code>Cleaner</code></a>).</p>
+</div>
+<div class="paragraph">
+<p>Now I mentionned that there was 4 Full GCs, that should have raised eyebrows.
+If it didn’t the full GC cause should provoke the attention, <code>System.gc()</code>.
+Pretending I don’t know where this came from I’ll search where these are happening</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS java -XX:NativeMemoryTracking=summary \
+  -agentpath:async-profiler-1.8.2-linux-x64/build/libasyncProfiler.so=start,event=java.lang.System.gc,traces,file=traces.txt \
+  DBB.java 20 100 &gt; /dev/null 2&gt;&amp;1
+
+$ cat traces.txt
+--- Execution profile ---
+Total samples       : 4
+
+Frame buffer usage  : 0.0012%
+
+--- 4 calls (100.00%), 4 samples
+  [ 0] java.lang.System.gc
+  [ 1] java.nio.Bits.reserveMemory
+  [ 2] java.nio.DirectByteBuffer.&lt;init&gt;
+  [ 3] java.nio.ByteBuffer.allocateDirect
+  [ 4] DBB.main
+  [ 5] jdk.internal.reflect.NativeMethodAccessorImpl.invoke0
+  [ 6] jdk.internal.reflect.NativeMethodAccessorImpl.invoke
+  [ 7] jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke
+  [ 8] java.lang.reflect.Method.invoke
+  [ 9] com.sun.tools.javac.launcher.Main.execute
+  [10] com.sun.tools.javac.launcher.Main.run
+  [11] com.sun.tools.javac.launcher.Main.main</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By default the VM limits the total size or capacity of direct byte buffers to
+to <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122">somewhat the size of the heap</a>.
+This can be tuned via <code>-XX:MaxDirectMemorySize</code>. The 4 Full GC cycles indicates
+for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
+will require a System.gc(), this suggest a max memory limit in this range <code>[419430400;524288000[</code>,
+and indeed the reported size of Java Heap section is <code>522190848</code> (<code>509952 KiB</code>).</p>
 </div>
 </div>
 <div class="sect3">
