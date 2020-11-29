@@ -261,42 +261,46 @@
   
   
   <div class="post adoc">
-    <hr/>
+    <div class="paragraph">
+<p><em>This entry has been marinating for most of the year 2020. Rewriting it 3 times
+to make it more digestible form, then I found out I should just split my thoughts
+in articles a bit smaller that hopefully make sense on their own.</em></p>
+</div>
 <div class="sect1">
 <h2 id="_motivation"><a class="anchor" href="#_motivation"></a><a class="link" href="#_motivation">Motivation</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Running applications in containers the density of containers forces
-us to be more careful with memory. A cgroup is a double-edged
-sword, it constrains misbehaving application to avoid or to limit damage to
-other sibling containers, however it may be harder to get a suitable configuration.
-Improper configurations results in <em>oomkills</em> in particular or inefficient memory
-settings thus affecting negatively the cost and pod scheduling on a Kubernetes
-cluster. Even memory settings that seems good but too tight may have bad
-implications on application performance.</p>
+<p>I ha ve been running applications in containers for a while now, and I have
+noted that this shift in deployment resulted in tighter constraints. And the
+closer the walls are the closer we, software developers (or anyone involved in
+production), should pay more attention to how memory is consumed.</p>
 </div>
 <div class="paragraph">
-<p>Java applications are trickier to get the memory limit right, and I think the
-<code>MaxRAMPercentage</code> flag is not the right tool for this job.</p>
+<p>Indeed, sometime getting the right memory limit for Java applications is sometimes an
+intangible task, and I think the
+<a href="/2020/10/27/maxrampercentage-is-not-what-i-wished-for/"><code>MaxRAMPercentage</code> flag is certainly not the right tool for this job</a>.</p>
 </div>
 <div class="paragraph">
-<p>Moreover, with a given limit, if an application gets oomkilled then
+<p>Moreover, with a given limit, if an application gets <em>oomkilled</em> then
 one has to ask if it is the limit that needs adjustment or if it is the
 application that is misbehaving (memory leak in particular, but not always).</p>
 </div>
 <div class="paragraph">
-<p>To answer questions a out memory usage there are various things to look at,
+<p>To answer questions about memory usage there are various things to look at,
 Java Heap, Metaspace other JVM components, etc. I faced a few incidents,
-where the JVM settings and the Kubernetes memory limit where seemingly
+where the JVM settings and the Kubernetes memory limit were seemingly
 appropriate, yet the apps were constantly oomkilled because the RSS kept
 growing toward this limit. Some of these issues have been solved just
 by raising the memory limit. However, in some other cases it wasn’t that
-crystal clear, this served as excuse to go down the rabbit hole.</p>
+crystal clear.</p>
 </div>
 <div class="paragraph">
-<p>This entry is about understanding the basics of how a <code>java</code> process works
-uses native memory and some rudiments of OS memory management. In doing so,
-I hope it lays out the foundation for other writing(s) I have in mind.</p>
+<p>This served as excuse to go down the rabbit hole.</p>
+</div>
+<div class="paragraph">
+<p>This entry will hopefully help to understand the basics of how a
+<code>java</code> process uses native memory and remind some rudiments of OS
+memory management.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -306,13 +310,13 @@ I hope it lays out the foundation for other writing(s) I have in mind.</p>
 </td>
 <td class="content">
 <div class="paragraph">
-<p>Most of the time, figures will use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">IEC binary notation</a> (<code>1 KiB = 1024 B</code>),
+<p>Most of the time, figures will use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">IEC binary notation</a> (<code>1 KiB = 1024 Byte</code>),
 it matches the <a href="https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226">JVM</a>,
 our <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory">Kubernetes</a> usage,
 and Linux’s tools (<code>/proc/{pid}/stat</code> or <code>/proc/{pid}/maps</code> ; although I couldn’t find a reference link stating this).</p>
 </div>
 <div class="paragraph">
-<p>Some charts may however use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">SI metric notation</a> (<code>1 KB = 1000 B</code>).</p>
+<p>Some charts may however use the <a href="https://en.wikipedia.org/wiki/Binary_prefix">SI metric notation</a> (<code>1 KB = 1000 Byte</code>).</p>
 </div>
 <div class="quoteblock">
 <blockquote>
@@ -338,7 +342,7 @@ in this chapter; pretend I’m a disk manufacturer.
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Also all java snippet and command have been run with Java 11.
+Also, all java snippet and command have been run with Java 11.
 </td>
 </tr>
 </tbody></table>
@@ -377,7 +381,7 @@ diagnostic command will output this :</p>
 <div class="listingblock">
 <div class="title">JVM current flags in a kubernetes container</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ jcmd $(pidof java) VM.flags | tr &#39; &#39; &#39;\n&#39;
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jcmd $(pidof java) VM.flags | tr &#39; &#39; &#39;\n&#39;
 6:
 ...
 -XX:InitialHeapSize=4563402752 <i class="conum" data-value="3"></i><b>(3)</b>
@@ -437,17 +441,20 @@ application running inside a container.</p>
 <div class="sect2">
 <h3 id="_the_real_memory_footprint_of_the_java_process_in_the_container"><a class="anchor" href="#_the_real_memory_footprint_of_the_java_process_in_the_container"></a><a class="link" href="#_the_real_memory_footprint_of_the_java_process_in_the_container">The real memory footprint of the java process in the container</a></h3>
 <div class="paragraph">
-<p>In the Java dream us developers shouldn’t care much about the memory or the OS
-and if we ever had to we should only look at the Java Heap usage.</p>
+<p>The JVM is doing everything to keep software developers from caring about
+memory, and before containers the bigger systems helped to sustain this
+comfortable way of programming. Sometime there’s a Java heap memory leak
+but it doesn’t happen every day, and even more remotely there’s a problem
+with the process memory.</p>
 </div>
 <div class="paragraph">
-<p>This dream more or less lasted a long time until Java applications were put
-in containers.</p>
+<p>There’s more chance we could get hit by GC pauses.</p>
 </div>
 <div class="paragraph">
-<p>Indeed, one of the most critical things to look at, especially in a containers,
-is the <em>resident set size</em>, it can be obtained in various ways, using <code>ps</code>, <code>top</code> or
-reading the <code>/proc</code> filesystem. E.g. on the same application as above</p>
+<p>With containers, one of the most critical things to look at is the <em>resident set size</em>,
+that’s the native memory, it can be obtained in various ways, using <code>ps</code>, <code>top</code> or
+reading the <code>/proc</code> filesystem. E.g. on the same application on which
+I got the flags above:</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><code>ps</code></div>
@@ -470,7 +477,7 @@ this process uses around <code>0.35 GiB</code> of non-Java heap memory, I’ll 
 to this memory as <em>native memory</em>.</p>
 </div>
 <div class="paragraph">
-<p>Now I’d like to dig a bit to understand the reported number <code>4701120 KiB</code>,
+<p>I’d like to dig a bit to understand the reported number <code>4701120 KiB</code>,
 what it actually measures.</p>
 </div>
 <div class="sect3">
@@ -646,8 +653,9 @@ internal constants for about <code>28.2 MiB</code>.</td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>The remaining areas are much smaller in scale, NMT takes ~<code>8.2 MiB</code> itself, module system usage ~<code>1.3 MiB</code>,
-etc. Also, note that enabling other JVM features may show up if they are activated, like flight recorder.
+<p>The remaining areas are much smaller in scale, NMT takes ~<code>8.2 MiB</code>
+itself, module system usage ~<code>1.3 MiB</code>, etc. Also, note that enabling
+other JVM features may show up if they are activated, like flight recorder.
 <a href="https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37">Source</a></p>
 </div>
 <div class="paragraph">
@@ -659,7 +667,7 @@ by <a href="http://twitter.com/shipilev">Aleksey Shipilёv</a>.</p>
 </div>
 <div class="paragraph">
 <p><strong>In the rest of this article when talking the context of Native Memory Tracking
-I may use the term <em>memory type</em> or <em>memory zones</em>, but the real definition would be :</strong></p>
+I may use the terms <em>memory type</em> or <em>memory zones</em>, but the real definition would be :</strong></p>
 </div>
 <div class="quoteblock">
 <blockquote>
@@ -690,9 +698,9 @@ what is actually accounted in the RSS column of <code>ps</code></strong>.</p>
 <div class="sect3">
 <h4 id="_revising_os_virtual_memory_and_memory_management"><a class="anchor" href="#_revising_os_virtual_memory_and_memory_management"></a><a class="link" href="#_revising_os_virtual_memory_and_memory_management">Revising OS virtual memory and memory management</a></h4>
 <div class="paragraph">
-<p>I mentioned this acronym already, <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize, what is it?
-What exactly means <em>committed</em> memory or <em>reserved</em> memory shown in <em>NMT</em> ? How do they
-relate to each other?</p>
+<p>I mentioned this acronym already, <em>RSS</em> or <strong>R</strong>esident <strong>S</strong>et <strong>S</strong>ize,
+what is it? What exactly means <em>committed</em> memory or <em>reserved</em> memory
+reported in <em>NMT</em> ? How do they relate to each other?</p>
 </div>
 <div class="paragraph">
 <p>First let’s break down the vocabulary when we talk about memory.</p>
@@ -797,17 +805,18 @@ as the pessimistic memory usage.</p></td>
 </tbody>
 </table>
 <div class="paragraph">
-<p>The graph above does not yet show <em>resident memory</em>. Indeed, the above graph most
-display the relative size by memory <em>kind</em> within an address space of a process.
-In order explain resident memory it’s necessary to revise how Linux (and other OSes
-by the way) manage memory using the concept of <strong>paging</strong>.</p>
+<p>The above graph mostly displays the relative size by memory <em>kind</em>
+within the address space of a process. In order to explain <em>resident</em> memory
+it’s necessary to revise how Linux (and other OSes by the way) manage
+memory using the concept of <strong>paging</strong>.</p>
 </div>
 <div class="paragraph">
 <p>The virtual address space is divided into smaller chunks called <em>pages</em>
-usually <code>4 KiB</code> in size.
-<em>Other page sizes do exist and may even co-exist (e.g. having pages of
-4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
-working with different size of pages is something that is out of scope for this article.
+usually of <code>4 KiB</code>.
+<em>The are other page sizes and these sizes may even co-exist (e.g. having pages of
+4 KiB mixed with 2 MiB pages), it depends on the capabilities
+of the processor ; working with different size of pages is something that is out
+of scope for this article.
 What is interesting is how paging and RSS relate to each other.</em></p>
 </div>
 <div class="imageblock">
@@ -1096,9 +1105,9 @@ When referring to these chunks of memory on hardware, we use the term <em>frame<
 </div>
 <div class="paragraph">
 <p>The real memory address is naturally different from this virtual address space
-for the process. There’s a specialized component called MMU (Memory Management Unit)
-that is part of the processor to perform the translation between virtual addresses
-and physical addresses.</p>
+for the process. In the CPU there’s a specialized component called MMU (Memory
+Management Unit) whose role is to translate the virtual addresses
+to physical addresses.</p>
 </div>
 <div class="paragraph">
 <p>The incentive behind virtual memory and paging comes from multi-tasking, it allows
@@ -1117,12 +1126,12 @@ same time</strong>.</p>
 <div class="ulist">
 <ul>
 <li>
-<p>A physical memory frame won’t be used if the process didn’t <em>touch</em> a page, or
+<p>A <em>physical memory frame</em> won’t be used if the process didn’t <em>touch</em> a page, or
 we can say this page doesn’t exist.</p>
 </li>
 <li>
-<p>The kernel may choose to move the real location of the page to use a slower device
-to store pages, usually a disk, in a special place called <em>swap</em>, if it thinks there
+<p>The kernel may choose to move the content of a page to a slower
+device, usually a disk in a special place called <em>swap</em> if it thinks there
 won’t be enough physical memory (RAM).</p>
 </li>
 <li>
@@ -1132,19 +1141,15 @@ like defragmentation.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>The <em>resident set size</em> mean the total set of pages of a process that resides either
-in RAM or in secondary storage, i.e. without untouched/unused pages.
-This contrasts with VSZ or virtual size which includes the total address space of
+<p>The <em>resident set size</em> mean the total set of pages of a process, i.e. without
+untouched/unused pages.
+This contrasts with virtual size which includes the total address space of
 a program, this value is usually way superior to RSS.</p>
 </div>
 <div class="paragraph">
 <p><em>If you want to dive how the whole paging thing works head to
-system courses, articles (like <a href="https://landley.net/writing/memory-faq.txt">this masterpiece</a>)
+system courses, or articles (like <a href="https://landley.net/writing/memory-faq.txt">this masterpiece</a>)
 where they usually explain in depth how everything interacts.</em></p>
-</div>
-<div class="paragraph">
-<p>To put things in context I’d like to explain one last thing to memory management
-with the JVM perspective.</p>
 </div>
 <div class="sect4">
 <h5 id="_reserved_and_committed_memory_for_nmt"><a class="anchor" href="#_reserved_and_committed_memory_for_nmt"></a><a class="link" href="#_reserved_and_committed_memory_for_nmt">Reserved and committed memory for NMT</a></h5>
@@ -1759,7 +1764,7 @@ Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The <code>DirectByteBuffer</code> of <code>1 MiB</code>.</td>
+<td>The <code>DirectByteBuffer</code> of <code>1 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1796,7 +1801,7 @@ Total: reserved=1933553KB +10243KB, committed=132061KB +10247KB
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The 10 <code>DirectByteBuffer</code>s of <code>1 MiB</code>.</td>
+<td>The 10 <code>DirectByteBuffer</code>s of <code>1 MiB</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1835,8 +1840,8 @@ Total: reserved=2323817KB +409608KB, committed=498961KB +386252KB
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The 20 <code>DirectByteBuffer</code>s of <code>100 MiB</code>. Uh wait, <code>409600 KiB</code> is nothing near ~<code>2 GiB</code> (<code>2048000 KiB</code>),
-it looks more like 4 buffers of <code>100 MiB</code></td>
+<td>The 20 <code>DirectByteBuffer</code>s of <code>100 iB</code>. Uh wait, <code>409600 KiB</code> is nothing near ~<code>2 GiB</code> (<code>2048000 KiB</code>),
+it looks more like 4 buffers of <code>100 MiB</code></td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1853,7 +1858,7 @@ it looks more like 4 buffers of <code>100 MiB</code></td>
 by the amount of allocated memory.</p>
 </div>
 <div class="paragraph">
-<p>The last exercise, <code>20 x 100 MiB</code>, is more captivating: the low amount of
+<p>The last exercise, <code>20 x 100 MiB</code>, is more captivating: the low amount of
 allocated memory by <code>DirectByteBuffer</code>s is simply explained by the GC
 that kicked in, if run the last command with <code>-Xlog:gc*</code> you’ll notice 4 Full GC
 happenening in the middle of the loop.</p>
@@ -1907,7 +1912,7 @@ to <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.
 This can be tuned via <code>-XX:MaxDirectMemorySize</code>. The 4 Full GC cycles indicates
 for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
 will require a System.gc(), this suggest a max memory limit in this range <code>[419430400;524288000[</code>,
-and indeed the reported size of Java Heap section is <code>522190848</code> (<code>509952 KiB</code>).</p>
+and indeed the reported size of Java Heap section is <code>522190848</code> (<code>509952 KiB</code>).</p>
 </div>
 </div>
 <div class="sect3">
@@ -1954,7 +1959,7 @@ public class MappedFiles {
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Opens a binary file about <code>50 MiB</code> in size.</td>
+<td>Opens a binary file about <code>50 MiB</code> in size.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -3299,6 +3304,15 @@ affect the workload latencies.</p>
 <h2 id="_closing_words"><a class="anchor" href="#_closing_words"></a><a class="link" href="#_closing_words">Closing words</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
+<p>A cgroup is a double-edged sword, it constrains misbehaving application to avoid
+or to limit damage to other sibling containers, however it may be harder to get
+a suitable configuration.
+Improper configurations results in <em>oomkills</em> in particular or inefficient memory
+settings thus affecting negatively the cost and pod scheduling on a Kubernetes
+cluster. Even memory settings that seems good but too tight may have bad
+implications on application performance.</p>
+</div>
+<div class="paragraph">
 <p>In this very long writing, I showed two tools to survey the native
 memory of a process. Java ships with a very interesting tracking
 mechanism. I found out that inspecting Linux proc file system, with
@@ -3341,6 +3355,7 @@ proofreading.</p>
 </div>
 </div>
 </div>
+
   </div>
   
 
