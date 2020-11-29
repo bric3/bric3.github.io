@@ -2221,6 +2221,37 @@ affect the workload latencies.
 
 == Closing words
 
+//In this very long writing, I showed two main tool to survey the native
+//memory of a process. I understand this knowledge seems
+//contradictory to what managed runtimes like Java sell. The reality
+//is that our applications runs on finite resources, on Linux as well
+//as other OSes, the virtual memory and the scheduling allowed
+//processes to share the resources.
+//
+//With containers the application are guaranteed to have
+//the resource they are given (supposing only runs in the cgroup).
+//But in order to run many workloads the usage limits got tighter.
+//This has the benefit of increasing the density of deployment, by
+//maximizing the resource usage.
+//
+//Meanwhile
+
+In this very long writing, I showed two tools to survey the native
+memory of a process. Java ships with a very interesting tracking
+mechanism. I found out that inspecting Linux proc file system, with
+the help of `pmap` complement NMT well. They help to sort out memory
+problems of an application or if the limit should just be adjusted.
+
+I understand this may look superfluous and almost zealous to
+look at memory segments when coming from the Java world.
+
+> The JVM is handling it.
+
+In my opinion, containers changed the deal, the tighter constraints
+that help to increase the deployment density, is now backfiring.
+Ans rediscovering RSS (or throttling for the cgroup that limits in CPU)
+is essential.
+
 
 
 
