@@ -3,21 +3,16 @@ authors: ["brice.dutheil"]
 date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "procfs", "pmap"]
+summary: "While `ps` is a good indicator, it is sometime useful to understand a bit more how much JVM components are actually consuming memory."
+summary: "While `ps` is a good indicator, it is sometime useful to understand a bit more how much JVM components are actually consuming memory."
 slug: "off-heap-reconnaissance"
 title: "Off-Heap memory reconnaissance"
 draft: true
 ---
 
-While `ps` is a good indicator, it is sometime useful to understand a bit more
-how much JVM components are actually consuming memory.
-
-// hugo manual page summary divider
-++++
-<!--more-->
-++++
-
-
 // TODO: Change JDK links to openjdk/jdk
+
+// TODO: Drawing about GC and heap and virtual mem
 
 // Related articles
 // - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
@@ -28,46 +23,43 @@ to make it more digestible form, then I found out I should just split my thought
 in articles a bit smaller that hopefully make sense on their own._
 
 
-'''
-
 == Motivation
 
-Running applications in containers the density of containers forces
-us to be more careful with memory. A cgroup is a double-edged
-sword, it constrains misbehaving application to avoid or to limit damage to
-other sibling containers, however it may be harder to get a suitable configuration.
-Improper configurations results in _oomkills_ in particular or inefficient memory
-settings thus affecting negatively the cost and pod scheduling on a Kubernetes
-cluster. Even memory settings that seems good but too tight may have bad
-implications on application performance.
+I ha ve been running applications in containers for a while now, and I have
+noted that this shift in deployment resulted in tighter constraints. And the
+closer the walls are the closer we, software developers (or anyone involved in
+production), should pay more attention to how memory is consumed.
 
-Java applications are trickier to get the memory limit right, and I think the
-`MaxRAMPercentage` flag is not the right tool for this job.
+Indeed, sometime getting the right memory limit for Java applications is sometimes an
+intangible task, and I think the
+link:/2020/10/27/maxrampercentage-is-not-what-i-wished-for/[`MaxRAMPercentage` flag is certainly not the right tool for this job].
 
-Moreover, with a given limit, if an application gets oomkilled then
+Moreover, with a given limit, if an application gets _oomkilled_ then
 one has to ask if it is the limit that needs adjustment or if it is the
 application that is misbehaving (memory leak in particular, but not always).
 
-To answer questions a out memory usage there are various things to look at,
+To answer questions about memory usage there are various things to look at,
 Java Heap, Metaspace other JVM components, etc. I faced a few incidents,
-where the JVM settings and the Kubernetes memory limit where seemingly
+where the JVM settings and the Kubernetes memory limit were seemingly
 appropriate, yet the apps were constantly oomkilled because the RSS kept
 growing toward this limit. Some of these issues have been solved just
 by raising the memory limit. However, in some other cases it wasn't that
-crystal clear, this served as excuse to go down the rabbit hole.
+crystal clear.
 
-This entry is about understanding the basics of how a `java` process works
-uses native memory and some rudiments of OS memory management. In doing so,
-I hope it lays out the foundation for other writing(s) I have in mind.
+This served as excuse to go down the rabbit hole.
+
+This entry will hopefully help to understand the basics of how a
+`java` process uses native memory and remind some rudiments of OS
+memory management.
 
 [NOTE]
 ====
-Most of the time, figures will use the https://en.wikipedia.org/wiki/Binary_prefix[IEC binary notation] (`1 KiB = 1024 B`),
+Most of the time, figures will use the https://en.wikipedia.org/wiki/Binary_prefix[IEC binary notation] (`1 KiB = 1024 Byte`),
 it matches the https://github.com/corretto/corretto-11/blob/055a9a1a279b9a2953c2150bc937b04f905eeba1/src/src/hotspot/share/utilities/globalDefinitions.hpp#L226[JVM],
 our https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory[Kubernetes] usage,
 and Linux's tools (`/proc/{pid}/stat` or `/proc/{pid}/maps` ; although I couldn't find a reference link stating this).
 
-Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 B`).
+Some charts may however use the https://en.wikipedia.org/wiki/Binary_prefix[SI metric notation] (`1 KB = 1000 Byte`).
 
 [quote, Java Performance: The Definitive Guide, Getting the Most Out of Your Code (1st Edition)]
 Actually, 227,893 KB is only 222 MB. For ease of discussion, I'll truncate the KBs part by 1,000
@@ -77,7 +69,7 @@ _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21
 ====
 
 
-NOTE: Also all java snippet and command have been run with Java 11.
+NOTE: Also, all java snippet and command have been run with Java 11.
 
 Getting comfortable with the memory of a (JVM) process is a tedious task
 for most of us that wrote code in Java for their entire professional life.
@@ -105,7 +97,7 @@ For example with a memory limit of `5 GiB`, if a process is started with
 diagnostic command will output this :
 
 .JVM current flags in a kubernetes container
-[source, bash]
+[source, shell]
 ----
 $ jcmd $(pidof java) VM.flags | tr ' ' '\n'
 6:
@@ -141,15 +133,18 @@ application running inside a container.
 
 === The real memory footprint of the java process in the container
 
-In the Java dream us developers shouldn't care much about the memory or the OS
-and if we ever had to we should only look at the Java Heap usage.
+The JVM is doing everything to keep software developers from caring about
+memory, and before containers the bigger systems helped to sustain this
+comfortable way of programming. Sometime there's a Java heap memory leak
+but it doesn't happen every day, and even more remotely there's a problem
+with the process memory.
 
-This dream more or less lasted a long time until Java applications were put
-in containers.
+There's more chance we could get hit by GC pauses.
 
-Indeed, one of the most critical things to look at, especially in a containers,
-is the _resident set size_, it can be obtained in various ways, using `ps`, `top` or
-reading the `/proc` filesystem. E.g. on the same application as above
+With containers, one of the most critical things to look at is the _resident set size_,
+that's the native memory, it can be obtained in various ways, using `ps`, `top` or
+reading the `/proc` filesystem. E.g. on the same application on which
+I got the flags above:
 
 .`ps`
 [source, role="primary"]
@@ -170,7 +165,7 @@ The RSS is `4.6 GiB`, and it's Java heap size is `4.25 GiB`, indicating
 this process uses around `0.35 GiB` of non-Java heap memory, I'll refer
 to this memory as _native memory_.
 
-Now I'd like to dig a bit to understand the reported number `4701120 KiB`,
+I'd like to dig a bit to understand the reported number `4701120 KiB`,
 what it actually measures.
 
 
@@ -293,8 +288,9 @@ internal constants for about `28.2 MiB`.
 `DirectByteBuffers`, but from Java 11 those are accounted in the `Other` zone.
 <11> The `Other` section after Java 11 includes `DirectByteBuffers` ~`261 MiB`.
 
-The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB` itself, module system usage ~`1.3 MiB`,
-etc. Also, note that enabling other JVM features may show up if they are activated, like flight recorder.
+The remaining areas are much smaller in scale, NMT takes ~`8.2 MiB`
+itself, module system usage ~`1.3 MiB`, etc. Also, note that enabling
+other JVM features may show up if they are activated, like flight recorder.
 https://docs.oracle.com/en/java/javase/11/troubleshoot/diagnostic-tools.html#GUID-5EF7BB07-C903-4EBD-A9C2-EC0E44048D37[Source]
 
 There's a lot more to read on the
@@ -304,7 +300,7 @@ Yet another worthwhile read on https://shipilev.net/jvm/anatomy-quarks/12-native
 by http://twitter.com/shipilev[Aleksey Shipilёv].
 
 *In the rest of this article when talking the context of Native Memory Tracking
-I may use the term _memory type_ or _memory zones_, but the real definition would be :*
+I may use the terms _memory type_ or _memory zones_, but the real definition would be :*
 
 > *the _memory allocation type_ performed by a _JVM component_*
 
@@ -332,9 +328,9 @@ what is actually accounted in the RSS column of `ps`*.
 
 ==== Revising OS virtual memory and memory management
 
-I mentioned this acronym already, _RSS_ or **R**esident **S**et **S**ize, what is it?
-What exactly means _committed_ memory or _reserved_ memory shown in _NMT_ ? How do they
-relate to each other?
+I mentioned this acronym already, _RSS_ or **R**esident **S**et **S**ize,
+what is it? What exactly means _committed_ memory or _reserved_ memory
+reported in _NMT_ ? How do they relate to each other?
 
 First let's break down the vocabulary when we talk about memory.
 
@@ -382,16 +378,17 @@ as the pessimistic memory usage.
 |===
 
 
-The graph above does not yet show _resident memory_. Indeed, the above graph most
-display the relative size by memory _kind_ within an address space of a process.
-In order explain resident memory it's necessary to revise how Linux (and other OSes
-by the way) manage memory using the concept of *paging*.
+The above graph mostly displays the relative size by memory _kind_
+within the address space of a process. In order to explain _resident_ memory
+it's necessary to revise how Linux (and other OSes by the way) manage
+memory using the concept of *paging*.
 
 The virtual address space is divided into smaller chunks called _pages_
-usually `4 KiB` in size.
-_Other page sizes do exist and may even co-exist (e.g. having pages of
-4 KiB mixed with 2 MiB pages), it depends on the capabilities of the processor ;
-working with different size of pages is something that is out of scope for this article.
+usually of `4 KiB`.
+_The are other page sizes and these sizes may even co-exist (e.g. having pages of
+4 KiB mixed with 2 MiB pages), it depends on the capabilities
+of the processor ; working with different size of pages is something that is out
+of scope for this article.
 What is interesting is how paging and RSS relate to each other._
 
 
@@ -441,9 +438,9 @@ however these pages have to be stored physically, usually in RAM, sometime on di
 When referring to these chunks of memory on hardware, we use the term _frame_.
 
 The real memory address is naturally different from this virtual address space
-for the process. There's a specialized component called MMU (Memory Management Unit)
-that is part of the processor to perform the translation between virtual addresses
-and physical addresses.
+for the process. In the CPU there's a specialized component called MMU (Memory
+Management Unit) whose role is to translate the virtual addresses
+to physical addresses.
 
 The incentive behind virtual memory and paging comes from multi-tasking, it allows
 running multiple program concurrently. Each process will have the illusion of a single
@@ -456,34 +453,29 @@ same time**.
 
 In practical terms we can observe that:
 
-* A physical memory frame won't be used if the process didn't _touch_ a page, or
+* A _physical memory frame_ won't be used if the process didn't _touch_ a page, or
 we can say this page doesn't exist.
 
-* The kernel may choose to move the real location of the page to use a slower device
-to store pages, usually a disk, in a special place called _swap_, if it thinks there
+* The kernel may choose to move the content of a page to a slower
+device, usually a disk in a special place called _swap_ if it thinks there
 won't be enough physical memory (RAM).
 
 * The kernel may use unemployed physical frames for caching purpose, or other tasks
 like defragmentation.
 
-The _resident set size_ mean the total set of pages of a process that resides either
-in RAM or in secondary storage, i.e. without untouched/unused pages.
-This contrasts with VSZ or virtual size which includes the total address space of
+The _resident set size_ mean the total set of pages of a process, i.e. without
+untouched/unused pages.
+This contrasts with virtual size which includes the total address space of
 a program, this value is usually way superior to RSS.
 
 _If you want to dive how the whole paging thing works head to
-system courses, articles (like https://landley.net/writing/memory-faq.txt[this masterpiece])
+system courses, or articles (like https://landley.net/writing/memory-faq.txt[this masterpiece])
 where they usually explain in depth how everything interacts._
 
-To put things in context I'd like to explain one last thing to memory management
-with the JVM perspective.
 
 
 
-
-
-
-
+// TODO: marker for proof reading
 
 ===== Reserved and committed memory for NMT
 
@@ -894,7 +886,7 @@ Total: reserved=1916470KB +1027KB, committed=113950KB +1031KB
 
 ...
 ----
-<1> The `DirectByteBuffer` of `1 MiB`.
+<1> The `DirectByteBuffer` of `1 MiB`.
 <2> ``DirectByteBuffer``s use `malloc` underneath.
 
 
@@ -922,7 +914,7 @@ Total: reserved=1933553KB +10243KB, committed=132061KB +10247KB
 
 ...
 ----
-<1> The 10 ``DirectByteBuffer``s of `1 MiB`.
+<1> The 10 ``DirectByteBuffer``s of `1 MiB`.
 <2> ``DirectByteBuffer``s use `malloc` underneath.
 
 .20 x 100MiB
@@ -951,15 +943,15 @@ Total: reserved=2323817KB +409608KB, committed=498961KB +386252KB
 
 ...
 ----
-<1> The 20 ``DirectByteBuffer``s of `100 MiB`. Uh wait, `409600 KiB` is nothing near ~`2 GiB` (`2048000 KiB`),
-it looks more like 4 buffers of `100 MiB`
+<1> The 20 ``DirectByteBuffer``s of `100 iB`. Uh wait, `409600 KiB` is nothing near ~`2 GiB` (`2048000 KiB`),
+it looks more like 4 buffers of `100 MiB`
 <2> ``DirectByteBuffer``s use `malloc` underneath.
 <3> This times there is also a reduction in the Java Heap.
 
 As one can see the total reserved and commited memory are actually increased
 by the amount of allocated memory.
 
-The last exercise, `20 x 100 MiB`, is more captivating: the low amount of
+The last exercise, `20 x 100 MiB`, is more captivating: the low amount of
 allocated memory by ``DirectByteBuffer``s is simply explained by the GC
 that kicked in, if run the last command with `-Xlog:gc*` you'll notice 4 Full GC
 happenening in the middle of the loop.
@@ -1011,7 +1003,7 @@ to https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/shar
 This can be tuned via `-XX:MaxDirectMemorySize`. The 4 Full GC cycles indicates
 for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
 will require a System.gc(), this suggest a max memory limit in this range `[419430400;524288000[`,
-and indeed the reported size of Java Heap section is `522190848` (`509952 KiB`).
+and indeed the reported size of Java Heap section is `522190848` (`509952 KiB`).
 
 
 ==== Track memory mapped file with NMT
@@ -1052,7 +1044,7 @@ public class MappedFiles {
   }
 }
 ----
-<1> Opens a binary file about `50 MiB` in size.
+<1> Opens a binary file about `50 MiB` in size.
 <2> Range of the memory mapping starts at `0`, up to the total file size.
 <3> The `load` method will actually instruct the OS to load the range defined above
 in resident memory.
@@ -2235,6 +2227,15 @@ affect the workload latencies.
 //maximizing the resource usage.
 //
 //Meanwhile
+
+A cgroup is a double-edged sword, it constrains misbehaving application to avoid
+or to limit damage to other sibling containers, however it may be harder to get
+a suitable configuration.
+Improper configurations results in _oomkills_ in particular or inefficient memory
+settings thus affecting negatively the cost and pod scheduling on a Kubernetes
+cluster. Even memory settings that seems good but too tight may have bad
+implications on application performance.
+
 
 In this very long writing, I showed two tools to survey the native
 memory of a process. Java ships with a very interesting tracking
