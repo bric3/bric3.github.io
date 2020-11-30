@@ -247,7 +247,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 128 min read
+    <i class="fas fa-clock"></i> 130 min read
 
     
     
@@ -262,9 +262,9 @@
   
   <div class="post adoc">
     <div class="paragraph">
-<p><em>This entry has been marinating for most of the year 2020. Rewriting it 3 times
-to make it more digestible form, then I found out I should just split my thoughts
-in articles a bit smaller that hopefully make sense on their own.</em></p>
+<p><em>This entry has been marinating for most of the year 2020. Rewriting it multiple
+times to make it more digestible form, I’ve left out some content, but this is
+still a big piece to read.</em></p>
 </div>
 <div class="sect1">
 <h2 id="_motivation"><a class="anchor" href="#_motivation"></a><a class="link" href="#_motivation">Motivation</a></h2>
@@ -779,21 +779,23 @@ reported in <em>NMT</em> ? How do they relate to each other?</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Address ranges that have been mapped or <code>malloc</code>ed.
-They may or may not be backed by physical or swap due to lazy allocation and paging.
-This applies to the JVM and the OS. These ranges are actually not necessarily contiguous.</p></td>
+They may or may not be backed by physical or swap due to lazy allocation
+and paging. This applies to the JVM and the OS. These ranges are actually
+not necessarily contiguous.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Reserved</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code> or <code>malloc</code>
-for a particular memory pool. In other words <em>reserved memory</em> represents the maximum
-addressable memory.
+<td class="tableblock halign-left valign-top"><p class="tableblock">The total address range that has been pre-mapped via <code>mmap</code>
+or <code>malloc</code> for a particular memory pool. In other words <em>reserved memory</em>
+represents the maximum addressable memory.
 Those could be referred to as <strong>uncommitted</strong>.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Resident</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">OS memory pages which are currently in physical ram. This means codes,
-stacks, part of the committed memory pools but also portions of <code>mmap</code>ed files
-which have recently been accessed and allocations outside the control of the JVM.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OS memory pages which are currently in physical ram. This means
+code, stacks, part of the committed memory pools but also portions of <code>mmap</code>ed
+files which have recently been accessed and allocations outside the control of
+the JVM.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Virtual</strong></p></td>
@@ -813,7 +815,7 @@ memory using the concept of <strong>paging</strong>.</p>
 <div class="paragraph">
 <p>The virtual address space is divided into smaller chunks called <em>pages</em>
 usually of <code>4 KiB</code>.
-<em>The are other page sizes and these sizes may even co-exist (e.g. having pages of
+<em>There are other page sizes and these sizes may even co-exist (e.g. having pages of
 4 KiB mixed with 2 MiB pages), it depends on the capabilities
 of the processor ; working with different size of pages is something that is out
 of scope for this article.
@@ -1095,7 +1097,7 @@ What is interesting is how paging and RSS relate to each other.</em></p>
   </g>
 </svg>
 </div>
-<div class="title">virtual memmory and paging (for a single process)</div>
+<div class="title">Virtual memmory and paging (for a single process)</div>
 </div>
 <div class="paragraph">
 <p>The graph above shows the addressable space of a process and its <em>pages</em>.
@@ -1142,7 +1144,7 @@ like defragmentation.</p>
 </div>
 <div class="paragraph">
 <p>The <em>resident set size</em> mean the total set of pages of a process, i.e. without
-untouched/unused pages.
+untouched / unused pages.
 This contrasts with virtual size which includes the total address space of
 a program, this value is usually way superior to RSS.</p>
 </div>
@@ -1154,10 +1156,6 @@ where they usually explain in depth how everything interacts.</em></p>
 <div class="sect4">
 <h5 id="_reserved_and_committed_memory_for_nmt"><a class="anchor" href="#_reserved_and_committed_memory_for_nmt"></a><a class="link" href="#_reserved_and_committed_memory_for_nmt">Reserved and committed memory for NMT</a></h5>
 <div class="paragraph">
-<p>As mentioned above, one of the idea of the <strong>reserved</strong> / <strong>committed</strong> memory is to
-provide the illusion of a single <strong>continuous</strong> memory space.</p>
-</div>
-<div class="paragraph">
 <p>Concretely for the JVM it means that</p>
 </div>
 <div class="olist arabic">
@@ -1166,7 +1164,7 @@ provide the illusion of a single <strong>continuous</strong> memory space.</p>
 <p>the <em>committed</em> memory is immediately usable,</p>
 </li>
 <li>
-<p>and the <em>reserved</em> memory part means memory <em>put on hold</em> and not usable.</p>
+<p>and the <em>reserved</em> memory part means memory <em>put on hold</em> and not immediately usable.</p>
 </li>
 </ol>
 </div>
@@ -1324,8 +1322,8 @@ amount.</td>
     <text x="71" y="208" font-family="sans-serif" font-size="15" stroke="none" fill="#000000">
       contiguous addresses
     </text>
-    <text x="661" y="236" font-family="sans-serif" font-size="14" stroke="none" fill="#000000">
-      0x8000000
+    <text x="641" y="236" font-family="sans-serif" font-size="14" stroke="none" fill="#000000">
+      0x800000000
     </text>
     <text x="544" y="96" font-family="sans-serif" font-size="15" stroke="none" fill="#000000">
       others
@@ -1339,7 +1337,7 @@ amount.</td>
 <div class="title">JVM memory allocations</div>
 </div>
 <div class="paragraph">
-<p>This immediately leads to new vocabulary :</p>
+<p>This graph bring the following definitions :</p>
 </div>
 <table class="tableblock frame-all grid-all fit-content stretch">
 <caption class="title">Table 2. Java memory vocabulary</caption>
@@ -1357,7 +1355,7 @@ relate to the JVM Java heap.</p></td>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Committed heap</strong></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The current limit if the writable memory to write objects to.
-It’s the current workspace of the GC. Upon process start this value should be equal
+It’s the current workspace of the GC. Upon JVM bootstrap this value should be equal
 to <code>Xms</code>, then the GC may expand it up to the Java heap reserved memory, or in Java
 terms the heap max size, or <code>Xmx</code>.</p></td>
 </tr>
@@ -1383,13 +1381,13 @@ using <code>malloc</code>, <code>mmap</code>, as well as <code>mprotect</code> c
 <div class="sect4">
 <h5 id="_malloc_and_mmap"><a class="anchor" href="#_malloc_and_mmap"></a><a class="link" href="#_malloc_and_mmap"><code>malloc</code> and <code>mmap</code></a></h5>
 <div class="paragraph">
-<p>The <code>malloc</code> and <code>mmap</code> C calls ask the OS to allocate memory. It’s the job of the OS to
-provide the application the necessary memory, or fail if it is not possible.</p>
+<p>The <code>malloc</code> and <code>mmap</code> C calls ask the OS to allocate memory. The OS will then
+provide the application the necessary memory or report an error if it is not possible.</p>
 </div>
 <div class="paragraph">
-<p>Also, depending on the mapping in particular for <code>mmap</code> the OS can be asked to make a file
-accessible as a memory zone, in short it’s the kernel that perform IOs, in contrast to perform
-IOs with a file descriptor application side.</p>
+<p>Also, depending on the mapping in particular for <code>mmap</code> the OS can be asked
+to make a file accessible as a memory zone, in short it’s the kernel that perform
+IOs, in contrast to perform IOs with a file descriptor application side.</p>
 </div>
 <div class="paragraph">
 <p><span class="image"><img src="/assets/off-heap-recon/malloc-mmap.svg" alt="malloc mmap" title="Simple overview of malloc and mmap"/></span></p>
@@ -1461,7 +1459,7 @@ request another memory segment.</p>
 </ol>
 </div>
 <div class="listingblock primary">
-<div class="title">memory example</div>
+<div class="title">Memory example</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
@@ -1510,7 +1508,7 @@ int main (int argc, char *argv[])
 </div>
 </div>
 <div class="listingblock secondary">
-<div class="title">result (Linux / llvm)</div>
+<div class="title">Result (Linux / llvm)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ clang -Wall -Wpedantic -o test-alloc test-alloc.c &amp;&amp; ./test-alloc
 pid: 4301956
@@ -1536,19 +1534,22 @@ about <code>4 GiB</code>.</p>
 </div>
 </details>
 <div class="paragraph">
-<p>Now after some memory management refresh, let’s go back to the main topic of this blog post.</p>
+<p>Now after some memory management refresh, let’s go back to the main
+topic of this blog post.</p>
 </div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_exploring_what_nmt_does_not_show"><a class="anchor" href="#_exploring_what_nmt_does_not_show"></a><a class="link" href="#_exploring_what_nmt_does_not_show">Exploring what NMT does not show</a></h4>
 <div class="paragraph">
-<p>The previous section showed that NMT numbers only represents the sizes
-of the different JVM memory zones, but, does not reflect the real usage.</p>
+<p>The previous section walked through the numbers reported, and that they
+represent the sizes of the different JVM memory zones, but, does not
+reveal the effective usage.</p>
 </div>
 <div class="paragraph">
-<p>The JVM components reported by NMT can use different <em>types of memory management</em> and
-as such may have multiple allocation mechanisms. For example:</p>
+<p>The JVM components can use different <em>types of memory management</em> and
+as such may have multiple allocation mechanisms. NMT reports
+the different allocation types, for example:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -1557,7 +1558,7 @@ as such may have multiple allocation mechanisms. For example:</p>
 The <code>Java heap</code> and the <code>Metaspace</code> (<code>Class</code>) are usually the biggest consumers of memory,
 they both rely on <code>mmap</code>.</p>
 <div class="listingblock">
-<div class="title">java heap and metaspace</div>
+<div class="title">Java heap and metaspace</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">-                 Java Heap (reserved=3145728KB, committed=3145728KB)
                             (mmap: reserved=3145728KB, committed=3145728KB)
@@ -1589,10 +1590,10 @@ happen for some workload).</p>
 The Java threads are constructs controlled by the JVM runtime,
 each thread is allocated on addressable space, their allocation size is always the
 same, but can be controlled via a few JVM parameters. Their usage depends on
-application usage. Eg. if the program request 1000 threads, then the JVM needs
+application usage. E.g. if the program request 1000 threads, then the JVM needs
 to allocate 1000 threads.</p>
 <div class="listingblock">
-<div class="title">thread</div>
+<div class="title">Thread</div>
 <div class="content">
 <pre>-                    Thread (reserved=533903KB, committed=70439KB)
                             (thread #517)
@@ -1627,7 +1628,7 @@ combination of these technics:</p>
 <p><code>GC</code> zone for example only works with <code>malloc</code> and <code>mmap</code>, and size can grow as needed.</p>
 </div>
 <div class="listingblock">
-<div class="title">gc</div>
+<div class="title">GC</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">-                        GC (reserved=180505KB, committed=180505KB)
                             (malloc=30589KB #219593) <i class="conum" data-value="1"></i><b>(1)</b>
@@ -1854,14 +1855,14 @@ it looks more like 4 buffers of <code>100 MiB</code></td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>As one can see the total reserved and commited memory are actually increased
+<p>As one can see the total reserved and committed memory are actually increased
 by the amount of allocated memory.</p>
 </div>
 <div class="paragraph">
 <p>The last exercise, <code>20 x 100 MiB</code>, is more captivating: the low amount of
 allocated memory by <code>DirectByteBuffer</code>s is simply explained by the GC
 that kicked in, if run the last command with <code>-Xlog:gc*</code> you’ll notice 4 Full GC
-happenening in the middle of the loop.</p>
+happening in the middle of the loop.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1869,13 +1870,18 @@ happenening in the middle of the loop.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Since this loop don’t keep the <em>wrapping</em>
-buffers references the direct memory get collected at this time. It’s not part of
-this article but it’s well worth to understand to know how <code>DirectByteBuffer</code>s
-handle their garbage collection (using a <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/ref/Cleaner.html"><code>Cleaner</code></a>).</p>
+<p>The above code don’t keep strong references to the <em>wrapping</em> buffers,
+thus allowing these object to be GC<em>ed</em>, if the references of these
+byte buffers were kept, this program would exited with a
+<code>java.lang.OutOfMemoryError: Direct buffer memory</code></p>
 </div>
 <div class="paragraph">
-<p>Now I mentionned that there was 4 Full GCs, that should have raised eyebrows.
+<p>It’s not part of this article but it’s well worth to understand
+how <code>DirectByteBuffer</code>s handle their garbage collection (using a
+<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/ref/Cleaner.html"><code>Cleaner</code></a>).</p>
+</div>
+<div class="paragraph">
+<p>Now I mentioned that there was 4 Full GCs, that should have raised eyebrows.
 If it didn’t the full GC cause should provoke the attention, <code>System.gc()</code>.
 Pretending I don’t know where this came from I’ll search where these are happening</p>
 </div>
@@ -1907,11 +1913,11 @@ Frame buffer usage  : 0.0012%
 </div>
 </div>
 <div class="paragraph">
-<p>By default the VM limits the total size or capacity of direct byte buffers to
+<p>By default, the VM limits the total size or capacity of direct byte buffers to
 to <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122">somewhat the size of the heap</a>.
 This can be tuned via <code>-XX:MaxDirectMemorySize</code>. The 4 Full GC cycles indicates
 for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
-will require a System.gc(), this suggest a max memory limit in this range <code>[419430400;524288000[</code>,
+will require a System.gc(), this suggests a max memory limit in this range <code>[419430400;524288000[</code>,
 and indeed the reported size of Java Heap section is <code>522190848</code> (<code>509952 KiB</code>).</p>
 </div>
 </div>
@@ -2058,7 +2064,10 @@ Total: reserved=1929764KB -1028KB, committed=127588KB -44KB
 </div>
 </div>
 <div class="paragraph">
-<p>Nothing. We’ll see in a later section how to see how much these files
+<p>Nothing.</p>
+</div>
+<div class="paragraph">
+<p>We’ll see in a later section how to see how much memory mapped files
 can account in the resident memory.</p>
 </div>
 <div class="paragraph">
@@ -2074,10 +2083,11 @@ heap actually <em>resides</em> on physical memory you need to use <code>pmap</co
 <code>/proc/{pid}/maps</code> or <code>/proc/{pid}/smaps</code>.</p>
 </div>
 <div class="paragraph">
-<p>The <code>pmap</code> binary is part of the <a href="https://gitlab.com/procps-ng/procps/"><code>procps</code></a> utilities, that
-contains other tools like: <code>ps</code>, <code>pgrep</code>, <code>watch</code> or <code>vmstat</code>. It’s likely that no additional
-installation is required which is great as a container filesystem should be read-only
-for security reasons, if it isn’t there, one could still look at the proc filesystem.</p>
+<p>The <code>pmap</code> binary is part of the <a href="https://gitlab.com/procps-ng/procps/"><code>procps</code></a>
+utilities, that contains other tools like: <code>ps</code>, <code>pgrep</code>, <code>watch</code> or <code>vmstat</code>.
+It’s likely that no additional installation is required which is great as
+a container filesystem should be read-only for security reasons, if it isn’t
+there, one could still look at the <code>/proc</code> filesystem.</p>
 </div>
 <div class="paragraph">
 <p>You have to notice one of the first memory zones is quite big and about
@@ -2133,20 +2143,21 @@ mapping reported by <code>pmap</code> because we know their size, it’s the Jav
 and the threads.</p>
 </div>
 <div class="paragraph">
-<p>Other type of allocations can be identified but that’s for another post,
-the remaining address range are too difficult to guess for two reasons,
+<p>Some other type of allocations can be figured out but that’s for another post.
+The remaining address ranges are too difficult to guess for two reasons,
 they usually have unpredictable allocation behavior, and it
-also depends on the <code>malloc</code> implementation details, (like the arenas in Glibc),
-and the number of different <code>malloc</code> calls for a single component.</p>
+also depends on the <code>malloc</code> implementation details, (like the
+<a href="https://code.woboq.org/userspace/glibc/malloc/arena.c.html">arenas in Glibc</a>),
+and on the number <code>malloc</code> calls for a single component.</p>
 </div>
 <div class="paragraph">
-<p>On a pod running por let’s have a quick look on the very first mappings. It’s easier
-to spot with <code>pmap -X</code> (capital <code>X</code>).</p>
+<p>On a pod running in production let’s have a quick look on the very first mappings.
+It’s easier to spot with <code>pmap -X</code> (capital <code>X</code>).</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><code>pmap -x {pid}</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ pmap -x 7 | head -n 20
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ pmap -x $(pidof java) | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -jar /app/boot.jar
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000740000000 3163648 3163648 3163648 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
@@ -2192,7 +2203,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <div class="listingblock secondary">
 <div class="title"><code>pmap -X {pid}</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ pmap -X 7 | head -n 20
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ pmap -X $(pidof java) | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -javaagent:/newrelic-agent.jar -javaagent:/dd-java-agent.jar -jar /edge-api-boot.jar --spring.config.additional-location=/etc/edge-api/config.yaml --server.port=8080
          Address Perm   Offset Device   Inode    Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
        740000000 rw-p 00000000  00:00       0 3163648 3163648 3163648    3163648   3163648        0              0              0               0    0       0      0           0 <i class="conum" data-value="1"></i><b>(1)</b>
@@ -2238,7 +2249,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 <div class="listingblock secondary">
 <div class="title"><code>/proc/{pid}/maps</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/7/maps | head -n 20
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/maps | head -n 20
 740000000-801180000 rw-p 00000000 00:00 0 <i class="conum" data-value="1"></i><b>(1)</b>
 801180000-840000000 ---p 00000000 00:00 0
 55bac4461000-55bac4462000 r-xp 00000000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
@@ -2945,7 +2956,7 @@ description of the <code>statm</code> object.</p>
 </div>
 </div>
 <div class="listingblock">
-<div class="title">ps and statm</div>
+<div class="title"><code>ps</code> and <code>/proc/{pid}/statm</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ps -o rss,vsz,command $(pidof java)
   RSS    VSZ COMMAND
@@ -2998,7 +3009,8 @@ $ cat /proc/$(pidof java)/statm | tr &#39; &#39; &#39;\n&#39;
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>a process can <em>over-commit</em> this is not an issue as long as</p>
+<p>a process can <em>over-commit</em>, if Linux is configured to allow this
+(<code>/proc/sys/vm/overcommit_memory</code>), this is not an issue as long as</p>
 </li>
 <li>
 <p>the memory used by the resident pages do not go over the cgroup limit.</p>
@@ -3029,7 +3041,7 @@ public class SelfPs {
 </div>
 </div>
 <div class="listingblock">
-<div class="title">result</div>
+<div class="title">Result</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS java -Xms16g -Xmx16g SelfPs.java
 143584 18996472 <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
@@ -3060,14 +3072,19 @@ $ echo $((18996472 * 1024))
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>Another interesting element of <code>statm</code> is that it shows how many files.
-In the output above, the third line, give the number of pages that
-are backed by files, it maybe a good indication to look at when sizing
+<p>Another interesting element of <code>/proc/{pid}/statm</code> is that it shows
+how many pages the mapped files take.
+In the output below, the third line, give the number of pages that
+are backed by files.</p>
+</div>
+<div class="paragraph">
+<p>Having a llok at this information may aloso be useful when sizing
 the container.</p>
 </div>
 <div class="listingblock">
+<div class="title">File backed memory</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/7/statm | tr &#39; &#39; &#39;\n&#39;
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /proc/$(pidof java)/statm | tr &#39; &#39; &#39;\n&#39;
 1514761
 1009054
 11222 <i class="conum" data-value="1"></i><b>(1)</b>
@@ -3136,9 +3153,9 @@ region has been used before then no new pages will get dirty, however if the
 </div>
 <div class="imageblock text-center">
 <div class="content">
-<img src="/assets/off-heap-recon/os-memory-paging.svg" alt="os memory paging"/>
+<img src="../../static/assets/off-heap-recon/gc-region-paging.svg" alt="gc region paging"/>
 </div>
-<div class="title">Simple overview of OS paging</div>
+<div class="title">GC regions usage of pages</div>
 </div>
 <div class="paragraph">
 <p>This can lead to a situation if the Java heap is large enough, where
@@ -3291,7 +3308,7 @@ or ElasticSearch will profit of the OS page cache. It’s a good bet
 to increase the memory limit for this cgroup.</p>
 </div>
 <div class="paragraph">
-<p>By how much, that depends. I believe page faults is a good indicator.
+<p>By how much, that depends. I believe <em>page faults</em> is a good indicator.
 It’s likely that if there’s page faults of the container,
 it means that the OS don’t have the wanted pages in resident memory
 and as such the kernel must fetch the backing data, likely on the
@@ -3304,36 +3321,57 @@ affect the workload latencies.</p>
 <h2 id="_closing_words"><a class="anchor" href="#_closing_words"></a><a class="link" href="#_closing_words">Closing words</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>A cgroup is a double-edged sword, it constrains misbehaving application to avoid
-or to limit damage to other sibling containers, however it may be harder to get
-a suitable configuration.
-Improper configurations results in <em>oomkills</em> in particular or inefficient memory
-settings thus affecting negatively the cost and pod scheduling on a Kubernetes
-cluster. Even memory settings that seems good but too tight may have bad
-implications on application performance.</p>
+<p>A cgroup is a double-edged sword, it creates good conditions
+to isolate a process. Being isolated, it gets easier to provision
+the necessary resources in production. Defining these boundaries
+is however a tedious task, having limits too narrow could increase
+the chance of the container getting oomkilled or having poor performance,
+giving a vast room will reduce the ability of Kubernetes to distribute
+the workload, and it costs more.</p>
 </div>
 <div class="paragraph">
 <p>In this very long writing, I showed two tools to survey the native
 memory of a process. Java ships with a very interesting tracking
-mechanism. I found out that inspecting Linux proc file system, with
-the help of <code>pmap</code> complement NMT well. They help to sort out memory
-problems of an application or if the limit should just be adjusted.</p>
+mechanism. I found out that inspecting Linux <code>/proc</code> filesystem, with
+the help of <code>pmap</code> complement NMT well. Together they help to sort out
+memory problems be it a limit should that needs adjustment or something
+to fix in the application.</p>
 </div>
 <div class="paragraph">
-<p>I understand this may look superfluous and almost zealous to
-look at memory segments when coming from the Java world.</p>
+<p>That being said it might be cheaper to look at other solutions, e.g.
+if the production is running on Kubernetes it would be worth to have
+a look at <em>auto-scalers</em> provided by the platform.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/">Horizontal Pod Auto-scaler</a></p>
+</li>
+<li>
+<p><a href="https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler">Vertical Pod Auto-scaler</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I think that understanding how a workload use the memory is still a
+sensible task, to make a better use of the auto-scalers.</p>
 </div>
 <div class="quoteblock">
 <blockquote>
-<div class="paragraph">
-<p>The JVM is handling it.</p>
-</div>
+The JVM is handling it.
 </blockquote>
+<div class="attribution">
+<cite>Famous last words</cite>
+</div>
+</div>
+<div class="paragraph">
+<p>I understand that having to go down that much may look superfluous and
+almost zealous to when coming from the Java world.</p>
 </div>
 <div class="paragraph">
 <p>In my opinion, containers changed the deal, the tighter constraints
-that help to increase the deployment density, is now backfiring.
-Ans rediscovering RSS (or throttling for the cgroup that limits in CPU)
+that helped to increase the deployment density, are now backfiring.
+Rediscovering RSS (or throttling for the cgroup that limits in CPU)
 is essential.</p>
 </div>
 </div>
@@ -3351,7 +3389,7 @@ if I did or if I’m wrong please reach out.</p>
 <p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
 <a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
 and <a href="https://twitter.com/ylegat">Yohan Legat</a> for their early help in
-proofreading.</p>
+proof-reading and suggestions.</p>
 </div>
 </div>
 </div>
