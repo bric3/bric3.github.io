@@ -4,7 +4,6 @@ date: "2020-05-23T23:45:29+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "docker", "memory", "jcmd", "heap", "procfs", "pmap"]
 summary: "While `ps` is a good indicator, it is sometime useful to understand a bit more how much JVM components are actually consuming memory."
-summary: "While `ps` is a good indicator, it is sometime useful to understand a bit more how much JVM components are actually consuming memory."
 slug: "off-heap-reconnaissance"
 title: "Off-Heap memory reconnaissance"
 draft: true
@@ -12,15 +11,13 @@ draft: true
 
 // TODO: Change JDK links to openjdk/jdk
 
-// TODO: Drawing about GC and heap and virtual mem
-
 // Related articles
 // - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
 // - http://trustmeiamadeveloper.com/2016/03/18/where-is-my-memory-java/
 
-_This entry has been marinating for most of the year 2020. Rewriting it 3 times
-to make it more digestible form, then I found out I should just split my thoughts
-in articles a bit smaller that hopefully make sense on their own._
+_This entry has been marinating for most of the year 2020. Rewriting it multiple
+times to make it more digestible form, I've left out some content, but this is
+still a big piece to read._
 
 
 == Motivation
@@ -358,17 +355,19 @@ First let's break down the vocabulary when we talk about memory.
 |===
 
 | *Committed* | Address ranges that have been mapped or ``malloc``ed.
-They may or may not be backed by physical or swap due to lazy allocation and paging.
-This applies to the JVM and the OS. These ranges are actually not necessarily contiguous.
+They may or may not be backed by physical or swap due to lazy allocation
+and paging. This applies to the JVM and the OS. These ranges are actually
+not necessarily contiguous.
 
-| *Reserved* | The total address range that has been pre-mapped via `mmap` or `malloc`
-for a particular memory pool. In other words _reserved memory_ represents the maximum
-addressable memory.
+| *Reserved* | The total address range that has been pre-mapped via `mmap`
+or `malloc` for a particular memory pool. In other words _reserved memory_
+represents the maximum addressable memory.
 Those could be referred to as *uncommitted*.
 
-| *Resident* | OS memory pages which are currently in physical ram. This means codes,
-stacks, part of the committed memory pools but also portions of ``mmap``ed files
-which have recently been accessed and allocations outside the control of the JVM.
+| *Resident* | OS memory pages which are currently in physical ram. This means
+code, stacks, part of the committed memory pools but also portions of ``mmap``ed
+files which have recently been accessed and allocations outside the control of
+the JVM.
 
 | *Virtual* | The sum of all virtual address mappings. Covers committed, reserved
 memory pools but also mapped files or shared memory. This number is rarely informative
@@ -385,14 +384,14 @@ memory using the concept of *paging*.
 
 The virtual address space is divided into smaller chunks called _pages_
 usually of `4 KiB`.
-_The are other page sizes and these sizes may even co-exist (e.g. having pages of
+_There are other page sizes and these sizes may even co-exist (e.g. having pages of
 4 KiB mixed with 2 MiB pages), it depends on the capabilities
 of the processor ; working with different size of pages is something that is out
 of scope for this article.
 What is interesting is how paging and RSS relate to each other._
 
 
-.virtual memmory and paging (for a single process)
+.Virtual memmory and paging (for a single process)
 [ditaa,"memory-paging"]
 ----
 
@@ -464,7 +463,7 @@ won't be enough physical memory (RAM).
 like defragmentation.
 
 The _resident set size_ mean the total set of pages of a process, i.e. without
-untouched/unused pages.
+untouched / unused pages.
 This contrasts with virtual size which includes the total address space of
 a program, this value is usually way superior to RSS.
 
@@ -475,17 +474,15 @@ where they usually explain in depth how everything interacts._
 
 
 
-// TODO: marker for proof reading
-
 ===== Reserved and committed memory for NMT
 
-As mentioned above, one of the idea of the *reserved* / *committed* memory is to
-provide the illusion of a single *continuous* memory space.
+//As mentioned above, one of the idea of the *reserved* / *committed* memory is to
+//provide the illusion of a single *continuous* memory space.
 
 Concretely for the JVM it means that
 
 1. the _committed_ memory is immediately usable,
-2. and the _reserved_ memory part means memory _put on hold_ and not usable.
+2. and the _reserved_ memory part means memory _put on hold_ and not immediately usable.
 
 With a better understanding of how memory works let's look again at the output
 of the `VM.native_memory` command to make more sense of it:
@@ -539,11 +536,11 @@ Or with a picture :
 |                                                                       |
 |<--contiguous addresses----------------------------------------------->|
 |                                                                       |
-0                                                               0x8000000
+0                                                             0x800000000
 
 ----
 
-This immediately leads to new vocabulary :
+This graph bring the following definitions :
 
 .Java memory vocabulary
 [%autowidth.stretch]
@@ -554,7 +551,7 @@ extent object that are unreachable but not yet collected by the GC. This only
 relate to the JVM Java heap.
 
 | *Committed heap* | The current limit if the writable memory to write objects to.
-It's the current workspace of the GC. Upon process start this value should be equal
+It's the current workspace of the GC. Upon JVM bootstrap this value should be equal
 to `Xms`, then the GC may expand it up to the Java heap reserved memory, or in Java
 terms the heap max size, or `Xmx`.
 
@@ -580,12 +577,12 @@ using `malloc`, `mmap`, as well as `mprotect` calls in particular (on Linux).
 
 ===== `malloc` and `mmap`
 
-The `malloc` and `mmap` C calls ask the OS to allocate memory. It's the job of the OS to
-provide the application the necessary memory, or fail if it is not possible.
+The `malloc` and `mmap` C calls ask the OS to allocate memory. The OS will then
+provide the application the necessary memory or report an error if it is not possible.
 
-Also, depending on the mapping in particular for `mmap` the OS can be asked to make a file
-accessible as a memory zone, in short it's the kernel that perform IOs, in contrast to perform
-IOs with a file descriptor application side.
+Also, depending on the mapping in particular for `mmap` the OS can be asked
+to make a file accessible as a memory zone, in short it's the kernel that perform
+IOs, in contrast to perform IOs with a file descriptor application side.
 
 image:/assets/off-heap-recon/malloc-mmap.svg[align="center", title="Simple overview of malloc and mmap"]
 
@@ -632,7 +629,7 @@ To help you understand here's a very simple program:
 . then it will touch/use memory by setting a bit every `1 KiB`
 . then this program will invoke `ps` again to show its actual memory consumption (RSS)
 
-.memory example
+.Memory example
 [source,c,role="primary"]
 ----
 #include <stdio.h>
@@ -681,7 +678,7 @@ int main (int argc, char *argv[])
 }
 ----
 
-.result (Linux / llvm)
+.Result (Linux / llvm)
 [source,shell,role="secondary"]
 ----
 $ clang -Wall -Wpedantic -o test-alloc test-alloc.c && ./test-alloc
@@ -706,7 +703,8 @@ _This program ran on a MacBook Pro 2018 running an Intel Core i7 CPU._
 
 
 
-Now after some memory management refresh, let's go back to the main topic of this blog post.
+Now after some memory management refresh, let's go back to the main
+topic of this blog post.
 
 
 
@@ -715,18 +713,20 @@ Now after some memory management refresh, let's go back to the main topic of thi
 
 ==== Exploring what NMT does not show
 
-The previous section showed that NMT numbers only represents the sizes
-of the different JVM memory zones, but, does not reflect the real usage.
+The previous section walked through the numbers reported, and that they
+represent the sizes of the different JVM memory zones, but, does not
+reveal the effective usage.
 
 
-The JVM components reported by NMT can use different _types of memory management_ and
-as such may have multiple allocation mechanisms. For example:
+The JVM components can use different _types of memory management_ and
+as such may have multiple allocation mechanisms. NMT reports
+the different allocation types, for example:
 
 . GC based
 The `Java heap` and the `Metaspace` (`Class`) are usually the biggest consumers of memory,
 they both rely on `mmap`.
 +
-.java heap and metaspace
+.Java heap and metaspace
 [source]
 ----
 -                 Java Heap (reserved=3145728KB, committed=3145728KB)
@@ -757,10 +757,10 @@ happen for some workload).
 The Java threads are constructs controlled by the JVM runtime,
 each thread is allocated on addressable space, their allocation size is always the
 same, but can be controlled via a few JVM parameters. Their usage depends on
-application usage. Eg. if the program request 1000 threads, then the JVM needs
+application usage. E.g. if the program request 1000 threads, then the JVM needs
 to allocate 1000 threads.
 +
-.thread
+.Thread
 ----
 -                    Thread (reserved=533903KB, committed=70439KB)
                             (thread #517)
@@ -780,7 +780,7 @@ combination of these technics:
 +
 `GC` zone for example only works with `malloc` and `mmap`, and size can grow as needed.
 +
-.gc
+.GC
 [source]
 ----
 -                        GC (reserved=180505KB, committed=180505KB)
@@ -948,25 +948,29 @@ it looks more like 4 buffers of `100 MiB`
 <2> ``DirectByteBuffer``s use `malloc` underneath.
 <3> This times there is also a reduction in the Java Heap.
 
-As one can see the total reserved and commited memory are actually increased
+As one can see the total reserved and committed memory are actually increased
 by the amount of allocated memory.
 
 The last exercise, `20 x 100 MiB`, is more captivating: the low amount of
 allocated memory by ``DirectByteBuffer``s is simply explained by the GC
 that kicked in, if run the last command with `-Xlog:gc*` you'll notice 4 Full GC
-happenening in the middle of the loop.
+happening in the middle of the loop.
 
 [source]
 ----
 [1.671s][info][gc,start       ] GC(4) Pause Full (System.gc())
 ----
 
-Since this loop don't keep the _wrapping_
-buffers references the direct memory get collected at this time. It's not part of
-this article but it's well worth to understand to know how ``DirectByteBuffer``s
-handle their garbage collection (using a https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/ref/Cleaner.html[`Cleaner`]).
+The above code don't keep strong references to the _wrapping_ buffers,
+thus allowing these object to be GC__ed__, if the references of these
+byte buffers were kept, this program would exited with a
+`java.lang.OutOfMemoryError: Direct buffer memory`
 
-Now I mentionned that there was 4 Full GCs, that should have raised eyebrows.
+It's not part of this article but it's well worth to understand 
+how ``DirectByteBuffer``s handle their garbage collection (using a
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/ref/Cleaner.html[`Cleaner`]).
+
+Now I mentioned that there was 4 Full GCs, that should have raised eyebrows.
 If it didn't the full GC cause should provoke the attention, `System.gc()`.
 Pretending I don't know where this came from I'll search where these are happening
 
@@ -998,11 +1002,11 @@ Frame buffer usage  : 0.0012%
 
 ----
 
-By default the VM limits the total size or capacity of direct byte buffers to
+By default, the VM limits the total size or capacity of direct byte buffers to
 to https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122[somewhat the size of the heap].
 This can be tuned via `-XX:MaxDirectMemorySize`. The 4 Full GC cycles indicates
 for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
-will require a System.gc(), this suggest a max memory limit in this range `[419430400;524288000[`,
+will require a System.gc(), this suggests a max memory limit in this range `[419430400;524288000[`,
 and indeed the reported size of Java Heap section is `522190848` (`509952 KiB`).
 
 
@@ -1135,11 +1139,16 @@ Total: reserved=1929764KB -1028KB, committed=127588KB -44KB
 ----
 
 
-Nothing. We'll see in a later section how to see how much these files
+Nothing.
+
+We'll see in a later section how to see how much memory mapped files
 can account in the resident memory.
 
 As a side note before switching to OS tooling, the memory segment
 used for the memory mapping is not freed until the next GC cycle.
+
+
+
 
 ==== Inspecting memory mappings
 
@@ -1147,10 +1156,11 @@ It's easy to get the RSS of a process, to understand if the committed
 heap actually _resides_ on physical memory you need to use `pmap` or inspect
 `/proc/{pid}/maps` or `/proc/{pid}/smaps`.
 
-The `pmap` binary is part of the https://gitlab.com/procps-ng/procps/[`procps`] utilities, that
-contains other tools like: `ps`, `pgrep`, `watch` or `vmstat`. It's likely that no additional
-installation is required which is great as a container filesystem should be read-only
-for security reasons, if it isn't there, one could still look at the proc filesystem.
+The `pmap` binary is part of the https://gitlab.com/procps-ng/procps/[`procps`]
+utilities, that contains other tools like: `ps`, `pgrep`, `watch` or `vmstat`.
+It's likely that no additional installation is required which is great as
+a container filesystem should be read-only for security reasons, if it isn't
+there, one could still look at the `/proc` filesystem.
 
 
 You have to notice one of the first memory zones is quite big and about
@@ -1185,19 +1195,20 @@ There are three kinds of memory segments we can easily guess in the memory
 mapping reported by `pmap` because we know their size, it's the Java heap,
 and the threads.
 
-Other type of allocations can be identified but that's for another post,
-the remaining address range are too difficult to guess for two reasons,
+Some other type of allocations can be figured out but that's for another post.
+The remaining address ranges are too difficult to guess for two reasons,
 they usually have unpredictable allocation behavior, and it
-also depends on the `malloc` implementation details, (like the arenas in Glibc),
-and the number of different `malloc` calls for a single component.
+also depends on the `malloc` implementation details, (like the
+https://code.woboq.org/userspace/glibc/malloc/arena.c.html[arenas in Glibc]),
+and on the number `malloc` calls for a single component.
 
-On a pod running por let's have a quick look on the very first mappings. It's easier
-to spot with `pmap -X` (capital `X`).
+On a pod running in production let's have a quick look on the very first mappings.
+It's easier to spot with `pmap -X` (capital `X`).
 
 .`pmap -x {pid}`
 [source, shell, role="primary"]
 ----
-$ pmap -x 7 | head -n 20
+$ pmap -x $(pidof java) | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -jar /app/boot.jar
 Address           Kbytes     RSS   Dirty Mode  Mapping
 0000000740000000 3163648 3163648 3163648 rw---   [ anon ] <1>
@@ -1227,7 +1238,7 @@ Address           Kbytes     RSS   Dirty Mode  Mapping
 .`pmap -X {pid}`
 [source, shell, role="secondary"]
 ----
-$ pmap -X 7 | head -n 20
+$ pmap -X $(pidof java) | head -n 20
 7:   /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary -javaagent:/newrelic-agent.jar -javaagent:/dd-java-agent.jar -jar /edge-api-boot.jar --spring.config.additional-location=/etc/edge-api/config.yaml --server.port=8080
          Address Perm   Offset Device   Inode    Size     Rss     Pss Referenced Anonymous LazyFree ShmemPmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible Mapping
        740000000 rw-p 00000000  00:00       0 3163648 3163648 3163648    3163648   3163648        0              0              0               0    0       0      0           0 <1>
@@ -1258,7 +1269,7 @@ $ pmap -X 7 | head -n 20
 .`/proc/{pid}/maps`
 [source, shell, role="secondary"]
 ----
-$ cat /proc/7/maps | head -n 20
+$ cat /proc/$(pidof java)/maps | head -n 20
 740000000-801180000 rw-p 00000000 00:00 0 <1>
 801180000-840000000 ---p 00000000 00:00 0
 55bac4461000-55bac4462000 r-xp 00000000 08:01 5623642                    /usr/lib/jvm/java-11-amazon-corretto/bin/java
@@ -1853,7 +1864,7 @@ Table 1-3: Contents of the statm files (as of 2.6.8-rc3)
 
 ----
 
-.ps and statm
+.`ps` and `/proc/{pid}/statm`
 [source, shell]
 ----
 $ ps -o rss,vsz,command $(pidof java)
@@ -1882,7 +1893,8 @@ For example lets say there is a Kubernetes memory limit of `6 GiB`
 (`6442450944 Bytes` ), a `java` process is started with a bigger memory
 `-Xmx16g` that the cgroup limit, we can observe that
 
-. a process can _over-commit_ this is not an issue as long as
+. a process can _over-commit_, if Linux is configured to allow this
+(`/proc/sys/vm/overcommit_memory`), this is not an issue as long as
 . the memory used by the resident pages do not go over the cgroup limit.
 . The process will be oom-killed if it uses more than `6442450944 / 4 = 1310720`
 pages (of `4 KiB`).
@@ -1906,7 +1918,7 @@ public class SelfPs {
 }
 ----
 
-.result
+.Result
 [source, shell]
 ----
 $ env -u JDK_JAVA_OPTIONS java -Xms16g -Xmx16g SelfPs.java
@@ -1921,14 +1933,19 @@ $ echo $((18996472 * 1024))
 <3> cgroup limit
 <4> virtual address space in bytes
 
-Another interesting element of `statm` is that it shows how many files.
-In the output above, the third line, give the number of pages that
-are backed by files, it maybe a good indication to look at when sizing
+
+Another interesting element of `/proc/{pid}/statm` is that it shows
+how many pages the mapped files take.
+In the output below, the third line, give the number of pages that
+are backed by files.
+
+Having a llok at this information may aloso be useful when sizing
 the container.
 
+.File backed memory
 [source, shell]
 ----
-$ cat /proc/7/statm | tr ' ' '\n'
+$ cat /proc/$(pidof java)/statm | tr ' ' '\n'
 1514761
 1009054
 11222 <1>
@@ -1975,8 +1992,8 @@ convert a _Free_ region to either a _Survivor_ or an _Old_ region. If the _Free_
 region has been used before then no new pages will get dirty, however if the
 _Free_ region has never been in use before then this will touch more pages.
 
-// TODO: redo
-image::/assets/off-heap-recon/os-memory-paging.svg[align="center", title="Simple overview of OS paging"]
+
+image::/assets/off-heap-recon/gc-region-paging.svg[align="center", title="GC regions usage of pages"]
 
 
 This can lead to a situation if the Java heap is large enough, where
@@ -2202,7 +2219,7 @@ Workloads that access the filesystem for a living, like Cassandra
 or ElasticSearch will profit of the OS page cache. It's a good bet
 to increase the memory limit for this cgroup.
 
-By how much, that depends. I believe page faults is a good indicator.
+By how much, that depends. I believe _page faults_ is a good indicator.
 It's likely that if there's page faults of the container,
 it means that the OS don't have the wanted pages in resident memory
 and as such the kernel must fetch the backing data, likely on the
@@ -2213,44 +2230,41 @@ affect the workload latencies.
 
 == Closing words
 
-//In this very long writing, I showed two main tool to survey the native
-//memory of a process. I understand this knowledge seems
-//contradictory to what managed runtimes like Java sell. The reality
-//is that our applications runs on finite resources, on Linux as well
-//as other OSes, the virtual memory and the scheduling allowed
-//processes to share the resources.
-//
-//With containers the application are guaranteed to have
-//the resource they are given (supposing only runs in the cgroup).
-//But in order to run many workloads the usage limits got tighter.
-//This has the benefit of increasing the density of deployment, by
-//maximizing the resource usage.
-//
-//Meanwhile
-
-A cgroup is a double-edged sword, it constrains misbehaving application to avoid
-or to limit damage to other sibling containers, however it may be harder to get
-a suitable configuration.
-Improper configurations results in _oomkills_ in particular or inefficient memory
-settings thus affecting negatively the cost and pod scheduling on a Kubernetes
-cluster. Even memory settings that seems good but too tight may have bad
-implications on application performance.
+A cgroup is a double-edged sword, it creates good conditions
+to isolate a process. Being isolated, it gets easier to provision
+the necessary resources in production. Defining these boundaries
+is however a tedious task, having limits too narrow could increase
+the chance of the container getting oomkilled or having poor performance,
+giving a vast room will reduce the ability of Kubernetes to distribute
+the workload, and it costs more.
 
 
 In this very long writing, I showed two tools to survey the native
 memory of a process. Java ships with a very interesting tracking
-mechanism. I found out that inspecting Linux proc file system, with
-the help of `pmap` complement NMT well. They help to sort out memory
-problems of an application or if the limit should just be adjusted.
+mechanism. I found out that inspecting Linux `/proc` filesystem, with
+the help of `pmap` complement NMT well. Together they help to sort out
+memory problems be it a limit should that needs adjustment or something
+to fix in the application.
 
-I understand this may look superfluous and almost zealous to
-look at memory segments when coming from the Java world.
+That being said it might be cheaper to look at other solutions, e.g.
+if the production is running on Kubernetes it would be worth to have
+a look at _auto-scalers_ provided by the platform.
 
-> The JVM is handling it.
+* https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/[Horizontal Pod Auto-scaler]
+* https://cloud.google.com/kubernetes-engine/docs/concepts/verticalpodautoscaler[Vertical Pod Auto-scaler]
+
+I think that understanding how a workload use the memory is still a
+sensible task, to make a better use of the auto-scalers.
+
+[quote,, Famous last words]
+The JVM is handling it.
+
+I understand that having to go down that much may look superfluous and
+almost zealous to when coming from the Java world.
 
 In my opinion, containers changed the deal, the tighter constraints
-that help to increase the deployment density, is now backfiring.
-Ans rediscovering RSS (or throttling for the cgroup that limits in CPU)
+that helped to increase the deployment density, are now backfiring.
+Rediscovering RSS (or throttling for the cgroup that limits in CPU)
 is essential.
 
 
@@ -2266,4 +2280,4 @@ if I did or if I'm wrong please reach out.
 I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
 https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
 and https://twitter.com/ylegat[Yohan Legat] for their early help in
-proofreading.
+proof-reading and suggestions.
