@@ -943,7 +943,7 @@ Total: reserved=2323817KB +409608KB, committed=498961KB +386252KB
 
 ...
 ----
-<1> The 20 ``DirectByteBuffer``s of `100 iB`. Uh wait, `409600 KiB` is nothing near ~`2 GiB` (`2048000 KiB`),
+<1> The 20 ``DirectByteBuffer``s of `100 MiB`. Uh wait, `409600 KiB` is nothing near ~`2 GiB` (`2048000 KiB`),
 it looks more like 4 buffers of `100 MiB`
 <2> ``DirectByteBuffer``s use `malloc` underneath.
 <3> This times there is also a reduction in the Java Heap.
@@ -1185,7 +1185,7 @@ This means that we can get a segmentation fault by accessing that memory if it h
 already been mapped to physical memory, and if the system is out of physical memory.
 =======
 
-There's also the value of the inode column, if it' i's greater than `0` then
+There's also the value of the inode column, if it's greater than `0` then
 it means the address range is backed by a file, if it's `0` it's a memory
 allocation that the application has requested.
 
@@ -1565,13 +1565,13 @@ sums of the _size_ and _rss_ columns of the selected rows are respectively
 
 What may catch the eye is the multiple mapping for native libraries like `libjvm.so`.
 The reason for these different memory mapping is how dynamic libraries are loaded
-(with `dl_open`, e.g. here https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1947-L1966[os::Linux::dlopen_helper]).
-I didn't have any system courses, but from what I believe I know https://linux.die.net/man/3/dlopen[`dl_open`]
+(with `dlopen`, e.g. here https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1947-L1966[os::Linux::dlopen_helper]).
+I didn't have any system courses, but from what I believe I know https://linux.die.net/man/3/dlopen[`dlopen`]
 will make multiple memory mapping with different objectives and permissions:
 
 * `r-xp` means an executable segment of the library, probably the native execution stack
 of the native library
-* `r\--p` means readable memory of the library, I believe its the library constants or symbols
+* `r\--p` means readable memory of the library, I believe it is the library constants or symbols
 * `rw-p` means writable memory, I think its purpose is for the main process to set global
 variables of the library
 *  `---p` is a no permission segment, I'm not sure about this one, but it's location
@@ -1940,7 +1940,7 @@ how many pages the mapped files take.
 In the output below, the third line, give the number of pages that
 are backed by files.
 
-Having a llok at this information may aloso be useful when sizing
+Having a look at this information may also be useful when sizing
 the container.
 
 .File backed memory
@@ -2032,7 +2032,7 @@ Other JVM component that manage areas like thread stack or metaspace work
 differently.
 
 In other words that means parts of the *committed* memory shown in NMT is not *resident* and as such
-RSS counter may not reflect what is een in the *committed* memory.
+RSS counter may not reflect what is seen in the *committed* memory.
 
 
 
@@ -2281,4 +2281,5 @@ if I did or if I'm wrong please reach out.
 I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
 https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
 and https://twitter.com/ylegat[Yohan Legat] for their early help in
-proof-reading and suggestions.
+proof-reading and suggestions. And many thanks to https://twitter.com/jpbempel[Jean-Philippe Bempel]
+for post-production reviews ;)
