@@ -1875,7 +1875,7 @@ Total: reserved=2323817KB +409608KB, committed=498961KB +386252KB
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The 20 <code>DirectByteBuffer</code>s of <code>100 iB</code>. Uh wait, <code>409600 KiB</code> is nothing near ~<code>2 GiB</code> (<code>2048000 KiB</code>),
+<td>The 20 <code>DirectByteBuffer</code>s of <code>100 MiB</code>. Uh wait, <code>409600 KiB</code> is nothing near ~<code>2 GiB</code> (<code>2048000 KiB</code>),
 it looks more like 4 buffers of <code>100 MiB</code></td>
 </tr>
 <tr>
@@ -2166,7 +2166,7 @@ already been mapped to physical memory, and if the system is out of physical mem
 </div>
 </div>
 <div class="paragraph">
-<p>There’s also the value of the inode column, if it&#39; i’s greater than <code>0</code> then
+<p>There’s also the value of the inode column, if it’s greater than <code>0</code> then
 it means the address range is backed by a file, if it’s <code>0</code> it’s a memory
 allocation that the application has requested.</p>
 </div>
@@ -2639,8 +2639,8 @@ sums of the <em>size</em> and <em>rss</em> columns of the selected rows are resp
 <div class="paragraph">
 <p>What may catch the eye is the multiple mapping for native libraries like <code>libjvm.so</code>.
 The reason for these different memory mapping is how dynamic libraries are loaded
-(with <code>dl_open</code>, e.g. here <a href="https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1947-L1966">os::Linux::dlopen_helper</a>).
-I didn’t have any system courses, but from what I believe I know <a href="https://linux.die.net/man/3/dlopen"><code>dl_open</code></a>
+(with <code>dlopen</code>, e.g. here <a href="https://github.com/corretto/corretto-11/blob/4e14d3399615085a1b4bc89bc5c06bfcb1a08279/src%2Fsrc%2Fhotspot%2Fos%2Flinux%2Fos_linux.cpp#L1947-L1966">os::Linux::dlopen_helper</a>).
+I didn’t have any system courses, but from what I believe I know <a href="https://linux.die.net/man/3/dlopen"><code>dlopen</code></a>
 will make multiple memory mapping with different objectives and permissions:</p>
 </div>
 <div class="ulist">
@@ -2650,7 +2650,7 @@ will make multiple memory mapping with different objectives and permissions:</p>
 of the native library</p>
 </li>
 <li>
-<p><code>r--p</code> means readable memory of the library, I believe its the library constants or symbols</p>
+<p><code>r--p</code> means readable memory of the library, I believe it is the library constants or symbols</p>
 </li>
 <li>
 <p><code>rw-p</code> means writable memory, I think its purpose is for the main process to set global
@@ -3112,7 +3112,7 @@ In the output below, the third line, give the number of pages that
 are backed by files.</p>
 </div>
 <div class="paragraph">
-<p>Having a llok at this information may aloso be useful when sizing
+<p>Having a look at this information may also be useful when sizing
 the container.</p>
 </div>
 <div class="listingblock">
@@ -3213,7 +3213,7 @@ differently.</p>
 </div>
 <div class="paragraph">
 <p>In other words that means parts of the <strong>committed</strong> memory shown in NMT is not <strong>resident</strong> and as such
-RSS counter may not reflect what is een in the <strong>committed</strong> memory.</p>
+RSS counter may not reflect what is seen in the <strong>committed</strong> memory.</p>
 </div>
 </div>
 </div>
@@ -3423,7 +3423,8 @@ if I did or if I’m wrong please reach out.</p>
 <p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
 <a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
 and <a href="https://twitter.com/ylegat">Yohan Legat</a> for their early help in
-proof-reading and suggestions.</p>
+proof-reading and suggestions. And many thanks to <a href="https://twitter.com/jpbempel">Jean-Philippe Bempel</a>
+for post-production reviews ;)</p>
 </div>
 </div>
 </div>
