@@ -340,10 +340,10 @@ the snippets written in C.</p>
 <h2 id="_motivation"><a class="anchor" href="#_motivation"></a><a class="link" href="#_motivation">Motivation</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>I ha ve been running applications in containers for a while now, and I have
+<p>I have been running applications in containers for a while now, and I have
 noted that this shift in deployment resulted in tighter constraints. And the
-closer the walls are the closer we, software developers (or anyone involved in
-production), should pay more attention to how memory is consumed.</p>
+closer the walls are the more we, software developers (or anyone involved in
+production), should pay attention to how memory is consumed.</p>
 </div>
 <div class="paragraph">
 <p>Indeed, sometime getting the right memory limit for Java applications is sometimes an
@@ -351,7 +351,7 @@ intangible task, and I think the
 <a href="/2020/10/27/maxrampercentage-is-not-what-i-wished-for/"><code>MaxRAMPercentage</code> flag is certainly not the right tool for this job</a>.</p>
 </div>
 <div class="paragraph">
-<p>Moreover, with a given limit, if an application gets <em>oomkilled</em> then
+<p>Moreover, with a given limit, if an application gets <em>OOM Killed</em> then
 one has to ask if it is the limit that needs adjustment or if it is the
 application that is misbehaving (memory leak in particular, but not always).</p>
 </div>
@@ -359,7 +359,7 @@ application that is misbehaving (memory leak in particular, but not always).</p>
 <p>To answer questions about memory usage there are various things to look at,
 Java Heap, Metaspace other JVM components, etc. I faced a few incidents,
 where the JVM settings and the Kubernetes memory limit were seemingly
-appropriate, yet the apps were constantly oomkilled because the RSS kept
+appropriate, yet the apps were constantly <em>OOM Killed</em> because the RSS kept
 growing toward this limit. Some of these issues have been solved just
 by raising the memory limit. However, in some other cases it wasn’t that
 crystal clear.</p>
@@ -413,6 +413,19 @@ in this chapter; pretend I’m a disk manufacturer.
 </td>
 <td class="content">
 Also, all java snippet and command have been run with Java 11.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Last one, this writing assume the cgroups <strong>v1</strong>, the v2 have slight
+variation that I haven’t studied yet.
 </td>
 </tr>
 </tbody></table>
@@ -586,7 +599,7 @@ in <code>KB</code> for the JVM it really means <code>KiB</code>.
 </tbody></table>
 </div>
 <div class="listingblock">
-<div class="title">JVM native memory trcking report</div>
+<div class="title">JVM native memory tracking report</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jcmd $(pidof java) VM.native_memory
 6:
@@ -1984,8 +1997,8 @@ Frame buffer usage  : 0.0012%
 </div>
 <div class="paragraph">
 <p>By default, the VM limits the total size or capacity of direct byte buffers to
-to <a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122">somewhat the size of the heap</a>.
-This can be tuned via <code>-XX:MaxDirectMemorySize</code>. The 4 Full GC cycles indicates
+<a href="https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122">somewhat the size of the heap</a>.
+This can be tuned via <code>-XX:MaxDirectMemorySize</code>. The 4 Full GC cycles indicate
 for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
 will require a System.gc(), this suggests a max memory limit in this range <code>[419430400;524288000[</code>,
 and indeed the reported size of Java Heap section is <code>522190848</code> (<code>509952 KiB</code>).</p>
@@ -2431,7 +2444,7 @@ allocators apparently adds one page to the allocated stack size, if the segment 
 <a href="https://code.woboq.org/userspace/glibc/sysdeps/i386/i686/stack-aliasing.h.html#23">a multiple of 64K</a>.</p>
 </div>
 <div class="paragraph">
-<p>This is due to <a href="http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/64k_Aliasing_Conflicts.htm">prevent aliasing on the CPU cache lines</a></p>
+<p>This is to <a href="http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/64k_Aliasing_Conflicts.htm">prevent aliasing on the CPU cache lines</a></p>
 </div>
 <div class="quoteblock">
 <blockquote>
@@ -3072,9 +3085,10 @@ $ cat /proc/$(pidof java)/statm | tr &#39; &#39; &#39;\n&#39;
 </ul>
 </div>
 <div class="paragraph">
-<p>For example lets say there is a Kubernetes memory limit of <code>6 GiB</code>
-(<code>6442450944 Bytes</code> ), a <code>java</code> process is started with a bigger memory
-<code>-Xmx16g</code> that the cgroup limit, we can observe that</p>
+<p>For example lets say there is a Kubernetes memory limit (This limit is in fact
+a cgroup memory limit) of <code>6 GiB</code> (<code>6442450944 Bytes</code> ), a <code>java</code> process
+is started with a bigger memory <code>-Xmx16g</code> that the cgroup limit, we can observe
+that:</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -3441,8 +3455,9 @@ almost zealous to when coming from the Java world.</p>
 <div class="paragraph">
 <p>In my opinion, containers changed the deal, the tighter constraints
 that helped to increase the deployment density, are now backfiring.
-Rediscovering RSS (or throttling for the cgroup that limits in CPU)
-is essential.</p>
+On a side note those that tried cgroups with CPU limit have
+likely seen their application being throttled.
+Memory wise rediscovering RSS is essential.</p>
 </div>
 </div>
 </div>
@@ -3460,7 +3475,7 @@ if I did or if I’m wrong please reach out.</p>
 <a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
 and <a href="https://twitter.com/ylegat">Yohan Legat</a> for their early help in
 proof-reading and suggestions. And many thanks to <a href="https://twitter.com/jpbempel">Jean-Philippe Bempel</a>
-for post-production reviews ;)</p>
+and Mathis Raguin for post-production reviews ;)</p>
 </div>
 </div>
 </div>
