@@ -300,6 +300,42 @@
 times to make it more digestible form, I’ve left out some content, but this is
 still a big piece to read.</em></p>
 </div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">tl;dr</div>
+<div class="ulist">
+<ul>
+<li>
+<p>JVM Native Memory Tracking values are different from the RSS</p>
+</li>
+<li>
+<p>NMT is useful to identify the JVM runtime memory usage</p>
+</li>
+<li>
+<p>NMT does not track memory mapped files</p>
+</li>
+<li>
+<p>NMT does not track allocations performed by native libraries</p>
+</li>
+<li>
+<p>More threads means more memory usage (times the stack depth of the application)</p>
+</li>
+<li>
+<p><code>pmap</code> or <code>/proc/{pid}/maps</code> (or <code>smap</code>) completes the picture
+about effective RSS of every memory segment of the process</p>
+</li>
+<li>
+<p>In containers, evaluate the usage of <code>-XX:+AlwaysPreTouch</code>, it
+is easier to reason about <em>off-heap</em> usage</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Read on to get the details. Some sections are collapsed, typically
+the snippets written in C.</p>
+</div>
+</div>
+</div>
 <div class="sect1">
 <h2 id="_motivation"><a class="anchor" href="#_motivation"></a><a class="link" href="#_motivation">Motivation</a></h2>
 <div class="sectionbody">
