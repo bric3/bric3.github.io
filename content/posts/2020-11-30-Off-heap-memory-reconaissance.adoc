@@ -9,7 +9,6 @@ title: "Off-Heap memory reconnaissance"
 ---
 
 // TODO: Change JDK links to openjdk/jdk
-// TODO: Fix wrapTable at line 1723
 
 // Related articles
 // - https://dev.to/wayofthepie/jvm-basic-memory-overview-535m
@@ -19,6 +18,21 @@ _This entry has been marinating for most of the year 2020. Rewriting it multiple
 times to make it more digestible form, I've left out some content, but this is
 still a big piece to read._
 
+.tl;dr
+****
+* JVM Native Memory Tracking values are different from the RSS
+* NMT is useful to identify the JVM runtime memory usage
+* NMT does not track memory mapped files
+* NMT does not track allocations performed by native libraries
+* More threads means more memory usage (times the stack depth of the application)
+* `pmap` or `/proc/{pid}/maps` (or `smap`) completes the picture
+about effective RSS of every memory segment of the process
+* In containers, evaluate the usage of `-XX:+AlwaysPreTouch`, it
+is easier to reason about _off-heap_ usage
+
+Read on to get the details. Some sections are collapsed, typically
+the snippets written in C.
+****
 
 == Motivation
 
