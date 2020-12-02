@@ -36,23 +36,23 @@ the snippets written in C.
 
 == Motivation
 
-I ha ve been running applications in containers for a while now, and I have
+I have been running applications in containers for a while now, and I have
 noted that this shift in deployment resulted in tighter constraints. And the
-closer the walls are the closer we, software developers (or anyone involved in
-production), should pay more attention to how memory is consumed.
+closer the walls are the more we, software developers (or anyone involved in
+production), should pay attention to how memory is consumed.
 
 Indeed, sometime getting the right memory limit for Java applications is sometimes an
 intangible task, and I think the
 link:/2020/10/27/maxrampercentage-is-not-what-i-wished-for/[`MaxRAMPercentage` flag is certainly not the right tool for this job].
 
-Moreover, with a given limit, if an application gets _oomkilled_ then
+Moreover, with a given limit, if an application gets _OOM Killed_ then
 one has to ask if it is the limit that needs adjustment or if it is the
 application that is misbehaving (memory leak in particular, but not always).
 
 To answer questions about memory usage there are various things to look at,
 Java Heap, Metaspace other JVM components, etc. I faced a few incidents,
 where the JVM settings and the Kubernetes memory limit were seemingly
-appropriate, yet the apps were constantly oomkilled because the RSS kept
+appropriate, yet the apps were constantly _OOM Killed_ because the RSS kept
 growing toward this limit. Some of these issues have been solved just
 by raising the memory limit. However, in some other cases it wasn't that
 crystal clear.
@@ -81,6 +81,9 @@ _Thanks to this https://twitter.com/fleming_matt/status/1282729134481965064?s=21
 
 
 NOTE: Also, all java snippet and command have been run with Java 11.
+
+NOTE: Last one, this writing assume the cgroups *v1*, the v2 have slight
+variation that I haven't studied yet.
 
 Getting comfortable with the memory of a (JVM) process is a tedious task
 for most of us that wrote code in Java for their entire professional life.
@@ -199,7 +202,7 @@ NOTE: It is necessary to note that while the above command indicate a scale
 in `KB` for the JVM it really means `KiB`.
 
 
-.JVM native memory trcking report
+.JVM native memory tracking report
 [source, shell]
 ----
 $ jcmd $(pidof java) VM.native_memory
@@ -1017,8 +1020,8 @@ Frame buffer usage  : 0.0012%
 ----
 
 By default, the VM limits the total size or capacity of direct byte buffers to
-to https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122[somewhat the size of the heap].
-This can be tuned via `-XX:MaxDirectMemorySize`. The 4 Full GC cycles indicates
+https://github.com/AdoptOpenJDK/openjdk-jdk11u/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L114-L122[somewhat the size of the heap].
+This can be tuned via `-XX:MaxDirectMemorySize`. The 4 Full GC cycles indicate
 for 20 allocateDirect() and 4 remaining, this means after 4 successful create the 5th allocateDirect
 will require a System.gc(), this suggests a max memory limit in this range `[419430400;524288000[`,
 and indeed the reported size of Java Heap section is `522190848` (`509952 KiB`).
@@ -1364,7 +1367,7 @@ https://code.woboq.org/userspace/glibc/nptl/allocatestack.c.html#550[glibc], and
 allocators apparently adds one page to the allocated stack size, if the segment size is
 https://code.woboq.org/userspace/glibc/sysdeps/i386/i686/stack-aliasing.h.html#23[a multiple of 64K].
 
-This is due to http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/64k_Aliasing_Conflicts.htm[prevent aliasing on the CPU cache lines]
+This is to http://qcd.phys.cmu.edu/QCDcluster/intel/vtune/reference/64k_Aliasing_Conflicts.htm[prevent aliasing on the CPU cache lines]
 
 > A 64K-aliasing conflict occurs when a virtual address memory references a cache line
 > that is modulo 64K bytes apart from another cache line that already resides in the first
@@ -1904,9 +1907,10 @@ Given the page size of `4 KiB`, the following numbers comes naturally :
 * vsz = `1626842 * 4 = 6507368`
 * rss = `1086676 * 4 = 4346704`
 
-For example lets say there is a Kubernetes memory limit of `6 GiB`
-(`6442450944 Bytes` ), a `java` process is started with a bigger memory
-`-Xmx16g` that the cgroup limit, we can observe that
+For example lets say there is a Kubernetes memory limit (This limit is in fact
+a cgroup memory limit) of `6 GiB` (`6442450944 Bytes` ), a `java` process
+is started with a bigger memory `-Xmx16g` that the cgroup limit, we can observe
+that:
 
 . a process can _over-commit_, if Linux is configured to allow this
 (`/proc/sys/vm/overcommit_memory`), this is not an issue as long as
@@ -2279,8 +2283,9 @@ almost zealous to when coming from the Java world.
 
 In my opinion, containers changed the deal, the tighter constraints
 that helped to increase the deployment density, are now backfiring.
-Rediscovering RSS (or throttling for the cgroup that limits in CPU)
-is essential.
+On a side note those that tried cgroups with CPU limit have
+likely seen their application being throttled.
+Memory wise rediscovering RSS is essential.
 
 
 
@@ -2296,4 +2301,4 @@ I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
 https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
 and https://twitter.com/ylegat[Yohan Legat] for their early help in
 proof-reading and suggestions. And many thanks to https://twitter.com/jpbempel[Jean-Philippe Bempel]
-for post-production reviews ;)
+and Mathis Raguin for post-production reviews ;)
