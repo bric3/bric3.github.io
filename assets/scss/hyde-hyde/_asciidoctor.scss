@@ -30,7 +30,8 @@ $conum-color: #fff !default;
 $conum-bg-color: rgba(0, 0, 0, 0.8) !default;
 $hlist-colist-table-bg-color: rgba(13, 13, 13, 0) !default;
 $pre-color: rgba(0, 0, 0, 0.9) !default;
-$literalblock-pre-bg-color: #f7f7f8 !default;
+$pre-bg-color: #f7f7f8 !default;
+$not-pre-code-bg-color: #f3f3f3 !default;
 $attribution-color: rgba(229, 224, 216, 0.6) !default;
 $exampleblock-border-color: rgb(72, 71, 63) !default;
 $exampleblock-shadow-color: rgb(45, 46, 46) !default;
@@ -715,17 +716,17 @@ $blockquote-quote-shadow-color: rgba(0, 0, 0, 0.1) !default;
   }
 
   .literalblock pre {
-    background: $literalblock-pre-bg-color;
+    background: $pre-bg-color;
   }
 
   .listingblock > .content > pre {
     &:not(.highlight), &[class="highlight"], &[class^="highlight "] {
-      background: $literalblock-pre-bg-color;
+      background: $pre-bg-color;
     }
   }
 
   .literalblock.output pre {
-    color: $literalblock-pre-bg-color;
+    color: $pre-bg-color;
     background: $pre-color;
   }
 
@@ -778,6 +779,30 @@ $blockquote-quote-shadow-color: rgba(0, 0, 0, 0.1) !default;
       &.prettyprint {
         border-width: 0;
       }
+    }
+  }
+
+  :not(pre) {
+    &:not([class^=L]) {
+      > code {
+        font-size: .85em;
+        font-style: normal !important;
+        letter-spacing: 0;
+        padding: .1em .5ex;
+        word-spacing: -.15em;
+        background: $not-pre-code-bg-color;
+        -webkit-border-radius: 4px;
+        border-radius: 4px;
+        line-height: 1.45;
+        text-rendering: optimizeSpeed;
+        word-wrap: break-word;
+      }
+    }
+    > code.nobreak {
+      word-wrap: normal;
+    }
+    > code.nowrap {
+      white-space: nowrap;
     }
   }
 

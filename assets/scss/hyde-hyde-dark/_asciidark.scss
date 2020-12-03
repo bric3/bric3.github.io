@@ -11,8 +11,9 @@ $dark-table-alternate-bg-color: rgb(40, 35, 27) !default;
 $dark-table-header-footer-bg-color: rgb(34, 30, 21) !default;
 $dark-sidebar-bg-color: rgb(40, 35, 27) !default;
 $dark-toc-bg-color: rgb(40, 35, 27) !default;
-$dark-code-bg-color: rgb(40, 35, 27) !default;
-$dark-code-color: rgba(255, 255, 226, 0.9) !default;
+$dark-pre-color: rgba(255, 255, 226, 0.9) !default;
+$dark-pre-bg-color: rgb(40, 35, 27) !default;
+$dark-not-pre-code-bg-color: rgb(62, 54, 41) !default;
 $dark-bigtitle-color: rgb(219, 195, 152) !default;
 $dark-footer-bg-color: rgba(32, 25, 18, 0.7) !default;
 $dark-h1-color: rgba(255, 255, 226, 0.85) !default;
@@ -44,7 +45,6 @@ $dark-input-bg-color: #625c36 !default;
 $dark-blockquote-bg-color: rgb(60, 48, 33) !default;
 $dark-blockquote-border-color: rgb(145, 114, 75) !default;
 $dark-pre-border-color: rgb(88, 78, 61) !default;
-$dark-code-inline-bg-color: rgb(62, 54, 41) !default;
 
 // seems like asciidark CSS coloring suffice for dark theme, hence we don't
 // target specifically `adoc` class, but `md` too.
@@ -178,50 +178,54 @@ $dark-code-inline-bg-color: rgb(62, 54, 41) !default;
     background: transparent initial;
   }
 
-  :not(pre) > code {
-    background-color: $dark-code-inline-bg-color;
+  :not(pre) {
+    &:not([class^=L]) {
+      > code {
+        background: $dark-not-pre-code-bg-color;
+      }
+    }
   }
 
   code {
-    color: $dark-code-color;
+    color: $dark-pre-color;
   }
 
   pre {
-    color: $dark-code-color;
+    color: $dark-pre-color;
     border-color: $dark-pre-border-color;
 
     > code {
-      color: $dark-code-color;
+      color: $dark-pre-color;
     }
   }
 
   .listingblock {
     & > .content > pre:not(.highlight) {
-      background-color: $dark-code-bg-color;
+      background-color: $dark-pre-bg-color;
     }
 
     pre {
       &[class^="highlight "], &.CodeRay, &.prettyprint {
         background-image: initial;
-        background-color: $dark-code-bg-color;
+        background-color: $dark-pre-bg-color;
       }
     }
 
     pre {
       background-image: initial;
-      background-color: $dark-code-bg-color;
+      background-color: $dark-pre-bg-color;
     }
 
     pre {
       &:not(.highlight), &[class="highlight"], &[class^="highlight "], &.CodeRay, &.prettyprint {
         background-image: initial;
-        background-color: $dark-code-bg-color;
+        background-color: $dark-pre-bg-color;
       }
     }
   }
 
   .literalblock pre {
-    background-color: $dark-code-bg-color;
+    background-color: $dark-pre-bg-color;
   }
 
   .quoteblock {
