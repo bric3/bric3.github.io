@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.75.1" />
+
+    
+    
+    
+
+<title>Anonymous CompletableFuture threads with burstable pods • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="Anonymous CompletableFuture threads with burstable pods">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/2020/12/11/completablefuture-with-burstable-pods/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2020-12-11T14:05:00&#43;0100">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Anonymous CompletableFuture threads with burstable pods">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.0b2940623a4e7676e1013664033079eb7992e51790962631bcef40491cb589ac.css" integrity="sha256-CylAYjpOdnbhATZkAzB563mS5ReQliYxvO9ASRy1iaw=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.f7fd2a1468742b21cc0db67b8025ff76797d4b5d193f3b9a77a60a270fa20e23.css" integrity="sha256-9/0qFGh0KyHMDbZ7gCX/dnl9S10ZPzuad6YKJw&#43;iDiM=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" integrity="sha256-h20CPZ0QyXlBuAw7A+KluUYx/3pK+c7lYEpqLTlxjYQ=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/v4-shims.min.css" integrity="sha256-wN7QJaqAwQ03kgUhyN4EU2phRdDkLrQYbFe0EvpQ60U=" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2020 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    <header>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2020-12-11-CompletableFuture-with-burstable-pods.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+</header>
+
+            
+    
+
+<article>
+  <header>
+    <h1>Anonymous CompletableFuture threads with burstable pods</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-12-11
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/cgroup">cgroup</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/java">java</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/kubernetes">kubernetes</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/docker">docker</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/cpu">cpu</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/processors">processors</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/thread">thread</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/completablefuture">completablefuture</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/forkjoinpool">forkjoinpool</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jfr">jfr</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 13 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="sect1">
+<h2 id="_short_lived_anonymous_threads"><a class="anchor" href="#_short_lived_anonymous_threads"></a><a class="link" href="#_short_lived_anonymous_threads">Short lived anonymous Threads</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>It all started when opening a JFR recording, I noticed a very large and
+growing number of very short lived anonymous threads. Was it bad coding,
+or something else?</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="../../static/assets/cf-fjp-burstable/short-threads.png" alt="short threads"/></span></p>
+</div>
+<div class="paragraph">
+<p>However when looking a the <strong>Java Thread Start</strong> or the <strong>Java Thread End</strong> events
+there is no stack trace. Fortunately these short lived thread created objects,
+which triggered the <strong>Allocation in new TLAB</strong> events.</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>As a reminder the generational GCs in the JVM dedicate a space of the Eden memory
+(where objects are created) for each threads, when these new threads are created they
+require a new TLAB for their new objects.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="../../static/assets/cf-fjp-burstable/short-threads-flamegraph.png" alt="short threads flamegraph"/></span></p>
+</div>
+<div class="paragraph">
+<p>Now that I know what those threads are executing it will be easier to follow
+the trail to where these threads get created.</p>
+</div>
+<div class="listingblock">
+<div class="title">Short tasks code</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public CompletableFuture&lt;Empty&gt; saveOrUpdateAsync(String a, String b) {
+    return tryFindAsync(userId, clientId)
+            .thenApply(t -&gt; ...)
+            .thenComposeAsync(
+                    t -&gt; manager.crud() <i class="conum" data-value="1"></i><b>(1)</b>
+                                .insert(t) <i class="conum" data-value="1"></i><b>(1)</b>
+                                .withLwtResultListener(error -&gt; ...)) <i class="conum" data-value="1"></i><b>(1)</b>
+                                .executeAsync()); <i class="conum" data-value="1"></i><b>(1)</b>
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This code shows up the allocation event</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>I’m usually avoiding <code>CompletableFuture</code> for asynchronous tasks as I find their API
+bulky and ambiguous and I remember that they ship with some
+<a href="https://www.nurkiewicz.com/2015/03/completablefuture-cant-be-interrupted.html">surprises</a>.
+That’s a personal opinion I know. Yet it’s not unusual to find
+them used in framework to avoid external dependencies.</p>
+</div>
+<div class="paragraph">
+<p>As I don’t use them, I wondered CFs don’t create new <code>Thread</code> for fun, right ?
+But it turns out it’s possible with the right conditions ! Let’s hit back the trail
+in the CompletableFuture code in the <strong>compose async</strong> method:</p>
+</div>
+<div class="listingblock">
+<div class="title">CompletableFuture.thenComposeAsync(…​)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public &lt;U&gt; CompletableFuture&lt;U&gt; thenComposeAsync(
+    Function&lt;? super T, ? extends CompletionStage&lt;U&gt;&gt; fn) {
+    return uniComposeStage(defaultExecutor(), fn); <i class="conum" data-value="1"></i><b>(1)</b>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This method uses the default <code>CompletableFuture</code> pool.</p>
+</div>
+<div class="paragraph">
+<p><em>Note the Javadoc of this method is located on <code>CompletionStage.thenComposeAsync</code>,
+and does not say anything useful regarding threads.</em></p>
+</div>
+<div class="listingblock">
+<div class="title">CompletableFuture.defaultExecutor()</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Returns the default Executor used for async methods that do not
+ * specify an Executor. This class uses the {@link
+ * ForkJoinPool#commonPool()} if it supports more than one <i class="conum" data-value="1"></i><b>(1)</b>
+ * parallel thread, or else an Executor using one thread per async
+ * task.  This method may be overridden in subclasses to return
+ * an Executor that provides at least one independent thread.
+ *
+ * @return the executor
+ * @since 9
+ */
+public Executor defaultExecutor() {
+    return ASYNC_POOL;
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>There it is: if <code>ForkJoinPool#commonPool()</code> parallelism
+is <code>1</code>, then a single thread per task will be used.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>In particular the code looks like this:</p>
+</div>
+<div class="listingblock">
+<div class="title">CompletableFuture</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">private static final boolean USE_COMMON_POOL =
+    (ForkJoinPool.getCommonPoolParallelism() &gt; 1);
+
+/**
+ * Default executor -- ForkJoinPool.commonPool() unless it cannot
+ * support parallelism.
+ */
+private static final Executor ASYNC_POOL = USE_COMMON_POOL ?
+    ForkJoinPool.commonPool() : new ThreadPerTaskExecutor();
+
+/** Fallback if ForkJoinPool.commonPool() cannot support parallelism */
+static final class ThreadPerTaskExecutor implements Executor {
+    public void execute(Runnable r) { new Thread(r).start(); }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Also in my experience I didn’t use much the ForkJoinPoll, but I remember
+there was some pool criticism when used <code>Collection.parallelStream()</code> about
+pool sizing. This is exactly the case here since this API of <code>CompletableFuture</code>
+rely on the default.</p>
+</div>
+<div class="paragraph">
+<p>This is likely to have been mentioned by other bloggers that are using the JVM
+in containers. If <code>ForkJoinPool</code> does not see more than one processor, then
+<code>CompletableFuture</code> will use a new <code>Thread</code> for each task. Let’s see what the
+defaults.</p>
+</div>
+<div class="listingblock">
+<div class="title">FJP parallelism</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS jshell -s - &lt;&lt;&lt;&#39;System.out.printf(&#34;fjp-parallelism: %d%n&#34;, java.util.concurrent.ForkJoinPool.getCommonPoolParallelism())&#39;
+fjp-parallelism: 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In my case the container resources is configured to 2 <strong>cpu</strong> in the Kubernetes
+deployment descriptor :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">resources:
+  limits:
+    memory: &#34;5.5Gi&#34;
+  requests:
+    cpu: 2
+    memory: &#34;5.5Gi&#34;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can check the cgroup too if it’s not a kubernetes deployment :</p>
+</div>
+<div class="listingblock">
+<div class="title">cgroup cpu shares</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /sys/fs/cgroup/cpu/cpu.shares
+2048</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And it’s always possible to check what the runtime sees (since the JVM understand cgroup (v1)):</p>
+</div>
+<div class="listingblock">
+<div class="title">availableProcessors()</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS jshell -s - \
+    &lt;&lt;&lt;&#39;System.out.printf(&#34;procs: %d%n&#34;, Runtime.getRuntime().availableProcessors())&#39;
+procs: 2</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here’s how ForkJoinPool is coded to configure the parallelism:</p>
+</div>
+<div class="listingblock">
+<div class="title">ForkJoinPool</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/**
+ * Returns the targeted parallelism level of the common pool.
+ *
+ * @return the targeted parallelism level of the common pool
+ * @since 1.8
+ */
+public static int getCommonPoolParallelism() {
+    return COMMON_PARALLELISM;
+}
+
+static {
+    // ...
+    common = AccessController.doPrivileged(new PrivilegedAction&lt;&gt;() {
+        public ForkJoinPool run() {
+            return new ForkJoinPool((byte)0); }});
+
+    COMMON_PARALLELISM = Math.max(common.mode &amp; SMASK, 1);
+}
+
+/**
+ * Constructor for common pool using parameters possibly
+ * overridden by system properties
+ */
+private ForkJoinPool(byte forCommonPoolOnly) {
+    int parallelism = -1;
+    // ...
+    try {  // ignore exceptions in accessing/parsing properties
+        String pp = System.getProperty
+            (&#34;java.util.concurrent.ForkJoinPool.common.parallelism&#34;);
+        if (pp != null)
+            parallelism = Integer.parseInt(pp);
+        // ...
+    } catch (Exception ignore) {
+    }
+
+    // ...
+    if (parallelism &lt; 0 &amp;&amp; // default 1 less than #cores
+        (parallelism = Runtime.getRuntime().availableProcessors() - 1) &lt;= 0) <i class="conum" data-value="1"></i><b>(1)</b>
+        parallelism = 1; <i class="conum" data-value="1"></i><b>(1)</b>
+    if (parallelism &gt; MAX_CAP)
+        parallelism = MAX_CAP;
+
+    // ...
+
+    this.mode = parallelism;
+    // ...
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Indeed FJP subtract one to the reported available processors.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The constructor also initializes a lot of things, in particular the Thread factory,
+the pool boundaries, the work queues, etc. And we see there are few properties
+that are allow to override the defaults.</p>
+</div>
+<div class="paragraph">
+<p>In particular the parallelism value can be overridden by <code>java.util.concurrent.ForkJoinPool.common.parallelism</code>
+as stated in the
+<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/ForkJoinPool.html">javadoc</a>
+and in the constructor code.</p>
+</div>
+<div class="paragraph">
+<p>Back to the main issue, there’s two way to fix, either change the code to pass
+an executor, or tell default pool what is the system parallelism. Both are options
+are not mutually exclusive, and it’s always always possible that some code that use
+the common ForkJoinPool.</p>
+</div>
+<div class="listingblock">
+<div class="title">with the system property</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env JDK_JAVA_OPTIONS=&#34;-Djava.util.concurrent.ForkJoinPool.common.parallelism=3&#34; \
+    jshell -s - \
+    &lt;&lt;&lt;&#39;System.out.printf(&#34;fjp-parallelism: %d%n&#34;, java.util.concurrent.ForkJoinPool.getCommonPoolParallelism())&#39;
+fjp-parallelism: 3</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I changed this value with care the short task are really short and they are not too many,
+hence the low value of 3. Also this does work because the containers are not limited in CPU,
+so they won’t be throttled which would have been very very bad for a runtime like the JVM.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_end_words"><a class="anchor" href="#_end_words"></a><a class="link" href="#_end_words">End words</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Again, containers narrower walls, tricks the JVM to choose inadequate defaults
+(or runtime ergonomics) for their workload.</p>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2020/11/30/off-heap-reconnaissance/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Off-Heap memory reconnaissance</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2020/12/11/completablefuture-with-burstable-pods/';
+        this.page.title = 'Anonymous CompletableFuture threads with burstable pods';
+        this.page.url = 'https://blog.arkey.fr/2020/12/11/completablefuture-with-burstable-pods/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+</article>
+
+
+            
+    
+<footer>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2020-12-11-CompletableFuture-with-burstable-pods.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+
+</footer>
+
+    
+
+
+
+        </div>
+    </body>
+</html>
+
