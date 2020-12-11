@@ -299,7 +299,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 13 min read
+    <i class="fas fa-clock"></i> 18 min read
 
     
     
@@ -314,26 +314,26 @@
   
   <div class="post adoc">
     <div class="sect1">
-<h2 id="_short_lived_anonymous_threads"><a class="anchor" href="#_short_lived_anonymous_threads"></a><a class="link" href="#_short_lived_anonymous_threads">Short lived anonymous Threads</a></h2>
+<h2 id="_short_lived_anonymous_threads"><a class="anchor" href="#_short_lived_anonymous_threads"></a><a class="link" href="#_short_lived_anonymous_threads">Short-lived anonymous Threads</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>It all started when opening a JFR recording, I noticed a very large and
-growing number of very short lived anonymous threads. Was it bad coding,
+growing number of very short-lived anonymous threads. Was it bad coding,
 or something else?</p>
 </div>
 <div class="paragraph">
 <p><span class="image"><img src="../../static/assets/cf-fjp-burstable/short-threads.png" alt="short threads"/></span></p>
 </div>
 <div class="paragraph">
-<p>However when looking a the <strong>Java Thread Start</strong> or the <strong>Java Thread End</strong> events
-there is no stack trace. Fortunately these short lived thread created objects,
+<p>However, when looking at the <strong>Java Thread Start</strong> or the <strong>Java Thread End</strong> events
+there is no stack trace. Fortunately these short-lived thread created objects,
 which triggered the <strong>Allocation in new TLAB</strong> events.</p>
 </div>
 <div class="quoteblock">
 <blockquote>
 <div class="paragraph">
 <p>As a reminder the generational GCs in the JVM dedicate a space of the Eden memory
-(where objects are created) for each threads, when these new threads are created they
+(where objects are created) for each thread, when these new threads are created they
 require a new TLAB for their new objects.</p>
 </div>
 </blockquote>
@@ -372,12 +372,12 @@ the trail to where these threads get created.</p>
 bulky and ambiguous and I remember that they ship with some
 <a href="https://www.nurkiewicz.com/2015/03/completablefuture-cant-be-interrupted.html">surprises</a>.
 That’s a personal opinion I know. Yet it’s not unusual to find
-them used in framework to avoid external dependencies.</p>
+them used in a framework to avoid external dependencies.</p>
 </div>
 <div class="paragraph">
-<p>As I don’t use them, I wondered CFs don’t create new <code>Thread</code> for fun, right ?
-But it turns out it’s possible with the right conditions ! Let’s hit back the trail
-in the CompletableFuture code in the <strong>compose async</strong> method:</p>
+<p>As I don’t use them, I wondered CFs don’t create a new <code>Thread</code> for fun, right ?
+It turns out it’s possible with the right conditions ! Let’s hit back the trail
+in the <code>CompletableFuture</code> code with the method <code>thenComposeAsync</code>:</p>
 </div>
 <div class="listingblock">
 <div class="title">CompletableFuture.thenComposeAsync(…​)</div>
@@ -419,7 +419,7 @@ public Executor defaultExecutor() {
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
 <td>There it is: if <code>ForkJoinPool#commonPool()</code> parallelism
-is <code>1</code>, then a single thread per task will be used.</td>
+is <code>1</code>, then a single thread will be created per task.</td>
 </tr>
 </tbody></table>
 </div>
@@ -460,7 +460,8 @@ defaults.</p>
 <div class="listingblock">
 <div class="title">FJP parallelism</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS jshell -s - &lt;&lt;&lt;&#39;System.out.printf(&#34;fjp-parallelism: %d%n&#34;, java.util.concurrent.ForkJoinPool.getCommonPoolParallelism())&#39;
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env -u JDK_JAVA_OPTIONS jshell -s - \
+    &lt;&lt;&lt;&#39;System.out.printf(&#34;fjp-parallelism: %d%n&#34;, java.util.concurrent.ForkJoinPool.getCommonPoolParallelism())&#39;
 fjp-parallelism: 1</code></pre>
 </div>
 </div>
@@ -469,14 +470,23 @@ fjp-parallelism: 1</code></pre>
 deployment descriptor :</p>
 </div>
 <div class="listingblock">
+<div class="title">container resources</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">resources:
   limits:
     memory: &#34;5.5Gi&#34;
   requests:
-    cpu: 2
+    cpu: 2 <i class="conum" data-value="1"></i><b>(1)</b>
     memory: &#34;5.5Gi&#34;</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>More on this later</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>You can check the cgroup too if it’s not a kubernetes deployment :</p>
@@ -489,7 +499,7 @@ deployment descriptor :</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And it’s always possible to check what the runtime sees (since the JVM understand cgroup (v1)):</p>
+<p>It’s always possible to check what the runtime sees (since the JVM understand cgroup (v1)):</p>
 </div>
 <div class="listingblock">
 <div class="title">availableProcessors()</div>
@@ -558,14 +568,14 @@ private ForkJoinPool(byte forCommonPoolOnly) {
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Indeed FJP subtract one to the reported available processors.</td>
+<td>Indeed, FJP subtract one to the reported available processors.</td>
 </tr>
 </tbody></table>
 </div>
 <div class="paragraph">
 <p>The constructor also initializes a lot of things, in particular the Thread factory,
-the pool boundaries, the work queues, etc. And we see there are few properties
-that are allow to override the defaults.</p>
+the pool boundaries, the work queues, etc. Also, we see the few properties
+that are looked up to override the defaults.</p>
 </div>
 <div class="paragraph">
 <p>In particular the parallelism value can be overridden by <code>java.util.concurrent.ForkJoinPool.common.parallelism</code>
@@ -574,9 +584,9 @@ as stated in the
 and in the constructor code.</p>
 </div>
 <div class="paragraph">
-<p>Back to the main issue, there’s two way to fix, either change the code to pass
+<p>Back to the main issue, there are two ways to fix this, either change the code to pass
 an executor, or tell default pool what is the system parallelism. Both are options
-are not mutually exclusive, and it’s always always possible that some code that use
+are not mutually exclusive, and it’s always possible that some code that use
 the common ForkJoinPool.</p>
 </div>
 <div class="listingblock">
@@ -589,9 +599,172 @@ fjp-parallelism: 3</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>I changed this value with care the short task are really short and they are not too many,
-hence the low value of 3. Also this does work because the containers are not limited in CPU,
-so they won’t be throttled which would have been very very bad for a runtime like the JVM.</p>
+<p>I changed this value with care the short task are really short, and they are not too many,
+hence the low value of 3. Also, this does work because the containers are not limited in CPU,
+so they won’t be throttled which would have been very bad for a runtime like the JVM.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_cpu_shares_and_cpu_quotas"><a class="anchor" href="#_cpu_shares_and_cpu_quotas"></a><a class="link" href="#_cpu_shares_and_cpu_quotas">CPU shares and CPU quotas</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In Kubernetes, the <a href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run">CPU resources</a>
+have different meaning in the cgroup:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>requests are configured as CPU shares,</p>
+</li>
+<li>
+<p>and the limits are configured as CPU Quotas (hence the term milli-cpu or milli-core).</p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="_cpu_shares"><a class="anchor" href="#_cpu_shares"></a><a class="link" href="#_cpu_shares">CPU shares</a></h3>
+<div class="paragraph">
+<p>When making a pod <a href="https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/">burstable</a>
+in Kubernetes, the CPU limit is not set.</p>
+</div>
+<div class="listingblock">
+<div class="title">container resources</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">resources:
+  limits:
+    memory: &#34;5.5Gi&#34;
+  requests:
+    cpu: 2 <i class="conum" data-value="1"></i><b>(1)</b>
+    memory: &#34;5.5Gi&#34;</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This number means there will be <code>2048 (2 x 1024)</code> CPU shares.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title">cgroup cpu shares</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /sys/fs/cgroup/cpu/cpu.shares
+2048</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The JVM will use CPU shares when no quota are defined.</p>
+</div>
+<div class="paragraph">
+<p>Beware when the cpu request is <code>1</code>, the cpu shares of the cgroup will be <code>1024</code>,
+and as it happens the CPU share of a cgroup is also <code>1024</code>, in this case the JVM
+do not know if a cpu share has been set or not for this cgroup (
+<a href="https://github.com/openjdk/jdk11u/blob/46f5998ca15355a30b564cf6004cd69a392c44c8/src/hotspot/os/linux/osContainer_linux.cpp#L691-L708">source</a>),
+which means it will not use this value and instead use the number of processors
+of the host machine.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_cpu_quotas"><a class="anchor" href="#_cpu_quotas"></a><a class="link" href="#_cpu_quotas">CPU quotas</a></h3>
+<div class="paragraph">
+<p>Kubernetes set the CPU limit as a CPU quota. CPU quota are used by the
+<a href="https://www.kernel.org/doc/Documentation/scheduler/sched-bwc.txt">Linux <em>Completely Fair Scheduler</em></a>
+to limit the process usage of a CPU when in a cgroup.</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+Setting quotas may throttle your process and may result in disastrous
+responsiveness. I believe the current best practice is to set the CPU request
+to help Kubernetes schedule the pod on the available hardware, but let the
+process burst if more CPU is required for a brief time, like during a GC.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The JVM will use the quota in combination of the period (it is not
+currently configurable in a Kubernetes deployment descriptor).</p>
+</div>
+<div class="listingblock">
+<div class="title">container resources</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-yaml hljs" data-lang="yaml">resources:
+  limits:
+    cpu: 3 <i class="conum" data-value="1"></i><b>(1)</b>
+    memory: &#34;5.5Gi&#34;
+  requests:
+    cpu: 2
+    memory: &#34;5.5Gi&#34;</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>3</code> means a quota of <code>300000</code> or <code>3 x 100000</code>, which 3 times the default period (<code>100ms</code>),
+the docker arguments would then be either <code>--cpus=3</code> or <code>--cpu-quota=300000</code></td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>If a CFS quota is in place then it’s possible to know their parameters by looking
+at the cgroup values. The below values are equivalent to <code>--cpus=3</code> or
+<code>--cpu-quota=300000</code> assuming the period is the default one (<code>100000</code>).</p>
+</div>
+<div class="listingblock">
+<div class="title">cgroup cfs parameters</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /sys/fs/cgroup/cpu/cpu.cfs_period_us
+100000
+$ cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us
+300000</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you are caught with throttled process, then it’s possible to
+see it via the <code>cpu.stat</code> special file.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /sys/fs/cgroup/cpu/cpu.stat
+nr_periods 0
+nr_throttled 0
+throttled_time 0</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tell_the_jvm_to_prefer_cpu_shares"><a class="anchor" href="#_tell_the_jvm_to_prefer_cpu_shares"></a><a class="link" href="#_tell_the_jvm_to_prefer_cpu_shares">Tell the JVM to prefer CPU shares</a></h3>
+<div class="paragraph">
+<p>If you are adventurous it’s possible to tell the JVM to lookup the CPU shares instead
+of the CPU quota with <code>-XX:-PreferContainerQuotaForCPUCount</code> (it is true by default).</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. JVM container option (<a href="https://foojay.io/command-line-arguments/openjdk-11/?tab=alloptions">source</a>)</caption>
+<colgroup>
+<col style="width: 100%;"/>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-XX:+PreferContainerQuotaForCPUCount</code>  (<code>true</code>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Calculate the container CPU availability based on the value of quotas (if set), when
+true. Otherwise, use the CPU shares value, provided it is less than quota. <em>When
+cpu share is 1024, the quota will be used as well.</em></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The above is unlikely to be useful in the real world, but who knows.</p>
+</div>
 </div>
 </div>
 </div>
