@@ -1,82 +1,304 @@
 ---
 authors: ["brice.dutheil"]
-date: "2020-04-29T15:15:09+02:00"
+date: "2021-01-22T10:41:09+01:00"
 language: en
 draft: true
-#tags: ["watchman", "watchexec", "watch"]
-slug: "watchman" 
-title: "Watchman"
-#series: "Watching Files"
-#_build:
-#  list: never
+#tags: ["kubernetes", "docker", "java", "jvm", "memory", "glibc", "tcmalloc", "jemalloc"]
+slug: "native-memory-fragmentation-with-glibc"
+title: "Glibc can lead to native memory fragmentation"
 ---
 
-**Insert Lead paragraph here.**
+
+.TODO
+- [ ] pmap inspector
+- [ ] glibc arenas (// cpu limit ?)
+- [ ] TCMalloc
+- [ ] Jemalloc
 
 
-Alternatives to monitor a folder.
+A few weeks ago I published an article on
+https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/[JVM's off-heap memory],
+which enumerates many sources of memory consumption. However it lacks there is
+anotherinconspicuous source of memory consumption : native memory fragmentation.
 
-== facebook/watchman
+== Different memory analysis didn't add up
 
+I spent quite sometime to identify where the memory was consumed, for some
+workload I tried to match the memory accounted by the Native Memory Tracking
+report by the one reported via `pmap`, and in this case the memory mapping were
+always higher. But, more importantly the RSS kept growing, while NMT didn't
+report big changes.
 
-A possible alternative to look at [watchman](https://facebook.github.io/watchman).
-This tool is a native process with Java bindings
-
-> Watchman is known to compile and pass its test suite on:
->
-> * Linux systems with `inotify`
-> * macOS (uses `FSEvents` on 10.7+, `kqueue(2)` on earlier versions)
-> * Windows x64 on Windows 7, Windows Server 2012 R2 and later is currently in **beta** status.
-
-
-
-
-Their https://facebook.github.io/watchman/docs/install[install procedure] is currently a bit messy
-in my opinion, it's hard to actually find an exact version for linux. You currently have to search through
-the https://github.com/facebook/watchman/actions?query=is%3Asuccess+event%3Apush+workflow%3ACI[Github Actions jobs]
-and search for an artifact with a positive size (around 8 MB).
-
-> The following artifacts have expired and are no longer able to be downloaded.
+``DirectByteBuffer``s weren't responsible either. Their number was relatively
+small and relatively stable.
 
 
-CAUTION: `watchman` does not follow semantic versioning! (https://facebook.github.io/watchman/docs/compatibility[Source])
+Then I focused my attention on native memory. I wasn't sure were to start.
+My favorite search engine brought me a few results about glibc like this
+https://stackoverflow.com/questions/26041117/growing-resident-memory-usage-rss-of-java-process/35610063[Q/A on stackoverflow],
+some mentioned a bug in glibc >= 2.10, 2.10 is pretty old, our production
+system use 2.28.0.
 
-This tool is native however it does have several language bindings, C++ and NodeJS are the one that are documented.
-However the source code shows additional languages including https://github.com/facebook/watchman/tree/master/java[Java].
-
-Usage of this code is not documented at this time. But by looking at the code,
-the Java client (and probalby in other languages as well) uses Unix domain socket (named pipe)
-and Windows Pipes to communicate with the `watchman` process. Like Docker, with Java Client
-example https://github.com/docker-java/docker-java[there].
-
-.Java API usage
-[source,java]
+[source, shell]
 ----
-// Identifiy the actual socket depending on the platform
-WatchmanTransport socket = WatchmanTransportBuilder.discoverTransport(1, SECOND);
-
-WatchmanClient client = new WatchmanClientImpl(WatchmanTransportBuilder.discoverTransport());
-client.start();
-ListenableFuture<SubscriptionDescriptor> sd = client.subscribe(Paths.get("/etc"), null, new Callback() { // <1>
-      @Override
-      public void call(Map<String, Object> event) {
-        // act on event
-      }
-    });
-
-// unsubscribe
-client.unsbscribe(sd.get());
-
-client.close();
+$ ldd --version
+ldd (Debian GLIBC 2.28-10) 2.28
+Copyright (C) 2018 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Written by Roland McGrath and Ulrich Drepper.
 ----
-<1> Use the same semantic as the https://facebook.github.io/watchman/docs/subscribe[`subscribe`] command internally.
 
-The `WatchmanClient` exposes almost the same API as the `watchman` cli tool.
+The comment on stackoverflow left open several questions:
+
+* Is it the same issue ?
+* Does this bug even apply ?
+* Maybe it's fixed ?
+* Is it even a bug ?
+
+Rather than answering these, this put me on the path of how glibc's `malloc`
+is handling native memory allocation.
+As I'm quite cold on any native code I began to look at the `malloc` man page,
+nothing picked up my interest until the very end in the _note_ section:
+
+.https://man7.org/linux/man-pages/man3/malloc.3.html#NOTES[`malloc` man page, note section excerpt]
+> To avoid corruption in multithreaded applications, mutexes are
+> used internally to protect the memory-management data structures
+> employed by these functions.  In a multithreaded application in
+> which threads simultaneously allocate and free memory, there
+> could be contention for these mutexes.  To scalably handle memory
+> allocation in multithreaded applications, glibc creates
+> additional *memory allocation arenas* if mutex contention is
+> detected.  Each arena is a large region of memory that is
+> internally allocated by the system (using brk(2) or mmap(2)), and
+> managed with its own mutexes.
+
+This caught my attention _To scalably handle memory allocation in multithreaded applications, glibc creates additional *memory allocation arenas* if mutex
+contention is detected._ as this is what the answer in SO talks about.
+
+Also, arena memory management is https://en.wikipedia.org/wiki/Region-based_memory_management[a known technic to manage memory].
+
+
+== In the context of glibc, what exactly are these arenas ?
+
+The source code of glibc is available https://sourceware.org/glibc/wiki/GlibcGit[there].
+On their https://sourceware.org/glibc/wiki/HomePage[wiki] there is a
+https://sourceware.org/glibc/wiki/MallocInternals[page presenting internals of
+`malloc`], and there is in particular a very useful terminology:
+
+.malloc terminology
+[cols="1,6"]
+|===
+
+| Arena
+| A structure that is shared among one or more threads which contains references
+to one or more heaps, as well as linked lists of chunks within those heaps which
+are "free". Threads assigned to each arena will allocate memory from that
+arena's free lists.
+
+| Heap
+| A contiguous region of memory that is subdivided into chunks to be allocated.
+Each heap belongs to exactly one arena.
+
+| Chunk
+| A small range of memory that can be allocated (owned by the application), freed
+(owned by glibc), or combined with adjacent chunks into larger ranges. Note that
+a chunk is a wrapper around the block of memory that is given to the application.
+Each chunk exists in one heap and belongs to one arena.
+
+| Memory
+| A portion of the application's address space which is typically backed by RAM or
+swap.
+
+|===
+
+
+== Measuring the issue
+
+I decided to analyse the memory mapping of the application, using the knowledge
+gained by the use of `pmap` / procfs. However, to detect properly
+the arena heaps, I will need several elements, the _layout_ of the memory
+mapping and its size.
+
+I remember the answers mentionned a `64 MiB` address space,
+let's make sure, by looking at the https://sourceware.org/glibc/wiki/GlibcGit[source code]
+
+
+.malloc.c
+[source, c]
+----
+#ifndef DEFAULT_MMAP_THRESHOLD_MAX
+  /* For 32-bit platforms we cannot increase the maximum mmap
+     threshold much because it is also the minimum value for the
+     maximum heap size and its alignment.  Going above 512k (i.e., 1M
+     for new heaps) wastes too much address space.  */
+# if __WORDSIZE == 32
+#  define DEFAULT_MMAP_THRESHOLD_MAX (512 * 1024)
+# else
+#  define DEFAULT_MMAP_THRESHOLD_MAX (4 * 1024 * 1024 * sizeof(long))
+# endif
+#endif
+----
+// https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967
+
+.arena.c
+[source, c]
+----
+#define HEAP_MIN_SIZE (32 * 1024)
+#ifndef HEAP_MAX_SIZE
+# ifdef DEFAULT_MMAP_THRESHOLD_MAX <1>
+#  define HEAP_MAX_SIZE (2 * DEFAULT_MMAP_THRESHOLD_MAX) <2>
+# else
+#  define HEAP_MAX_SIZE (1024 * 1024) /* must be a power of two */
+# endif
+#endif
+----
+<1> `DEFAULT_MMAP_THRESHOLD_MAX` is always defined
+<2> which means the max heap size is `64 MiB` (`65536 KiB`)
+// https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=bf17be27d48c7a39fc3b421957cb020a4451cc50;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l29
+
+This is a compile-time constant and it is not tunable. Now I need to understand
+how this address space is mapped.
+
+----
+new_heap {
+  handle alignment
+  mmap (0, HEAP_MAX_SIZE, PROT_NONE, MAP_NORESERVE) <1>
+  mprotect (p2, size, MTAG_MMAP_FLAGS | PROT_READ | PROT_WRITE) <2>
+}
+----
+<1> Reserves the `65536 KiB` space with no permissions.
+<2> Changes the permission to read and write for a needed size in this heap.
+
+So in a `pmap` output a glibc malloc `arena` would look this :
+
+----
+00007fe164000000    2736    2736    2736 rw---   [ anon ]
+00007fe1642ac000   62800       0       0 -----   [ anon ]
+----
+
+Technically other native code could come up the same layout pattern, but in my
+case I don't think that any of the third party do anything like this, so I'll
+proceed with this idea.
+// TODO malloc_info
+In order to actually make sure of the actual mapping, one could invoke the
+native method `malloc_info`.
 
 
 
 
+I wrote my own
+https://gist.github.com/bric3/ce236e2c74860fd60f3aa542b5a800d0[pmap inspector],
+to identify probable memory zones (probably not 100% exact, but useful enough).
 
-== watchexec/watchexec
+[source]
+----
+         JAVA_HEAP count=1     reserved=4194304    rss=2746068
+       MAPPED_FILE count=49    reserved=194712     rss=53704
+  MAIN_NATIVE_HEAP count=1     reserved=884        rss=720
+           UNKNOWN count=63    reserved=668200     rss=464716
+       JAVA_THREAD count=447   reserved=459516     rss=59240
+   NON_JAVA_THREAD count=24    reserved=24768      rss=332
+  UNKNOWN_SEGMENT1 count=27    reserved=83052      rss=58204
+  UNKNOWN_SEGMENT2 count=31    reserved=63488      rss=63328
+      MALLOC_ARENA count=257   reserved=16875656   rss=1242072
+ MAIN_NATIVE_STACK count=1     reserved=136        rss=36
+    KERNEL_MAPPING count=3     reserved=24         rss=8
+----
 
-https://github.com/watchexec/watchexec
+
+https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html
+
+The web was also mentioning memory fragmentation with glibc and the use of the
+`MALLOC_ARENA_MAX` environment variable tuning, some others were disappointed
+by its effectiveness, less memory but more contention, etc.
+
+* https://publib.boulder.ibm.com/httpserv/cookbook/Operating_Systems-Linux.html?lang=en
+* https://github.com/cloudfoundry/java-buildpack/issues/320
+* https://devcenter.heroku.com/articles/tuning-glibc-memory-behavior
+* https://stackoverflow.com/questions/10575342/what-would-cause-a-java-process-to-greatly-exceed-the-xmx-or-xss-limit
+* https://unix.stackexchange.com/questions/379644/glibc-memory-alloction-arenas-and-debugging
+* …
+
+To understand better how glibc malloc works I digged a bit, and noticed how
+glibc `malloc` work with threads. A better explanation is available
+https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/[there].
+Some people had to tune a lot more GLIBC parameters to avoid fragmentation,
+see comments in this
+https://plumbr.io/blog/memory-leaks/why-does-my-java-process-consume-more-memory-than-xmx[blog post].
+
+In order to understand better what was happening I enabled the
+`-XX:+AlwaysPreTouch` to remove the “noise” of memory paging in the heap (when
+untouched region are accessed for the first time hours after start).
+Instead of tuning glibc, I preferred to use a different allocator, requiring
+much less effort and maintenance.
+There are several options :
+
+* jemalloc (long history, robust)
+* tcmalloc (maintained by google)
+* minimalloc (efficient malloc contribution from microsoft)
+
+I used TCMalloc as it’s very old and maintained by google, and can be installed with allocation profiling tool.
+Others are fine, especially jemalloc that can come with allocation profiler as well.
+The results are very good, RSS is stable and even decreasing on lower activity.
+
+// comparative memory usage
+
+One thing to note: removing the CPU limits had a nice effect on glibc native
+memory usage, but I’m uncertain in the long run.I still need to understand that
+effect.PS I’m not sure if I will keep the `-XX:+AlwaysPreTouch` flag active.
+But at least it helps to get easy and early feedback on application memory
+consumption.
+
+I ran tests using jemalloc.Immediately after deployment the jemalloc pods shows
+a higher memory usage in general that those running TCmalloc, in this test pods
+with the highest memory usage had over 400 MiB more.
+Also the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
+to give back memory to the OS.
+
+// tcmalloc-jemalloc
+
+The other change in this graph is the number of CPU, this deployment was running
+1 CPU. And after bumping the `requests.cpu` to 2 the memory usage range is
+smaller and memory usage is smaller in general.
+
+// The change in memory usage after the bump in CPU request to be due to Netty’s
+// native allocations. I think that Netty is quite sensible to the number of
+// CPU. My guess is that case of a single CPU there’s a lot of contention on
+// an arena, which leads the netty allocation algorithm to create a LOT of arenas
+// to cope with this contention, this leads to higher memory usage than necessary.
+
+
+
+== tcmalloc vs jemalloc
+
+Both libraries try to de-contention memory acquire by having threads pick the
+memory from different caches, but they have different strategies:
+
+* `jemalloc` (used by Facebook) maintains a cache per thread
+* `tcmalloc` (from Google) maintains a pool of caches, and threads develop a
+“natural” affinity for a cache, but may change
+
+
+This led, once again if I remember correctly, to an important difference in
+terms of thread management.
+
+* `jemalloc` is faster if threads are static, for example using pools
+* `tcmalloc` is faster when threads are created/destructed
+
+There is also the problem that since jemalloc spin new caches to accommodate
+new thread ids, having a sudden spike of threads will leave you with (mostly)
+empty caches in the subsequent calm phase.
+
+As a result, I would recommend `tcmalloc` in the general case, and reserve
+`jemalloc` for very specific usages (low variation on the number of threads
+during the lifetime of the application).
+
+
+
+
+== Links
+* [Linux Process Memory Layout - int13](https://ewirch.github.io/2013/11/linux-process-memory-layout.html)
+* [Malloc Internals and You - Red Hat Developer](https://developers.redhat.com/blog/2017/03/02/malloc-internals-and-you/)
+* [An introduction to virtual memory - Internal Pointers](https://www.internalpointers.com/post/introduction-virtual-memory)
+* [Testing Memory Allocators: ptmalloc2 vs tcmalloc vs hoard vs jemalloc While Trying to Simulate Real-World Loads - IT Hare on Soft.ware](http://ithare.com/testing-memory-allocators-ptmalloc2-tcmalloc-hoard-jemalloc-while-trying-to-simulate-real-world-loads/)
