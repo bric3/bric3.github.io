@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.75.1" />
+
+    
+    
+    
+
+<title>Glibc can lead to native memory fragmentation • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="Glibc can lead to native memory fragmentation">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2021/01/22/native-memory-fragmentation-with-glibc/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2021-01-22T10:41:09&#43;0100">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Glibc can lead to native memory fragmentation">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.0b2940623a4e7676e1013664033079eb7992e51790962631bcef40491cb589ac.css" integrity="sha256-CylAYjpOdnbhATZkAzB563mS5ReQliYxvO9ASRy1iaw=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.f7fd2a1468742b21cc0db67b8025ff76797d4b5d193f3b9a77a60a270fa20e23.css" integrity="sha256-9/0qFGh0KyHMDbZ7gCX/dnl9S10ZPzuad6YKJw&#43;iDiM=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css" integrity="sha512-KNosrY5jkv7dI1q54vqk0N3x1xEmEn4sjzpU1lWL6bv5VVddcYKQVhHV08468FK6eBBSXTwGlMMZLPTXSpHYHA==" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2021 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    <header>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-01-22-memory-fragmentation.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+</header>
+
+            
+    
+
+<article>
+  <header>
+    <h1>Glibc can lead to native memory fragmentation</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2021-01-22
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 20 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="ulist checklist">
+<div class="title">TODO</div>
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> pmap inspector</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> glibc arenas (// cpu limit ?)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> TCMalloc</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Jemalloc</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A few weeks ago I published an article on
+<a href="https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/">JVM’s off-heap memory</a>,
+which enumerates many sources of memory consumption. However it lacks there is
+anotherinconspicuous source of memory consumption : native memory fragmentation.</p>
+</div>
+<div class="sect1">
+<h2 id="_different_memory_analysis_didnt_add_up"><a class="anchor" href="#_different_memory_analysis_didnt_add_up"></a><a class="link" href="#_different_memory_analysis_didnt_add_up">Different memory analysis didn’t add up</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>I spent quite sometime to identify where the memory was consumed, for some
+workload I tried to match the memory accounted by the Native Memory Tracking
+report by the one reported via <code>pmap</code>, and in this case the memory mapping were
+always higher. But, more importantly the RSS kept growing, while NMT didn’t
+report big changes.</p>
+</div>
+<div class="paragraph">
+<p><code>DirectByteBuffer</code>s weren’t responsible either. Their number was relatively
+small and relatively stable.</p>
+</div>
+<div class="paragraph">
+<p>Then I focused my attention on native memory. I wasn’t sure were to start.
+My favorite search engine brought me a few results about glibc like this
+<a href="https://stackoverflow.com/questions/26041117/growing-resident-memory-usage-rss-of-java-process/35610063">Q/A on stackoverflow</a>,
+some mentioned a bug in glibc &gt;= 2.10, 2.10 is pretty old, our production
+system use 2.28.0.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ldd --version
+ldd (Debian GLIBC 2.28-10) 2.28
+Copyright (C) 2018 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Written by Roland McGrath and Ulrich Drepper.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The comment on stackoverflow left open several questions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Is it the same issue ?</p>
+</li>
+<li>
+<p>Does this bug even apply ?</p>
+</li>
+<li>
+<p>Maybe it’s fixed ?</p>
+</li>
+<li>
+<p>Is it even a bug ?</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Rather than answering these, this put me on the path of how glibc’s <code>malloc</code>
+is handling native memory allocation.
+As I’m quite cold on any native code I began to look at the <code>malloc</code> man page,
+nothing picked up my interest until the very end in the <em>note</em> section:</p>
+</div>
+<div class="quoteblock">
+<div class="title"><a href="https://man7.org/linux/man-pages/man3/malloc.3.html#NOTES"><code>malloc</code> man page, note section excerpt</a></div>
+<blockquote>
+<div class="paragraph">
+<p>To avoid corruption in multithreaded applications, mutexes are
+used internally to protect the memory-management data structures
+employed by these functions.  In a multithreaded application in
+which threads simultaneously allocate and free memory, there
+could be contention for these mutexes.  To scalably handle memory
+allocation in multithreaded applications, glibc creates
+additional <strong>memory allocation arenas</strong> if mutex contention is
+detected.  Each arena is a large region of memory that is
+internally allocated by the system (using brk(2) or mmap(2)), and
+managed with its own mutexes.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>This caught my attention <em>To scalably handle memory allocation in multithreaded applications, glibc creates additional <strong>memory allocation arenas</strong> if mutex
+contention is detected.</em> as this is what the answer in SO talks about.</p>
+</div>
+<div class="paragraph">
+<p>Also, arena memory management is <a href="https://en.wikipedia.org/wiki/Region-based_memory_management">a known technic to manage memory</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_in_the_context_of_glibc_what_exactly_are_these_arenas"><a class="anchor" href="#_in_the_context_of_glibc_what_exactly_are_these_arenas"></a><a class="link" href="#_in_the_context_of_glibc_what_exactly_are_these_arenas">In the context of glibc, what exactly are these arenas ?</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The source code of glibc is available <a href="https://sourceware.org/glibc/wiki/GlibcGit">there</a>.
+On their <a href="https://sourceware.org/glibc/wiki/HomePage">wiki</a> there is a
+<a href="https://sourceware.org/glibc/wiki/MallocInternals">page presenting internals of
+<code>malloc</code></a>, and there is in particular a very useful terminology:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. malloc terminology</caption>
+<colgroup>
+<col style="width: 14.2857%;"/>
+<col style="width: 85.7143%;"/>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Arena</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A structure that is shared among one or more threads which contains references
+to one or more heaps, as well as linked lists of chunks within those heaps which
+are &#34;free&#34;. Threads assigned to each arena will allocate memory from that
+arena’s free lists.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A contiguous region of memory that is subdivided into chunks to be allocated.
+Each heap belongs to exactly one arena.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Chunk</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A small range of memory that can be allocated (owned by the application), freed
+(owned by glibc), or combined with adjacent chunks into larger ranges. Note that
+a chunk is a wrapper around the block of memory that is given to the application.
+Each chunk exists in one heap and belongs to one arena.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Memory</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A portion of the application’s address space which is typically backed by RAM or
+swap.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_measuring_the_issue"><a class="anchor" href="#_measuring_the_issue"></a><a class="link" href="#_measuring_the_issue">Measuring the issue</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>I decided to analyse the memory mapping of the application, using the knowledge
+gained by the use of <code>pmap</code> / procfs. However, to detect properly
+the arena heaps, I will need several elements, the <em>layout</em> of the memory
+mapping and its size.</p>
+</div>
+<div class="paragraph">
+<p>I remember the answers mentionned a <code>64 MiB</code> address space,
+let’s make sure, by looking at the <a href="https://sourceware.org/glibc/wiki/GlibcGit">source code</a></p>
+</div>
+<div class="listingblock">
+<div class="title">malloc.c</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#ifndef DEFAULT_MMAP_THRESHOLD_MAX
+  /* For 32-bit platforms we cannot increase the maximum mmap
+     threshold much because it is also the minimum value for the
+     maximum heap size and its alignment.  Going above 512k (i.e., 1M
+     for new heaps) wastes too much address space.  */
+# if __WORDSIZE == 32
+#  define DEFAULT_MMAP_THRESHOLD_MAX (512 * 1024)
+# else
+#  define DEFAULT_MMAP_THRESHOLD_MAX (4 * 1024 * 1024 * sizeof(long))
+# endif
+#endif</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">arena.c</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#define HEAP_MIN_SIZE (32 * 1024)
+#ifndef HEAP_MAX_SIZE
+# ifdef DEFAULT_MMAP_THRESHOLD_MAX <i class="conum" data-value="1"></i><b>(1)</b>
+#  define HEAP_MAX_SIZE (2 * DEFAULT_MMAP_THRESHOLD_MAX) <i class="conum" data-value="2"></i><b>(2)</b>
+# else
+#  define HEAP_MAX_SIZE (1024 * 1024) /* must be a power of two */
+# endif
+#endif</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>DEFAULT_MMAP_THRESHOLD_MAX</code> is always defined</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>which means the max heap size is <code>64 MiB</code> (<code>65536 KiB</code>)</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>This is a compile-time constant and it is not tunable. Now I need to understand
+how this address space is mapped.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>new_heap {
+  handle alignment
+  mmap (0, HEAP_MAX_SIZE, PROT_NONE, MAP_NORESERVE) <i class="conum" data-value="1"></i><b>(1)</b>
+  mprotect (p2, size, MTAG_MMAP_FLAGS | PROT_READ | PROT_WRITE) <i class="conum" data-value="2"></i><b>(2)</b>
+}</pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Reserves the <code>65536 KiB</code> space with no permissions.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Changes the permission to read and write for a needed size in this heap.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>So in a <code>pmap</code> output a glibc malloc <code>arena</code> would look this :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>00007fe164000000    2736    2736    2736 rw---   [ anon ]
+00007fe1642ac000   62800       0       0 -----   [ anon ]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Technically other native code could come up the same layout pattern, but in my
+case I don’t think that any of the third party do anything like this, so I’ll
+proceed with this idea.
+In order to actually make sure of the actual mapping, one could invoke the
+native method <code>malloc_info</code>.</p>
+</div>
+<div class="paragraph">
+<p>I wrote my own
+<a href="https://gist.github.com/bric3/ce236e2c74860fd60f3aa542b5a800d0">pmap inspector</a>,
+to identify probable memory zones (probably not 100% exact, but useful enough).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">         JAVA_HEAP count=1     reserved=4194304    rss=2746068
+       MAPPED_FILE count=49    reserved=194712     rss=53704
+  MAIN_NATIVE_HEAP count=1     reserved=884        rss=720
+           UNKNOWN count=63    reserved=668200     rss=464716
+       JAVA_THREAD count=447   reserved=459516     rss=59240
+   NON_JAVA_THREAD count=24    reserved=24768      rss=332
+  UNKNOWN_SEGMENT1 count=27    reserved=83052      rss=58204
+  UNKNOWN_SEGMENT2 count=31    reserved=63488      rss=63328
+      MALLOC_ARENA count=257   reserved=16875656   rss=1242072
+ MAIN_NATIVE_STACK count=1     reserved=136        rss=36
+    KERNEL_MAPPING count=3     reserved=24         rss=8</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><a href="https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html" class="bare">https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html</a></p>
+</div>
+<div class="paragraph">
+<p>The web was also mentioning memory fragmentation with glibc and the use of the
+<code>MALLOC_ARENA_MAX</code> environment variable tuning, some others were disappointed
+by its effectiveness, less memory but more contention, etc.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://publib.boulder.ibm.com/httpserv/cookbook/Operating_Systems-Linux.html?lang=en" class="bare">https://publib.boulder.ibm.com/httpserv/cookbook/Operating_Systems-Linux.html?lang=en</a></p>
+</li>
+<li>
+<p><a href="https://github.com/cloudfoundry/java-buildpack/issues/320" class="bare">https://github.com/cloudfoundry/java-buildpack/issues/320</a></p>
+</li>
+<li>
+<p><a href="https://devcenter.heroku.com/articles/tuning-glibc-memory-behavior" class="bare">https://devcenter.heroku.com/articles/tuning-glibc-memory-behavior</a></p>
+</li>
+<li>
+<p><a href="https://stackoverflow.com/questions/10575342/what-would-cause-a-java-process-to-greatly-exceed-the-xmx-or-xss-limit" class="bare">https://stackoverflow.com/questions/10575342/what-would-cause-a-java-process-to-greatly-exceed-the-xmx-or-xss-limit</a></p>
+</li>
+<li>
+<p><a href="https://unix.stackexchange.com/questions/379644/glibc-memory-alloction-arenas-and-debugging" class="bare">https://unix.stackexchange.com/questions/379644/glibc-memory-alloction-arenas-and-debugging</a></p>
+</li>
+<li>
+<p>…</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>To understand better how glibc malloc works I digged a bit, and noticed how
+glibc <code>malloc</code> work with threads. A better explanation is available
+<a href="https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/">there</a>.
+Some people had to tune a lot more GLIBC parameters to avoid fragmentation,
+see comments in this
+<a href="https://plumbr.io/blog/memory-leaks/why-does-my-java-process-consume-more-memory-than-xmx">blog post</a>.</p>
+</div>
+<div class="paragraph">
+<p>In order to understand better what was happening I enabled the
+<code>-XX:+AlwaysPreTouch</code> to remove the “noise” of memory paging in the heap (when
+untouched region are accessed for the first time hours after start).
+Instead of tuning glibc, I preferred to use a different allocator, requiring
+much less effort and maintenance.
+There are several options :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>jemalloc (long history, robust)</p>
+</li>
+<li>
+<p>tcmalloc (maintained by google)</p>
+</li>
+<li>
+<p>minimalloc (efficient malloc contribution from microsoft)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>I used TCMalloc as it’s very old and maintained by google, and can be installed with allocation profiling tool.
+Others are fine, especially jemalloc that can come with allocation profiler as well.
+The results are very good, RSS is stable and even decreasing on lower activity.</p>
+</div>
+<div class="paragraph">
+<p>One thing to note: removing the CPU limits had a nice effect on glibc native
+memory usage, but I’m uncertain in the long run.I still need to understand that
+effect.PS I’m not sure if I will keep the <code>-XX:+AlwaysPreTouch</code> flag active.
+But at least it helps to get easy and early feedback on application memory
+consumption.</p>
+</div>
+<div class="paragraph">
+<p>I ran tests using jemalloc.Immediately after deployment the jemalloc pods shows
+a higher memory usage in general that those running TCmalloc, in this test pods
+with the highest memory usage had over 400 MiB more.
+Also the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
+to give back memory to the OS.</p>
+</div>
+<div class="paragraph">
+<p>The other change in this graph is the number of CPU, this deployment was running
+1 CPU. And after bumping the <code>requests.cpu</code> to 2 the memory usage range is
+smaller and memory usage is smaller in general.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tcmalloc_vs_jemalloc"><a class="anchor" href="#_tcmalloc_vs_jemalloc"></a><a class="link" href="#_tcmalloc_vs_jemalloc">tcmalloc vs jemalloc</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Both libraries try to de-contention memory acquire by having threads pick the
+memory from different caches, but they have different strategies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>jemalloc</code> (used by Facebook) maintains a cache per thread</p>
+</li>
+<li>
+<p><code>tcmalloc</code> (from Google) maintains a pool of caches, and threads develop a
+“natural” affinity for a cache, but may change</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This led, once again if I remember correctly, to an important difference in
+terms of thread management.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>jemalloc</code> is faster if threads are static, for example using pools</p>
+</li>
+<li>
+<p><code>tcmalloc</code> is faster when threads are created/destructed</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>There is also the problem that since jemalloc spin new caches to accommodate
+new thread ids, having a sudden spike of threads will leave you with (mostly)
+empty caches in the subsequent calm phase.</p>
+</div>
+<div class="paragraph">
+<p>As a result, I would recommend <code>tcmalloc</code> in the general case, and reserve
+<code>jemalloc</code> for very specific usages (low variation on the number of threads
+during the lifetime of the application).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_links"><a class="anchor" href="#_links"></a><a class="link" href="#_links">Links</a></h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>[Linux Process Memory Layout - int13](<a href="https://ewirch.github.io/2013/11/linux-process-memory-layout.html" class="bare">https://ewirch.github.io/2013/11/linux-process-memory-layout.html</a>)</p>
+</li>
+<li>
+<p>[Malloc Internals and You - Red Hat Developer](<a href="https://developers.redhat.com/blog/2017/03/02/malloc-internals-and-you/" class="bare">https://developers.redhat.com/blog/2017/03/02/malloc-internals-and-you/</a>)</p>
+</li>
+<li>
+<p>[An introduction to virtual memory - Internal Pointers](<a href="https://www.internalpointers.com/post/introduction-virtual-memory" class="bare">https://www.internalpointers.com/post/introduction-virtual-memory</a>)</p>
+</li>
+<li>
+<p>[Testing Memory Allocators: ptmalloc2 vs tcmalloc vs hoard vs jemalloc While Trying to Simulate Real-World Loads - IT Hare on Soft.ware](<a href="http://ithare.com/testing-memory-allocators-ptmalloc2-tcmalloc-hoard-jemalloc-while-trying-to-simulate-real-world-loads/" class="bare">http://ithare.com/testing-memory-allocators-ptmalloc2-tcmalloc-hoard-jemalloc-while-trying-to-simulate-real-world-loads/</a>)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/2020/11/07/tweakble-jvm-setting-per-helm-release/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Tweakble JVM setting per helm release</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  
+
+</article>
+
+
+            
+    
+<footer>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-01-22-memory-fragmentation.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/highlight.min.js" integrity="sha512-DrpaExP2d7RJqNhXB41Q/zzzQrtb6J0zfnXD5XeVEWE8d9Hj54irCLj6dRS3eNepPja7DvKcV+9PnHC7A/g83A==" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+
+</footer>
+
+    
+
+
+
+        </div>
+    </body>
+</html>
+
