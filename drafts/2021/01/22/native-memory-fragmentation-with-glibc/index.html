@@ -447,8 +447,9 @@ the arena heaps, I will need several elements, the <em>layout</em> of the memory
 mapping and its size.</p>
 </div>
 <div class="paragraph">
-<p>I remember the answers mentioned a <code>64 MiB</code> address space,
-let’s make sure, by looking at the <a href="https://sourceware.org/glibc/wiki/GlibcGit">source code</a></p>
+<p>I remember people mentioned a <code>64 MiB</code> segments, but without proof or linking
+documentation, let’s make sure it is indeed and it is always this value. The
+glibc source code is available <a href="https://sourceware.org/glibc/wiki/GlibcGit">there</a>.</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>DEFAULT_MMAP_THRESHOLD_MAX</code> in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967">malloc.c</a></div>
@@ -604,10 +605,10 @@ the mapping.</p>
 </td>
 <td class="content">
 Again at this stage this code is simple, certainly incomplete, and
-it assumes a few hypotheses : Java 11, thread stack size is 1 MiB, guards,
-glibc malloc usage.
-So while it’s unlikely to be 100% exact it is useful enough to identify probable
-memory zones, and their memory consumption.
+it assumes a few hypotheses : Java 11, thread stack size is <code>1 MiB</code>, stack
+guards, glibc malloc usage.
+While it’s unlikely to be 100% exact or even bulletproof this script is useful
+enough to identify probable memory zones and their memory consumption.
 </td>
 </tr>
 </tbody></table>
@@ -621,7 +622,12 @@ memory zones, and their memory consumption.
 </div>
 </div>
 </details>
+<div class="paragraph">
+<p>The important bit is not quite to get the reserved mapping size but to measure
+how much dirty pages there in the native segments.</p>
+</div>
 <div class="listingblock">
+<div class="title">Memory segment classification</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">         JAVA_HEAP count=1     reserved=4194304    rss=2746068
        MAPPED_FILE count=49    reserved=194712     rss=53704
@@ -631,10 +637,18 @@ memory zones, and their memory consumption.
    NON_JAVA_THREAD count=24    reserved=24768      rss=332
   UNKNOWN_SEGMENT1 count=27    reserved=83052      rss=58204
   UNKNOWN_SEGMENT2 count=31    reserved=63488      rss=63328
-      MALLOC_ARENA count=257   reserved=16875656   rss=1242072
+      MALLOC_ARENA count=257   reserved=16875656   rss=1242072 <i class="conum" data-value="1"></i><b>(1)</b>
  MAIN_NATIVE_STACK count=1     reserved=136        rss=36
     KERNEL_MAPPING count=3     reserved=24         rss=8</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>malloc arena’s heaps uses <code>~1.2 GiB</code> (<code>1 242 072 KiB</code>)</td>
+</tr>
+</tbody></table>
 </div>
 </div>
 </div>
@@ -672,16 +686,18 @@ by its effectiveness, less memory but more contention, etc.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>To understand better how glibc malloc works I digged a bit, and noticed how
-glibc <code>malloc</code> work with threads. A better explanation is available
-<a href="https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/">there</a>.
-Some people had to tune a lot more GLIBC parameters to avoid fragmentation,
+<p>To understand better how glibc malloc works I dug a bit, and noticed how
+glibc <code>malloc</code> worked with threads. A better explanation is available
+<a href="https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/">there</a>.</p>
+</div>
+<div class="paragraph">
+<p>Some people had to tune a lot more glibc parameters to avoid fragmentation,
 see comments in this
 <a href="https://plumbr.io/blog/memory-leaks/why-does-my-java-process-consume-more-memory-than-xmx">blog post</a>.</p>
 </div>
 <div class="paragraph">
 <p>In order to understand better what was happening I enabled the
-<code>-XX:+AlwaysPreTouch</code> to remove the “noise” of memory paging in the heap (when
+<code>-XX:+AlwaysPreTouch</code> to remove the &#34;noise&#34; of memory paging in the heap (when
 untouched region are accessed for the first time hours after start).
 Instead of tuning glibc, I preferred to use a different allocator, requiring
 much less effort and maintenance.
@@ -710,10 +726,8 @@ The results are very good, RSS is stable and even decreasing on lower activity.<
 </div>
 <div class="paragraph">
 <p>One thing to note: removing the CPU limits had a nice effect on glibc native
-memory usage, but I’m uncertain in the long run.I still need to understand that
-effect.PS I’m not sure if I will keep the <code>-XX:+AlwaysPreTouch</code> flag active.
-But at least it helps to get easy and early feedback on application memory
-consumption.</p>
+memory usage, but I’m uncertain in the long run. I still need to understand that
+effect.</p>
 </div>
 <div class="paragraph">
 <p>I ran tests using jemalloc. Immediately after deployment the jemalloc pods shows
