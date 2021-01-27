@@ -124,6 +124,9 @@ swap.
 |===
 
 
+// TODO add drawing
+
+
 == Measuring the issue
 
 I decided to analyse the memory mapping of the application, using the knowledge
@@ -267,21 +270,37 @@ how much dirty pages there in the native segments.
 
 == How to remediate the situation ?
 
-https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html
+Native libraries usually offer a way to tune some behavior via environment
+variables, glibc is no different and documents a list of
+https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html[tunable parameters].
 
-The web was also mentioning memory fragmentation with glibc and the use of the
-`MALLOC_ARENA_MAX` environment variable tuning, some others were disappointed
-by its effectiveness, less memory but more contention, etc.
+In particular, we would be interested in `MALLOC_ARENA_MAX`, but it immediately
+raises a few questions:
 
-* https://publib.boulder.ibm.com/httpserv/cookbook/Operating_Systems-Linux.html?lang=en
+* How to tune it ?
+* Or more specifically how does it affect the ``malloc``'s behavior ?
+* Is it really effective ?
+* What could be the negative effects of a bad settings, e.g. less arena heaps
+but more contention on these heaps ?
+
+
+Fortunately I am not alone to look at malloc arenas :
+
 * https://github.com/cloudfoundry/java-buildpack/issues/320
 * https://devcenter.heroku.com/articles/tuning-glibc-memory-behavior
+* https://publib.boulder.ibm.com/httpserv/cookbook/Operating_Systems-Linux.html?lang=en
 * https://stackoverflow.com/questions/10575342/what-would-cause-a-java-process-to-greatly-exceed-the-xmx-or-xss-limit
 * https://unix.stackexchange.com/questions/379644/glibc-memory-alloction-arenas-and-debugging
 * …
 
-To understand better how glibc malloc works I dug a bit, and noticed how
-glibc `malloc` worked with threads. A better explanation is available
+It's been a long time since I didn't do C programming and reading the malloc
+source is more tedious than the one from the JVM.
+
+
+// TODO glibc malloc drawing
+
+The glibc `malloc` is coupled with threads and the number of available CPUs.
+A better explanation is available
 https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/[there].
 
 Some people had to tune a lot more glibc parameters to avoid fragmentation,
