@@ -6,6 +6,7 @@ draft: true
 #tags: ["kubernetes", "docker", "java", "jvm", "memory", "glibc", "tcmalloc", "jemalloc"]
 slug: "native-memory-fragmentation-with-glibc"
 title: "Glibc can lead to native memory fragmentation"
+summary: Your workload consumption may suffer from native memory fragmentation.
 ---
 
 
@@ -15,15 +16,23 @@ title: "Glibc can lead to native memory fragmentation"
 - [ ] TCMalloc
 - [ ] Jemalloc
 
+Back in June 2020, I had a pretty good picture of what was the memory usage, or
+more precisely the memory demands of the JVM workloads I had running in
+production. This resulted in the following article I published last year
+https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/[JVM's off-heap memory].
 
-A few weeks ago I published an article on
-https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/[JVM's off-heap memory],
-which enumerates many sources of memory consumption. However it lacks there is
-anotherinconspicuous source of memory consumption : native memory fragmentation.
+I enumerates many sources of memory consumption, however it lacks there is
+another inconspicuous source of memory consumption that I wasn't aware
+until out workload started to ran in memory constrained containers :
+*native memory fragmentation*.
+
+.oomkiller in action
+image::/assets/glibc-fragmentation/rss-leading-to-oom.png[]
+//image:assets/glibc-fragmentation/increasing-rss.png[]
 
 == Different memory analysis didn't add up
 
-I spent quite sometime to identify where the memory was consumed, for some
+I spent time to identify where the memory was consumed for some
 workload I tried to match the memory accounted by the Native Memory Tracking
 report by the one reported via `pmap`, and in this case the memory mapping were
 always higher. But, more importantly the RSS kept growing, while NMT didn't
@@ -73,10 +82,12 @@ nothing picked up my interest until the very end in the _note_ section:
 > internally allocated by the system (using brk(2) or mmap(2)), and
 > managed with its own mutexes.
 
-This caught my attention _To scalably handle memory allocation in multithreaded applications, glibc creates additional *memory allocation arenas* if mutex
+This caught my attention _To scalably handle memory allocation in multithreaded
+applications, glibc creates additional *memory allocation arenas* if mutex
 contention is detected._ as this is what the answer in SO talks about.
 
-Also, arena memory management is https://en.wikipedia.org/wiki/Region-based_memory_management[a known technic to manage memory].
+Also, arena memory management is
+https://en.wikipedia.org/wiki/Region-based_memory_management[a known technic to manage memory].
 
 
 == In the context of glibc, what exactly are these arenas ?
@@ -120,11 +131,12 @@ gained by the use of `pmap` / procfs. However, to detect properly
 the arena heaps, I will need several elements, the _layout_ of the memory
 mapping and its size.
 
-I remember the answers mentionned a `64 MiB` address space,
-let's make sure, by looking at the https://sourceware.org/glibc/wiki/GlibcGit[source code]
+I remember people mentioned a `64 MiB` segments, but without proof or linking
+documentation, let's make sure it is indeed and it is always this value. The
+glibc source code is available https://sourceware.org/glibc/wiki/GlibcGit[there].
 
 
-.malloc.c
+.`DEFAULT_MMAP_THRESHOLD_MAX` in https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967[malloc.c]
 [source, c]
 ----
 #ifndef DEFAULT_MMAP_THRESHOLD_MAX
@@ -139,9 +151,9 @@ let's make sure, by looking at the https://sourceware.org/glibc/wiki/GlibcGit[so
 # endif
 #endif
 ----
-// https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967
 
-.arena.c
+
+.`HEAP_MAX_SIZE` in https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=bf17be27d48c7a39fc3b421957cb020a4451cc50;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l29[arena.c]
 [source, c]
 ----
 #define HEAP_MIN_SIZE (32 * 1024)
@@ -155,10 +167,14 @@ let's make sure, by looking at the https://sourceware.org/glibc/wiki/GlibcGit[so
 ----
 <1> `DEFAULT_MMAP_THRESHOLD_MAX` is always defined
 <2> which means the max heap size is `64 MiB` (`65536 KiB`)
-// https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=bf17be27d48c7a39fc3b421957cb020a4451cc50;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l29
 
 This is a compile-time constant and it is not tunable. Now I need to understand
 how this address space is mapped.
+
+Also in the `arena.c` file there is an interesting function : `new_heap`,
+this code describe how a heap is created.
+
+// TODO dissipate misunderstanding of the new_heap function code.
 
 ----
 new_heap {
@@ -168,29 +184,70 @@ new_heap {
 }
 ----
 <1> Reserves the `65536 KiB` space with no permissions.
-<2> Changes the permission to read and write for a needed size in this heap.
+<2> Immediately changes the permission to read and write for the initial size
+of this heap.
 
-So in a `pmap` output a glibc malloc `arena` would look this :
+From that I understand that in a `pmap` output a glibc malloc `arena` would look
+this :
 
+[source]
 ----
-00007fe164000000    2736    2736    2736 rw---   [ anon ]
-00007fe1642ac000   62800       0       0 -----   [ anon ]
+00007fe164000000    2736    2736    2736 rw---   [ anon ] <1>
+00007fe1642ac000   62800       0       0 -----   [ anon ] <2>
 ----
+<1> The segment on which the permissions have been changed, this segment will
+grow as the heap size grows.
+<2> The rest of the reserved heap segment, this segment will get smaller
+if the heap grows.
 
-Technically other native code could come up the same layout pattern, but in my
-case I don't think that any of the third party do anything like this, so I'll
-proceed with this idea.
-// TODO malloc_info
-In order to actually make sure of the actual mapping, one could invoke the
+Note how sum of the mappings is equal to `64 MiB` : `2736 + 62800 = 65536` !
+
+
+NOTE: It's worth saying that the same layout pattern could be achieved by any
+other native code, but in my case there's no other third party library that does
+anything like this, so I'll proceed with this idea. Be sure your code base!
+
+
+// TODO: malloc_info
+TIP: In order to actually make sure of the actual mapping, one could invoke the
 native method `malloc_info`.
 
 
 
+== Writing my own pmap inspector
 
-I wrote my own
-https://gist.github.com/bric3/ce236e2c74860fd60f3aa542b5a800d0[pmap inspector],
-to identify probable memory zones (probably not 100% exact, but useful enough).
+Usually on a JVM the memory mapping can be quite large and intimidating, while
+it is certainly possible to identify memory mapping patterns with the eye,
+it's a tedious task and it does not scale when you need to repeat the process.
 
+So I wrote my own parse to inspect `pmap` output, I chose to use `pmap` output
+because it's easier to transport out of a pod I like the single line by mapping.
+It is certainly possible to parse the `/proc/{pid}/smaps` pseudo-file, as it
+contains the same data.
+
+The code of the pmap inspector is very basic, it takes a file, that is the
+output of the command `pmap -X {pid}` and process each line trying to identify
+the mapping.
+
+
+//https://gist.github.com/bric3/ce236e2c74860fd60f3aa542b5a800d0[pmap inspector],
+
+CAUTION: Again at this stage this code is simple, certainly incomplete, and
+it assumes a few hypotheses : Java 11, thread stack size is `1 MiB`, stack
+guards, glibc malloc usage.
+While it's unlikely to be 100% exact or even bulletproof this script is useful
+enough to identify probable memory zones and their memory consumption.
+
+.`pmap` inspector gist
+[%collapsible]
+====
+{{< gist bric3 ce236e2c74860fd60f3aa542b5a800d0 >}}
+====
+
+The important bit is not quite to get the reserved mapping size but to measure
+how much dirty pages there in the native segments.
+
+.Memory segment classification
 [source]
 ----
          JAVA_HEAP count=1     reserved=4194304    rss=2746068
@@ -201,11 +258,14 @@ to identify probable memory zones (probably not 100% exact, but useful enough).
    NON_JAVA_THREAD count=24    reserved=24768      rss=332
   UNKNOWN_SEGMENT1 count=27    reserved=83052      rss=58204
   UNKNOWN_SEGMENT2 count=31    reserved=63488      rss=63328
-      MALLOC_ARENA count=257   reserved=16875656   rss=1242072
+      MALLOC_ARENA count=257   reserved=16875656   rss=1242072 <1>
  MAIN_NATIVE_STACK count=1     reserved=136        rss=36
     KERNEL_MAPPING count=3     reserved=24         rss=8
 ----
+<1> malloc arena's heaps uses `~1.2 GiB` (`1 242 072 KiB`)
 
+
+== How to remediate the situation ?
 
 https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html
 
@@ -220,46 +280,49 @@ by its effectiveness, less memory but more contention, etc.
 * https://unix.stackexchange.com/questions/379644/glibc-memory-alloction-arenas-and-debugging
 * …
 
-To understand better how glibc malloc works I digged a bit, and noticed how
-glibc `malloc` work with threads. A better explanation is available
+To understand better how glibc malloc works I dug a bit, and noticed how
+glibc `malloc` worked with threads. A better explanation is available
 https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/[there].
-Some people had to tune a lot more GLIBC parameters to avoid fragmentation,
+
+Some people had to tune a lot more glibc parameters to avoid fragmentation,
 see comments in this
 https://plumbr.io/blog/memory-leaks/why-does-my-java-process-consume-more-memory-than-xmx[blog post].
 
 In order to understand better what was happening I enabled the
-`-XX:+AlwaysPreTouch` to remove the “noise” of memory paging in the heap (when
+`-XX:+AlwaysPreTouch` to remove the "noise" of memory paging in the heap (when
 untouched region are accessed for the first time hours after start).
 Instead of tuning glibc, I preferred to use a different allocator, requiring
 much less effort and maintenance.
 There are several options :
 
 * jemalloc (long history, robust)
-* tcmalloc (maintained by google)
+* tcmalloc (long history, now maintained by google)
 * minimalloc (efficient malloc contribution from microsoft)
 
 I used TCMalloc as it’s very old and maintained by google, and can be installed with allocation profiling tool.
 Others are fine, especially jemalloc that can come with allocation profiler as well.
 The results are very good, RSS is stable and even decreasing on lower activity.
 
-// comparative memory usage
+image::/assets/glibc-fragmentation/comparative-memory-usage.png[]
 
 One thing to note: removing the CPU limits had a nice effect on glibc native
-memory usage, but I’m uncertain in the long run.I still need to understand that
-effect.PS I’m not sure if I will keep the `-XX:+AlwaysPreTouch` flag active.
-But at least it helps to get easy and early feedback on application memory
-consumption.
+memory usage, but I’m uncertain in the long run. I still need to understand that
+effect.
 
-I ran tests using jemalloc.Immediately after deployment the jemalloc pods shows
+I ran tests using jemalloc. Immediately after deployment the jemalloc pods shows
 a higher memory usage in general that those running TCmalloc, in this test pods
 with the highest memory usage had over 400 MiB more.
-Also the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
+Also, the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
 to give back memory to the OS.
 
-// tcmalloc-jemalloc
+.tcmalloc vs jemalloc (1 cpu)
+image::/assets/glibc-fragmentation/tcmalloc-jemalloc.png[]
+
+.jemalloc vs tcmalloc (2 cpu)
+image::/assets/glibc-fragmentation/jemaloc-tcmalloc-request.cpu=2.png[]
 
 The other change in this graph is the number of CPU, this deployment was running
-1 CPU. And after bumping the `requests.cpu` to 2 the memory usage range is
+1 CPU. After bumping the `requests.cpu` to 2 the memory usage range is
 smaller and memory usage is smaller in general.
 
 // The change in memory usage after the bump in CPU request to be due to Netty’s
