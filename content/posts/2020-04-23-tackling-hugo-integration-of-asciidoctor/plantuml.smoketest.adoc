@@ -208,6 +208,26 @@ http://plantuml.com/sprite[Documentation]
 
 '''
 
+EDIT 2021-01-22:
+The asciidoctor-diagram:2.1.0 saw some changes and now ships with few
+dependencies for some diagram component. PlantUML in particular
+saw a braking change in the way it handles GraphViz dot diagrams,
+it doesn't support anymore _jdot_ and instead require to use _smetana_.
+
+https://plantuml.com/changes[PlantUML changes]
+
+* asciidoctor-diagram:2.1.0
+* asciidoctor-diagram-ditaamini:0.13.1
+* asciidoctor-diagram-plantuml:1.2021.0
+
+[source, diff]
+----
+- !pragma graphviz_dot jdot
++ !pragma graphviz_dot smetana
+----
+
+
+.Outdated
 Following diagrams today require GraphViz's `dot` binary, a possible
 alternative would be to use an abandoned port (3 years without update)
 of `dot` in Java, however not everything is supported, like arrows.
@@ -224,7 +244,7 @@ of `dot` in Java, however not everything is supported, like arrows.
 [plantuml,"component-diagram-example"]
 .Component diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 package "Some Group" {
   HTTP - [First Component]
@@ -266,7 +286,7 @@ database "MySql" {
 [plantuml,"state-diagram-example"]
 .State diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 [*] --> State1
 State1 --> [*]
@@ -286,7 +306,7 @@ State2 --> [*]
 [plantuml,"object-diagram-example"]
 .Object diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 object Object01
 object Object02
@@ -309,7 +329,7 @@ Object07 .. Object08 : some labels
 [plantuml,"class-diagram-example"]
 .Class diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 class Object << general >>
 Object <|--- ArrayList
@@ -332,7 +352,7 @@ note left: On last defined class
 [plantuml,"use-case-diagram-example"]
 .Use case diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 :Main Admin: as Admin
 (Use the application) as (Use)
@@ -360,7 +380,7 @@ N2 .. (Use)
 [plantuml,"deployment-diagram-example"]
 .Deployment diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 cloud cloud1
 cloud cloud2
@@ -377,7 +397,7 @@ cloud1 -(0)- cloud5
 [plantuml,"deployment-artefact-diagram-example"]
 .Deployment artefact diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 artifact artifact1
 artifact artifact2
@@ -416,7 +436,7 @@ listsprite
 [plantuml,"archimate-diagram-example"]
 .Archimate diagram
 ----
-!pragma graphviz_dot jdot
+!pragma graphviz_dot smetana
 
 sprite $bProcess jar:archimate/business-process
 sprite $aService jar:archimate/application-service
