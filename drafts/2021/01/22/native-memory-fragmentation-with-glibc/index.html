@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 20 min read
+    <i class="fas fa-clock"></i> 23 min read
 
     
     
@@ -294,16 +294,26 @@
 </ul>
 </div>
 <div class="paragraph">
-<p>A few weeks ago I published an article on
-<a href="https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/">JVM’s off-heap memory</a>,
-which enumerates many sources of memory consumption. However it lacks there is
-anotherinconspicuous source of memory consumption : native memory fragmentation.</p>
+<p>Back in June 2020, I had a pretty good picture of what was the memory usage, or
+more precisely the memory demands of the JVM workloads I had running in
+production. This resulted in the following article I published last year
+<a href="https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/">JVM’s off-heap memory</a>.</p>
+</div>
+<div class="paragraph">
+<p>I enumerates many sources of memory consumption, however it lacks there is
+another inconspicuous source of memory consumption that I wasn’t aware
+until out workload started to ran in memory constrained containers :
+<strong>native memory fragmentation</strong>.</p>
+</div>
+<div class="paragraph">
+<div class="title">oomkiller in action</div>
+<p><span class="image"><img src="assets/glibc-fragmentation/rss-leading-to-oom.png" alt="rss leading to oom"/></span></p>
 </div>
 <div class="sect1">
 <h2 id="_different_memory_analysis_didnt_add_up"><a class="anchor" href="#_different_memory_analysis_didnt_add_up"></a><a class="link" href="#_different_memory_analysis_didnt_add_up">Different memory analysis didn’t add up</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>I spent quite sometime to identify where the memory was consumed, for some
+<p>I spent time to identify where the memory was consumed for some
 workload I tried to match the memory accounted by the Native Memory Tracking
 report by the one reported via <code>pmap</code>, and in this case the memory mapping were
 always higher. But, more importantly the RSS kept growing, while NMT didn’t
@@ -373,11 +383,13 @@ managed with its own mutexes.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>This caught my attention <em>To scalably handle memory allocation in multithreaded applications, glibc creates additional <strong>memory allocation arenas</strong> if mutex
+<p>This caught my attention <em>To scalably handle memory allocation in multithreaded
+applications, glibc creates additional <strong>memory allocation arenas</strong> if mutex
 contention is detected.</em> as this is what the answer in SO talks about.</p>
 </div>
 <div class="paragraph">
-<p>Also, arena memory management is <a href="https://en.wikipedia.org/wiki/Region-based_memory_management">a known technic to manage memory</a>.</p>
+<p>Also, arena memory management is
+<a href="https://en.wikipedia.org/wiki/Region-based_memory_management">a known technic to manage memory</a>.</p>
 </div>
 </div>
 </div>
@@ -435,11 +447,11 @@ the arena heaps, I will need several elements, the <em>layout</em> of the memory
 mapping and its size.</p>
 </div>
 <div class="paragraph">
-<p>I remember the answers mentionned a <code>64 MiB</code> address space,
+<p>I remember the answers mentioned a <code>64 MiB</code> address space,
 let’s make sure, by looking at the <a href="https://sourceware.org/glibc/wiki/GlibcGit">source code</a></p>
 </div>
 <div class="listingblock">
-<div class="title">malloc.c</div>
+<div class="title"><code>DEFAULT_MMAP_THRESHOLD_MAX</code> in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967">malloc.c</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#ifndef DEFAULT_MMAP_THRESHOLD_MAX
   /* For 32-bit platforms we cannot increase the maximum mmap
@@ -455,7 +467,7 @@ let’s make sure, by looking at the <a href="https://sourceware.org/glibc/wiki/
 </div>
 </div>
 <div class="listingblock">
-<div class="title">arena.c</div>
+<div class="title"><code>HEAP_MAX_SIZE</code> in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=bf17be27d48c7a39fc3b421957cb020a4451cc50;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l29">arena.c</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#define HEAP_MIN_SIZE (32 * 1024)
 #ifndef HEAP_MAX_SIZE
@@ -483,6 +495,10 @@ let’s make sure, by looking at the <a href="https://sourceware.org/glibc/wiki/
 <p>This is a compile-time constant and it is not tunable. Now I need to understand
 how this address space is mapped.</p>
 </div>
+<div class="paragraph">
+<p>Also in the <code>arena.c</code> file there is an interesting function : <code>new_heap</code>,
+this code describe how a heap is created.</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre>new_heap {
@@ -500,31 +516,111 @@ how this address space is mapped.</p>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Changes the permission to read and write for a needed size in this heap.</td>
+<td>Immediately changes the permission to read and write for the initial size
+of this heap.</td>
 </tr>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>So in a <code>pmap</code> output a glibc malloc <code>arena</code> would look this :</p>
+<p>From that I understand that in a <code>pmap</code> output a glibc malloc <code>arena</code> would look
+this :</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>00007fe164000000    2736    2736    2736 rw---   [ anon ]
-00007fe1642ac000   62800       0       0 -----   [ anon ]</pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">00007fe164000000    2736    2736    2736 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007fe1642ac000   62800       0       0 -----   [ anon ] <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The segment on which the permissions have been changed, this segment will
+grow as the heap size grows.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The rest of the reserved heap segment, this segment will get smaller
+if the heap grows.</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
-<p>Technically other native code could come up the same layout pattern, but in my
-case I don’t think that any of the third party do anything like this, so I’ll
-proceed with this idea.
+<p>Note how sum of the mappings is equal to <code>64 MiB</code> : <code>2736 + 62800 = 65536</code> !</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+It’s worth saying that the same layout pattern could be achieved by any
+other native code, but in my case there’s no other third party library that does
+anything like this, so I’ll proceed with this idea. Be sure your code base!
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
 In order to actually make sure of the actual mapping, one could invoke the
-native method <code>malloc_info</code>.</p>
+native method <code>malloc_info</code>.
+</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_writing_my_own_pmap_inspector"><a class="anchor" href="#_writing_my_own_pmap_inspector"></a><a class="link" href="#_writing_my_own_pmap_inspector">Writing my own pmap inspector</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Usually on a JVM the memory mapping can be quite large and intimidating, while
+it is certainly possible to identify memory mapping patterns with the eye,
+it’s a tedious task and it does not scale when you need to repeat the process.</p>
 </div>
 <div class="paragraph">
-<p>I wrote my own
-<a href="https://gist.github.com/bric3/ce236e2c74860fd60f3aa542b5a800d0">pmap inspector</a>,
-to identify probable memory zones (probably not 100% exact, but useful enough).</p>
+<p>So I wrote my own parse to inspect <code>pmap</code> output, I chose to use <code>pmap</code> output
+because it’s easier to transport out of a pod I like the single line by mapping.
+It is certainly possible to parse the <code>/proc/{pid}/smaps</code> pseudo-file, as it
+contains the same data.</p>
 </div>
+<div class="paragraph">
+<p>The code of the pmap inspector is very basic, it takes a file, that is the
+output of the command <code>pmap -X {pid}</code> and process each line trying to identify
+the mapping.</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+Again at this stage this code is simple, certainly incomplete, and
+it assumes a few hypotheses : Java 11, thread stack size is 1 MiB, guards,
+glibc malloc usage.
+So while it’s unlikely to be 100% exact it is useful enough to identify probable
+memory zones, and their memory consumption.
+</td>
+</tr>
+</tbody></table>
+</div>
+<details>
+<summary class="title"><code>pmap</code> inspector gist</summary>
+<div class="content">
+<div class="paragraph">
+<script type="application/javascript" src="https://gist.github.com/bric3/ce236e2c74860fd60f3aa542b5a800d0.js"></script>
+
+</div>
+</div>
+</details>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">         JAVA_HEAP count=1     reserved=4194304    rss=2746068
@@ -540,6 +636,11 @@ to identify probable memory zones (probably not 100% exact, but useful enough).<
     KERNEL_MAPPING count=3     reserved=24         rss=8</code></pre>
 </div>
 </div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_to_remediate_the_situation"><a class="anchor" href="#_how_to_remediate_the_situation"></a><a class="link" href="#_how_to_remediate_the_situation">How to remediate the situation ?</a></h2>
+<div class="sectionbody">
 <div class="paragraph">
 <p><a href="https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html" class="bare">https://www.gnu.org/software/libc/manual/html_node/Malloc-Tunable-Parameters.html</a></p>
 </div>
@@ -592,7 +693,7 @@ There are several options :</p>
 <p>jemalloc (long history, robust)</p>
 </li>
 <li>
-<p>tcmalloc (maintained by google)</p>
+<p>tcmalloc (long history, now maintained by google)</p>
 </li>
 <li>
 <p>minimalloc (efficient malloc contribution from microsoft)</p>
@@ -605,6 +706,9 @@ Others are fine, especially jemalloc that can come with allocation profiler as w
 The results are very good, RSS is stable and even decreasing on lower activity.</p>
 </div>
 <div class="paragraph">
+<p><span class="image"><img src="assets/glibc-fragmentation/comparative-memory-usage.png" alt="comparative memory usage"/></span></p>
+</div>
+<div class="paragraph">
 <p>One thing to note: removing the CPU limits had a nice effect on glibc native
 memory usage, but I’m uncertain in the long run.I still need to understand that
 effect.PS I’m not sure if I will keep the <code>-XX:+AlwaysPreTouch</code> flag active.
@@ -612,15 +716,23 @@ But at least it helps to get easy and early feedback on application memory
 consumption.</p>
 </div>
 <div class="paragraph">
-<p>I ran tests using jemalloc.Immediately after deployment the jemalloc pods shows
+<p>I ran tests using jemalloc. Immediately after deployment the jemalloc pods shows
 a higher memory usage in general that those running TCmalloc, in this test pods
 with the highest memory usage had over 400 MiB more.
-Also the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
+Also, the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
 to give back memory to the OS.</p>
 </div>
 <div class="paragraph">
+<div class="title">tcmalloc vs jemalloc (1 cpu)</div>
+<p><span class="image"><img src="assets/glibc-fragmentation/tcmalloc-jemalloc.png" alt="tcmalloc jemalloc"/></span></p>
+</div>
+<div class="paragraph">
+<div class="title">jemalloc vs tcmalloc (2 cpu)</div>
+<p><span class="image"><img src="assets/glibc-fragmentation/jemaloc-tcmalloc-request.cpu=2.png" alt="jemaloc tcmalloc request.cpu=2"/></span></p>
+</div>
+<div class="paragraph">
 <p>The other change in this graph is the number of CPU, this deployment was running
-1 CPU. And after bumping the <code>requests.cpu</code> to 2 the memory usage range is
+1 CPU. After bumping the <code>requests.cpu</code> to 2 the memory usage range is
 smaller and memory usage is smaller in general.</p>
 </div>
 </div>
