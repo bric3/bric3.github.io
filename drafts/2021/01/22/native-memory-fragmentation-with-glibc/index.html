@@ -305,9 +305,11 @@ another inconspicuous source of memory consumption that I wasn’t aware
 until out workload started to ran in memory constrained containers :
 <strong>native memory fragmentation</strong>.</p>
 </div>
-<div class="paragraph">
+<div class="imageblock">
+<div class="content">
+<img src="/assets/glibc-fragmentation/rss-leading-to-oom.png" alt="rss leading to oom"/>
+</div>
 <div class="title">oomkiller in action</div>
-<p><span class="image"><img src="assets/glibc-fragmentation/rss-leading-to-oom.png" alt="rss leading to oom"/></span></p>
 </div>
 <div class="sect1">
 <h2 id="_different_memory_analysis_didnt_add_up"><a class="anchor" href="#_different_memory_analysis_didnt_add_up"></a><a class="link" href="#_different_memory_analysis_didnt_add_up">Different memory analysis didn’t add up</a></h2>
@@ -721,8 +723,10 @@ There are several options :</p>
 Others are fine, especially jemalloc that can come with allocation profiler as well.
 The results are very good, RSS is stable and even decreasing on lower activity.</p>
 </div>
-<div class="paragraph">
-<p><span class="image"><img src="assets/glibc-fragmentation/comparative-memory-usage.png" alt="comparative memory usage"/></span></p>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/glibc-fragmentation/comparative-memory-usage.png" alt="comparative memory usage"/>
+</div>
 </div>
 <div class="paragraph">
 <p>One thing to note: removing the CPU limits had a nice effect on glibc native
@@ -736,13 +740,17 @@ with the highest memory usage had over 400 MiB more.
 Also, the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
 to give back memory to the OS.</p>
 </div>
-<div class="paragraph">
-<div class="title">tcmalloc vs jemalloc (1 cpu)</div>
-<p><span class="image"><img src="assets/glibc-fragmentation/tcmalloc-jemalloc.png" alt="tcmalloc jemalloc"/></span></p>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/glibc-fragmentation/tcmalloc-jemalloc.png" alt="tcmalloc jemalloc"/>
 </div>
-<div class="paragraph">
+<div class="title">tcmalloc vs jemalloc (1 cpu)</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/glibc-fragmentation/jemaloc-tcmalloc-request.cpu=2.png" alt="jemaloc tcmalloc request.cpu=2"/>
+</div>
 <div class="title">jemalloc vs tcmalloc (2 cpu)</div>
-<p><span class="image"><img src="assets/glibc-fragmentation/jemaloc-tcmalloc-request.cpu=2.png" alt="jemaloc tcmalloc request.cpu=2"/></span></p>
 </div>
 <div class="paragraph">
 <p>The other change in this graph is the number of CPU, this deployment was running
