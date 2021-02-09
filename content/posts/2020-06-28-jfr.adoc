@@ -807,7 +807,24 @@ via `JFR.dump`.
 
 The only thing to do is to set the recording parameter `dumponexit=true` (on each recording).
 The record will be stored in the configured `filename` otherwise JFR will create a file similar
-to this the working directory of the process `hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr`
+to this the working directory of the process `hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr`.
+Later on I https://twitter.com/erikgahlin/status/1359036151684825089?s=21[discussed] with
+https://twitter.com/erikgahlin[Erik Gahlin] and he told me that the `filename` attribute
+accepts a path to an *existing* folder, so that _dumps on exit_ are dumped in this folder.
+
+IN the following filename `hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr`,
+
+* `pid-6` is the process identifier, usually it's the same in a container.
+* `id-1` is the recording identifier, the identifier is assigned following
+the order of `StartFlightRecording` options, new recordings started by `jcmd`
+will be given an identifier as well.
+* `2020_05_03_12_54_14` is the date at which this dump has been created.
+
+The generated name make it uneasy to correlate recordings when a container is
+restarded several times, but that can be worked with.
+
+
+
 
 [NOTE]
 ====
@@ -816,11 +833,16 @@ https://github.com/openjdk/jdk11u/blob/e81745c5c5e8194791047728a73b74a5262f1634/
 but the mechanism is different as it seems those are dumped in the
 working directory of the process, which may not be writable in a container. I don't
 think it's currently possible to change the location. But
-from what I've seen SOE or OOM are dumped fine via `dumponexit=true` and `filename=...`.
+from what I've seen a `StackOverFlowError` or a `OutOfMemoryError` are dumped
+fine via `dumponexit=true` and `filename=...`.
 
 1. OutOfMemory => `hs_oom_pid<pid>.jfr`
 2. StackOverflowError => `hs_soe_pid<pid>.jfr`
 3. Other error => `hs_err_pid<pid>.jfr`
+
+In practice, for the stack overflow and the java heap out of memory errors,
+I never witnessed dumps named this way, instead the recording seem to
+follow the configured location or the default one `hotspot-pid-....jfr`.
 ====
 
 
@@ -1159,6 +1181,8 @@ information on JMC and JFR. As it happens Marucs was the co-founder of Appeal (t
 the JRockit), then continued his career at BEA then Oracle.
 
 Finally, here's a quick thank to https://twitter/delabasse[David Delabasse] for his comments.
+Recently I'd like to thank https://twitter.com/erikgahlin/[Erik Gahlin] for his feedback
+on JFR.
 
 
 ====
