@@ -281,7 +281,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 70 min read
+    <i class="fas fa-clock"></i> 73 min read
 
     
     
@@ -1291,7 +1291,32 @@ via <code>JFR.dump</code>.</p>
 <div class="paragraph">
 <p>The only thing to do is to set the recording parameter <code>dumponexit=true</code> (on each recording).
 The record will be stored in the configured <code>filename</code> otherwise JFR will create a file similar
-to this the working directory of the process <code>hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr</code></p>
+to this the working directory of the process <code>hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr</code>.
+Later on I <a href="https://twitter.com/erikgahlin/status/1359036151684825089?s=21">discussed</a> with
+<a href="https://twitter.com/erikgahlin">Erik Gahlin</a> and he told me that the <code>filename</code> attribute
+accepts a path to an <strong>existing</strong> folder, so that <em>dumps on exit</em> are dumped in this folder.</p>
+</div>
+<div class="paragraph">
+<p>IN the following filename <code>hotspot-pid-6-id-1-2020_05_03_12_54_14.jfr</code>,</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>pid-6</code> is the process identifier, usually it’s the same in a container.</p>
+</li>
+<li>
+<p><code>id-1</code> is the recording identifier, the identifier is assigned following
+the order of <code>StartFlightRecording</code> options, new recordings started by <code>jcmd</code>
+will be given an identifier as well.</p>
+</li>
+<li>
+<p><code>2020_05_03_12_54_14</code> is the date at which this dump has been created.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The generated name make it uneasy to correlate recordings when a container is
+restarded several times, but that can be worked with.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -1306,7 +1331,8 @@ to this the working directory of the process <code>hotspot-pid-6-id-1-2020_05_03
 but the mechanism is different as it seems those are dumped in the
 working directory of the process, which may not be writable in a container. I don’t
 think it’s currently possible to change the location. But
-from what I’ve seen SOE or OOM are dumped fine via <code>dumponexit=true</code> and <code>filename=…​</code>.</p>
+from what I’ve seen a <code>StackOverFlowError</code> or a <code>OutOfMemoryError</code> are dumped
+fine via <code>dumponexit=true</code> and <code>filename=…​</code>.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -1320,6 +1346,11 @@ from what I’ve seen SOE or OOM are dumped fine via <code>dumponexit=true</code
 <p>Other error ⇒ <code>hs_err_pid&lt;pid&gt;.jfr</code></p>
 </li>
 </ol>
+</div>
+<div class="paragraph">
+<p>In practice, for the stack overflow and the java heap out of memory errors,
+I never witnessed dumps named this way, instead the recording seem to
+follow the configured location or the default one <code>hotspot-pid-…​.jfr</code>.</p>
 </div>
 </td>
 </tr>
@@ -1813,7 +1844,9 @@ information on JMC and JFR. As it happens Marucs was the co-founder of Appeal (t
 the JRockit), then continued his career at BEA then Oracle.</p>
 </div>
 <div class="paragraph">
-<p>Finally, here’s a quick thank to <a href="https://twitter/delabasse">David Delabasse</a> for his comments.</p>
+<p>Finally, here’s a quick thank to <a href="https://twitter/delabasse">David Delabasse</a> for his comments.
+Recently I’d like to thank <a href="https://twitter.com/erikgahlin/">Erik Gahlin</a> for his feedback
+on JFR.</p>
 </div>
 <div class="exampleblock">
 <div class="content">
