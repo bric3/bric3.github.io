@@ -1,0 +1,814 @@
+---
+authors: ["brice.dutheil"]
+date: "2021-02-17T23:03:09+01:00"
+language: en
+draft: true
+#tags: ["jep-389", "java", "jvm", "memory", "linker", "foreign", "jdk16]
+slug: "a-practical-look-at-jep-389-with-libsodium"
+title: "A practical look at JEP-389 with libsodium"
+summary: "JDK 16 is coming and with the incubating JEP-389, let's have a practical look at this API that should supersede JNI."
+---
+
+
+JDK 16 is coming and with the *incubating* https://openjdk.java.net/jeps/389[JEP-389] (Foreign Linker API),
+let's have a practical look at this API that should supersede JNI.
+In order to do so this posts intends to leverage the infamous https://doc.libsodium.org/[*libsodium*].
+
+This article has two parts, a focus on JEP-389 API, and
+how to use jextract.
+
+== The crypto sealed box example
+
+
+Let's try to reproduce the following example from the
+https://doc.libsodium.org/public-key_cryptography/sealed_boxes[libsodium sealbox documentation]
+
+There's a code snippet, that could be interesting to reproduce in Java.
+
+.Crypto sealed box example
+[source, c]
+----
+#define MESSAGE (const unsigned char *) "Message"
+#define MESSAGE_LEN 7
+#define CIPHERTEXT_LEN (crypto_box_SEALBYTES + MESSAGE_LEN)
+
+/* Recipient creates a long-term key pair */
+unsigned char recipient_pk[crypto_box_PUBLICKEYBYTES];
+unsigned char recipient_sk[crypto_box_SECRETKEYBYTES];
+crypto_box_keypair(recipient_pk, recipient_sk);
+
+/* Anonymous sender encrypts a message using an ephemeral key pair
+ * and the recipient's public key */
+unsigned char ciphertext[CIPHERTEXT_LEN];
+crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);
+
+/* Recipient decrypts the ciphertext */
+unsigned char decrypted[MESSAGE_LEN];
+if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
+                         recipient_pk, recipient_sk) != 0) {
+    /* message corrupted or not intended for this recipient */
+}
+----
+
+=== The first and minimal call `crypto_box_sealbytes`
+
+The first lines indicates sets a few macros (the lines starting with `#define`),
+we can assume that `MESSAGE` will be a method parameter, `MESSAGE_LEN`
+will be derived from the message parameter, and `CIPHERTEXT_LEN` is also derived
+from the message but needs another constant `crypto_box_SEALBYTES`.
+
+The first thing needed is to acquire the `crypto_box_SEALBYTES` constant, looking at
+https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127[`crypto_box.h`]
+there's a method `size_t crypto_box_sealbytes(void);` that returns this constant.
+It's simple, so it will be the first method I will present here.
+
+The first challenge is to map the return type `size_t`, _unsigned integer type_,
+since the constant
+(https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127[1]
+https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L19[2]
+https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L35[3])
+is inferior to the integer max value and that I'd like to use
+this as an array size, I will map it to an `int`.
+
+.crypto_box_sealbytes (java)
+[source, java]
+----
+MethodHandle crypto_box_sealbytes =
+        CLinker.getInstance()
+               .downcallHandle(
+                       libsodiumLookup.lookup("crypto_box_sealbytes").get(),
+                       MethodType.methodType(int.class),
+                       FunctionDescriptor.of(C_INT)
+               );
+
+var crypto_box_SEALBYTES = (int) crypto_box_sealbytes.invokeExact();
+----
+
+The java type and the C descriptor must match, otherwise the call will fail at runtime.
+
+.Carrier mismatch long != b32
+[role="primary"]
+====
+If the java method type used `long.class`, and the C descriptor was `C_INT`,
+the code would have failed with a carrier mismatch.
+
+[source]
+----
+java.lang.IllegalArgumentException: Carrier size mismatch: long != b32[abi/kind=INT]
+----
+====
+
+.Carrier mismatch int != b64
+[role="secondary"]
+====
+If the java method type used `int.class`, and the C descriptor was `C_LONG`,
+the code would have failed with a carrier mismatch.
+
+[source]
+----
+java.lang.IllegalArgumentException: Carrier size mismatch: int != b64[abi/kind=LONG]
+----
+====
+
+
+
+=== Then a more interesting case, passing argument pointers
+
+The next part of the example is a lit more involved code with `crypto_box_keypair`
+that take two array pointers `recipient_pk` and `recipient_sk`, this method
+will write in these arrays the generated keypair.
+
+.crypto_box_keypair (C)
+[source, c]
+----
+unsigned char recipient_pk[crypto_box_PUBLICKEYBYTES];
+unsigned char recipient_sk[crypto_box_SECRETKEYBYTES];
+crypto_box_keypair(recipient_pk, recipient_sk);
+----
+
+Also, we'll need to do the same as `crypto_box_SEALBYTES`, to initialize
+the recipient arrays with constants `crypto_box_PUBLICKEYBYTES` and
+`crypto_box_SECRETKEYBYTES`.
+
+The C mapping is easy to get, a void method that takes 2 pointers :
+`FunctionDescriptor.ofVoid(C_POINTER, C_POINTER)`. In Java the method type
+require a new type called `MemoryAddress` which represents the pointer
+address.
+
+Before passing an address it is necessary to allocate the necessary
+memory segments that will be written to, for that let's use `MemorySegment::allocateNative`.
+
+.crypto_box_keypair (java)
+[source, java]
+----
+MethodHandle crypto_box_keypair =
+        CLinker.getInstance().downcallHandle(
+                libsodiumLookup.lookup("crypto_box_keypair").get(),
+                MethodType.methodType(
+                        void.class,
+                        MemoryAddress.class, // pk
+                        MemoryAddress.class  // sk
+                ),
+                FunctionDescriptor.ofVoid(C_POINTER, C_POINTER)
+        );
+
+var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
+var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes());
+crypto_box_keypair.invokeExact(recipientPublicKey.address(),
+                               recipientSecretKey.address());
+
+var kp = new CryptoBoxKeyPair(
+        recipientPublicKey.toByteArray(),
+        recipientSecretKey.toByteArray()
+);
+----
+
+This code works, but there is something that must be taken care of,
+*the native segment lifecycle*. The above code snippet never deallocate
+native memory. Fortunately `MemorySegment` implements `AutoCloseable`,
+declaring the in a _try-with_resources_ block will solve the issue.
+
+.`MemorySegment` lifecycle
+[sorce, java]
+----
+try (var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
+     var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes())) {
+    crypto_box_keypair.invokeExact(recipientPublicKey.address(),
+                                   recipientSecretKey.address());
+
+    return new CryptoBoxKeyPair(
+            recipientPublicKey.toByteArray(),
+            recipientSecretKey.toByteArray()
+    );
+}
+----
+
+Even better let's use the concept of scopes with `NativeScope`, which
+allows to register the segment to a _code section_ and allocate segments
+anywhere in the section.
+
+.crypto_box_keypair with `NativeScope` (java)
+[source, java]
+----
+try (var scope = NativeScope.unboundedScope()) {
+    var recipientPublicKey = scope.allocate(crypto_box_publickeybytes());
+    var recipientSecretKey = scope.allocate(crypto_box_secretkeybytes());
+
+    crypto_box_keypair.invokeExact(recipientPublicKey.address(),
+                                   recipientSecretKey.address());
+
+    return new CryptoBoxKeyPair(
+            recipientPublicKey.toByteArray(),
+            recipientSecretKey.toByteArray()
+    );
+}
+----
+
+In order to get back the off-heap content into Java types, we can call
+on of the `to*` methods of the `MemorySegment`, which will take care of
+the conversion.
+
+=== Next invoking the sealing method
+
+The next code to call is `crypto_box_seal`, which also takes
+pointers and a message length.
+
+.crypto_box_seal (C)
+[source, c]
+----
+unsigned char ciphertext[CIPHERTEXT_LEN];
+crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);
+----
+
+When looking at the
+https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L129-L132[C signature]
+however we notice something _unusual_, the message length argument is
+of type `long long`, Java doesn't have long types
+
+.crypto_box_seal definition (C)
+[source, c]
+----
+SODIUM_EXPORT
+int crypto_box_seal(unsigned char *c, const unsigned char *m,
+                    unsigned long long mlen, const unsigned char *pk)
+            __attribute__ ((nonnull(1, 4)));
+----
+
+Fortunately for this post since I intend to pass a `String` message,
+so an `int` will work albeit the presence of the cast instruction.
+That said it'll be an `int` event if the code is passed a Java array.
+
+.crypto_box_seal (java)
+[source, java]
+----
+var crypto_box_seal = CLinker.getInstance().downcallHandle(
+        libsodiumLookup.lookup("crypto_box_seal").get(),
+        MethodType.methodType(int.class,
+                              MemoryAddress.class, // cipherText, output buffer
+                              MemoryAddress.class, // message
+                              long.class,          // message length
+                              MemoryAddress.class  // publicKey
+        ),
+        FunctionDescriptor.of(C_INT,
+                              C_POINTER,
+                              C_POINTER,
+                              C_LONG_LONG,
+                              C_POINTER)
+
+);
+
+try (var scope = NativeScope.unboundedScope()) {
+    var cipherText = scope.allocate(crypto_box_sealbytes() + message.length());
+    var ret = (int) crypto_box_seal.invokeExact(cipherText.address(),
+                                                CLinker.toCString(message, scope).address(),
+                                                (long) message.length(),
+                                                scope.allocateArray(C_CHAR, publicKey).address());
+    return cipherText.toByteArray();
+}
+----
+
+Notice that here I'm not using the return type, however due to the _dynamic_
+nature of `invokeExact`, the compiler needs the *exact* signature on the
+call site, that's why I'm assigning it an `int` variable even if it is not used.
+If the assignment is missing the JVM will raise a `WrongMethodTypeException`
+where you'll need to identify the type differences in the signature:
+
+[source]
+----
+java.lang.invoke.WrongMethodTypeException: expected (MemoryAddress,MemoryAddress,long,MemoryAddress)int but found (MemoryAddress,MemoryAddress,long,MemoryAddress)void
+----
+
+
+=== Ending the libsodium example
+
+The last call ends the libsodium crypto box example. With this example we
+can just reuse what we have used before. The method `crypto_box_seal_open`
+take pointers and a ciphered text length.
+
+.crypto_box_seal_open (C)
+[source,c]
+----
+unsigned char decrypted[MESSAGE_LEN];
+if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
+recipient_pk, recipient_sk) != 0) {
+/* message corrupted or not intended for this recipient */
+}
+----
+
+Which translates to
+
+.crypto_box_seal_open (java)
+[source, java]
+----
+var crypto_box_seal_open = getInstance().downcallHandle(
+        libsodiumLookup.lookup("crypto_box_seal_open").get(),
+        MethodType.methodType(int.class,
+                              MemoryAddress.class, // message
+                              MemoryAddress.class, // cipherText
+                              long.class,          // cipherText.length
+                              MemoryAddress.class, // public key
+                              MemoryAddress.class  // secret key
+        ),
+        FunctionDescriptor.of(C_INT,
+                              C_POINTER,
+                              C_POINTER,
+                              C_LONG_LONG,
+                              C_POINTER,
+                              C_POINTER
+        )
+);
+
+try (var scope = NativeScope.unboundedScope()) {
+    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
+    var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
+                                                     scope.allocateArray(C_CHAR, cipherText).address(),
+                                                     (long) cipherText.length,
+                                                     scope.allocateArray(C_CHAR, publicKey).address(),
+                                                     scope.allocateArray(C_CHAR, secretkey).address());
+
+    return CLinker.toJavaString(decipheredText);
+}
+----
+
+There is one error in this program :
+
+[source]
+----
+java.lang.IndexOutOfBoundsException: Out of bound access on segment MemorySegment{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.outOfBoundException(AbstractMemorySegmentImpl.java:495)
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBoundsSmall(AbstractMemorySegmentImpl.java:465)
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBounds(AbstractMemorySegmentImpl.java:446)
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkAccess(AbstractMemorySegmentImpl.java:401)
+	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.checkAddress(MemoryAccessVarHandleByteHelper.java:80)
+	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.get(MemoryAccessVarHandleByteHelper.java:113)
+	at jdk.incubator.foreign/jdk.incubator.foreign.MemoryAccess.getByteAtOffset(MemoryAccess.java:105)
+	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.strlen(SharedUtils.java:259)
+	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.toJavaStringInternal(SharedUtils.java:249)
+	at jdk.incubator.foreign/jdk.incubator.foreign.CLinker.toJavaString(CLinker.java:342)
+----
+
+I didn't get it at first as `CLinker::toJavaString` is the mirror function
+of the `CLinker::toCString`, the message indicates the segment has the size 20 which is
+the length of this string `Hello foreign code !`, there's `new offset is 20` indicating the segment
+was read up to the 20th character, and there is the `new length = 1`,
+which suggests `toJavaString` needs to read an additional character.
+
+The required info is in the javadoc (emphasis is mine) :
+
+> *Converts a null-terminated C string* stored at given address into a Java string, using the platform's default charset.
+
+This immediately clicked, the way libsodium is working
+with the _message_ involves to pass the message length,
+and that's because libsodium don't assume the message
+is a string, it can be anything!
+
+In this case the native memory segment is indeed not terminated by `\0`
+
+* `MemorySegment::toByteArray`: `48656C6C6F20666F726569676E20636F64652021`
+
+That means I need to use `new String(decipheredText.toByteArray())` instead.
+For reference here are the bytes returned by `String::getBytes` and
+`CLinker::toCString`.
+
+* `"Hello".getBytes()` => `48656C6C6F`
+* `CLinker.toCString("Hello").toByteArray()` => `48656C6C6F00`
+
+For this example I'd like to keep the assumption that message is a `String`,
+which leads to the following correct code :
+
+[source, java]
+----
+try (var scope = NativeScope.unboundedScope()) {
+    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
+    var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
+                                                     scope.allocateArray(C_CHAR, cipherText).address(),
+                                                     (long) cipherText.length,
+                                                     scope.allocateArray(C_CHAR, publicKey).address(),
+                                                     scope.allocateArray(C_CHAR, secretkey).address());
+
+    return new String(decipheredText.toByteArray());
+}
+----
+
+
+For this post I have intentionally left out the returned status of `crypto_box_seal_open`,
+but this would make sense to perform some checks before returning the buffer.
+
+// TODO pmap !!!
+// MemorySegment.address
+
+
+=== Wrap up on manually using the Foreign Linker API
+
+I didn't cover everything this API has to offer, like the _up call_ stubs,
+which a way to pass a function pointer to the native code, nor did I cover
+the richness of the `MemorySegment` API.
+
+At this time I find this API a pleasure to use compared to JNI. Note that
+I don't have experience with JNA, so I may be lacking perspective there.
+
+There's a few pitfalls like the `CLinker::toJavaString` or the
+`MemorySegment` lifecycles which get more complicated if those segments
+are shared between threads. I found the API well designed and well
+documented, but if you're novice in this area, you'll likely need
+other materials, a package wide documentation should definitely fill
+in the gaps in my opinion.
+
+This example was short in native code, but writing the stubs in Java
+is quickly tedious and verbose.
+
+JDK developers felt the same way as they are currently backing a tool
+named `jextract` whose goal is to do this tedious work.
+
+== `jextract`
+
+As `jextract` is still being backed, it is not ready for incubation,
+as such it is not included in JDK 16, it is sad but understandable.
+
+In order to be able to use it, one should download the panama jdk
+here: https://jdk.java.net/panama/. Don't be scared by _early access_
+or the other warnings, you just need to use `jextract` not the panama jdk.
+
+When I started to bootstrap work on JDK16 and libsodium, the built
+panama JDK didn't contain the `jextract`, as I wasn't sure
+I voiced this on Twitter, which then confirmed this was a bug
+https://bugs.openjdk.java.net/browse/JDK-8261733[JDK-8261733].
+
+CAUTION: At this time the `jextract` tool is still being backed.
+That means it that everything below can be obsolete any time.
+
+=== Extracting Java liking code from the Libsodium headers
+
+The first thing I need is to get the headers of libsodium, and for that
+I cloned the repo. Then checkout the 1.0.18 tag as I intend to target
+the latest released binary.
+
+.Get the libsodium source
+[source, shell]
+----
+$ git clone https://github.com/jedisct1/libsodium.git
+Cloning into 'libsodium'...
+remote: Enumerating objects: 151, done.
+remote: Counting objects: 100% (151/151), done.
+remote: Compressing objects: 100% (105/105), done.
+remote: Total 32369 (delta 74), reused 86 (delta 41), pack-reused 32218
+Receiving objects: 100% (32369/32369), 8.24 MiB | 10.52 MiB/s, done.
+Resolving deltas: 100% (19205/19205), done.
+$ git checkout 1.0.18
+----
+
+Headers are located in this folder `src/libsodium/include`. Now let use
+`jextract`.
+
+.First contact with `jextract`
+[source, shell]
+----
+$ jextract
+  -d libsodium-jextract \ <1>
+  -l sodium \ <2>
+  --target-package com.github.bric3.sodium \ <3>
+  -I src/libsodium/include/ \ <4>
+  -I src/libsodium/include/sodium \ <4>
+  --filter sodium.h \ <5>
+  src/libsodium/include/sodium.h <6>
+src/libsodium/include/sodium/export.h:5:10: fatal error: 'stddef.h' file not found
+----
+<1> Destination of the generated sources
+<2> Extracts or more precisely generate sources, instead of classes
+<3> Indicates the target package of the generated source
+<4> Includes of the library (some files include others in the library)
+<5> Only includes symbols from the given file, otherwise symbols of
+other includes may be extracted
+<6> The C header file
+
+Obviously the standard C headers are not discovered by `jextract`.
+I tried to solve this by declaring the system includes in `/usr/include`
+and `/usr/include/linux` (`/usr/include/linux/stddef.h`) but the error
+went a bit further with `unknown type name 'size_t'`.
+
+`size_t` is a standard C alias representing the _unsigned integer type_.
+I found help in this https://www.mail-archive.com/dev@tomcat.apache.org/msg129346.html[old thread from november 2018].
+Instead of using the includes under `/usr/includes`, it is necessary to use
+the includes of the compiler ; on my docker image they were located
+here : `/usr/lib/gcc/x86_64-redhat-linux/8/include`.
+
+Also I noticed that `jextract` generates classes first, but you can pass
+a `--source` option to configure it to generate sources instead.
+
+
+On the next run of `jextract` the `extraction` process stopped on
+the file `version.h`.
+
+.Includes the compiler headers
+[source, shell]
+----
+$ jextract \
+  -d libsodium-jextract \
+   -l sodium \
+   --source \ <1>
+   --target-package com.github.bric3.sodium \
+   -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <2>
+   -I src/libsodium/include/ \
+   -I src/libsodium/include/sodium \
+   --filter sodium.h \
+   src/libsodium/include/sodium.h
+src/libsodium/include/sodium.h:5:10: fatal error: 'sodium/version.h' file not found
+----
+<1> generates the sources
+<2> the compiler includes installed on this linux image
+
+In the libsodium repository there's a file named `version.h.in`,
+and upon inspection of its content I noticed placeholders that suggests
+a preliminary phase in the libsodium build will generate the final `version.h`.
+In native sources this usually happen via a combination of `./autogen.sh`
+and `./configure`.
+
+Let's prepare the code base.
+
+.Configure libsodium codebase
+[source, shell]
+----
+$ ./autogen.sh
+autoreconf: Entering directory `.'
+autoreconf: configure.ac: not using Gettext
+autoreconf: running: aclocal --force -I m4
+autoreconf: configure.ac: tracing
+autoreconf: configure.ac: creating directory build-aux
+autoreconf: running: libtoolize --copy --force
+libtoolize: putting auxiliary files in AC_CONFIG_AUX_DIR, 'build-aux'.
+libtoolize: copying file 'build-aux/ltmain.sh'
+libtoolize: putting macros in AC_CONFIG_MACRO_DIRS, 'm4'.
+libtoolize: copying file 'm4/libtool.m4'
+libtoolize: copying file 'm4/ltoptions.m4'
+libtoolize: copying file 'm4/ltsugar.m4'
+libtoolize: copying file 'm4/ltversion.m4'
+libtoolize: copying file 'm4/lt~obsolete.m4'
+autoreconf: running: /usr/bin/autoconf --force
+autoreconf: configure.ac: not using Autoheader
+autoreconf: running: automake --add-missing --copy --force-missing
+configure.ac:75: installing 'build-aux/compile'
+configure.ac:9: installing 'build-aux/config.guess'
+configure.ac:9: installing 'build-aux/config.sub'
+configure.ac:10: installing 'build-aux/install-sh'
+configure.ac:10: installing 'build-aux/missing'
+src/libsodium/Makefile.am: installing 'build-aux/depcomp'
+parallel-tests: installing 'build-aux/test-driver'
+autoreconf: Leaving directory `.'
+Downloading config.guess and config.sub...
+Done.
+
+./configure
+checking build system type... x86_64-pc-linux-gnu
+checking host system type... x86_64-pc-linux-gnu
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... /usr/bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking whether make supports nested variables... yes
+checking whether UID '0' is supported by ustar format... yes
+checking whether GID '0' is supported by ustar format... yes
+checking how to create a ustar tar archive... gnutar
+checking whether make supports nested variables... (cached) yes
+checking whether to enable maintainer-specific portions of Makefiles... no
+checking whether make supports the include directive... yes (GNU style)
+checking for gcc... gcc
+...
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating builds/Makefile
+config.status: creating contrib/Makefile
+config.status: creating dist-build/Makefile
+config.status: creating libsodium.pc
+config.status: creating libsodium-uninstalled.pc
+config.status: creating msvc-scripts/Makefile
+config.status: creating src/Makefile
+config.status: creating src/libsodium/Makefile
+config.status: creating src/libsodium/include/Makefile
+config.status: creating src/libsodium/include/sodium/version.h <1>
+config.status: creating test/default/Makefile
+config.status: creating test/Makefile
+config.status: executing depfiles commands
+config.status: executing libtool commands
+----
+<1> Configuring `version.h` with version values
+
+
+Finally, this time `jextract` worked as expected.
+
+.Working jextract command
+[source, shell]
+----
+$ jextract \
+  -d libsodium-jextract \
+   -l sodium \
+   --source \
+   --target-package com.github.bric3.sodium \
+   -I /usr/lib/gcc/x86_64-redhat-linux/8/include \
+   -I src/libsodium/include/ \
+   -I src/libsodium/include/sodium \
+   --filter sodium.h \
+   src/libsodium/include/sodium.h
+----
+
+However, when I opened `sodium_h.java` it was empty.
+
+[source, java]
+----
+public final class sodium_h  {
+
+    /* package-private */ sodium_h() {}
+}
+----
+
+In the 1.x tree the https://github.com/jedisct1/libsodium/blob/1.0.18/src/libsodium/include/sodium.h[`sodium.h`]
+file *only includes the declaration of other headers*.
+When I explicitly filtered on `sodium.h`, `jextract` evicted symbols
+of the includes.
+
+How to keep the declarations of the other headers ?
+At this time `jextract` help is a bit vague.
+
+.Jextract help
+[source, shell]
+----
+$ jextract --help
+Non-option arguments:
+[String] -- header file
+
+Option                         Description
+------                         -----------
+-?, -h, --help                 print help
+-C <String>                    pass through argument for clang
+-I <String>                    specify include files path
+-d <String>                    specify where to place generated files
+--filter <String>              header files to filter
+-l <String>                    specify a library
+--source                       generate java sources
+-t, --target-package <String>  target package for specified header files
+----
+
+Looking at the https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/JextractTool.java#L199-L201[`jextract` source code] was the way to go, first the code suggests
+that it's possible to pass multiple filters (`--filter`), just like it
+is possible to pass multiple include (`-I`).
+Although it is not very practical with multiple values, isn't is
+possible to pass a pattern ?
+
+This is answered here in this document
+(https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/doc/panama_jextract.md[Using the `jextract` tool])
+or in the source code in the https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/Filter.java#L45-L50[`Filter`] class ;
+it's possible to pass `--filter` a part of the path, the current
+code will just verify if this string is contained in the header path.
+
+Concretely I can use the string `sodium` as a filter to include headers
+located in `include/sodium/` folder.
+
+.Correct jextract command
+[source, shell]
+----
+$ jextract \
+  -d libsodium-jextract \  <1>
+  --source \ <2>
+  --target-package com.github.bric3.sodium \ <3>
+  -l sodium \ <4>
+  -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <5>
+  -I src/libsodium/include/ \ <6>
+  -I src/libsodium/include/sodium \ <6>
+  --filter sodium \ <7>
+  src/libsodium/include/sodium.h <8>
+----
+<1> Destination of the generated sources
+<2> Extracts or more precisely generate sources, instead of classes
+<3> Indicates the target package of the generated source
+<4> Name without the JNI prefix and suffix (or path) of the library to load
+<5> Includes C definitions or includes like `size_t`, `stddef.h` etc.
+<6> Includes of the library (some files include others in the library)
+<7> Only includes symbols from the given file, otherwise symbols of
+other includes may be extracted
+<8> The C header file
+
+
+.Generated files
+[source, shell]
+----
+$ ls -lh libsodium-jextract-f/com/github/bric3/sodium/
+total 956K
+-rw-r--r--. 1 root root  557 Feb 16 14:10 C.java
+-rw-r--r--. 1 root root 8.8K Feb 16 14:10 RuntimeHelper.java
+-rw-r--r--. 1 root root 350K Feb 16 14:10 sodium_h.java
+-rw-r--r--. 1 root root 124K Feb 16 14:10 sodium_h_0.java
+-rw-r--r--. 1 root root 329K Feb 16 14:10 sodium_h_constants_0.java
+-rw-r--r--. 1 root root 131K Feb 16 14:10 sodium_h_constants_1.java
+----
+
+
+=== Invoking the library
+
+// TODO
+
+Let's have a look at what `jextract` generated. The entry point is
+the class `sodium_h`. In particular let's compare at the method stubs
+to these I wrote earlier :
+
+* `crypto_box_sealbytes`
+* `crypto_box_keypair`
+* `crypto_box_seal`
+* `crypto_box_seal_open`
+
+.crypto_box_seal
+[source, java]
+----
+public static  MethodHandle crypto_box_seal$MH() {
+    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(),"unresolved symbol: crypto_box_seal");
+}
+public static int crypto_box_seal ( Addressable c,  Addressable m,  long mlen,  Addressable pk) {
+    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(), "unresolved symbol: crypto_box_seal");
+    try {
+        return (int)mh$.invokeExact(c.address(), m.address(), mlen, pk.address());
+    } catch (Throwable ex$) {
+        throw new AssertionError("should not reach here", ex$);
+    }
+}
+----
+
+[source, java]
+----
+RuntimeHelper.downcallHandle(
+        LIBRARIES, "crypto_box_seal",
+        "(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;JLjdk/incubator/foreign/MemoryAddress;)I",
+        crypto_box_seal$FUNC_, false
+    )
+----
+
+
+So jextract is doing the same for the `long long` type in the C signature of
+`crypto_box_seal`
+
+> * jextract does not support certain C types bigger than 64 bits (e.g. `long double`).
+
+It uses the Java `long` instead as the Java method argument type.
+
+
+
+
+
+
+
+I looked at the examples and loading a library looked like an easy feat.
+However, I stumbled on this, if I understood correctly `LibraryLookup::ofLibrary`
+should take the library name without the `JNI_LIB_PREFIX` nor the `JNI_LIB_SUFFIX`,
+this didn't work!
+
+Let's play with `jshell` (`jshell --add-modules jdk.incubator.foreign`) !
+
+[source, jshell]
+----
+jshell> LibraryLookup.ofLibrary("procps");
+|  Exception java.lang.IllegalArgumentException: Library not found: procps
+|        at LibrariesHelper.lookup (LibrariesHelper.java:94)
+|        at LibrariesHelper.loadLibrary (LibrariesHelper.java:60)
+|        at LibraryLookup.ofLibrary (LibraryLookup.java:150)
+|        at (#9:1)
+----
+
+Yet `libprocps` is installed !
+
+[source, shell]
+----
+$ ldconfig -p | grep procps
+        libprocps.so.7 (libc6,x86-64) => /lib64/libprocps.so.7
+$ ldconfig -p | grep git
+        libgit2.so.26 (libc6,x86-64) => /lib64/libgit2.so.26
+----
+
+Yet the library extension has a major version `.7`, which is actually a symlink to
+`libprocps.so.7.1.0`. Behind the scene `LibraryLookup::ofLibrary` invokes
+
+[source, jshell]
+----
+jshell> System.getProperty("java.library.path")
+$3 ==> "/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"
+jshell> System.out.printf("mapped libname : %s%n", System.mapLibraryName("procps"));
+mapped libname : libprocps.so
+----
+
+On macOs `java.library.path`
+
+/Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+
+In other words this mechanism won't work ! Fortunately one can pass a path.
+
+=== Closing words
+
+
+'''
+
+.Sources in no particular order
+- https://openjdk.java.net/jeps/389
+- https://cr.openjdk.java.net/~mcimadamore/panama/ffi.html
+- https://inside.java/2020/10/06/jextract/
+- https://jdk.java.net/panama/
+- https://github.com/sundararajana/panama-jextract-samples/
+- https://github.com/openjdk/panama-foreign
+- https://github.com/jedisct1/libsodium
+- https://doc.libsodium.org/installation
