@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.80.0" />
+
+    
+    
+    
+
+<title>A practical look at JEP-389 with libsodium • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="A practical look at JEP-389 with libsodium">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2021/02/17/a-practical-look-at-jep-389-with-libsodium/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2021-02-17T23:03:09&#43;0100">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="A practical look at JEP-389 with libsodium">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.68d03b2cb787b87038e5c0a832e858f54dd397fe99de425b3b8ba50f015288eb.css" integrity="sha256-aNA7LLeHuHA45cCoMuhY9U3Tl/6Z3kJbO4ulDwFSiOs=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.39442299e30d42987c30cfc6196b66307d39e37e28dbb3bc9058e90c0eae1664.css" integrity="sha256-OUQimeMNQph8MM/GGWtmMH05434o27O8kFjpDA6uFmQ=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css" integrity="sha512-KNosrY5jkv7dI1q54vqk0N3x1xEmEn4sjzpU1lWL6bv5VVddcYKQVhHV08468FK6eBBSXTwGlMMZLPTXSpHYHA==" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2021 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    <header>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-02-17-a-practical-look-at-jep-389.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+</header>
+
+            
+    
+
+<article>
+  <header>
+    <h1>A practical look at JEP-389 with libsodium</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2021-02-17
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 38 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="paragraph">
+<p>JDK 16 is coming and with the <strong>incubating</strong> <a href="https://openjdk.java.net/jeps/389">JEP-389</a> (Foreign Linker API),
+let’s have a practical look at this API that should supersede JNI.
+In order to do so this posts intends to leverage the infamous <a href="https://doc.libsodium.org/"><strong>libsodium</strong></a>.</p>
+</div>
+<div class="paragraph">
+<p>This article has two parts, a focus on JEP-389 API, and
+how to use jextract.</p>
+</div>
+<div class="sect1">
+<h2 id="_the_crypto_sealed_box_example"><a class="anchor" href="#_the_crypto_sealed_box_example"></a><a class="link" href="#_the_crypto_sealed_box_example">The crypto sealed box example</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Let’s try to reproduce the following example from the
+<a href="https://doc.libsodium.org/public-key_cryptography/sealed_boxes">libsodium sealbox documentation</a></p>
+</div>
+<div class="paragraph">
+<p>There’s a code snippet, that could be interesting to reproduce in Java.</p>
+</div>
+<div class="listingblock">
+<div class="title">Crypto sealed box example</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#define MESSAGE (const unsigned char *) &#34;Message&#34;
+#define MESSAGE_LEN 7
+#define CIPHERTEXT_LEN (crypto_box_SEALBYTES + MESSAGE_LEN)
+
+/* Recipient creates a long-term key pair */
+unsigned char recipient_pk[crypto_box_PUBLICKEYBYTES];
+unsigned char recipient_sk[crypto_box_SECRETKEYBYTES];
+crypto_box_keypair(recipient_pk, recipient_sk);
+
+/* Anonymous sender encrypts a message using an ephemeral key pair
+ * and the recipient&#39;s public key */
+unsigned char ciphertext[CIPHERTEXT_LEN];
+crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);
+
+/* Recipient decrypts the ciphertext */
+unsigned char decrypted[MESSAGE_LEN];
+if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
+                         recipient_pk, recipient_sk) != 0) {
+    /* message corrupted or not intended for this recipient */
+}</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_the_first_and_minimal_call_crypto_box_sealbytes"><a class="anchor" href="#_the_first_and_minimal_call_crypto_box_sealbytes"></a><a class="link" href="#_the_first_and_minimal_call_crypto_box_sealbytes">The first and minimal call <code>crypto_box_sealbytes</code></a></h3>
+<div class="paragraph">
+<p>The first lines indicates sets a few macros (the lines starting with <code>#define</code>),
+we can assume that <code>MESSAGE</code> will be a method parameter, <code>MESSAGE_LEN</code>
+will be derived from the message parameter, and <code>CIPHERTEXT_LEN</code> is also derived
+from the message but needs another constant <code>crypto_box_SEALBYTES</code>.</p>
+</div>
+<div class="paragraph">
+<p>The first thing needed is to acquire the <code>crypto_box_SEALBYTES</code> constant, looking at
+<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127"><code>crypto_box.h</code></a>
+there’s a method <code>size_t crypto_box_sealbytes(void);</code> that returns this constant.
+It’s simple, so it will be the first method I will present here.</p>
+</div>
+<div class="paragraph">
+<p>The first challenge is to map the return type <code>size_t</code>, <em>unsigned integer type</em>,
+since the constant
+(<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127">1</a>
+<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L19">2</a>
+<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L35">3</a>)
+is inferior to the integer max value and that I’d like to use
+this as an array size, I will map it to an <code>int</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_sealbytes (java)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle crypto_box_sealbytes =
+        CLinker.getInstance()
+               .downcallHandle(
+                       libsodiumLookup.lookup(&#34;crypto_box_sealbytes&#34;).get(),
+                       MethodType.methodType(int.class),
+                       FunctionDescriptor.of(C_INT)
+               );
+
+var crypto_box_SEALBYTES = (int) crypto_box_sealbytes.invokeExact();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The java type and the C descriptor must match, otherwise the call will fail at runtime.</p>
+</div>
+<div class="exampleblock primary">
+<div class="title">Example 1. Carrier mismatch long != b32</div>
+<div class="content">
+<div class="paragraph">
+<p>If the java method type used <code>long.class</code>, and the C descriptor was <code>C_INT</code>,
+the code would have failed with a carrier mismatch.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">java.lang.IllegalArgumentException: Carrier size mismatch: long != b32[abi/kind=INT]</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">Example 2. Carrier mismatch int != b64</div>
+<div class="content">
+<div class="paragraph">
+<p>If the java method type used <code>int.class</code>, and the C descriptor was <code>C_LONG</code>,
+the code would have failed with a carrier mismatch.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">java.lang.IllegalArgumentException: Carrier size mismatch: int != b64[abi/kind=LONG]</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_then_a_more_interesting_case_passing_argument_pointers"><a class="anchor" href="#_then_a_more_interesting_case_passing_argument_pointers"></a><a class="link" href="#_then_a_more_interesting_case_passing_argument_pointers">Then a more interesting case, passing argument pointers</a></h3>
+<div class="paragraph">
+<p>The next part of the example is a lit more involved code with <code>crypto_box_keypair</code>
+that take two array pointers <code>recipient_pk</code> and <code>recipient_sk</code>, this method
+will write in these arrays the generated keypair.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_keypair ©</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">unsigned char recipient_pk[crypto_box_PUBLICKEYBYTES];
+unsigned char recipient_sk[crypto_box_SECRETKEYBYTES];
+crypto_box_keypair(recipient_pk, recipient_sk);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Also, we’ll need to do the same as <code>crypto_box_SEALBYTES</code>, to initialize
+the recipient arrays with constants <code>crypto_box_PUBLICKEYBYTES</code> and
+<code>crypto_box_SECRETKEYBYTES</code>.</p>
+</div>
+<div class="paragraph">
+<p>The C mapping is easy to get, a void method that takes 2 pointers :
+<code>FunctionDescriptor.ofVoid(C_POINTER, C_POINTER)</code>. In Java the method type
+require a new type called <code>MemoryAddress</code> which represents the pointer
+address.</p>
+</div>
+<div class="paragraph">
+<p>Before passing an address it is necessary to allocate the necessary
+memory segments that will be written to, for that let’s use <code>MemorySegment::allocateNative</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_keypair (java)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle crypto_box_keypair =
+        CLinker.getInstance().downcallHandle(
+                libsodiumLookup.lookup(&#34;crypto_box_keypair&#34;).get(),
+                MethodType.methodType(
+                        void.class,
+                        MemoryAddress.class, // pk
+                        MemoryAddress.class  // sk
+                ),
+                FunctionDescriptor.ofVoid(C_POINTER, C_POINTER)
+        );
+
+var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
+var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes());
+crypto_box_keypair.invokeExact(recipientPublicKey.address(),
+                               recipientSecretKey.address());
+
+var kp = new CryptoBoxKeyPair(
+        recipientPublicKey.toByteArray(),
+        recipientSecretKey.toByteArray()
+);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This code works, but there is something that must be taken care of,
+<strong>the native segment lifecycle</strong>. The above code snippet never deallocate
+native memory. Fortunately <code>MemorySegment</code> implements <code>AutoCloseable</code>,
+declaring the in a <em>try-with_resources</em> block will solve the issue.</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>MemorySegment</code> lifecycle</div>
+<div class="content">
+<pre>try (var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
+     var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes())) {
+    crypto_box_keypair.invokeExact(recipientPublicKey.address(),
+                                   recipientSecretKey.address());
+
+    return new CryptoBoxKeyPair(
+            recipientPublicKey.toByteArray(),
+            recipientSecretKey.toByteArray()
+    );
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Even better let’s use the concept of scopes with <code>NativeScope</code>, which
+allows to register the segment to a <em>code section</em> and allocate segments
+anywhere in the section.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_keypair with <code>NativeScope</code> (java)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
+    var recipientPublicKey = scope.allocate(crypto_box_publickeybytes());
+    var recipientSecretKey = scope.allocate(crypto_box_secretkeybytes());
+
+    crypto_box_keypair.invokeExact(recipientPublicKey.address(),
+                                   recipientSecretKey.address());
+
+    return new CryptoBoxKeyPair(
+            recipientPublicKey.toByteArray(),
+            recipientSecretKey.toByteArray()
+    );
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In order to get back the off-heap content into Java types, we can call
+on of the <code>to*</code> methods of the <code>MemorySegment</code>, which will take care of
+the conversion.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_next_invoking_the_sealing_method"><a class="anchor" href="#_next_invoking_the_sealing_method"></a><a class="link" href="#_next_invoking_the_sealing_method">Next invoking the sealing method</a></h3>
+<div class="paragraph">
+<p>The next code to call is <code>crypto_box_seal</code>, which also takes
+pointers and a message length.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_seal ©</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">unsigned char ciphertext[CIPHERTEXT_LEN];
+crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When looking at the
+<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L129-L132">C signature</a>
+however we notice something <em>unusual</em>, the message length argument is
+of type <code>long long</code>, Java doesn’t have long types</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_seal definition ©</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">SODIUM_EXPORT
+int crypto_box_seal(unsigned char *c, const unsigned char *m,
+                    unsigned long long mlen, const unsigned char *pk)
+            __attribute__ ((nonnull(1, 4)));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Fortunately for this post since I intend to pass a <code>String</code> message,
+so an <code>int</code> will work albeit the presence of the cast instruction.
+That said it’ll be an <code>int</code> event if the code is passed a Java array.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_seal (java)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var crypto_box_seal = CLinker.getInstance().downcallHandle(
+        libsodiumLookup.lookup(&#34;crypto_box_seal&#34;).get(),
+        MethodType.methodType(int.class,
+                              MemoryAddress.class, // cipherText, output buffer
+                              MemoryAddress.class, // message
+                              long.class,          // message length
+                              MemoryAddress.class  // publicKey
+        ),
+        FunctionDescriptor.of(C_INT,
+                              C_POINTER,
+                              C_POINTER,
+                              C_LONG_LONG,
+                              C_POINTER)
+
+);
+
+try (var scope = NativeScope.unboundedScope()) {
+    var cipherText = scope.allocate(crypto_box_sealbytes() + message.length());
+    var ret = (int) crypto_box_seal.invokeExact(cipherText.address(),
+                                                CLinker.toCString(message, scope).address(),
+                                                (long) message.length(),
+                                                scope.allocateArray(C_CHAR, publicKey).address());
+    return cipherText.toByteArray();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Notice that here I’m not using the return type, however due to the <em>dynamic</em>
+nature of <code>invokeExact</code>, the compiler needs the <strong>exact</strong> signature on the
+call site, that’s why I’m assigning it an <code>int</code> variable even if it is not used.
+If the assignment is missing the JVM will raise a <code>WrongMethodTypeException</code>
+where you’ll need to identify the type differences in the signature:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">java.lang.invoke.WrongMethodTypeException: expected (MemoryAddress,MemoryAddress,long,MemoryAddress)int but found (MemoryAddress,MemoryAddress,long,MemoryAddress)void</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ending_the_libsodium_example"><a class="anchor" href="#_ending_the_libsodium_example"></a><a class="link" href="#_ending_the_libsodium_example">Ending the libsodium example</a></h3>
+<div class="paragraph">
+<p>The last call ends the libsodium crypto box example. With this example we
+can just reuse what we have used before. The method <code>crypto_box_seal_open</code>
+take pointers and a ciphered text length.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_seal_open ©</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">unsigned char decrypted[MESSAGE_LEN];
+if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
+recipient_pk, recipient_sk) != 0) {
+/* message corrupted or not intended for this recipient */
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Which translates to</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_seal_open (java)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var crypto_box_seal_open = getInstance().downcallHandle(
+        libsodiumLookup.lookup(&#34;crypto_box_seal_open&#34;).get(),
+        MethodType.methodType(int.class,
+                              MemoryAddress.class, // message
+                              MemoryAddress.class, // cipherText
+                              long.class,          // cipherText.length
+                              MemoryAddress.class, // public key
+                              MemoryAddress.class  // secret key
+        ),
+        FunctionDescriptor.of(C_INT,
+                              C_POINTER,
+                              C_POINTER,
+                              C_LONG_LONG,
+                              C_POINTER,
+                              C_POINTER
+        )
+);
+
+try (var scope = NativeScope.unboundedScope()) {
+    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
+    var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
+                                                     scope.allocateArray(C_CHAR, cipherText).address(),
+                                                     (long) cipherText.length,
+                                                     scope.allocateArray(C_CHAR, publicKey).address(),
+                                                     scope.allocateArray(C_CHAR, secretkey).address());
+
+    return CLinker.toJavaString(decipheredText);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There is one error in this program :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">java.lang.IndexOutOfBoundsException: Out of bound access on segment MemorySegment{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.outOfBoundException(AbstractMemorySegmentImpl.java:495)
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBoundsSmall(AbstractMemorySegmentImpl.java:465)
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBounds(AbstractMemorySegmentImpl.java:446)
+	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkAccess(AbstractMemorySegmentImpl.java:401)
+	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.checkAddress(MemoryAccessVarHandleByteHelper.java:80)
+	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.get(MemoryAccessVarHandleByteHelper.java:113)
+	at jdk.incubator.foreign/jdk.incubator.foreign.MemoryAccess.getByteAtOffset(MemoryAccess.java:105)
+	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.strlen(SharedUtils.java:259)
+	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.toJavaStringInternal(SharedUtils.java:249)
+	at jdk.incubator.foreign/jdk.incubator.foreign.CLinker.toJavaString(CLinker.java:342)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>I didn’t get it at first as <code>CLinker::toJavaString</code> is the mirror function
+of the <code>CLinker::toCString</code>, the message indicates the segment has the size 20 which is
+the length of this string <code>Hello foreign code !</code>, there’s <code>new offset is 20</code> indicating the segment
+was read up to the 20th character, and there is the <code>new length = 1</code>,
+which suggests <code>toJavaString</code> needs to read an additional character.</p>
+</div>
+<div class="paragraph">
+<p>The required info is in the javadoc (emphasis is mine) :</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p><strong>Converts a null-terminated C string</strong> stored at given address into a Java string, using the platform’s default charset.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>This immediately clicked, the way libsodium is working
+with the <em>message</em> involves to pass the message length,
+and that’s because libsodium don’t assume the message
+is a string, it can be anything!</p>
+</div>
+<div class="paragraph">
+<p>In this case the native memory segment is indeed not terminated by <code>\0</code></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>MemorySegment::toByteArray</code>: <code>48656C6C6F20666F726569676E20636F64652021</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>That means I need to use <code>new String(decipheredText.toByteArray())</code> instead.
+For reference here are the bytes returned by <code>String::getBytes</code> and
+<code>CLinker::toCString</code>.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>&#34;Hello&#34;.getBytes()</code> ⇒ <code>48656C6C6F</code></p>
+</li>
+<li>
+<p><code>CLinker.toCString(&#34;Hello&#34;).toByteArray()</code> ⇒ <code>48656C6C6F00</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For this example I’d like to keep the assumption that message is a <code>String</code>,
+which leads to the following correct code :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
+    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
+    var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
+                                                     scope.allocateArray(C_CHAR, cipherText).address(),
+                                                     (long) cipherText.length,
+                                                     scope.allocateArray(C_CHAR, publicKey).address(),
+                                                     scope.allocateArray(C_CHAR, secretkey).address());
+
+    return new String(decipheredText.toByteArray());
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For this post I have intentionally left out the returned status of <code>crypto_box_seal_open</code>,
+but this would make sense to perform some checks before returning the buffer.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_wrap_up_on_manually_using_the_foreign_linker_api"><a class="anchor" href="#_wrap_up_on_manually_using_the_foreign_linker_api"></a><a class="link" href="#_wrap_up_on_manually_using_the_foreign_linker_api">Wrap up on manually using the Foreign Linker API</a></h3>
+<div class="paragraph">
+<p>I didn’t cover everything this API has to offer, like the <em>up call</em> stubs,
+which a way to pass a function pointer to the native code, nor did I cover
+the richness of the <code>MemorySegment</code> API.</p>
+</div>
+<div class="paragraph">
+<p>At this time I find this API a pleasure to use compared to JNI. Note that
+I don’t have experience with JNA, so I may be lacking perspective there.</p>
+</div>
+<div class="paragraph">
+<p>There’s a few pitfalls like the <code>CLinker::toJavaString</code> or the
+<code>MemorySegment</code> lifecycles which get more complicated if those segments
+are shared between threads. I found the API well designed and well
+documented, but if you’re novice in this area, you’ll likely need
+other materials, a package wide documentation should definitely fill
+in the gaps in my opinion.</p>
+</div>
+<div class="paragraph">
+<p>This example was short in native code, but writing the stubs in Java
+is quickly tedious and verbose.</p>
+</div>
+<div class="paragraph">
+<p>JDK developers felt the same way as they are currently backing a tool
+named <code>jextract</code> whose goal is to do this tedious work.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_jextract"><a class="anchor" href="#_jextract"></a><a class="link" href="#_jextract"><code>jextract</code></a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>As <code>jextract</code> is still being backed, it is not ready for incubation,
+as such it is not included in JDK 16, it is sad but understandable.</p>
+</div>
+<div class="paragraph">
+<p>In order to be able to use it, one should download the panama jdk
+here: <a href="https://jdk.java.net/panama/" class="bare">https://jdk.java.net/panama/</a>. Don’t be scared by <em>early access</em>
+or the other warnings, you just need to use <code>jextract</code> not the panama jdk.</p>
+</div>
+<div class="paragraph">
+<p>When I started to bootstrap work on JDK16 and libsodium, the built
+panama JDK didn’t contain the <code>jextract</code>, as I wasn’t sure
+I voiced this on Twitter, which then confirmed this was a bug
+<a href="https://bugs.openjdk.java.net/browse/JDK-8261733">JDK-8261733</a>.</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+At this time the <code>jextract</code> tool is still being backed.
+That means it that everything below can be obsolete any time.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect2">
+<h3 id="_extracting_java_liking_code_from_the_libsodium_headers"><a class="anchor" href="#_extracting_java_liking_code_from_the_libsodium_headers"></a><a class="link" href="#_extracting_java_liking_code_from_the_libsodium_headers">Extracting Java liking code from the Libsodium headers</a></h3>
+<div class="paragraph">
+<p>The first thing I need is to get the headers of libsodium, and for that
+I cloned the repo. Then checkout the 1.0.18 tag as I intend to target
+the latest released binary.</p>
+</div>
+<div class="listingblock">
+<div class="title">Get the libsodium source</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ git clone https://github.com/jedisct1/libsodium.git
+Cloning into &#39;libsodium&#39;...
+remote: Enumerating objects: 151, done.
+remote: Counting objects: 100% (151/151), done.
+remote: Compressing objects: 100% (105/105), done.
+remote: Total 32369 (delta 74), reused 86 (delta 41), pack-reused 32218
+Receiving objects: 100% (32369/32369), 8.24 MiB | 10.52 MiB/s, done.
+Resolving deltas: 100% (19205/19205), done.
+$ git checkout 1.0.18</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Headers are located in this folder <code>src/libsodium/include</code>. Now let use
+<code>jextract</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">First contact with <code>jextract</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract
+  -d libsodium-jextract \ <i class="conum" data-value="1"></i><b>(1)</b>
+  -l sodium \ <i class="conum" data-value="2"></i><b>(2)</b>
+  --target-package com.github.bric3.sodium \ <i class="conum" data-value="3"></i><b>(3)</b>
+  -I src/libsodium/include/ \ <i class="conum" data-value="4"></i><b>(4)</b>
+  -I src/libsodium/include/sodium \ <i class="conum" data-value="4"></i><b>(4)</b>
+  --filter sodium.h \ <i class="conum" data-value="5"></i><b>(5)</b>
+  src/libsodium/include/sodium.h <i class="conum" data-value="6"></i><b>(6)</b>
+src/libsodium/include/sodium/export.h:5:10: fatal error: &#39;stddef.h&#39; file not found</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Destination of the generated sources</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Extracts or more precisely generate sources, instead of classes</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Indicates the target package of the generated source</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Includes of the library (some files include others in the library)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Only includes symbols from the given file, otherwise symbols of
+other includes may be extracted</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>The C header file</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Obviously the standard C headers are not discovered by <code>jextract</code>.
+I tried to solve this by declaring the system includes in <code>/usr/include</code>
+and <code>/usr/include/linux</code> (<code>/usr/include/linux/stddef.h</code>) but the error
+went a bit further with <code>unknown type name &#39;size_t&#39;</code>.</p>
+</div>
+<div class="paragraph">
+<p><code>size_t</code> is a standard C alias representing the <em>unsigned integer type</em>.
+I found help in this <a href="https://www.mail-archive.com/dev@tomcat.apache.org/msg129346.html">old thread from november 2018</a>.
+Instead of using the includes under <code>/usr/includes</code>, it is necessary to use
+the includes of the compiler ; on my docker image they were located
+here : <code>/usr/lib/gcc/x86_64-redhat-linux/8/include</code>.</p>
+</div>
+<div class="paragraph">
+<p>Also I noticed that <code>jextract</code> generates classes first, but you can pass
+a <code>--source</code> option to configure it to generate sources instead.</p>
+</div>
+<div class="paragraph">
+<p>On the next run of <code>jextract</code> the <code>extraction</code> process stopped on
+the file <code>version.h</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">Includes the compiler headers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract \
+  -d libsodium-jextract \
+   -l sodium \
+   --source \ <i class="conum" data-value="1"></i><b>(1)</b>
+   --target-package com.github.bric3.sodium \
+   -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <i class="conum" data-value="2"></i><b>(2)</b>
+   -I src/libsodium/include/ \
+   -I src/libsodium/include/sodium \
+   --filter sodium.h \
+   src/libsodium/include/sodium.h
+src/libsodium/include/sodium.h:5:10: fatal error: &#39;sodium/version.h&#39; file not found</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>generates the sources</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>the compiler includes installed on this linux image</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>In the libsodium repository there’s a file named <code>version.h.in</code>,
+and upon inspection of its content I noticed placeholders that suggests
+a preliminary phase in the libsodium build will generate the final <code>version.h</code>.
+In native sources this usually happen via a combination of <code>./autogen.sh</code>
+and <code>./configure</code>.</p>
+</div>
+<div class="paragraph">
+<p>Let’s prepare the code base.</p>
+</div>
+<div class="listingblock">
+<div class="title">Configure libsodium codebase</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ./autogen.sh
+autoreconf: Entering directory `.&#39;
+autoreconf: configure.ac: not using Gettext
+autoreconf: running: aclocal --force -I m4
+autoreconf: configure.ac: tracing
+autoreconf: configure.ac: creating directory build-aux
+autoreconf: running: libtoolize --copy --force
+libtoolize: putting auxiliary files in AC_CONFIG_AUX_DIR, &#39;build-aux&#39;.
+libtoolize: copying file &#39;build-aux/ltmain.sh&#39;
+libtoolize: putting macros in AC_CONFIG_MACRO_DIRS, &#39;m4&#39;.
+libtoolize: copying file &#39;m4/libtool.m4&#39;
+libtoolize: copying file &#39;m4/ltoptions.m4&#39;
+libtoolize: copying file &#39;m4/ltsugar.m4&#39;
+libtoolize: copying file &#39;m4/ltversion.m4&#39;
+libtoolize: copying file &#39;m4/lt~obsolete.m4&#39;
+autoreconf: running: /usr/bin/autoconf --force
+autoreconf: configure.ac: not using Autoheader
+autoreconf: running: automake --add-missing --copy --force-missing
+configure.ac:75: installing &#39;build-aux/compile&#39;
+configure.ac:9: installing &#39;build-aux/config.guess&#39;
+configure.ac:9: installing &#39;build-aux/config.sub&#39;
+configure.ac:10: installing &#39;build-aux/install-sh&#39;
+configure.ac:10: installing &#39;build-aux/missing&#39;
+src/libsodium/Makefile.am: installing &#39;build-aux/depcomp&#39;
+parallel-tests: installing &#39;build-aux/test-driver&#39;
+autoreconf: Leaving directory `.&#39;
+Downloading config.guess and config.sub...
+Done.
+
+./configure
+checking build system type... x86_64-pc-linux-gnu
+checking host system type... x86_64-pc-linux-gnu
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... /usr/bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking whether make supports nested variables... yes
+checking whether UID &#39;0&#39; is supported by ustar format... yes
+checking whether GID &#39;0&#39; is supported by ustar format... yes
+checking how to create a ustar tar archive... gnutar
+checking whether make supports nested variables... (cached) yes
+checking whether to enable maintainer-specific portions of Makefiles... no
+checking whether make supports the include directive... yes (GNU style)
+checking for gcc... gcc
+...
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating builds/Makefile
+config.status: creating contrib/Makefile
+config.status: creating dist-build/Makefile
+config.status: creating libsodium.pc
+config.status: creating libsodium-uninstalled.pc
+config.status: creating msvc-scripts/Makefile
+config.status: creating src/Makefile
+config.status: creating src/libsodium/Makefile
+config.status: creating src/libsodium/include/Makefile
+config.status: creating src/libsodium/include/sodium/version.h <i class="conum" data-value="1"></i><b>(1)</b>
+config.status: creating test/default/Makefile
+config.status: creating test/Makefile
+config.status: executing depfiles commands
+config.status: executing libtool commands</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Configuring <code>version.h</code> with version values</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Finally, this time <code>jextract</code> worked as expected.</p>
+</div>
+<div class="listingblock">
+<div class="title">Working jextract command</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract \
+  -d libsodium-jextract \
+   -l sodium \
+   --source \
+   --target-package com.github.bric3.sodium \
+   -I /usr/lib/gcc/x86_64-redhat-linux/8/include \
+   -I src/libsodium/include/ \
+   -I src/libsodium/include/sodium \
+   --filter sodium.h \
+   src/libsodium/include/sodium.h</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>However, when I opened <code>sodium_h.java</code> it was empty.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public final class sodium_h  {
+
+    /* package-private */ sodium_h() {}
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the 1.x tree the <a href="https://github.com/jedisct1/libsodium/blob/1.0.18/src/libsodium/include/sodium.h"><code>sodium.h</code></a>
+file <strong>only includes the declaration of other headers</strong>.
+When I explicitly filtered on <code>sodium.h</code>, <code>jextract</code> evicted symbols
+of the includes.</p>
+</div>
+<div class="paragraph">
+<p>How to keep the declarations of the other headers ?
+At this time <code>jextract</code> help is a bit vague.</p>
+</div>
+<div class="listingblock">
+<div class="title">Jextract help</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract --help
+Non-option arguments:
+[String] -- header file
+
+Option                         Description
+------                         -----------
+-?, -h, --help                 print help
+-C &lt;String&gt;                    pass through argument for clang
+-I &lt;String&gt;                    specify include files path
+-d &lt;String&gt;                    specify where to place generated files
+--filter &lt;String&gt;              header files to filter
+-l &lt;String&gt;                    specify a library
+--source                       generate java sources
+-t, --target-package &lt;String&gt;  target package for specified header files</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Looking at the <a href="https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/JextractTool.java#L199-L201"><code>jextract</code> source code</a> was the way to go, first the code suggests
+that it’s possible to pass multiple filters (<code>--filter</code>), just like it
+is possible to pass multiple include (<code>-I</code>).
+Although it is not very practical with multiple values, isn’t is
+possible to pass a pattern ?</p>
+</div>
+<div class="paragraph">
+<p>This is answered here in this document
+(<a href="https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/doc/panama_jextract.md">Using the <code>jextract</code> tool</a>)
+or in the source code in the <a href="https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/Filter.java#L45-L50"><code>Filter</code></a> class ;
+it’s possible to pass <code>--filter</code> a part of the path, the current
+code will just verify if this string is contained in the header path.</p>
+</div>
+<div class="paragraph">
+<p>Concretely I can use the string <code>sodium</code> as a filter to include headers
+located in <code>include/sodium/</code> folder.</p>
+</div>
+<div class="listingblock">
+<div class="title">Correct jextract command</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract \
+  -d libsodium-jextract \  <i class="conum" data-value="1"></i><b>(1)</b>
+  --source \ <i class="conum" data-value="2"></i><b>(2)</b>
+  --target-package com.github.bric3.sodium \ <i class="conum" data-value="3"></i><b>(3)</b>
+  -l sodium \ <i class="conum" data-value="4"></i><b>(4)</b>
+  -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <i class="conum" data-value="5"></i><b>(5)</b>
+  -I src/libsodium/include/ \ <i class="conum" data-value="6"></i><b>(6)</b>
+  -I src/libsodium/include/sodium \ <i class="conum" data-value="6"></i><b>(6)</b>
+  --filter sodium \ <i class="conum" data-value="7"></i><b>(7)</b>
+  src/libsodium/include/sodium.h <i class="conum" data-value="8"></i><b>(8)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Destination of the generated sources</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Extracts or more precisely generate sources, instead of classes</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Indicates the target package of the generated source</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Name without the JNI prefix and suffix (or path) of the library to load</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Includes C definitions or includes like <code>size_t</code>, <code>stddef.h</code> etc.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Includes of the library (some files include others in the library)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>Only includes symbols from the given file, otherwise symbols of
+other includes may be extracted</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="8"></i><b>8</b></td>
+<td>The C header file</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title">Generated files</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ls -lh libsodium-jextract-f/com/github/bric3/sodium/
+total 956K
+-rw-r--r--. 1 root root  557 Feb 16 14:10 C.java
+-rw-r--r--. 1 root root 8.8K Feb 16 14:10 RuntimeHelper.java
+-rw-r--r--. 1 root root 350K Feb 16 14:10 sodium_h.java
+-rw-r--r--. 1 root root 124K Feb 16 14:10 sodium_h_0.java
+-rw-r--r--. 1 root root 329K Feb 16 14:10 sodium_h_constants_0.java
+-rw-r--r--. 1 root root 131K Feb 16 14:10 sodium_h_constants_1.java</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_invoking_the_library"><a class="anchor" href="#_invoking_the_library"></a><a class="link" href="#_invoking_the_library">Invoking the library</a></h3>
+<div class="paragraph">
+<p>Let’s have a look at what jextract generated. The entry point is
+the class <code>sodium_h</code>. In particular let’s look at the method stub I
+wrote earlier : <code>crypto_box_seal</code> and <code>crypto_box_seal_open</code></p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_seal</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static  MethodHandle crypto_box_seal$MH() {
+    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(),&#34;unresolved symbol: crypto_box_seal&#34;);
+}
+public static int crypto_box_seal ( Addressable c,  Addressable m,  long mlen,  Addressable pk) {
+    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(), &#34;unresolved symbol: crypto_box_seal&#34;);
+    try {
+        return (int)mh$.invokeExact(c.address(), m.address(), mlen, pk.address());
+    } catch (Throwable ex$) {
+        throw new AssertionError(&#34;should not reach here&#34;, ex$);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">RuntimeHelper.downcallHandle(
+        LIBRARIES, &#34;crypto_box_seal&#34;,
+        &#34;(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;JLjdk/incubator/foreign/MemoryAddress;)I&#34;,
+        crypto_box_seal$FUNC_, false
+    )</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So jextract is doing the same for the <code>long long</code> type in the C signature of
+<code>crypto_box_seal</code></p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="ulist">
+<ul>
+<li>
+<p>jextract does not support certain C types bigger than 64 bits (e.g. <code>long double</code>).</p>
+</li>
+</ul>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>It uses the Java <code>long</code> instead as the Java method argument type.</p>
+</div>
+<div class="paragraph">
+<p>I looked at the examples and loading a library looked like an easy feat.
+However, I stumbled on this, if I understood correctly <code>LibraryLookup::ofLibrary</code>
+should take the library name without the <code>JNI_LIB_PREFIX</code> nor the <code>JNI_LIB_SUFFIX</code>,
+this didn’t work!</p>
+</div>
+<div class="paragraph">
+<p>Let’s play with <code>jshell</code> (<code>jshell --add-modules jdk.incubator.foreign</code>) !</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-jshell hljs" data-lang="jshell">jshell&gt; LibraryLookup.ofLibrary(&#34;procps&#34;);
+|  Exception java.lang.IllegalArgumentException: Library not found: procps
+|        at LibrariesHelper.lookup (LibrariesHelper.java:94)
+|        at LibrariesHelper.loadLibrary (LibrariesHelper.java:60)
+|        at LibraryLookup.ofLibrary (LibraryLookup.java:150)
+|        at (#9:1)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Yet <code>libprocps</code> is installed !</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ldconfig -p | grep procps
+        libprocps.so.7 (libc6,x86-64) =&gt; /lib64/libprocps.so.7
+$ ldconfig -p | grep git
+        libgit2.so.26 (libc6,x86-64) =&gt; /lib64/libgit2.so.26</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Yet the library extension has a major version <code>.7</code>, which is actually a symlink to
+<code>libprocps.so.7.1.0</code>. Behind the scene <code>LibraryLookup::ofLibrary</code> invokes</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-jshell hljs" data-lang="jshell">jshell&gt; System.getProperty(&#34;java.library.path&#34;)
+$3 ==&gt; &#34;/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib&#34;
+jshell&gt; System.out.printf(&#34;mapped libname : %s%n&#34;, System.mapLibraryName(&#34;procps&#34;));
+mapped libname : libprocps.so</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>On macOs <code>java.library.path</code></p>
+</div>
+<div class="paragraph">
+<p>/Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.</p>
+</div>
+<div class="paragraph">
+<p>In other words this mechanism won’t work ! Fortunately one can pass a path.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_closing_words"><a class="anchor" href="#_closing_words"></a><a class="link" href="#_closing_words">Closing words</a></h3>
+<hr/>
+<div class="ulist">
+<div class="title">Sources in no particular order</div>
+<ul>
+<li>
+<p><a href="https://openjdk.java.net/jeps/389" class="bare">https://openjdk.java.net/jeps/389</a></p>
+</li>
+<li>
+<p><a href="https://cr.openjdk.java.net/~mcimadamore/panama/ffi.html" class="bare">https://cr.openjdk.java.net/~mcimadamore/panama/ffi.html</a></p>
+</li>
+<li>
+<p><a href="https://inside.java/2020/10/06/jextract/" class="bare">https://inside.java/2020/10/06/jextract/</a></p>
+</li>
+<li>
+<p><a href="https://jdk.java.net/panama/" class="bare">https://jdk.java.net/panama/</a></p>
+</li>
+<li>
+<p><a href="https://github.com/sundararajana/panama-jextract-samples/" class="bare">https://github.com/sundararajana/panama-jextract-samples/</a></p>
+</li>
+<li>
+<p><a href="https://github.com/openjdk/panama-foreign" class="bare">https://github.com/openjdk/panama-foreign</a></p>
+</li>
+<li>
+<p><a href="https://github.com/jedisct1/libsodium" class="bare">https://github.com/jedisct1/libsodium</a></p>
+</li>
+<li>
+<p><a href="https://doc.libsodium.org/installation" class="bare">https://doc.libsodium.org/installation</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/2021/01/22/native-memory-fragmentation-with-glibc/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Glibc can lead to native memory fragmentation</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  
+
+</article>
+
+
+            
+    
+<footer>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-02-17-a-practical-look-at-jep-389.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/highlight.min.js" integrity="sha512-DrpaExP2d7RJqNhXB41Q/zzzQrtb6J0zfnXD5XeVEWE8d9Hj54irCLj6dRS3eNepPja7DvKcV+9PnHC7A/g83A==" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+
+</footer>
+
+    
+
+
+
+        </div>
+    </body>
+</html>
+
