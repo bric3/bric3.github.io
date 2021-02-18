@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 38 min read
+    <i class="fas fa-clock"></i> 45 min read
 
     
     
@@ -284,6 +284,29 @@ In order to do so this posts intends to leverage the infamous <a href="https://d
 <div class="paragraph">
 <p>This article has two parts, a focus on JEP-389 API, and
 how to use jextract.</p>
+</div>
+<div class="ulist checklist">
+<div class="title">TODO</div>
+<ul class="checklist">
+<li>
+<p><i class="fa fa-square-o"></i> pmap output MemorySegment</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> add-modules, foreign.restricted=permit, Gradle</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Compare jextract with handcrafted</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Closing words, easy to implement fall back mechanism (in case of ABI mismatch)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> Link to the panama mailing list</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The following examples were based on <strong>JDK 16 release candidate build 36 (2021/2/8)</strong>.</p>
 </div>
 <div class="sect1">
 <h2 id="_the_crypto_sealed_box_example"><a class="anchor" href="#_the_crypto_sealed_box_example"></a><a class="link" href="#_the_crypto_sealed_box_example">The crypto sealed box example</a></h2>
@@ -749,8 +772,9 @@ as such it is not included in JDK 16, it is sad but understandable.</p>
 </div>
 <div class="paragraph">
 <p>In order to be able to use it, one should download the panama jdk
-here: <a href="https://jdk.java.net/panama/" class="bare">https://jdk.java.net/panama/</a>. Don’t be scared by <em>early access</em>
-or the other warnings, you just need to use <code>jextract</code> not the panama jdk.</p>
+here: <a href="https://jdk.java.net/panama/" class="bare">https://jdk.java.net/panama/</a>. Don’t be scared by <em>early access</em>,
+JDK 17 (very early at this stage) or the other warnings, you just need
+to use <code>jextract</code> not the panama jdk.</p>
 </div>
 <div class="paragraph">
 <p>When I started to bootstrap work on JDK16 and libsodium, the built
@@ -1119,7 +1143,7 @@ total 956K
 <h3 id="_invoking_the_library"><a class="anchor" href="#_invoking_the_library"></a><a class="link" href="#_invoking_the_library">Invoking the library</a></h3>
 <div class="paragraph">
 <p>Let’s have a look at what <code>jextract</code> generated. The entry point is
-the class <code>sodium_h</code>. In particular let’s compare at the method stubs
+the class <code>sodium_h</code>. In particular let’s compare the method stubs
 to these I wrote earlier :</p>
 </div>
 <div class="ulist">
@@ -1138,30 +1162,177 @@ to these I wrote earlier :</p>
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>The libsodium headers declare a method named <code>crypto_box_sealbytes</code>,
+whose role is to return a constant <code>crypto_box_SEALBYTES</code>, however
+this constant is defined as a C preprocessor directive <code>#DEFINE</code>,
+which not visible as a symbol, hence the nifty method that returns
+this value.</p>
+</div>
+<div class="paragraph">
+<p><code>jextract</code> is however reading the headers, so it actually extracts
+the constant <code>crypto_box_SEALBYTES</code>. It is still exposed as method,
+and it is declared in a different class <code>sodium_h_0#crypto_box_SEALBYTES</code>.</p>
+</div>
+<div class="paragraph">
+<p>Note that <code>sodium_h</code> extends <code>sodium_h_0</code>, so one will write</p>
+</div>
 <div class="listingblock">
-<div class="title">crypto_box_seal</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static  MethodHandle crypto_box_seal$MH() {
-    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(),&#34;unresolved symbol: crypto_box_seal&#34;);
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">sodium_h.crypto_box_SEALBYTES()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Behind the scene this call invokes <code>sodium_h_constants_1#crypto_box_SEALBYTES</code>,
+and for <code>sodium_h</code> this split in two classes due to the class limits.
+<code>sodium_h_constants_1</code> extends <code>sodium_h_constants_0</code>.</p>
+</div>
+<div class="sect3">
+<h4 id="_first_hiccup"><a class="anchor" href="#_first_hiccup"></a><a class="link" href="#_first_hiccup">First hiccup</a></h4>
+<div class="paragraph">
+<p>When I accessed this constant for the first time, I got this
+error :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">java.lang.ExceptionInInitializerError
+	at com.github.bric3.sodium.sodium_h_0.crypto_box_PUBLICKEYBYTES(sodium_h_0.java:1511)
+	at com.github.bric3.sodium.Libsodium$JextractedLibsodium.crypto_box_keypair(Libsodium.java:263)
+	at com.github.bric3.sodium.LibsodiumTest.can_invoke_crypto_box_keypair(LibsodiumTest.java:44)
+
+Caused by: java.lang.IllegalArgumentException: Library not found: sodium
+	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.lookup(LibrariesHelper.java:94)
+	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.loadLibrary(LibrariesHelper.java:60)
+	at jdk.incubator.foreign/jdk.incubator.foreign.LibraryLookup.ofLibrary(LibraryLookup.java:150)
+	at com.github.bric3.sodium.RuntimeHelper.lambda$libraries$0(RuntimeHelper.java:46)
+	at com.github.bric3.sodium.RuntimeHelper.libraries(RuntimeHelper.java:49)
+	at com.github.bric3.sodium.sodium_h_constants_0.&lt;clinit&gt;(sodium_h_constants_0.java:14)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>THe originating code is here:</p>
+</div>
+<div class="listingblock">
+<div class="title">sodium_h_constants_0</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
+    &#34;sodium&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
+});</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This is the value I passed to the <code>jextract</code> command.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Of course this value is incorrect ; the libsodium path or name is highly
+dependent on the installation and the system. It’s the same for almost
+every shared library (libgit2, libcurl, etc.)</p>
+</div>
+<div class="paragraph">
+<p>Also, this code is <code>static final</code>, which immediately requires a developer
+modification in order to be able to load the library.
+However since this variable is accessed statically upon class initialization
+for other members it’s not possible to make the LibraryLookup configurable
+without a significant refactoring of the generated code.</p>
+</div>
+<div class="paragraph">
+<p>As <code>RuntimeHelper::libraries</code> is able to load libraries from path, I’ll just pass
+the current installation path on my current OS. This is not something I’d keep
+for a production library.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
+    &#34;/usr/local/opt/libsodium/lib/libsodium.23.dylib&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
+});</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_now_implementing_the_other_functions"><a class="anchor" href="#_now_implementing_the_other_functions"></a><a class="link" href="#_now_implementing_the_other_functions">Now implementing the other functions</a></h4>
+<div class="paragraph">
+<p>Now let’s profit from the generated function call, in the same order
+I’d like to use <code>crypto_box_keypair</code>, this is straightforward.
+The arguments are still <em>carrier</em> type like <code>MemorySegment</code>,
+which means we still need to take care of the scope / lifecycle of
+these allocations.
+s
+.crypto_box_keypair</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
+    var recipientPublicKey = scope.allocate(sodium_h.crypto_box_PUBLICKEYBYTES());
+    var recipientSecretKey = scope.allocate(sodium_h.crypto_box_SECRETKEYBYTES());
+    sodium_h.crypto_box_keypair(recipientPublicKey, recipientSecretKey); <i class="conum" data-value="1"></i><b>(1)</b>
+    return new CryptoBoxKeyPair(
+            recipientPublicKey.toByteArray(),
+            recipientSecretKey.toByteArray()
+    );
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>the <em>jextracted</em> method</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The IDE might suggest a method named <code>crypto_box_keypair$MH</code>, in fact the suffix
+<code>$MH</code> simply indicates this returns the <strong>M</strong>ethod <strong>H</strong>andle for this native
+method which is basically what I showed in the first part of this blog post.</p>
+</div>
+<div class="listingblock">
+<div class="title">crypto_box_keypair</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static  MethodHandle crypto_box_keypair$MH() {
+    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),&#34;unresolved symbol: crypto_box_keypair&#34;);
 }
-public static int crypto_box_seal ( Addressable c,  Addressable m,  long mlen,  Addressable pk) {
-    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(), &#34;unresolved symbol: crypto_box_seal&#34;);
+public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
+    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(), &#34;unresolved symbol: crypto_box_keypair&#34;);
     try {
-        return (int)mh$.invokeExact(c.address(), m.address(), mlen, pk.address());
+        return (int)mh$.invokeExact(pk.address(), sk.address());
     } catch (Throwable ex$) {
         throw new AssertionError(&#34;should not reach here&#34;, ex$);
     }
 }</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>More specifically and at this this time <code>jextract</code> declares the <code>MethodHandle</code>
+this way</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">RuntimeHelper.downcallHandle(
-        LIBRARIES, &#34;crypto_box_seal&#34;,
-        &#34;(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;JLjdk/incubator/foreign/MemoryAddress;)I&#34;,
-        crypto_box_seal$FUNC_, false
-    )</code></pre>
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(C_INT,
+    C_POINTER,
+    C_POINTER
+);
+
+static final MethodHandle crypto_box_keypair$MH_ = RuntimeHelper.downcallHandle(
+    LIBRARIES, &#34;crypto_box_keypair&#34;,
+    &#34;(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
+    crypto_box_keypair$FUNC_, false
+);
+static final java.lang.invoke.MethodHandle crypto_box_keypair$MH() { return crypto_box_keypair$MH_; }</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Note that the Java method signature is declared with a String instead
+of the Java API <code>MethodType</code>.</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>So jextract is doing the same for the <code>long long</code> type in the C signature of
@@ -1231,6 +1402,7 @@ mapped libname : libprocps.so</code></pre>
 </div>
 <div class="paragraph">
 <p>In other words this mechanism won’t work ! Fortunately one can pass a path.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
