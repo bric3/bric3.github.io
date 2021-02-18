@@ -17,6 +17,15 @@ In order to do so this posts intends to leverage the infamous https://doc.libsod
 This article has two parts, a focus on JEP-389 API, and
 how to use jextract.
 
+.TODO
+- [ ] pmap output MemorySegment
+- [ ] add-modules, foreign.restricted=permit, Gradle
+- [ ] Compare jextract with handcrafted
+- [ ] Closing words, easy to implement fall back mechanism (in case of ABI mismatch)
+- [ ] Link to the panama mailing list
+
+The following examples were based on *JDK 16 release candidate build 36 (2021/2/8)*.
+
 == The crypto sealed box example
 
 
@@ -420,14 +429,17 @@ is quickly tedious and verbose.
 JDK developers felt the same way as they are currently backing a tool
 named `jextract` whose goal is to do this tedious work.
 
+
+
 == `jextract`
 
 As `jextract` is still being backed, it is not ready for incubation,
 as such it is not included in JDK 16, it is sad but understandable.
 
 In order to be able to use it, one should download the panama jdk
-here: https://jdk.java.net/panama/. Don't be scared by _early access_
-or the other warnings, you just need to use `jextract` not the panama jdk.
+here: https://jdk.java.net/panama/. Don't be scared by _early access_,
+JDK 17 (very early at this stage) or the other warnings, you just need
+to use `jextract` not the panama jdk.
 
 When I started to bootstrap work on JDK16 and libsodium, the built
 panama JDK didn't contain the `jextract`, as I wasn't sure
@@ -707,7 +719,7 @@ total 956K
 // TODO
 
 Let's have a look at what `jextract` generated. The entry point is
-the class `sodium_h`. In particular let's compare at the method stubs
+the class `sodium_h`. In particular let's compare the method stubs
 to these I wrote earlier :
 
 * `crypto_box_sealbytes`
@@ -715,31 +727,149 @@ to these I wrote earlier :
 * `crypto_box_seal`
 * `crypto_box_seal_open`
 
-.crypto_box_seal
+The libsodium headers declare a method named `crypto_box_sealbytes`,
+whose role is to return a constant `crypto_box_SEALBYTES`, however
+this constant is defined as a C preprocessor directive `#DEFINE`,
+which not visible as a symbol, hence the nifty method that returns
+this value.
+
+`jextract` is however reading the headers, so it actually extracts
+the constant `crypto_box_SEALBYTES`. It is still exposed as method,
+and it is declared in a different class `sodium_h_0#crypto_box_SEALBYTES`.
+
+Note that `sodium_h` extends `sodium_h_0`, so one will write
+
 [source, java]
 ----
-public static  MethodHandle crypto_box_seal$MH() {
-    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(),"unresolved symbol: crypto_box_seal");
+sodium_h.crypto_box_SEALBYTES()
+----
+
+Behind the scene this call invokes `sodium_h_constants_1#crypto_box_SEALBYTES`,
+and for `sodium_h` this split in two classes due to the class limits.
+`sodium_h_constants_1` extends `sodium_h_constants_0`.
+
+==== First hiccup
+
+When I accessed this constant for the first time, I got this
+error :
+
+[source]
+----
+java.lang.ExceptionInInitializerError
+	at com.github.bric3.sodium.sodium_h_0.crypto_box_PUBLICKEYBYTES(sodium_h_0.java:1511)
+	at com.github.bric3.sodium.Libsodium$JextractedLibsodium.crypto_box_keypair(Libsodium.java:263)
+	at com.github.bric3.sodium.LibsodiumTest.can_invoke_crypto_box_keypair(LibsodiumTest.java:44)
+
+Caused by: java.lang.IllegalArgumentException: Library not found: sodium
+	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.lookup(LibrariesHelper.java:94)
+	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.loadLibrary(LibrariesHelper.java:60)
+	at jdk.incubator.foreign/jdk.incubator.foreign.LibraryLookup.ofLibrary(LibraryLookup.java:150)
+	at com.github.bric3.sodium.RuntimeHelper.lambda$libraries$0(RuntimeHelper.java:46)
+	at com.github.bric3.sodium.RuntimeHelper.libraries(RuntimeHelper.java:49)
+	at com.github.bric3.sodium.sodium_h_constants_0.<clinit>(sodium_h_constants_0.java:14)
+----
+
+THe originating code is here:
+
+.sodium_h_constants_0
+[source, java]
+----
+static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
+    "sodium", <1>
+});
+----
+<1> This is the value I passed to the `jextract` command.
+
+Of course this value is incorrect ; the libsodium path or name is highly
+dependent on the installation and the system. It's the same for almost
+every shared library (libgit2, libcurl, etc.)
+
+Also, this code is `static final`, which immediately requires a developer
+modification in order to be able to load the library.
+However since this variable is accessed statically upon class initialization
+for other members it's not possible to make the LibraryLookup configurable
+without a significant refactoring of the generated code.
+
+
+As `RuntimeHelper::libraries` is able to load libraries from path, I'll just pass
+the current installation path on my current OS. This is not something I'd keep
+for a production library.
+
+
+[source, java]
+----
+static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
+    "/usr/local/opt/libsodium/lib/libsodium.23.dylib", <1>
+});
+----
+
+
+
+==== Now implementing the other functions
+
+Now let's profit from the generated function call, in the same order
+I'd like to use `crypto_box_keypair`, this is straightforward.
+The arguments are still _carrier_ type like `MemorySegment`,
+which means we still need to take care of the scope / lifecycle of
+these allocations.
+s
+.crypto_box_keypair
+[source, java]
+----
+try (var scope = NativeScope.unboundedScope()) {
+    var recipientPublicKey = scope.allocate(sodium_h.crypto_box_PUBLICKEYBYTES());
+    var recipientSecretKey = scope.allocate(sodium_h.crypto_box_SECRETKEYBYTES());
+    sodium_h.crypto_box_keypair(recipientPublicKey, recipientSecretKey); <1>
+    return new CryptoBoxKeyPair(
+            recipientPublicKey.toByteArray(),
+            recipientSecretKey.toByteArray()
+    );
 }
-public static int crypto_box_seal ( Addressable c,  Addressable m,  long mlen,  Addressable pk) {
-    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_seal$MH(), "unresolved symbol: crypto_box_seal");
+----
+<1> the _jextracted_ method
+
+The IDE might suggest a method named `crypto_box_keypair$MH`, in fact the suffix
+`$MH` simply indicates this returns the **M**ethod **H**andle for this native
+method which is basically what I showed in the first part of this blog post.
+
+.crypto_box_keypair
+[source, java]
+----
+public static  MethodHandle crypto_box_keypair$MH() {
+    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),"unresolved symbol: crypto_box_keypair");
+}
+public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
+    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(), "unresolved symbol: crypto_box_keypair");
     try {
-        return (int)mh$.invokeExact(c.address(), m.address(), mlen, pk.address());
+        return (int)mh$.invokeExact(pk.address(), sk.address());
     } catch (Throwable ex$) {
         throw new AssertionError("should not reach here", ex$);
     }
 }
 ----
 
+More specifically and at this this time `jextract` declares the `MethodHandle`
+this way
+
 [source, java]
 ----
-RuntimeHelper.downcallHandle(
-        LIBRARIES, "crypto_box_seal",
-        "(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;JLjdk/incubator/foreign/MemoryAddress;)I",
-        crypto_box_seal$FUNC_, false
-    )
-----
+static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(C_INT,
+    C_POINTER,
+    C_POINTER
+);
 
+static final MethodHandle crypto_box_keypair$MH_ = RuntimeHelper.downcallHandle(
+    LIBRARIES, "crypto_box_keypair",
+    "(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I", <1>
+    crypto_box_keypair$FUNC_, false
+);
+static final java.lang.invoke.MethodHandle crypto_box_keypair$MH() { return crypto_box_keypair$MH_; }
+----
+<1> Note that the Java method signature is declared with a String instead
+of the Java API `MethodType`.
+
+
+// TODO
 
 So jextract is doing the same for the `long long` type in the C signature of
 `crypto_box_seal`
