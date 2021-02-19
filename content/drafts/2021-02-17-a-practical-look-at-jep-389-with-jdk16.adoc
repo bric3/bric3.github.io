@@ -17,19 +17,11 @@ In order to do so this posts intends to leverage the infamous https://doc.libsod
 This article has two parts, a focus on JEP-389 API, and
 how to use jextract.
 
-.TODO
-- [ ] pmap output MemorySegment
-- [ ] add-modules, foreign.restricted=permit, Gradle
-- [ ] Compare jextract with handcrafted
-- [ ] Closing words, easy to implement fall back mechanism (in case of ABI mismatch)
-- [ ] Link to the panama mailing list
-
 The following examples were based on *JDK 16 release candidate build 36 (2021/2/8)*.
 As JEP-389 is still incubating, the API is still being refined, and will likely
 change in the next JDK.
 
 == The crypto sealed box example
-
 
 Let's try to reproduce the following example from the
 https://doc.libsodium.org/public-key_cryptography/sealed_boxes[libsodium sealbox documentation]
@@ -60,6 +52,78 @@ if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
     /* message corrupted or not intended for this recipient */
 }
 ----
+
+
+=== Configuring Gradle
+
+Since I am trying to use an incubator module, it is not on the default module
+path, ane should add the `jdk.incubator.foreign` module when compiling.
+
+[source, shell]
+----
+$ javac --add-modules jdk.incubator.foreign ...
+----
+
+This module also needs to be declared when running this code, as well as
+another property `foreign.restricted` to be able to invoke native code.
+
+[source, shell]
+----
+$ java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...
+----
+
+If you like to play with `jshell`, it will be necessary to use these two as well
+
+[source, shell]
+----
+$ jshell -Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...
+----
+
+But then comes the question to configure the build tool. I am using Gradle
+
+.build.gradle.kts
+[source, kotlin]
+----
+// ...
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(16))
+    }
+}
+
+tasks {
+    withType<JavaCompile>().configureEach {
+        options.forkOptions.jvmArgs = listOf(
+                "--add-opens", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" // <1>
+        )
+
+        options.compilerArgs = listOf(
+                "--add-modules", "jdk.incubator.foreign" // <2>
+        )
+        options.release.set(16)
+    }
+
+    withType<JavaExec>().configureEach {
+        jvmArgs("-Dforeign.restricted=permit", // <3>
+                "--add-modules", "jdk.incubator.foreign")
+    }
+
+    withType<Test>().configureEach {
+        useJUnitPlatform()
+        jvmArgs("-Dforeign.restricted=permit", // <4>
+                "--add-modules", "jdk.incubator.foreign")
+    }
+}
+----
+<1> Gradle itself can run on a different JDK, but the cod needs to be compiled
+with JDK16, at this time Gradle 6.8.2 does not support the new module restriction
+introduced with JDK16 by default, hence it is necessary to explicitly open modules.
+See https://github.com/gradle/gradle/issues/15538#issuecomment-744299876[gradle/gradle#15538].
+<2> Let the compiler knows about the `jdk.incubator.foreign` module
+<3> Configure the tasks that executes a main class, while this is not immediately useful
+IntelliJ IDEA will pick up this configuration, when you click running a `main` method.
+<4> Configure test tasks to be able to run `jdk.incubator.foreign` tests.
 
 === The first and minimal call `crypto_box_sealbytes`
 
@@ -868,8 +932,6 @@ total 956K
 
 === Invoking the library
 
-// TODO
-
 Let's have a look at what `jextract` generated. The entry point is
 the class `sodium_h`. In particular let's compare the method stubs
 to these I wrote earlier :
@@ -882,10 +944,10 @@ to these I wrote earlier :
 The libsodium headers declare a method named `crypto_box_sealbytes`,
 whose role is to return a constant `crypto_box_SEALBYTES`, however
 this constant is defined as a C preprocessor directive `#DEFINE`,
-which not visible as a symbol, hence the nifty method that returns
-this value.
+which is not visible as a symbol when performing a _library lookup_.
+The native `crypto_box_sealbytes` method compensates this limitation.
 
-`jextract` is however reading the headers, so it actually extracts
+`jextract` is however reading the headers, in doing so it actually extracts
 the constant `crypto_box_SEALBYTES`. It is still exposed as method,
 and it is declared in a different class `sodium_h_0#crypto_box_SEALBYTES`.
 
@@ -921,9 +983,9 @@ Caused by: java.lang.IllegalArgumentException: Library not found: sodium
 	at com.github.bric3.sodium.sodium_h_constants_0.<clinit>(sodium_h_constants_0.java:14)
 ----
 
-THe originating code is here:
+The stacktrace points to this code:
 
-.sodium_h_constants_0
+.sodium_h_constants_0.LIBRARIES
 [source, java]
 ----
 static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
@@ -932,26 +994,29 @@ static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
 ----
 <1> This is the value I passed to the `jextract` command.
 
-Of course this value is incorrect ; the libsodium path or name is highly
-dependent on the installation and the system. It's the same for almost
-every shared library (libgit2, libcurl, etc.)
+`RuntimeHelper::libraries` can load a library from a name (using JNI conventions,
+https://github.com/openjdk/jdk16u/blob/1cc98bde6703d330b07ae873770df2c369b47eb2/src/hotspot/os/posix/include/jvm_md.h#L47-L55[`JNI_LIB_PREFIX` and `JNI_LIB_PREFIX`])
+or a path.
 
-Also, this code is `static final`, which immediately requires a developer
-modification in order to be able to load the library.
-However since this variable is accessed statically upon class initialization
-for other members it's not possible to make the LibraryLookup configurable
-without a significant refactoring of the generated code.
+The value above is the value I used in the `-l sodium` option of `jextract`,
+yet this value here is obviously incorrect.
 
+Moreover, the actual library path is dependent on the system, on the library
+version and on the installation mechanism.
 
-As `RuntimeHelper::libraries` is able to load libraries from path, I'll just pass
-the current installation path on my current OS. This is not something I'd keep
-for a production library.
+`LIBRARIS` is a static final variable that is used by other static variables
+in the same class. While it is possible to edit the `sodium_h_constants_0`
+class, it is still difficult to make this `LibraryLookup` configurable
+without a significant refactoring.
+
+For this article the easiest solution, is to declare the local libsodium path
+as I did above.
 
 
 [source, java]
 ----
 static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
-    "/usr/local/opt/libsodium/lib/libsodium.23.dylib", <1>
+    "/usr/local/opt/libsodium/lib/libsodium.23.dylib"
 });
 ----
 
@@ -964,7 +1029,7 @@ I'd like to use `crypto_box_keypair`, this is straightforward.
 The arguments are still _carrier_ type like `MemorySegment`,
 which means we still need to take care of the scope / lifecycle of
 these allocations.
-s
+
 .crypto_box_keypair
 [source, java]
 ----
@@ -980,18 +1045,24 @@ try (var scope = NativeScope.unboundedScope()) {
 ----
 <1> the _jextracted_ method
 
-The IDE might suggest a method named `crypto_box_keypair$MH`, in fact the suffix
+The IDE might suggest a method named `crypto_box_keypair$MH` ; the suffix
 `$MH` simply indicates this returns the **M**ethod **H**andle for this native
 method which is basically what I showed in the first part of this blog post.
 
-.crypto_box_keypair
+As reflex, I always like to navigate the code I'm invoking.
+The method we are invoking are just the public API methods, checking null,
+and declaring a correct callsite (correct return type, correct argument types).
+
+.sodium_h.crypto_box_keypair
 [source, java]
 ----
 public static  MethodHandle crypto_box_keypair$MH() {
-    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),"unresolved symbol: crypto_box_keypair");
+    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
+                                        "unresolved symbol: crypto_box_keypair");
 }
 public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
-    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(), "unresolved symbol: crypto_box_keypair");
+    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
+                                           "unresolved symbol: crypto_box_keypair");
     try {
         return (int)mh$.invokeExact(pk.address(), sk.address());
     } catch (Throwable ex$) {
@@ -1000,18 +1071,20 @@ public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
 }
 ----
 
-More specifically and at this time `jextract` declares the `MethodHandle`
-this way
+Going further down to see how the `MethodHandle` is declared:
 
+.sodium_h_constants_0.crypto_box_keypair$MH
 [source, java]
 ----
-static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(C_INT,
+static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(
+    C_INT,
     C_POINTER,
     C_POINTER
 );
 
 static final MethodHandle crypto_box_keypair$MH_ = RuntimeHelper.downcallHandle(
-    LIBRARIES, "crypto_box_keypair",
+    LIBRARIES,
+    "crypto_box_keypair",
     "(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I", <1>
     crypto_box_keypair$FUNC_, false
 );
@@ -1020,73 +1093,111 @@ static final java.lang.invoke.MethodHandle crypto_box_keypair$MH() { return cryp
 <1> Note that the Java method signature is declared with a String instead
 of the Java API `MethodType`.
 
+This code invokes creates the down-call stub, the only difference with the
+handcrafted handle in the section above, is the signature of the method declared
+as a `String`.
 
-// TODO
+.`(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I` breakdown
+- `Ljdk/incubator/foreign/MemoryAddress` => arg0
+- `Ljdk/incubator/foreign/MemoryAddress` => arg1
+- `I` => `int` return type
 
-So jextract is doing the same for the `long long` type in the C signature of
-`crypto_box_seal`
+The other two methods in this example  `crypto_box_seal` and `crypto_box_seal_open`
+are similar and don't require to do the tedious handle declaration.
+
+
+Although as I mentionned in the first section, these two method
+declares an argument of type `long long` type in the C signature, and those
+native types are not supported in Java, there's a statement on the panama
+download page.
 
 > * jextract does not support certain C types bigger than 64 bits (e.g. `long double`).
 
-It uses the Java `long` instead as the Java method argument type.
+`jextract` proposes a generated code that passes an argument of type `long` like
+I did in the first section.
+
+=== Wrapping up on `jextract`
+
+In the end `jextract` is useful but there's a few little hiccups along the way.
+The generated code is currently lacking in some usability. Also, the generated
+code is a tad verbose, I would wish a way to eliminate some unneeded generated
+methods. Using jextract is a bit obscure as well and they are a few pitfalls
+there too, and may require peeking at the `jdk.incubating.jextract` source code
+(in the panama repository).
+
+While I mention these point, this should not diminish the work done on this tool
+and what this tool could become. When ready, this could be leveraged by Gradle,
+or Jetbrains IntelliJ IDEA, etc.
 
 
 
 
 
+//Let's play with `jshell` (`jshell --add-modules jdk.incubator.foreign`) !
+//
+//[source, jshell]
+//----
+//jshell> LibraryLookup.ofLibrary("procps");
+//|  Exception java.lang.IllegalArgumentException: Library not found: procps
+//|        at LibrariesHelper.lookup (LibrariesHelper.java:94)
+//|        at LibrariesHelper.loadLibrary (LibrariesHelper.java:60)
+//|        at LibraryLookup.ofLibrary (LibraryLookup.java:150)
+//|        at (#9:1)
+//----
+//
+//Yet `libprocps` is installed !
+//
+//[source, shell]
+//----
+//$ ldconfig -p | grep procps
+//        libprocps.so.7 (libc6,x86-64) => /lib64/libprocps.so.7
+//$ ldconfig -p | grep git
+//        libgit2.so.26 (libc6,x86-64) => /lib64/libgit2.so.26
+//----
+//
+//Yet the library extension has a major version `.7`, which is actually a symlink to
+//`libprocps.so.7.1.0`. Behind the scene `LibraryLookup::ofLibrary` invokes
+//
+//[source, jshell]
+//----
+//jshell> System.getProperty("java.library.path")
+//$3 ==> "/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"
+//jshell> System.out.printf("mapped libname : %s%n", System.mapLibraryName("procps"));
+//mapped libname : libprocps.so
+//----
+//
+//On macOs `java.library.path`
+//
+///Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+//
+//In other words this mechanism won't work ! Fortunately one can pass a path.
 
+== Closing words
 
-I looked at the examples and loading a library looked like an easy feat.
-However, I stumbled on this, if I understood correctly `LibraryLookup::ofLibrary`
-should take the library name without the `JNI_LIB_PREFIX` nor the `JNI_LIB_SUFFIX`,
-this didn't work!
+.Cool part
+In JDK16 the foreign module is really easy to use albeit `javac` and `java`
+command line requirement. The API is well-designed and easy to use.
+I also appreciated the idea of scoped segments, a bit like what was
+implemented in the Rust language. There's also the coolness of being able
+to free memory segment at will, without depending on the GC.
 
-Let's play with `jshell` (`jshell --add-modules jdk.incubator.foreign`) !
+.Sad part
+This is the third incubator and there's still planned API. Some of this
+blog post content will eventually become incorrect when JDK17 comes out.
+`jextract` looks like a very practical tool, yet it is still
+being _cooked_.
 
-[source, jshell]
-----
-jshell> LibraryLookup.ofLibrary("procps");
-|  Exception java.lang.IllegalArgumentException: Library not found: procps
-|        at LibrariesHelper.lookup (LibrariesHelper.java:94)
-|        at LibrariesHelper.loadLibrary (LibrariesHelper.java:60)
-|        at LibraryLookup.ofLibrary (LibraryLookup.java:150)
-|        at (#9:1)
-----
-
-Yet `libprocps` is installed !
-
-[source, shell]
-----
-$ ldconfig -p | grep procps
-        libprocps.so.7 (libc6,x86-64) => /lib64/libprocps.so.7
-$ ldconfig -p | grep git
-        libgit2.so.26 (libc6,x86-64) => /lib64/libgit2.so.26
-----
-
-Yet the library extension has a major version `.7`, which is actually a symlink to
-`libprocps.so.7.1.0`. Behind the scene `LibraryLookup::ofLibrary` invokes
-
-[source, jshell]
-----
-jshell> System.getProperty("java.library.path")
-$3 ==> "/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"
-jshell> System.out.printf("mapped libname : %s%n", System.mapLibraryName("procps"));
-mapped libname : libprocps.so
-----
-
-On macOs `java.library.path`
-
-/Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
-
-In other words this mechanism won't work ! Fortunately one can pass a path.
-
-=== Closing words
+.Overall
+JEP-389 looks like solid replacement of JNI or JNA. I can only applaud the work
+done! My only regret is it's not yet _already_ available. That said as a
+developer I support the idea to not ship until ready.
 
 
 '''
 
 .Sources in no particular order
 - https://openjdk.java.net/jeps/389
+- https://mail.openjdk.java.net/pipermail/panama-dev/
 - https://cr.openjdk.java.net/~mcimadamore/panama/ffi.html
 - https://inside.java/2020/10/06/jextract/
 - https://jdk.java.net/panama/
