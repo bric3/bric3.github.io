@@ -4,8 +4,8 @@ date: "2021-02-17T23:03:09+01:00"
 language: en
 draft: true
 #tags: ["jep-389", "java", "jvm", "memory", "linker", "foreign", "jdk16]
-slug: "a-practical-look-at-jep-389-with-libsodium"
-title: "A practical look at JEP-389 with libsodium"
+slug: "a-practical-look-at-jep-389-in-JDK16-with-libsodium"
+title: "A practical look at JEP-389 in JDK16 with libsodium"
 summary: "JDK 16 is coming and with the incubating JEP-389, let's have a practical look at this API that should supersede JNI."
 ---
 
@@ -25,6 +25,8 @@ how to use jextract.
 - [ ] Link to the panama mailing list
 
 The following examples were based on *JDK 16 release candidate build 36 (2021/2/8)*.
+As JEP-389 is still incubating, the API is still being refined, and will likely
+change in the next JDK.
 
 == The crypto sealed box example
 
@@ -403,8 +405,6 @@ try (var scope = NativeScope.unboundedScope()) {
 For this post I have intentionally left out the returned status of `crypto_box_seal_open`,
 but this would make sense to perform some checks before returning the buffer.
 
-// TODO pmap !!!
-// MemorySegment.address
 
 
 === Wrap up on manually using the Foreign Linker API
@@ -429,6 +429,158 @@ is quickly tedious and verbose.
 JDK developers felt the same way as they are currently backing a tool
 named `jextract` whose goal is to do this tedious work.
 
+== A word about ``MemorySegment``s  memory mapping
+
+
+``MemorySegment`` do have the same constraints as ``DirectByteBuffer``s,
+ie by default the size of the segment can't size can't go over `Runtime.getRuntime().maxMemory()`
+
+.Allocating a very bigger segment than than `maxMemory`
+[source]
+----
+Exception in thread "main" java.lang.OutOfMemoryError: Cannot reserve 2147483648 bytes of direct buffer memory (allocated: 8192, limit: 522190848)
+----
+
+This limit is configurable by setting the `-XX:MaxDirectMemorySize={size}` flag.
+
+[source, java]
+----
+var memorySegment = MemorySegment.allocateNative(nativeSegmentSize);
+----
+
+
+There's one interesting thing with this API it is possible to access the address
+from the API, via `MemorySegment::address`, and one can bet the hexadecimal
+representation, via `Long.toHexString(memorySegment.address().toRawLongValue())`.
+
+.MemoryAddress::toString
+[source]
+----
+MemoryAddress{ base: null offset=0x7fc513fff010 }
+----
+
+If you are on Linux you use `pmap` from the procps package to inspect memory
+mappings of the JVM.
+
+./pmap output of a 2GiB native segment
+[source]
+----
+151:   java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign -XX:MaxDirectMemorySize=2100m MemorySegments.java
+Address           Kbytes     RSS   Dirty Mode  Mapping
+...
+0000557635ba1000       4       0       0 r-x-- java
+0000557635ba3000       4       0       0 r---- java
+0000557635ba4000       4       0       0 rw--- java
+0000557636d4b000     132      16      16 rw---   [ anon ]
+00007fc513fff000 2097156 1811456 1811456 rw---   [ anon ] <1>
+00007fc594000000     132       0       0 rw---   [ anon ]
+00007fc594021000   65404       0       0 -----   [ anon ]
+...
+----
+<1> This is the allocated segment, 2 GiB <==> 2097152 KiB, this segment is a bit
+larger by one page (4 KiB). And in fact the base address of the segment is
+`0x7fc513fff010`.
+
+In this case it is not related to alignment, but it may be possible. What is
+important is that the address of a `MemorySegment` may be contained in a larger
+memory mapping.
+
+One important and useful distinction with ``DirectByteBuffer``s is the presence
+of a `MemorySegment::close` method, that will *immediately free the native mapping*
+when called.
+``DirectByteBuffer`` used to be challenging because they had no explicit method
+to free the native mapping, and as such had to wait for the GC to kick in
+order to be freed.
+
+.Initilization
+Another thing to remind is that the memory mapping is zeroed, that means
+a big segment will take a noticeable time to get initialized. As with
+``DirectByteBuffer``s this pattern is interesting when inspecting off-heap memory.
+
+.Scope
+Usually it is more practical to use the `NativeScope` API as it is easier to
+reason about boundaries of the involved memory mapping.
+Using a larger `MemorySegment` coud be interesting when it has to be sliced and
+shared among various threads. Also given the high initialization cost for large
+segments it's likely to have the same lifecycle as the application.
+Typically, in a few years, Netty could make use of this API !
+
+.Slices
+One thing that caught me off-guard, is that when closing a _slice_ (created by
+`MemorySegment::asSlice`) also closes the underlying segment.
+
+.Multiple allocations
+Finally, when the code requires new native allocation, the JVM appears to be able to
+grow native mappings. In short the JVM tries to put these segment in a bigger
+memory mapping.
+
+.Access modes
+The access modes allows to define a set of _permissions_ of the `MemorySegment`,
+by default all permissions are given. In the example below this segment won't
+be readable by
+
+[source,java]
+----
+var ms = MemorySegment.allocateNative(segmentSize)
+                      .withAccessModes(MemorySegment.WRITE | MemorySegment.CLOSE);
+
+ms.asByteBuffer().getLong(); <1>
+----
+<1> Throws UnsupportedOperationException: Required access mode READ ; current access modes: [WRITE, CLOSE]
+
+I am not quite sure how to use these at this time. It certainly would be useful
+to prevent a slice from being closed though.
+
+Also, the `WRITE` and `READ` permissions only apply to the Java object, the
+native memory mapping isn't afected, which is expected since it can hold multiple
+`MemorySegment`.
+
+
+.From a file
+Until JEP-389, we used a `FileChannel` and a `MappedByteBuffer` to memory map a
+file. The JEP-389 also take care of this use case, by using the `mapFile` factory
+method.
+
+[source, java]
+----
+try (var mmaped = MemorySegment.mapFile(
+    path, // <1>
+    0, // <2>
+    Files.size(path), // <3>
+    FileChannel.MapMode.READ_ONLY // <4>
+)) {
+  // ...
+}
+----
+<1> A path eg Path.of("...")
+<2> The base offset
+<3> The size of the mapping, here the complete file
+<4> The mapping mode
+
+What is really nice here is that the `MemorySegment` is also immediately freed
+when the code leaves the try-with-resources block.
+
+
+== JEP-389 is still incubating
+
+I mentioned that `MemorySegment` is implementing `AutoCloseable`, it won't be
+the case in the next JDK release.
+In the same manner I mentioned `NativeScope` earlier, which is a JDK16 API, but
+in the current panama state it will be replaced by a slightly different
+construct.
+
+[source, java]
+----
+try (ResourceScope scope : ResourceScope.ofConfined()) {
+  MemorySegment.allocateNative(layout, scope):
+  MemorySegment.mapFile(… , scope);
+  CLinker.upcallStub(… , scope);
+}
+----
+
+Given the current state I have doubts JEP-389 will get out of incubating
+for JDK 17. JEP-389 is working well, but I think the developers may need more
+time to get this API right. They are doing a fantastic job in my opinion.
 
 
 == `jextract`
@@ -848,7 +1000,7 @@ public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
 }
 ----
 
-More specifically and at this this time `jextract` declares the `MethodHandle`
+More specifically and at this time `jextract` declares the `MethodHandle`
 this way
 
 [source, java]
@@ -942,3 +1094,4 @@ In other words this mechanism won't work ! Fortunately one can pass a path.
 - https://github.com/openjdk/panama-foreign
 - https://github.com/jedisct1/libsodium
 - https://doc.libsodium.org/installation
+- https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/
