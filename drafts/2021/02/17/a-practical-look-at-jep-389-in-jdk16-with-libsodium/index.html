@@ -342,7 +342,7 @@ if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
 <h3 id="_configuring_gradle"><a class="anchor" href="#_configuring_gradle"></a><a class="link" href="#_configuring_gradle">Configuring Gradle</a></h3>
 <div class="paragraph">
 <p>Since I am trying to use an incubator module, it is not on the default module
-path, ane should add the <code>jdk.incubator.foreign</code> module when compiling.</p>
+path, it is required to add the <code>jdk.incubator.foreign</code> module when compiling.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -367,7 +367,8 @@ another property <code>foreign.restricted</code> to be able to invoke native cod
 </div>
 </div>
 <div class="paragraph">
-<p>But then comes the question to configure the build tool. I am using Gradle</p>
+<p>Then comes the question to configure the build tool. I am using Gradle, the
+configuration is likely similar for other build tool.</p>
 </div>
 <div class="listingblock">
 <div class="title">build.gradle.kts</div>
@@ -409,7 +410,7 @@ tasks {
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Gradle itself can run on a different JDK, but the cod needs to be compiled
+<td>Gradle itself can run on a different JDK, but the code needs to be compiled
 with JDK16, at this time Gradle 6.8.2 does not support the new module restriction
 introduced with JDK16 by default, hence it is necessary to explicitly open modules.
 See <a href="https://github.com/gradle/gradle/issues/15538#issuecomment-744299876">gradle/gradle#15538</a>.</td>
@@ -433,7 +434,7 @@ IntelliJ IDEA will pick up this configuration, when you click running a <code>ma
 <div class="sect2">
 <h3 id="_the_first_and_minimal_call_crypto_box_sealbytes"><a class="anchor" href="#_the_first_and_minimal_call_crypto_box_sealbytes"></a><a class="link" href="#_the_first_and_minimal_call_crypto_box_sealbytes">The first and minimal call <code>crypto_box_sealbytes</code></a></h3>
 <div class="paragraph">
-<p>The first lines indicates sets a few macros (the lines starting with <code>#define</code>),
+<p>The first lines makes use of a few macros (the lines starting with <code>#define</code>),
 we can assume that <code>MESSAGE</code> will be a method parameter, <code>MESSAGE_LEN</code>
 will be derived from the message parameter, and <code>CIPHERTEXT_LEN</code> is also derived
 from the message but needs another constant <code>crypto_box_SEALBYTES</code>.</p>
@@ -441,8 +442,10 @@ from the message but needs another constant <code>crypto_box_SEALBYTES</code>.</
 <div class="paragraph">
 <p>The first thing needed is to acquire the <code>crypto_box_SEALBYTES</code> constant, looking at
 <a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127"><code>crypto_box.h</code></a>
-there’s a method <code>size_t crypto_box_sealbytes(void);</code> that returns this constant.
-It’s simple, so it will be the first method I will present here.</p>
+there’s a method <code>size_t crypto_box_sealbytes(void);</code> that returns this constant.</p>
+</div>
+<div class="paragraph">
+<p>It’s simple and it will be the first method I will present here.</p>
 </div>
 <div class="paragraph">
 <p>The first challenge is to map the return type <code>size_t</code>, <em>unsigned integer type</em>,
@@ -666,11 +669,15 @@ try (var scope = NativeScope.unboundedScope()) {
 </div>
 </div>
 <div class="paragraph">
-<p>Notice that here I’m not using the return type, however due to the <em>dynamic</em>
+<p>Notice here the <code>var ret</code> is not used, however due to the <em>dynamic</em>
 nature of <code>invokeExact</code>, the compiler needs the <strong>exact</strong> signature on the
-call site, that’s why I’m assigning it an <code>int</code> variable even if it is not used.
-If the assignment is missing the JVM will raise a <code>WrongMethodTypeException</code>
-where you’ll need to identify the type differences in the signature:</p>
+call-site, that’s why the result of this invocation is assigned to an <code>int</code>
+variable even if it is not used.</p>
+</div>
+<div class="paragraph">
+<p>Without this assignment the JVM would have raised a <code>WrongMethodTypeException</code>,
+in this case the exception message helps to identify the type differences
+in the signature:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -681,9 +688,9 @@ where you’ll need to identify the type differences in the signature:</p>
 <div class="sect2">
 <h3 id="_ending_the_libsodium_example"><a class="anchor" href="#_ending_the_libsodium_example"></a><a class="link" href="#_ending_the_libsodium_example">Ending the libsodium example</a></h3>
 <div class="paragraph">
-<p>The last call ends the libsodium crypto box example. With this example we
-can just reuse what we have used before. The method <code>crypto_box_seal_open</code>
-take pointers and a ciphered text length.</p>
+<p>The last method call of this snippet ends the libsodium <em>crypto box</em> example.
+The method <code>crypto_box_seal_open</code> take pointers and a ciphered text length
+so let’s apply again what has been done for <code>crypto_box_seal</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_seal_open ©</div>
@@ -751,13 +758,14 @@ try (var scope = NativeScope.unboundedScope()) {
 </div>
 <div class="paragraph">
 <p>I didn’t get it at first as <code>CLinker::toJavaString</code> is the mirror function
-of the <code>CLinker::toCString</code>, the message indicates the segment has the size 20 which is
-the length of this string <code>Hello foreign code !</code>, there’s <code>new offset is 20</code> indicating the segment
-was read up to the 20th character, and there is the <code>new length = 1</code>,
-which suggests <code>toJavaString</code> needs to read an additional character.</p>
+of the <code>CLinker::toCString</code>, the message indicates the segment has the size 20
+which is the length of this string <code>Hello foreign code !</code>, there’s
+<code>new offset is 20</code> indicating the segment was read up to the 20th character, and
+there is the <code>new length = 1</code>, which suggests <code>toJavaString</code> needs to read
+an additional character but can’t.</p>
 </div>
 <div class="paragraph">
-<p>The required info is in the javadoc (emphasis is mine) :</p>
+<p>The javadoc of <code>toJavaString</code> (emphasis is mine) :</p>
 </div>
 <div class="quoteblock">
 <blockquote>
@@ -770,10 +778,10 @@ which suggests <code>toJavaString</code> needs to read an additional character.<
 <p>This immediately clicked, the way libsodium is working
 with the <em>message</em> involves to pass the message length,
 and that’s because libsodium don’t assume the message
-is a string, it can be anything!</p>
+is a string, the byte array can be anything!</p>
 </div>
 <div class="paragraph">
-<p>In this case the native memory segment is indeed not terminated by <code>\0</code></p>
+<p>In the present case the native memory segment is indeed <strong>not</strong> terminated by <code>\0</code></p>
 </div>
 <div class="ulist">
 <ul>
@@ -783,7 +791,7 @@ is a string, it can be anything!</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>That means I need to use <code>new String(decipheredText.toByteArray())</code> instead.
+<p>That suggests the code to use is <code>new String(decipheredText.toByteArray())</code>.
 For reference here are the bytes returned by <code>String::getBytes</code> and
 <code>CLinker::toCString</code>.</p>
 </div>
@@ -816,8 +824,11 @@ which leads to the following correct code :</p>
 </div>
 </div>
 <div class="paragraph">
-<p>For this post I have intentionally left out the returned status of <code>crypto_box_seal_open</code>,
-but this would make sense to perform some checks before returning the buffer.</p>
+<p>For this blog post I have intentionally left out the returned status
+of <code>crypto_box_seal_open</code>, to focus on the foreign module API, but
+this would make sense to perform checks on the returned value before
+returning the buffer as suggested on the libsodium
+documentation.</p>
 </div>
 </div>
 <div class="sect2">
