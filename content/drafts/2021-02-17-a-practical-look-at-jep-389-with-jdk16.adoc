@@ -60,7 +60,7 @@ if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
 === Configuring Gradle
 
 Since I am trying to use an incubator module, it is not on the default module
-path, ane should add the `jdk.incubator.foreign` module when compiling.
+path, it is required to add the `jdk.incubator.foreign` module when compiling.
 
 [source, shell]
 ----
@@ -82,7 +82,8 @@ If you like to play with `jshell`, it will be necessary to use these two as well
 $ jshell -Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...
 ----
 
-But then comes the question to configure the build tool. I am using Gradle
+Then comes the question to configure the build tool. I am using Gradle, the
+configuration is likely similar for other build tool.
 
 .build.gradle.kts
 [source, kotlin]
@@ -119,7 +120,7 @@ tasks {
     }
 }
 ----
-<1> Gradle itself can run on a different JDK, but the cod needs to be compiled
+<1> Gradle itself can run on a different JDK, but the code needs to be compiled
 with JDK16, at this time Gradle 6.8.2 does not support the new module restriction
 introduced with JDK16 by default, hence it is necessary to explicitly open modules.
 See https://github.com/gradle/gradle/issues/15538#issuecomment-744299876[gradle/gradle#15538].
@@ -130,7 +131,7 @@ IntelliJ IDEA will pick up this configuration, when you click running a `main` m
 
 === The first and minimal call `crypto_box_sealbytes`
 
-The first lines indicates sets a few macros (the lines starting with `#define`),
+The first lines makes use of a few macros (the lines starting with `#define`),
 we can assume that `MESSAGE` will be a method parameter, `MESSAGE_LEN`
 will be derived from the message parameter, and `CIPHERTEXT_LEN` is also derived
 from the message but needs another constant `crypto_box_SEALBYTES`.
@@ -138,7 +139,8 @@ from the message but needs another constant `crypto_box_SEALBYTES`.
 The first thing needed is to acquire the `crypto_box_SEALBYTES` constant, looking at
 https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127[`crypto_box.h`]
 there's a method `size_t crypto_box_sealbytes(void);` that returns this constant.
-It's simple, so it will be the first method I will present here.
+
+It's simple and it will be the first method I will present here.
 
 The first challenge is to map the return type `size_t`, _unsigned integer type_,
 since the constant
@@ -148,7 +150,7 @@ https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc
 is inferior to the integer max value and that I'd like to use
 this as an array size, I will map it to an `int`.
 
-.crypto_box_sealbytes (java)
+.crypto_box_sealbytes (.java)
 [source, java]
 ----
 MethodHandle crypto_box_sealbytes =
@@ -196,7 +198,7 @@ The next part of the example is a lit more involved code with `crypto_box_keypai
 that take two array pointers `recipient_pk` and `recipient_sk`, this method
 will write in these arrays the generated keypair.
 
-.crypto_box_keypair (C)
+.crypto_box_keypair (.c)
 [source, c]
 ----
 unsigned char recipient_pk[crypto_box_PUBLICKEYBYTES];
@@ -216,7 +218,7 @@ address.
 Before passing an address it is necessary to allocate the necessary
 memory segments that will be written to, for that let's use `MemorySegment::allocateNative`.
 
-.crypto_box_keypair (java)
+.crypto_box_keypair (.java)
 [source, java]
 ----
 MethodHandle crypto_box_keypair =
@@ -265,7 +267,7 @@ Even better let's use the concept of scopes with `NativeScope`, which
 allows to register the segment to a _code section_ and allocate segments
 anywhere in the section.
 
-.crypto_box_keypair with `NativeScope` (java)
+.crypto_box_keypair with `NativeScope` (.java)
 [source, java]
 ----
 try (var scope = NativeScope.unboundedScope()) {
@@ -291,7 +293,7 @@ the conversion.
 The next code to call is `crypto_box_seal`, which also takes
 pointers and a message length.
 
-.crypto_box_seal (C)
+.crypto_box_seal (.c)
 [source, c]
 ----
 unsigned char ciphertext[CIPHERTEXT_LEN];
@@ -303,7 +305,7 @@ https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc
 however we notice something _unusual_, the message length argument is
 of type `long long`, Java doesn't have long types
 
-.crypto_box_seal definition (C)
+.crypto_box_seal definition (.c)
 [source, c]
 ----
 SODIUM_EXPORT
@@ -316,7 +318,7 @@ Fortunately for this post since I intend to pass a `String` message,
 so an `int` will work albeit the presence of the cast instruction.
 That said it'll be an `int` event if the code is passed a Java array.
 
-.crypto_box_seal (java)
+.crypto_box_seal (.java)
 [source, java]
 ----
 var crypto_box_seal = CLinker.getInstance().downcallHandle(
@@ -345,11 +347,14 @@ try (var scope = NativeScope.unboundedScope()) {
 }
 ----
 
-Notice that here I'm not using the return type, however due to the _dynamic_
+Notice here the `var ret` is not used, however due to the _dynamic_
 nature of `invokeExact`, the compiler needs the *exact* signature on the
-call site, that's why I'm assigning it an `int` variable even if it is not used.
-If the assignment is missing the JVM will raise a `WrongMethodTypeException`
-where you'll need to identify the type differences in the signature:
+call-site, that's why the result of this invocation is assigned to an `int`
+variable even if it is not used.
+
+Without this assignment the JVM would have raised a `WrongMethodTypeException`,
+in this case the exception message helps to identify the type differences
+in the signature:
 
 [source]
 ----
@@ -359,11 +364,11 @@ java.lang.invoke.WrongMethodTypeException: expected (MemoryAddress,MemoryAddress
 
 === Ending the libsodium example
 
-The last call ends the libsodium crypto box example. With this example we
-can just reuse what we have used before. The method `crypto_box_seal_open`
-take pointers and a ciphered text length.
+The last method call of this snippet ends the libsodium _crypto box_ example.
+The method `crypto_box_seal_open` take pointers and a ciphered text length
+so let's apply again what has been done for `crypto_box_seal`.
 
-.crypto_box_seal_open (C)
+.crypto_box_seal_open (.c)
 [source,c]
 ----
 unsigned char decrypted[MESSAGE_LEN];
@@ -375,7 +380,7 @@ recipient_pk, recipient_sk) != 0) {
 
 Which translates to
 
-.crypto_box_seal_open (java)
+.crypto_box_seal_open (.java)
 [source, java]
 ----
 var crypto_box_seal_open = getInstance().downcallHandle(
@@ -426,25 +431,26 @@ java.lang.IndexOutOfBoundsException: Out of bound access on segment MemorySegmen
 ----
 
 I didn't get it at first as `CLinker::toJavaString` is the mirror function
-of the `CLinker::toCString`, the message indicates the segment has the size 20 which is
-the length of this string `Hello foreign code !`, there's `new offset is 20` indicating the segment
-was read up to the 20th character, and there is the `new length = 1`,
-which suggests `toJavaString` needs to read an additional character.
+of the `CLinker::toCString`, the message indicates the segment has the size 20
+which is the length of this string `Hello foreign code !`, there's
+`new offset is 20` indicating the segment was read up to the 20th character, and
+there is the `new length = 1`, which suggests `toJavaString` needs to read
+an additional character but can't.
 
-The required info is in the javadoc (emphasis is mine) :
+The javadoc of `toJavaString` (emphasis is mine) :
 
 > *Converts a null-terminated C string* stored at given address into a Java string, using the platform's default charset.
 
 This immediately clicked, the way libsodium is working
 with the _message_ involves to pass the message length,
 and that's because libsodium don't assume the message
-is a string, it can be anything!
+is a string, the byte array can be anything!
 
-In this case the native memory segment is indeed not terminated by `\0`
+In the present case the native memory segment is indeed *not* terminated by `\0`
 
 * `MemorySegment::toByteArray`: `48656C6C6F20666F726569676E20636F64652021`
 
-That means I need to use `new String(decipheredText.toByteArray())` instead.
+That suggests the code to use is `new String(decipheredText.toByteArray())`.
 For reference here are the bytes returned by `String::getBytes` and
 `CLinker::toCString`.
 
@@ -468,9 +474,11 @@ try (var scope = NativeScope.unboundedScope()) {
 }
 ----
 
-
-For this post I have intentionally left out the returned status of `crypto_box_seal_open`,
-but this would make sense to perform some checks before returning the buffer.
+For this blog post I have intentionally left out the returned status
+of `crypto_box_seal_open`, to focus on the foreign module API, but
+this would make sense to perform checks on the returned value before
+returning the buffer as suggested on the libsodium
+documentation.
 
 
 
