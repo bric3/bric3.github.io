@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 53 min read
+    <i class="fas fa-clock"></i> 60 min read
 
     
     
@@ -289,19 +289,7 @@ how to use jextract.</p>
 <div class="title">TODO</div>
 <ul class="checklist">
 <li>
-<p><i class="fa fa-square-o"></i> pmap output MemorySegment</p>
-</li>
-<li>
 <p><i class="fa fa-square-o"></i> add-modules, foreign.restricted=permit, Gradle</p>
-</li>
-<li>
-<p><i class="fa fa-square-o"></i> Compare jextract with handcrafted</p>
-</li>
-<li>
-<p><i class="fa fa-square-o"></i> Closing words, easy to implement fall back mechanism (in case of ABI mismatch)</p>
-</li>
-<li>
-<p><i class="fa fa-square-o"></i> Link to the panama mailing list</p>
 </li>
 </ul>
 </div>
@@ -343,6 +331,98 @@ if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
                          recipient_pk, recipient_sk) != 0) {
     /* message corrupted or not intended for this recipient */
 }</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_configuring_gradle"><a class="anchor" href="#_configuring_gradle"></a><a class="link" href="#_configuring_gradle">Configuring Gradle</a></h3>
+<div class="paragraph">
+<p>Since I am trying to use an incubator module, it is not on the default module
+path, ane should add the <code>jdk.incubator.foreign</code> module when compiling.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ javac --add-modules jdk.incubator.foreign ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This module also needs to be declared when running this code, as well as
+another property <code>foreign.restricted</code> to be able to invoke native code.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you like to play with <code>jshell</code>, it will be necessary to use these two as well</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jshell -Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But then comes the question to configure the build tool. I am using Gradle</p>
+</div>
+<div class="listingblock">
+<div class="title">build.gradle.kts</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-kotlin hljs" data-lang="kotlin">// ...
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(16))
+    }
+}
+
+tasks {
+    withType&lt;JavaCompile&gt;().configureEach {
+        options.forkOptions.jvmArgs = listOf(
+                &#34;--add-opens&#34;, &#34;jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED&#34; <i class="conum" data-value="1"></i><b>(1)</b>
+        )
+
+        options.compilerArgs = listOf(
+                &#34;--add-modules&#34;, &#34;jdk.incubator.foreign&#34; <i class="conum" data-value="2"></i><b>(2)</b>
+        )
+        options.release.set(16)
+    }
+
+    withType&lt;JavaExec&gt;().configureEach {
+        jvmArgs(&#34;-Dforeign.restricted=permit&#34;, <i class="conum" data-value="3"></i><b>(3)</b>
+                &#34;--add-modules&#34;, &#34;jdk.incubator.foreign&#34;)
+    }
+
+    withType&lt;Test&gt;().configureEach {
+        useJUnitPlatform()
+        jvmArgs(&#34;-Dforeign.restricted=permit&#34;, <i class="conum" data-value="4"></i><b>(4)</b>
+                &#34;--add-modules&#34;, &#34;jdk.incubator.foreign&#34;)
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Gradle itself can run on a different JDK, but the cod needs to be compiled
+with JDK16, at this time Gradle 6.8.2 does not support the new module restriction
+introduced with JDK16 by default, hence it is necessary to explicitly open modules.
+See <a href="https://github.com/gradle/gradle/issues/15538#issuecomment-744299876">gradle/gradle#15538</a>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Let the compiler knows about the <code>jdk.incubator.foreign</code> module</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Configure the tasks that executes a main class, while this is not immediately useful
+IntelliJ IDEA will pick up this configuration, when you click running a <code>main</code> method.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Configure test tasks to be able to run <code>jdk.incubator.foreign</code> tests.</td>
+</tr>
+</tbody></table>
 </div>
 </div>
 <div class="sect2">
@@ -1370,11 +1450,11 @@ to these I wrote earlier :</p>
 <p>The libsodium headers declare a method named <code>crypto_box_sealbytes</code>,
 whose role is to return a constant <code>crypto_box_SEALBYTES</code>, however
 this constant is defined as a C preprocessor directive <code>#DEFINE</code>,
-which not visible as a symbol, hence the nifty method that returns
-this value.</p>
+which is not visible as a symbol when performing a <em>library lookup</em>.
+The native <code>crypto_box_sealbytes</code> method compensates this limitation.</p>
 </div>
 <div class="paragraph">
-<p><code>jextract</code> is however reading the headers, so it actually extracts
+<p><code>jextract</code> is however reading the headers, in doing so it actually extracts
 the constant <code>crypto_box_SEALBYTES</code>. It is still exposed as method,
 and it is declared in a different class <code>sodium_h_0#crypto_box_SEALBYTES</code>.</p>
 </div>
@@ -1414,10 +1494,10 @@ Caused by: java.lang.IllegalArgumentException: Library not found: sodium
 </div>
 </div>
 <div class="paragraph">
-<p>THe originating code is here:</p>
+<p>The stacktrace points to this code:</p>
 </div>
 <div class="listingblock">
-<div class="title">sodium_h_constants_0</div>
+<div class="title">sodium_h_constants_0.LIBRARIES</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
     &#34;sodium&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
@@ -1433,26 +1513,32 @@ Caused by: java.lang.IllegalArgumentException: Library not found: sodium
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>Of course this value is incorrect ; the libsodium path or name is highly
-dependent on the installation and the system. It’s the same for almost
-every shared library (libgit2, libcurl, etc.)</p>
+<p><code>RuntimeHelper::libraries</code> can load a library from a name (using JNI conventions,
+<a href="https://github.com/openjdk/jdk16u/blob/1cc98bde6703d330b07ae873770df2c369b47eb2/src/hotspot/os/posix/include/jvm_md.h#L47-L55"><code>JNI_LIB_PREFIX</code> and <code>JNI_LIB_PREFIX</code></a>)
+or a path.</p>
 </div>
 <div class="paragraph">
-<p>Also, this code is <code>static final</code>, which immediately requires a developer
-modification in order to be able to load the library.
-However since this variable is accessed statically upon class initialization
-for other members it’s not possible to make the LibraryLookup configurable
-without a significant refactoring of the generated code.</p>
+<p>The value above is the value I used in the <code>-l sodium</code> option of <code>jextract</code>,
+yet this value here is obviously incorrect.</p>
 </div>
 <div class="paragraph">
-<p>As <code>RuntimeHelper::libraries</code> is able to load libraries from path, I’ll just pass
-the current installation path on my current OS. This is not something I’d keep
-for a production library.</p>
+<p>Moreover, the actual library path is dependent on the system, on the library
+version and on the installation mechanism.</p>
+</div>
+<div class="paragraph">
+<p><code>LIBRARIS</code> is a static final variable that is used by other static variables
+in the same class. While it is possible to edit the <code>sodium_h_constants_0</code>
+class, it is still difficult to make this <code>LibraryLookup</code> configurable
+without a significant refactoring.</p>
+</div>
+<div class="paragraph">
+<p>For this article the easiest solution, is to declare the local libsodium path
+as I did above.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
-    &#34;/usr/local/opt/libsodium/lib/libsodium.23.dylib&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
+    &#34;/usr/local/opt/libsodium/lib/libsodium.23.dylib&#34;
 });</code></pre>
 </div>
 </div>
@@ -1464,11 +1550,10 @@ for a production library.</p>
 I’d like to use <code>crypto_box_keypair</code>, this is straightforward.
 The arguments are still <em>carrier</em> type like <code>MemorySegment</code>,
 which means we still need to take care of the scope / lifecycle of
-these allocations.
-s
-.crypto_box_keypair</p>
+these allocations.</p>
 </div>
 <div class="listingblock">
+<div class="title">crypto_box_keypair</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
     var recipientPublicKey = scope.allocate(sodium_h.crypto_box_PUBLICKEYBYTES());
@@ -1490,18 +1575,25 @@ s
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>The IDE might suggest a method named <code>crypto_box_keypair$MH</code>, in fact the suffix
+<p>The IDE might suggest a method named <code>crypto_box_keypair$MH</code> ; the suffix
 <code>$MH</code> simply indicates this returns the <strong>M</strong>ethod <strong>H</strong>andle for this native
 method which is basically what I showed in the first part of this blog post.</p>
 </div>
+<div class="paragraph">
+<p>As reflex, I always like to navigate the code I’m invoking.
+The method we are invoking are just the public API methods, checking null,
+and declaring a correct callsite (correct return type, correct argument types).</p>
+</div>
 <div class="listingblock">
-<div class="title">crypto_box_keypair</div>
+<div class="title">sodium_h.crypto_box_keypair</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static  MethodHandle crypto_box_keypair$MH() {
-    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),&#34;unresolved symbol: crypto_box_keypair&#34;);
+    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
+                                        &#34;unresolved symbol: crypto_box_keypair&#34;);
 }
 public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
-    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(), &#34;unresolved symbol: crypto_box_keypair&#34;);
+    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
+                                           &#34;unresolved symbol: crypto_box_keypair&#34;);
     try {
         return (int)mh$.invokeExact(pk.address(), sk.address());
     } catch (Throwable ex$) {
@@ -1511,18 +1603,20 @@ public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
 </div>
 </div>
 <div class="paragraph">
-<p>More specifically and at this time <code>jextract</code> declares the <code>MethodHandle</code>
-this way</p>
+<p>Going further down to see how the <code>MethodHandle</code> is declared:</p>
 </div>
 <div class="listingblock">
+<div class="title">sodium_h_constants_0.crypto_box_keypair$MH</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(C_INT,
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(
+    C_INT,
     C_POINTER,
     C_POINTER
 );
 
 static final MethodHandle crypto_box_keypair$MH_ = RuntimeHelper.downcallHandle(
-    LIBRARIES, &#34;crypto_box_keypair&#34;,
+    LIBRARIES,
+    &#34;crypto_box_keypair&#34;,
     &#34;(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
     crypto_box_keypair$FUNC_, false
 );
@@ -1539,8 +1633,33 @@ of the Java API <code>MethodType</code>.</td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>So jextract is doing the same for the <code>long long</code> type in the C signature of
-<code>crypto_box_seal</code></p>
+<p>This code invokes creates the down-call stub, the only difference with the
+handcrafted handle in the section above, is the signature of the method declared
+as a <code>String</code>.</p>
+</div>
+<div class="ulist">
+<div class="title"><code>(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I</code> breakdown</div>
+<ul>
+<li>
+<p><code>Ljdk/incubator/foreign/MemoryAddress</code> ⇒ arg0</p>
+</li>
+<li>
+<p><code>Ljdk/incubator/foreign/MemoryAddress</code> ⇒ arg1</p>
+</li>
+<li>
+<p><code>I</code> ⇒ <code>int</code> return type</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The other two methods in this example  <code>crypto_box_seal</code> and <code>crypto_box_seal_open</code>
+are similar and don’t require to do the tedious handle declaration.</p>
+</div>
+<div class="paragraph">
+<p>Although as I mentionned in the first section, these two method
+declares an argument of type <code>long long</code> type in the C signature, and those
+native types are not supported in Java, there’s a statement on the panama
+download page.</p>
 </div>
 <div class="quoteblock">
 <blockquote>
@@ -1554,69 +1673,65 @@ of the Java API <code>MethodType</code>.</td>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>It uses the Java <code>long</code> instead as the Java method argument type.</p>
-</div>
-<div class="paragraph">
-<p>I looked at the examples and loading a library looked like an easy feat.
-However, I stumbled on this, if I understood correctly <code>LibraryLookup::ofLibrary</code>
-should take the library name without the <code>JNI_LIB_PREFIX</code> nor the <code>JNI_LIB_SUFFIX</code>,
-this didn’t work!</p>
-</div>
-<div class="paragraph">
-<p>Let’s play with <code>jshell</code> (<code>jshell --add-modules jdk.incubator.foreign</code>) !</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-jshell hljs" data-lang="jshell">jshell&gt; LibraryLookup.ofLibrary(&#34;procps&#34;);
-|  Exception java.lang.IllegalArgumentException: Library not found: procps
-|        at LibrariesHelper.lookup (LibrariesHelper.java:94)
-|        at LibrariesHelper.loadLibrary (LibrariesHelper.java:60)
-|        at LibraryLookup.ofLibrary (LibraryLookup.java:150)
-|        at (#9:1)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Yet <code>libprocps</code> is installed !</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ldconfig -p | grep procps
-        libprocps.so.7 (libc6,x86-64) =&gt; /lib64/libprocps.so.7
-$ ldconfig -p | grep git
-        libgit2.so.26 (libc6,x86-64) =&gt; /lib64/libgit2.so.26</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Yet the library extension has a major version <code>.7</code>, which is actually a symlink to
-<code>libprocps.so.7.1.0</code>. Behind the scene <code>LibraryLookup::ofLibrary</code> invokes</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-jshell hljs" data-lang="jshell">jshell&gt; System.getProperty(&#34;java.library.path&#34;)
-$3 ==&gt; &#34;/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib&#34;
-jshell&gt; System.out.printf(&#34;mapped libname : %s%n&#34;, System.mapLibraryName(&#34;procps&#34;));
-mapped libname : libprocps.so</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>On macOs <code>java.library.path</code></p>
-</div>
-<div class="paragraph">
-<p>/Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.</p>
-</div>
-<div class="paragraph">
-<p>In other words this mechanism won’t work ! Fortunately one can pass a path.</p>
+<p><code>jextract</code> proposes a generated code that passes an argument of type <code>long</code> like
+I did in the first section.</p>
 </div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_closing_words"><a class="anchor" href="#_closing_words"></a><a class="link" href="#_closing_words">Closing words</a></h3>
+<h3 id="_wrapping_up_on_jextract"><a class="anchor" href="#_wrapping_up_on_jextract"></a><a class="link" href="#_wrapping_up_on_jextract">Wrapping up on <code>jextract</code></a></h3>
+<div class="paragraph">
+<p>In the end <code>jextract</code> is useful but there’s a few little hiccups along the way.
+The generated code is currently lacking in some usability. Also, the generated
+code is a tad verbose, I would wish a way to eliminate some unneeded generated
+methods. Using jextract is a bit obscure as well and they are a few pitfalls
+there too, and may require peeking at the <code>jdk.incubating.jextract</code> source code
+(in the panama repository).</p>
+</div>
+<div class="paragraph">
+<p>While I mention these point, this should not diminish the work done on this tool
+and what this tool could become. When ready, this could be leveraged by Gradle,
+or Jetbrains IntelliJ IDEA, etc.</p>
+</div>
+<div class="paragraph">
+<p>///Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_closing_words"><a class="anchor" href="#_closing_words"></a><a class="link" href="#_closing_words">Closing words</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<div class="title">Cool part</div>
+<p>In JDK16 the foreign module is really easy to use albeit <code>javac</code> and <code>java</code>
+command line requirement. The API is well-designed and easy to use.
+I also appreciated the idea of scoped segments, a bit like what was
+implemented in the Rust language. There’s also the coolness of being able
+to free memory segment at will, without depending on the GC.</p>
+</div>
+<div class="paragraph">
+<div class="title">Sad part</div>
+<p>This is the third incubator and there’s still planned API. Some of this
+blog post content will eventually become incorrect when JDK17 comes out.
+<code>jextract</code> looks like a very practical tool, yet it is still
+being <em>cooked</em>.</p>
+</div>
+<div class="paragraph">
+<div class="title">Overall</div>
+<p>JEP-389 looks like solid replacement of JNI or JNA. I can only applaud the work
+done! My only regret is it’s not yet <em>already</em> available. That said as a
+developer I support the idea to not ship until ready.</p>
+</div>
 <hr/>
 <div class="ulist">
 <div class="title">Sources in no particular order</div>
 <ul>
 <li>
 <p><a href="https://openjdk.java.net/jeps/389" class="bare">https://openjdk.java.net/jeps/389</a></p>
+</li>
+<li>
+<p><a href="https://mail.openjdk.java.net/pipermail/panama-dev/" class="bare">https://mail.openjdk.java.net/pipermail/panama-dev/</a></p>
 </li>
 <li>
 <p><a href="https://cr.openjdk.java.net/~mcimadamore/panama/ffi.html" class="bare">https://cr.openjdk.java.net/~mcimadamore/panama/ffi.html</a></p>
@@ -1643,7 +1758,6 @@ mapped libname : libprocps.so</code></pre>
 <p><a href="https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/" class="bare">https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/</a></p>
 </li>
 </ul>
-</div>
 </div>
 </div>
 </div>
