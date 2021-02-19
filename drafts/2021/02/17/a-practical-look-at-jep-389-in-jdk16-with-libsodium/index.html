@@ -17,7 +17,7 @@
     
     
 
-<title>A practical look at JEP-389 with libsodium • Brice Dutheil</title>
+<title>A practical look at JEP-389 in JDK16 with libsodium • Brice Dutheil</title>
 
 
 
@@ -34,9 +34,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="A practical look at JEP-389 with libsodium">
+<meta property="og:title" content="A practical look at JEP-389 in JDK16 with libsodium">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2021/02/17/a-practical-look-at-jep-389-with-libsodium/" />
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2021/02/17/a-practical-look-at-jep-389-in-jdk16-with-libsodium/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -53,7 +53,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="A practical look at JEP-389 with libsodium">
+<meta name="twitter:title" content="A practical look at JEP-389 in JDK16 with libsodium">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -235,7 +235,7 @@
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-02-17-a-practical-look-at-jep-389.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-02-17-a-practical-look-at-jep-389-with-jdk16.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
@@ -249,7 +249,7 @@
 
 <article>
   <header>
-    <h1>A practical look at JEP-389 with libsodium</h1>
+    <h1>A practical look at JEP-389 in JDK16 with libsodium</h1>
     
     
 <div class="post__meta">
@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 45 min read
+    <i class="fas fa-clock"></i> 53 min read
 
     
     
@@ -306,7 +306,9 @@ how to use jextract.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>The following examples were based on <strong>JDK 16 release candidate build 36 (2021/2/8)</strong>.</p>
+<p>The following examples were based on <strong>JDK 16 release candidate build 36 (2021/2/8)</strong>.
+As JEP-389 is still incubating, the API is still being refined, and will likely
+change in the next JDK.</p>
 </div>
 <div class="sect1">
 <h2 id="_the_crypto_sealed_box_example"><a class="anchor" href="#_the_crypto_sealed_box_example"></a><a class="link" href="#_the_crypto_sealed_box_example">The crypto sealed box example</a></h2>
@@ -760,6 +762,208 @@ is quickly tedious and verbose.</p>
 <p>JDK developers felt the same way as they are currently backing a tool
 named <code>jextract</code> whose goal is to do this tedious work.</p>
 </div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_a_word_about_memorysegments_memory_mapping"><a class="anchor" href="#_a_word_about_memorysegments_memory_mapping"></a><a class="link" href="#_a_word_about_memorysegments_memory_mapping">A word about <code>MemorySegment</code>s  memory mapping</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>MemorySegment</code> do have the same constraints as <code>DirectByteBuffer</code>s,
+ie by default the size of the segment can’t size can’t go over <code>Runtime.getRuntime().maxMemory()</code></p>
+</div>
+<div class="listingblock">
+<div class="title">Allocating a very bigger segment than than <code>maxMemory</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">Exception in thread &#34;main&#34; java.lang.OutOfMemoryError: Cannot reserve 2147483648 bytes of direct buffer memory (allocated: 8192, limit: 522190848)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This limit is configurable by setting the <code>-XX:MaxDirectMemorySize={size}</code> flag.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var memorySegment = MemorySegment.allocateNative(nativeSegmentSize);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There’s one interesting thing with this API it is possible to access the address
+from the API, via <code>MemorySegment::address</code>, and one can bet the hexadecimal
+representation, via <code>Long.toHexString(memorySegment.address().toRawLongValue())</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">MemoryAddress::toString</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">MemoryAddress{ base: null offset=0x7fc513fff010 }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you are on Linux you use <code>pmap</code> from the procps package to inspect memory
+mappings of the JVM.</p>
+</div>
+<div class="listingblock">
+<div class="title">/pmap output of a 2GiB native segment</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">151:   java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign -XX:MaxDirectMemorySize=2100m MemorySegments.java
+Address           Kbytes     RSS   Dirty Mode  Mapping
+...
+0000557635ba1000       4       0       0 r-x-- java
+0000557635ba3000       4       0       0 r---- java
+0000557635ba4000       4       0       0 rw--- java
+0000557636d4b000     132      16      16 rw---   [ anon ]
+00007fc513fff000 2097156 1811456 1811456 rw---   [ anon ] <i class="conum" data-value="1"></i><b>(1)</b>
+00007fc594000000     132       0       0 rw---   [ anon ]
+00007fc594021000   65404       0       0 -----   [ anon ]
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This is the allocated segment, 2 GiB ⇐⇒ 2097152 KiB, this segment is a bit
+larger by one page (4 KiB). And in fact the base address of the segment is
+<code>0x7fc513fff010</code>.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>In this case it is not related to alignment, but it may be possible. What is
+important is that the address of a <code>MemorySegment</code> may be contained in a larger
+memory mapping.</p>
+</div>
+<div class="paragraph">
+<p>One important and useful distinction with <code>DirectByteBuffer</code>s is the presence
+of a <code>MemorySegment::close</code> method, that will <strong>immediately free the native mapping</strong>
+when called.
+<code>DirectByteBuffer</code> used to be challenging because they had no explicit method
+to free the native mapping, and as such had to wait for the GC to kick in
+order to be freed.</p>
+</div>
+<div class="paragraph">
+<div class="title">Initilization</div>
+<p>Another thing to remind is that the memory mapping is zeroed, that means
+a big segment will take a noticeable time to get initialized. As with
+<code>DirectByteBuffer</code>s this pattern is interesting when inspecting off-heap memory.</p>
+</div>
+<div class="paragraph">
+<div class="title">Scope</div>
+<p>Usually it is more practical to use the <code>NativeScope</code> API as it is easier to
+reason about boundaries of the involved memory mapping.
+Using a larger <code>MemorySegment</code> coud be interesting when it has to be sliced and
+shared among various threads. Also given the high initialization cost for large
+segments it’s likely to have the same lifecycle as the application.
+Typically, in a few years, Netty could make use of this API !</p>
+</div>
+<div class="paragraph">
+<div class="title">Slices</div>
+<p>One thing that caught me off-guard, is that when closing a <em>slice</em> (created by
+<code>MemorySegment::asSlice</code>) also closes the underlying segment.</p>
+</div>
+<div class="paragraph">
+<div class="title">Multiple allocations</div>
+<p>Finally, when the code requires new native allocation, the JVM appears to be able to
+grow native mappings. In short the JVM tries to put these segment in a bigger
+memory mapping.</p>
+</div>
+<div class="paragraph">
+<div class="title">Access modes</div>
+<p>The access modes allows to define a set of <em>permissions</em> of the <code>MemorySegment</code>,
+by default all permissions are given. In the example below this segment won’t
+be readable by</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var ms = MemorySegment.allocateNative(segmentSize)
+                      .withAccessModes(MemorySegment.WRITE | MemorySegment.CLOSE);
+
+ms.asByteBuffer().getLong(); <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Throws UnsupportedOperationException: Required access mode READ ; current access modes: [WRITE, CLOSE]</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>I am not quite sure how to use these at this time. It certainly would be useful
+to prevent a slice from being closed though.</p>
+</div>
+<div class="paragraph">
+<p>Also, the <code>WRITE</code> and <code>READ</code> permissions only apply to the Java object, the
+native memory mapping isn’t afected, which is expected since it can hold multiple
+<code>MemorySegment</code>.</p>
+</div>
+<div class="paragraph">
+<div class="title">From a file</div>
+<p>Until JEP-389, we used a <code>FileChannel</code> and a <code>MappedByteBuffer</code> to memory map a
+file. The JEP-389 also take care of this use case, by using the <code>mapFile</code> factory
+method.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var mmaped = MemorySegment.mapFile(
+    path, <i class="conum" data-value="1"></i><b>(1)</b>
+    0, <i class="conum" data-value="2"></i><b>(2)</b>
+    Files.size(path), <i class="conum" data-value="3"></i><b>(3)</b>
+    FileChannel.MapMode.READ_ONLY <i class="conum" data-value="4"></i><b>(4)</b>
+)) {
+  // ...
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>A path eg Path.of(&#34;…​&#34;)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The base offset</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The size of the mapping, here the complete file</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>The mapping mode</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>What is really nice here is that the <code>MemorySegment</code> is also immediately freed
+when the code leaves the try-with-resources block.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_jep_389_is_still_incubating"><a class="anchor" href="#_jep_389_is_still_incubating"></a><a class="link" href="#_jep_389_is_still_incubating">JEP-389 is still incubating</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>I mentioned that <code>MemorySegment</code> is implementing <code>AutoCloseable</code>, it won’t be
+the case in the next JDK release.
+In the same manner I mentioned <code>NativeScope</code> earlier, which is a JDK16 API, but
+in the current panama state it will be replaced by a slightly different
+construct.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (ResourceScope scope : ResourceScope.ofConfined()) {
+  MemorySegment.allocateNative(layout, scope):
+  MemorySegment.mapFile(… , scope);
+  CLinker.upcallStub(… , scope);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Given the current state I have doubts JEP-389 will get out of incubating
+for JDK 17. JEP-389 is working well, but I think the developers may need more
+time to get this API right. They are doing a fantastic job in my opinion.</p>
 </div>
 </div>
 </div>
@@ -1307,7 +1511,7 @@ public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
 </div>
 </div>
 <div class="paragraph">
-<p>More specifically and at this this time <code>jextract</code> declares the <code>MethodHandle</code>
+<p>More specifically and at this time <code>jextract</code> declares the <code>MethodHandle</code>
 this way</p>
 </div>
 <div class="listingblock">
@@ -1435,6 +1639,9 @@ mapped libname : libprocps.so</code></pre>
 <li>
 <p><a href="https://doc.libsodium.org/installation" class="bare">https://doc.libsodium.org/installation</a></p>
 </li>
+<li>
+<p><a href="https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/" class="bare">https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/</a></p>
+</li>
 </ul>
 </div>
 </div>
@@ -1469,7 +1676,7 @@ mapped libname : libprocps.so</code></pre>
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-02-17-a-practical-look-at-jep-389.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2021-02-17-a-practical-look-at-jep-389-with-jdk16.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
