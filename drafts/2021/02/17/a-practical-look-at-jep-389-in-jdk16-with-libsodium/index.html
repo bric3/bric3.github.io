@@ -278,13 +278,17 @@
   <div class="post adoc">
     <div class="paragraph">
 <p>JDK 16 is coming and with the <strong>incubating</strong> <a href="https://openjdk.java.net/jeps/389">JEP-389</a>
-(Foreign Linker API), let’s have a practical look at this API that should supersede JNI.
-In order to do so this posts intends to leverage the infamous
+(Foreign Linker API).</p>
+</div>
+<div class="paragraph">
+<p>The Foreign Linker API is a very convenient and attractive way to connect to
+the native world. Let’s have a practical look at this API that should supersede JNI.
+In order to do so I wanted Java code to interact with the infamous
 <a href="https://doc.libsodium.org/"><strong>libsodium</strong></a>.</p>
 </div>
 <div class="paragraph">
-<p>This article has two parts, a focus on JEP-389 API, and how to use <code>jextract</code>.
-The following examples were based on <strong>JDK 16 release candidate build 36 (2021/2/8)</strong>.</p>
+<p>First I will focus on using the foreign linker API, then I will show how to use
+<code>jextract</code> in its current state (it is still being actively developed).</p>
 </div>
 <div class="admonitionblock caution">
 <table>
@@ -299,9 +303,17 @@ obsolete for the next JDK as API and behavior are further refined.
 </tr>
 </tbody></table>
 </div>
-<div class="paragraph">
-<p>Yet this module in the JDK16 is a very convenient and attractive to connect to
-the native world !</p>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+The following examples were based on <strong>JDK 16 release candidate build 36 (2021/2/8)</strong>.
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="sect1">
 <h2 id="_the_crypto_sealed_box_example"><a class="anchor" href="#_the_crypto_sealed_box_example"></a><a class="link" href="#_the_crypto_sealed_box_example">The crypto sealed box example</a></h2>
