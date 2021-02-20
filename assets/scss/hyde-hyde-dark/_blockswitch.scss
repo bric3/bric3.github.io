@@ -2,24 +2,39 @@ $block-switch-border-color: rgb(88, 78, 61);
 $block-switch-not-selected-tab-color: rgb(254, 226, 176);
 $block-switch-not-selected-tab-bg-color: rgb(40, 35, 27);
 $block-switch-selected-tab-color: rgb(255, 224, 174);
-$block-switch-selected-tab-bg-color: rgb(104, 88, 59);
+$block-switch-selected-tab-bg-color: rgb(60, 48, 33);
 $block-switch-selected-tab-bg-gradient-color: rgb(244, 191, 117);
+
+$dark-pre-bg-color: rgb(40, 40, 40);
+$dark-pre-border-color: rgb(88, 78, 61);
+$dark-exampleblock-bg-color: rgb(60, 53, 39);
+$dark-exampleblock-border-color: rgb(83, 74, 58);
+$dark-exampleblock-shadow-color: rgb(48, 43, 34) 0 1px 4px;
+
 
 div.switch {
   border-color: $block-switch-border-color;
 
   .switch--item {
-    background-color: $block-switch-not-selected-tab-bg-color;
+    background-color: initial;
     color: $block-switch-not_selected-tab-color;
 
-    &:not(:first-child) {
-      border-color: $block-switch-border-color;
-    }
-
     &.selected {
-      background: linear-gradient(0deg, $block-switch-selected-tab-bg-gradient-color 10%, $block-switch-selected-tab-bg-color 0%);
+      background: $block-switch-selected-tab-bg-color;
       color: $block-switch-selected-tab-color;
+      border-color: $block-switch-selected-tab-bg-gradient-color;
     }
   }
 }
 
+// specific to asciidoctor example block
+div.exampleblock .switch--item.selected {
+  background-color: $dark-exampleblock-bg-color;
+  border-color: $dark-exampleblock-border-color;
+  box-shadow: $dark-exampleblock-shadow-color 0 1px 4px;
+}
+
+div.listingblock .switch--item.selected {
+  background-color: $dark-pre-bg-color;
+  border-color: $dark-pre-border-color;
+}

@@ -5,40 +5,57 @@ $block-switch-selected-tab-color: #ffffff !default;
 $block-switch-selected-tab-bg-color: #7a2518 !default;
 $block-switch-selected-tab-bg-gradient-color: $yellow !default;
 
+$pre-bg-color: rgb(254, 254, 254);
+$exampleblock-border-color: rgb(72, 71, 63) !default;
+$exampleblock-shadow-color: rgb(45, 46, 46) !default;
+$exampleblock-bg-color: rgb(255, 254, 247) !default;
+
 .hidden {
   display: none;
 }
 
 div.switch {
-  border-width: 1px 1px 0 1px;
-  border-style: solid;
-  border-color: $block-switch-border-color;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
   display: inline-block;
   overflow-x: hidden;
   margin-bottom: -10px !important;
-
+  font-size: 0.8em;
 
   .switch--item {
     padding: 0.3rem;
-    background-color: $block-switch-not-selected-tab-bg-color;
+    background-color: initial;
     color: $block-switch-not_selected-tab-color;
     display: inline-block;
     cursor: pointer;
-    font-size: 0.8em;
 
-    &:not(:first-child) {
-      border-width: 0 0 0 1px;
-      border-style: solid;
-      border-color: $block-switch-border-color;
-    }
+    border: 1px solid transparent;
+    border-bottom: 0;
+    margin-left: 8px !important;
+
+    transition: color .2s cubic-bezier(.3,0,.5,1);
+
 
     &.selected {
       color: $block-switch-selected-tab-color;
-      background: linear-gradient(0deg, $block-switch-selected-tab-bg-gradient-color 10%, $block-switch-selected-tab-bg-color 0%);
-      font-size: 1em;
+
+      border-width: 1px 1px 0 1px;
+      border-style: solid;
+      border-color: $block-switch-border-color;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      background: white;
     }
   }
 }
 
+// specific to asciidoctor example block
+div.exampleblock .switch--item.selected {
+  border-color: $exampleblock-border-color;
+  box-shadow: $exampleblock-shadow-color 0 1px 4px;
+  background-color: $exampleblock-bg-color;
+}
+
+div.listingblock .switch--item.selected {
+  border-style: dashed;
+  border-color: $border-color;
+  background-color: $pre-bg-color;
+}
