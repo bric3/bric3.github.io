@@ -11,25 +11,28 @@ summary: "JDK 16 is coming and with the incubating JEP-389, let's have a practic
 
 
 JDK 16 is coming and with the *incubating* https://openjdk.java.net/jeps/389[JEP-389]
-(Foreign Linker API), let's have a practical look at this API that should supersede JNI.
-In order to do so this posts intends to leverage the infamous
+(Foreign Linker API).
+
+
+The Foreign Linker API is a very convenient and attractive way to connect to
+the native world. Let's have a practical look at this API that should supersede JNI.
+In order to do so I wanted Java code to interact with the infamous
 https://doc.libsodium.org/[*libsodium*].
 
-This article has two parts, a focus on JEP-389 API, and how to use `jextract`.
-The following examples were based on *JDK 16 release candidate build 36 (2021/2/8)*.
+First I will focus on using the foreign linker API, then I will show how to use
+`jextract` in its current state (it is still being actively developed).
+
 
 CAUTION: Note that JEP-389 is still incubating, therefore examples below are to be
 obsolete for the next JDK as API and behavior are further refined.
 
-Yet this module in the JDK16 is a very convenient and attractive to connect to
-the native world !
+TIP: The following examples were based on *JDK 16 release candidate build 36 (2021/2/8)*.
 
 == The crypto sealed box example
 
 Let's try to reproduce the following example from the
-https://doc.libsodium.org/public-key_cryptography/sealed_boxes[libsodium sealbox documentation]
-
-There's a code snippet, that could be interesting to reproduce in Java.
+https://doc.libsodium.org/public-key_cryptography/sealed_boxes[libsodium sealbox documentation],
+on this page there is a simple code snippet, that could be interesting to reproduce in Java.
 
 .Crypto sealed box example
 [source, c]
@@ -59,8 +62,8 @@ if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
 
 === Configuring Gradle
 
-Since I am trying to use an incubator module, it is not on the default module
-path, it is required to add the `jdk.incubator.foreign` module when compiling.
+The incubating modules are not on the default module path. Hence, it is required
+to add the `jdk.incubator.foreign` module when invoking the compilation command.
 
 [source, shell]
 ----
