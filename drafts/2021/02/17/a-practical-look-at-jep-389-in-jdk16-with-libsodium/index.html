@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 60 min read
+    <i class="fas fa-clock"></i> 63 min read
 
     
     
@@ -450,9 +450,9 @@ there’s a method <code>size_t crypto_box_sealbytes(void);</code> that returns 
 <div class="paragraph">
 <p>The first challenge is to map the return type <code>size_t</code>, <em>unsigned integer type</em>,
 since the constant
-(<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127">1</a>
-<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L19">2</a>
-<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L35">3</a>)
+<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127"><sup>1</sup></a>
+<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L19"><sup>2</sup></a>
+<a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box_curve25519xsalsa20poly1305.h#L35"><sup>3</sup></a>
 is inferior to the integer max value and that I’d like to use
 this as an array size, I will map it to an <code>int</code>.</p>
 </div>
@@ -471,7 +471,7 @@ var crypto_box_SEALBYTES = (int) crypto_box_sealbytes.invokeExact();</code></pre
 </div>
 </div>
 <div class="paragraph">
-<p>The java type and the C descriptor must match, otherwise the call will fail at runtime.</p>
+<p>The java type and the C descriptor must match, otherwise the call will fail at runtime with a <code>IllegalArgumentException</code>.</p>
 </div>
 <div class="exampleblock primary">
 <div class="title">Example 1. Carrier mismatch long != b32</div>
@@ -505,9 +505,9 @@ the code would have failed with a carrier mismatch.</p>
 <div class="sect2">
 <h3 id="_then_a_more_interesting_case_passing_argument_pointers"><a class="anchor" href="#_then_a_more_interesting_case_passing_argument_pointers"></a><a class="link" href="#_then_a_more_interesting_case_passing_argument_pointers">Then a more interesting case, passing argument pointers</a></h3>
 <div class="paragraph">
-<p>The next part of the example is a lit more involved code with <code>crypto_box_keypair</code>
-that take two array pointers <code>recipient_pk</code> and <code>recipient_sk</code>, this method
-will write in these arrays the generated keypair.</p>
+<p>The next part of the example is a little more involved code, the
+<code>crypto_box_keypair</code> method takes two array pointers <code>recipient_pk</code> and
+<code>recipient_sk</code>, the generated keypair will be written to the given byte array.</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_keypair (.c)</div>
@@ -518,19 +518,21 @@ crypto_box_keypair(recipient_pk, recipient_sk);</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Also, we’ll need to do the same as <code>crypto_box_SEALBYTES</code>, to initialize
-the recipient arrays with constants <code>crypto_box_PUBLICKEYBYTES</code> and
-<code>crypto_box_SECRETKEYBYTES</code>.</p>
+<p>In order to initialize the size of these arrays, the codes needs
+two constants <code>crypto_box_PUBLICKEYBYTES</code> and
+<code>crypto_box_SECRETKEYBYTES</code>. To access these two it’ll be the same
+as <code>crypto_box_SEALBYTES</code>.</p>
 </div>
 <div class="paragraph">
-<p>The C mapping is easy to get, a void method that takes 2 pointers :
+<p>The C mapping is easy to get : a void method that takes 2 pointers
 <code>FunctionDescriptor.ofVoid(C_POINTER, C_POINTER)</code>. In Java the method type
-require a new type called <code>MemoryAddress</code> which represents the pointer
-address.</p>
+require a type called <code>MemoryAddress</code> which represents the pointer address.</p>
 </div>
 <div class="paragraph">
-<p>Before passing an address it is necessary to allocate the necessary
-memory segments that will be written to, for that let’s use <code>MemorySegment::allocateNative</code>.</p>
+<p>The pointers need to point to some memory. That’s what the <code>MemorySegment</code> type
+is for. Before invoking the method the necessary memory will be allocated
+via <code>MemorySegment::allocateNative</code>, and the respective memory segment address
+will be passed.</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_keypair (.java)</div>
@@ -557,11 +559,23 @@ var kp = new CryptoBoxKeyPair(
 );</code></pre>
 </div>
 </div>
+<div class="admonitionblock important">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+This code works, but there is something that must be taken care of,
+<strong>the native segment lifecycle</strong>.
+</td>
+</tr>
+</tbody></table>
+</div>
 <div class="paragraph">
-<p>This code works, but there is something that must be taken care of,
-<strong>the native segment lifecycle</strong>. The above code snippet never deallocate
-native memory. Fortunately <code>MemorySegment</code> implements <code>AutoCloseable</code>,
-declaring the in a <em>try-with_resources</em> block will solve the issue.</p>
+<p>The above code snippet <strong>never</strong> deallocate native memory. Fortunately
+in JDK 16 the <code>MemorySegment</code> class implements <code>AutoCloseable</code>, declaring it
+in a <em>try-with_resources</em> block will solve the issue.</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>MemorySegment</code> lifecycle</div>
@@ -579,9 +593,10 @@ declaring the in a <em>try-with_resources</em> block will solve the issue.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>Even better let’s use the concept of scopes with <code>NativeScope</code>, which
-allows to register the segment to a <em>code section</em> and allocate segments
-anywhere in the section.</p>
+<p>However, JEP-389 comes with the concept of scopes, which allows to express
+temporal bounds of these segments, in JDK16 look for the <code>NativeScope</code> class,
+it allows registering segments in a <em>code section</em> and allocating segments
+anywhere in this section.</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_keypair with <code>NativeScope</code> (.java)</div>
@@ -601,15 +616,15 @@ anywhere in the section.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>In order to get back the off-heap content into Java types, we can call
-on of the <code>to*</code> methods of the <code>MemorySegment</code>, which will take care of
-the conversion.</p>
+<p>In order to get back the off-heap content into Java types, the code can call
+any of the <code>to{The Java Type}</code> methods on the <code>MemorySegment</code> instance, they
+will take care of the conversion.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_next_invoking_the_sealing_method"><a class="anchor" href="#_next_invoking_the_sealing_method"></a><a class="link" href="#_next_invoking_the_sealing_method">Next invoking the sealing method</a></h3>
 <div class="paragraph">
-<p>The next code to call is <code>crypto_box_seal</code>, which also takes
+<p>The next method to call is <code>crypto_box_seal</code>, which also takes
 pointers and a message length.</p>
 </div>
 <div class="listingblock">
@@ -622,8 +637,8 @@ crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);</code></pre>
 <div class="paragraph">
 <p>When looking at the
 <a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L129-L132">C signature</a>
-however we notice something <em>unusual</em>, the message length argument is
-of type <code>long long</code>, Java doesn’t have long types</p>
+however we notice something <em>unusual</em> for Java developers: the message length
+argument is of type <code>long long</code>, Java doesn’t have larger than 64 byte types</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_seal definition (.c)</div>
@@ -635,9 +650,10 @@ int crypto_box_seal(unsigned char *c, const unsigned char *m,
 </div>
 </div>
 <div class="paragraph">
-<p>Fortunately for this post since I intend to pass a <code>String</code> message,
-so an <code>int</code> will work albeit the presence of the cast instruction.
-That said it’ll be an <code>int</code> event if the code is passed a Java array.</p>
+<p>There is no choice but accept the shorter <code>long</code> native type.
+Fortunately for this post since I intend to pass a short <code>String</code> message,
+which is baked by a char array so the value will be an <code>int</code> will work albeit
+the presence of the cast instruction.</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_seal (.java)</div>
@@ -660,13 +676,22 @@ That said it’ll be an <code>int</code> event if the code is passed a Java arra
 
 try (var scope = NativeScope.unboundedScope()) {
     var cipherText = scope.allocate(crypto_box_sealbytes() + message.length());
-    var ret = (int) crypto_box_seal.invokeExact(cipherText.address(),
-                                                CLinker.toCString(message, scope).address(),
-                                                (long) message.length(),
-                                                scope.allocateArray(C_CHAR, publicKey).address());
+    var ret = (int) crypto_box_seal.invokeExact(
+            cipherText.address(),
+            CLinker.toCString(message, StandardCharsets.US_ASCII, scope).address(),
+            (long) message.length(),
+            scope.allocateArray(C_CHAR, publicKey).address()
+    );
     return cipherText.toByteArray();
 }</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Note that I am specifically passing the <code>US_ASCII</code> charset, as I now that
+the byte array representation of the string will be 1 byte per char, and as such
+I can use the <code>String::length</code> method. If the string used characters that do
+not fit in a single byte, I would have needed to extract the byte array using
+<code>UTF-8</code> charset encoder first and use the length of the byte array.</p>
 </div>
 <div class="paragraph">
 <p>Notice here the <code>var ret</code> is not used, however due to the <em>dynamic</em>
@@ -686,7 +711,7 @@ in the signature:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_ending_the_libsodium_example"><a class="anchor" href="#_ending_the_libsodium_example"></a><a class="link" href="#_ending_the_libsodium_example">Ending the libsodium example</a></h3>
+<h3 id="_ending_the_crypto_box_example"><a class="anchor" href="#_ending_the_crypto_box_example"></a><a class="link" href="#_ending_the_crypto_box_example">Ending the crypto box example</a></h3>
 <div class="paragraph">
 <p>The last method call of this snippet ends the libsodium <em>crypto box</em> example.
 The method <code>crypto_box_seal_open</code> take pointers and a ciphered text length
@@ -697,8 +722,8 @@ so let’s apply again what has been done for <code>crypto_box_seal</code>.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">unsigned char decrypted[MESSAGE_LEN];
 if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
-recipient_pk, recipient_sk) != 0) {
-/* message corrupted or not intended for this recipient */
+    recipient_pk, recipient_sk) != 0) {
+    /* message corrupted or not intended for this recipient */
 }</code></pre>
 </div>
 </div>
@@ -734,12 +759,12 @@ try (var scope = NativeScope.unboundedScope()) {
                                                      scope.allocateArray(C_CHAR, publicKey).address(),
                                                      scope.allocateArray(C_CHAR, secretkey).address());
 
-    return CLinker.toJavaString(decipheredText);
+    return CLinker.toJavaString(decipheredText, StandardCharsets.US_ASCII);
 }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>There is one error in this program :</p>
+<p>Yet running this code raise an error:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -757,15 +782,19 @@ try (var scope = NativeScope.unboundedScope()) {
 </div>
 </div>
 <div class="paragraph">
-<p>I didn’t get it at first as <code>CLinker::toJavaString</code> is the mirror function
-of the <code>CLinker::toCString</code>, the message indicates the segment has the size 20
-which is the length of this string <code>Hello foreign code !</code>, there’s
-<code>new offset is 20</code> indicating the segment was read up to the 20th character, and
-there is the <code>new length = 1</code>, which suggests <code>toJavaString</code> needs to read
-an additional character but can’t.</p>
+<p>I didn’t get why this code failed at first.</p>
 </div>
 <div class="paragraph">
-<p>The javadoc of <code>toJavaString</code> (emphasis is mine) :</p>
+<p><code>CLinker::toJavaString</code> is the mirror function of the <code>CLinker::toCString</code>, so it looked correct.</p>
+</div>
+<div class="paragraph">
+<p>The exception message indicates the segment has the size 20 which is the length
+of the string <code>Hello foreign code !</code>, there’s <code>new offset is 20</code> indicating the
+segment was read up to the 20th byte / character, and there is the <code>new length = 1</code>,
+which suggests <code>toJavaString</code> needs to read an additional character but can’t.</p>
+</div>
+<div class="paragraph">
+<p>The javadoc of <code>toJavaString</code> says (emphasis is mine) :</p>
 </div>
 <div class="quoteblock">
 <blockquote>
@@ -775,38 +804,56 @@ an additional character but can’t.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p>This immediately clicked, the way libsodium is working
-with the <em>message</em> involves to pass the message length,
-and that’s because libsodium don’t assume the message
-is a string, the byte array can be anything!</p>
+<p>This immediately clicked: libsodium’s <em>message</em> does not imply it is a string.
+It’s API takes a pointer to a memory region and the length to read in that memory
+region. For all that matter, the message could be any binary payload.</p>
 </div>
 <div class="paragraph">
-<p>In the present case the native memory segment is indeed <strong>not</strong> terminated by <code>\0</code></p>
+<p>Let’s look at the string <code>Hello</code></p>
 </div>
-<div class="ulist">
-<ul>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
-<p><code>MemorySegment::toByteArray</code>: <code>48656C6C6F20666F726569676E20636F64652021</code></p>
+<p>Libsodium <em>seal</em> method will be passed the following byte array
+<code>CLinker.toCString(&#34;Hello&#34;, StandardCharsets.US_ASCII).toByteArray()</code> ⇒ <code>48656C6C6F00</code></p>
 </li>
-</ul>
+<li>
+<p>But since the code is using <code>String::length</code>, libsodium will only seal up to 5 bytes : <code>48656C6C6F</code>.</p>
+</li>
+<li>
+<p>Then <em>opening the seal</em>, the content of the <code>MemorySegment</code> that contains the decrypted message
+will be <code>48656C6C6F</code></p>
+</li>
+<li>
+<p>But <code>CLinker.toJavaString(decipheredText, StandardCharsets.US_ASCII)</code> expects
+the memory segment to be a valid C string, terminated by the <code>\0</code> character. And since
+the actual decrypted memory segment is not terminated by &#39;\0&#39;, the code emit an error.</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p>That suggests the code to use is <code>new String(decipheredText.toByteArray())</code>.
-For reference here are the bytes returned by <code>String::getBytes</code> and
+<p>For this reason this suggests the code to use is
+<code>new String(decipheredText.toByteArray(), StandardCharsets.US_ASCII)</code>. They are other
+possibilities like not using the <code>CLinker::toCString</code> with the <code>crypto_box_seal</code>
+method and instead, or to increment by 1 the length when <code>CLinker::toCString</code>
+is passed.</p>
+</div>
+<div class="paragraph">
+<p>For reference here are the bytes returned by <code>String::getBytes</code> and
 <code>CLinker::toCString</code>.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><code>&#34;Hello&#34;.getBytes()</code> ⇒ <code>48656C6C6F</code></p>
+<p><code>&#34;Hello&#34;.getBytes(US_ASCII)</code> ⇒ <code>48656C6C6F</code></p>
 </li>
 <li>
-<p><code>CLinker.toCString(&#34;Hello&#34;).toByteArray()</code> ⇒ <code>48656C6C6F00</code></p>
+<p><code>CLinker.toCString(&#34;Hello&#34;, US_ASCII).toByteArray()</code> ⇒ <code>48656C6C6F00</code></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>For this example I’d like to keep the assumption that message is a <code>String</code>,
+<p>For this blog post I’d like to keep the assumption the sealed message is a <code>String</code>,
 which leads to the following correct code :</p>
 </div>
 <div class="listingblock">
@@ -819,15 +866,14 @@ which leads to the following correct code :</p>
                                                      scope.allocateArray(C_CHAR, publicKey).address(),
                                                      scope.allocateArray(C_CHAR, secretkey).address());
 
-    return new String(decipheredText.toByteArray());
+    return new String(decipheredText.toByteArray(), StandardCharsets.US_ASCII);
 }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>For this blog post I have intentionally left out the returned status
-of <code>crypto_box_seal_open</code>, to focus on the foreign module API, but
-this would make sense to perform checks on the returned value before
-returning the buffer as suggested on the libsodium
+<p>Also, I have intentionally left out the returned status of <code>crypto_box_seal_open</code>,
+to focus on the foreign module API, but this would make sense to perform checks
+on the returned value before returning the buffer as suggested on the libsodium
 documentation.</p>
 </div>
 </div>
@@ -835,8 +881,8 @@ documentation.</p>
 <h3 id="_wrap_up_on_manually_using_the_foreign_linker_api"><a class="anchor" href="#_wrap_up_on_manually_using_the_foreign_linker_api"></a><a class="link" href="#_wrap_up_on_manually_using_the_foreign_linker_api">Wrap up on manually using the Foreign Linker API</a></h3>
 <div class="paragraph">
 <p>I didn’t cover everything this API has to offer, like the <em>up call</em> stubs,
-which a way to pass a function pointer to the native code, nor did I cover
-the richness of the <code>MemorySegment</code> API.</p>
+which is a way to pass a function pointer to the native code, nor did I cover
+the every feature of JEP-389, like <code>MemorySegment</code> or <code>MemoryLayout</code> API.</p>
 </div>
 <div class="paragraph">
 <p>At this time I find this API a pleasure to use compared to JNI. Note that
@@ -852,21 +898,21 @@ in the gaps in my opinion.</p>
 </div>
 <div class="paragraph">
 <p>This example was short in native code, but writing the stubs in Java
-is quickly tedious and verbose.</p>
-</div>
-<div class="paragraph">
-<p>JDK developers felt the same way as they are currently backing a tool
-named <code>jextract</code> whose goal is to do this tedious work.</p>
+is quickly tedious and verbose. JDK developers felt the same way as they
+are currently backing a tool named <code>jextract</code> whose goal is to do this
+tedious work. I’ll show in section below what can be done with the current
+state of <code>jextract</code>.</p>
 </div>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_a_word_about_memorysegments_memory_mapping"><a class="anchor" href="#_a_word_about_memorysegments_memory_mapping"></a><a class="link" href="#_a_word_about_memorysegments_memory_mapping">A word about <code>MemorySegment</code>s  memory mapping</a></h2>
+<h2 id="_remarks_about_memorysegments_memory_mapping"><a class="anchor" href="#_remarks_about_memorysegments_memory_mapping"></a><a class="link" href="#_remarks_about_memorysegments_memory_mapping">Remarks about <code>MemorySegment</code>s  memory mapping</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><code>MemorySegment</code> do have the same constraints as <code>DirectByteBuffer</code>s,
-ie by default the size of the segment can’t size can’t go over <code>Runtime.getRuntime().maxMemory()</code></p>
+ie by default the size of the segment can’t size can’t go over
+<code>Runtime.getRuntime().maxMemory()</code></p>
 </div>
 <div class="listingblock">
 <div class="title">Allocating a very bigger segment than than <code>maxMemory</code></div>
@@ -894,8 +940,8 @@ representation, via <code>Long.toHexString(memorySegment.address().toRawLongValu
 </div>
 </div>
 <div class="paragraph">
-<p>If you are on Linux you use <code>pmap</code> from the procps package to inspect memory
-mappings of the JVM.</p>
+<p>If you are on Linux then you use <code>pmap</code> from the <em>procps</em> package to
+inspect memory mappings of the JVM.</p>
 </div>
 <div class="listingblock">
 <div class="title">/pmap output of a 2GiB native segment</div>
@@ -949,7 +995,7 @@ reason about boundaries of the involved memory mapping.
 Using a larger <code>MemorySegment</code> coud be interesting when it has to be sliced and
 shared among various threads. Also given the high initialization cost for large
 segments it’s likely to have the same lifecycle as the application.
-Typically, in a few years, Netty could make use of this API !</p>
+Typically, in a few years, Netty, Aeron, Kafka, etc could make use of this API !</p>
 </div>
 <div class="paragraph">
 <div class="title">Slices</div>
@@ -1067,8 +1113,9 @@ time to get this API right. They are doing a fantastic job in my opinion.</p>
 <h2 id="_jextract"><a class="anchor" href="#_jextract"></a><a class="link" href="#_jextract"><code>jextract</code></a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>As <code>jextract</code> is still being backed, it is not ready for incubation,
-as such it is not included in JDK 16, it is sad but understandable.</p>
+<p><code>jextract</code> is still being backed and was not ready to be included in JDK 16
+for incubation, but since it complements JEP-389, I wanted to give
+it a try and showcase its usefulness.</p>
 </div>
 <div class="paragraph">
 <p>In order to be able to use it, one should download the panama jdk
@@ -1079,8 +1126,11 @@ to use <code>jextract</code> not the panama jdk.</p>
 <div class="paragraph">
 <p>When I started to bootstrap work on JDK16 and libsodium, the built
 panama JDK didn’t contain the <code>jextract</code>, as I wasn’t sure
-I voiced this on Twitter, which then confirmed this was a bug
-<a href="https://bugs.openjdk.java.net/browse/JDK-8261733">JDK-8261733</a>.</p>
+I voiced <a href="https://twitter.com/bricedutheil/status/1361086142402199554?s=21">this on Twitter</a>,
+Oracle confirmed me this was a bug in the release
+<a href="https://bugs.openjdk.java.net/browse/JDK-8261733">JDK-8261733</a> if this every
+happen again, or you want to try the latest <code>jextract</code>, you’ll need to build
+the panama JDK.</p>
 </div>
 <div class="admonitionblock caution">
 <table>
@@ -1089,7 +1139,7 @@ I voiced this on Twitter, which then confirmed this was a bug
 <i class="fa icon-caution" title="Caution"></i>
 </td>
 <td class="content">
-At this time the <code>jextract</code> tool is still being backed.
+Again the <code>jextract</code> tool is still being backed at this time.
 That means it that everything below can be obsolete any time.
 </td>
 </tr>
