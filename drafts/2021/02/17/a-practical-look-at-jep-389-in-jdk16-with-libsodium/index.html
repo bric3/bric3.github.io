@@ -457,7 +457,7 @@ is inferior to the integer max value and that I’d like to use
 this as an array size, I will map it to an <code>int</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_sealbytes (java)</div>
+<div class="title">crypto_box_sealbytes (.java)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle crypto_box_sealbytes =
         CLinker.getInstance()
@@ -510,7 +510,7 @@ that take two array pointers <code>recipient_pk</code> and <code>recipient_sk</c
 will write in these arrays the generated keypair.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_keypair ©</div>
+<div class="title">crypto_box_keypair (.c)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">unsigned char recipient_pk[crypto_box_PUBLICKEYBYTES];
 unsigned char recipient_sk[crypto_box_SECRETKEYBYTES];
@@ -533,7 +533,7 @@ address.</p>
 memory segments that will be written to, for that let’s use <code>MemorySegment::allocateNative</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_keypair (java)</div>
+<div class="title">crypto_box_keypair (.java)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle crypto_box_keypair =
         CLinker.getInstance().downcallHandle(
@@ -584,7 +584,7 @@ allows to register the segment to a <em>code section</em> and allocate segments
 anywhere in the section.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_keypair with <code>NativeScope</code> (java)</div>
+<div class="title">crypto_box_keypair with <code>NativeScope</code> (.java)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
     var recipientPublicKey = scope.allocate(crypto_box_publickeybytes());
@@ -613,7 +613,7 @@ the conversion.</p>
 pointers and a message length.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_seal ©</div>
+<div class="title">crypto_box_seal (.c)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">unsigned char ciphertext[CIPHERTEXT_LEN];
 crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);</code></pre>
@@ -626,7 +626,7 @@ however we notice something <em>unusual</em>, the message length argument is
 of type <code>long long</code>, Java doesn’t have long types</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_seal definition ©</div>
+<div class="title">crypto_box_seal definition (.c)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">SODIUM_EXPORT
 int crypto_box_seal(unsigned char *c, const unsigned char *m,
@@ -640,7 +640,7 @@ so an <code>int</code> will work albeit the presence of the cast instruction.
 That said it’ll be an <code>int</code> event if the code is passed a Java array.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_seal (java)</div>
+<div class="title">crypto_box_seal (.java)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var crypto_box_seal = CLinker.getInstance().downcallHandle(
         libsodiumLookup.lookup(&#34;crypto_box_seal&#34;).get(),
@@ -693,7 +693,7 @@ The method <code>crypto_box_seal_open</code> take pointers and a ciphered text l
 so let’s apply again what has been done for <code>crypto_box_seal</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_seal_open ©</div>
+<div class="title">crypto_box_seal_open (.c)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">unsigned char decrypted[MESSAGE_LEN];
 if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
@@ -706,7 +706,7 @@ recipient_pk, recipient_sk) != 0) {
 <p>Which translates to</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_seal_open (java)</div>
+<div class="title">crypto_box_seal_open (.java)</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var crypto_box_seal_open = getInstance().downcallHandle(
         libsodiumLookup.lookup(&#34;crypto_box_seal_open&#34;).get(),
