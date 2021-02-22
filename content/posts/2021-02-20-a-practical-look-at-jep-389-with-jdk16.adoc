@@ -797,8 +797,8 @@ That means it that everything below can be obsolete any time.
 === Extracting Java liking code from the Libsodium headers
 
 The first thing I need is to get the headers of libsodium, and for that
-I cloned the repo. Then checkout the 1.0.18 tag as I intend to target
-the latest released binary.
+I cloned the repo. Then checked out the 1.0.18 tag as I intend to target
+this released binary.
 
 .Get the libsodium source
 [source, shell]
@@ -841,7 +841,9 @@ other includes may be extracted
 Obviously the standard C headers are not discovered by `jextract`.
 I tried to solve this by declaring the system includes in `/usr/include`
 and `/usr/include/linux` (`/usr/include/linux/stddef.h`) but the error
-went a bit further with `unknown type name 'size_t'`.
+went a bit further with `unknown type name 'size_t'`. This is a known issue
+that for some platforms jextract has issues to find the system headers
+(https://bugs.openjdk.java.net/browse/JDK-8262127[JDK-8262127]).
 
 `size_t` is a standard C alias representing the _unsigned integer type_.
 I found help in this https://www.mail-archive.com/dev@tomcat.apache.org/msg129346.html[old thread from november 2018].
@@ -1128,18 +1130,44 @@ https://github.com/openjdk/jdk16u/blob/1cc98bde6703d330b07ae873770df2c369b47eb2/
 or a path.
 
 The value above is the value I used in the `-l sodium` option of `jextract`,
-yet this value here is obviously incorrect.
+yet this value here is obviously incorrect for my use case.
 
-Moreover, the actual library path is dependent on the system, on the library
-version and on the installation mechanism.
+.Work around 1: with `jextract`
+It is not yet clear, in the `jextract` usage description at this time,
+but one can pass to the `-l` option
 
-`LIBRARIS` is a static final variable that is used by other static variables
+. A library name, which has to be available on one of the paths declared in the
+JVM system property `java.library.path`
++
+====
+linux:: `/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib`
+
+macOs:: `/Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.`
+====
++
+The library must conform to JNI conventions, `libsodium.23.dylib` or `libtasn1.so.6.5.5`
+won't work as they contain version numbers.
+. Or an absolute path eg `/usr/local/opt/libsodium/lib/libsodium.23.dylib`.
+
+However, the actual library path is dependent on the system, on the library
+version and on the installation mechanism. I could have used `jextract`
+with `-l /usr/local/opt/libsodium/lib/libsodium.23.dylib`, but then the generated
+code can not run on Linux without modifications, etc.
+
+My final objective for this code is to declare the libsodium bindings in java,
+and link with the actual libsodium on the platform macOs or Linux.
+
+.Work-around 2: Modify generated code
+`LIBRARIES` is a static final variable that is used by other static variables
 in the same class. While it is possible to edit the `sodium_h_constants_0`
-class, it is still difficult to make this `LibraryLookup` configurable
+class, it is still difficult to make this `LibraryLookup` code configurable
 without a significant refactoring.
 
+Oracle engineers are aware of this problem https://bugs.openjdk.java.net/browse/JDK-8262126[JDK-8262126],
+so we might see it fixed in the final JEP-389 release.
+
 For this article the easiest solution, is to declare the local libsodium path
-as I did above.
+in the code, as I did in the first section of this blog.
 
 
 [source, java]
@@ -1148,6 +1176,9 @@ static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
     "/usr/local/opt/libsodium/lib/libsodium.23.dylib"
 });
 ----
+
+In the end I'll rework this initialization later though with custom code
+to find the actual libsodium on the current platform.
 
 
 
@@ -1464,7 +1495,7 @@ static String getUnsupportedTypeName(MemoryLayout vl) {
 In the end `jextract` is useful but there's a few little hiccups along the way.
 The generated code is currently lacking in some usability. Also, the generated
 code is a tad verbose, I would wish a way to eliminate some unneeded generated
-methods. Using jextract is a bit obscure as well and they are a few pitfalls
+methods. Using `jextract` is a bit obscure as well, and they are a few pitfalls
 there too, and may require peeking at the `jdk.incubating.jextract` source code
 (in the panama repository).
 
