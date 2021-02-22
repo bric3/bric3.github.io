@@ -1295,8 +1295,8 @@ That means it that everything below can be obsolete any time.
 <h3 id="_extracting_java_liking_code_from_the_libsodium_headers"><a class="anchor" href="#_extracting_java_liking_code_from_the_libsodium_headers"></a><a class="link" href="#_extracting_java_liking_code_from_the_libsodium_headers">Extracting Java liking code from the Libsodium headers</a></h3>
 <div class="paragraph">
 <p>The first thing I need is to get the headers of libsodium, and for that
-I cloned the repo. Then checkout the 1.0.18 tag as I intend to target
-the latest released binary.</p>
+I cloned the repo. Then checked out the 1.0.18 tag as I intend to target
+this released binary.</p>
 </div>
 <div class="listingblock">
 <div class="title">Get the libsodium source</div>
@@ -1363,7 +1363,9 @@ other includes may be extracted</td>
 <p>Obviously the standard C headers are not discovered by <code>jextract</code>.
 I tried to solve this by declaring the system includes in <code>/usr/include</code>
 and <code>/usr/include/linux</code> (<code>/usr/include/linux/stddef.h</code>) but the error
-went a bit further with <code>unknown type name &#39;size_t&#39;</code>.</p>
+went a bit further with <code>unknown type name &#39;size_t&#39;</code>. This is a known issue
+that for some platforms jextract has issues to find the system headers
+(<a href="https://bugs.openjdk.java.net/browse/JDK-8262127">JDK-8262127</a>).</p>
 </div>
 <div class="paragraph">
 <p><code>size_t</code> is a standard C alias representing the <em>unsigned integer type</em>.
@@ -1731,21 +1733,64 @@ or a path.</p>
 </div>
 <div class="paragraph">
 <p>The value above is the value I used in the <code>-l sodium</code> option of <code>jextract</code>,
-yet this value here is obviously incorrect.</p>
+yet this value here is obviously incorrect for my use case.</p>
 </div>
 <div class="paragraph">
-<p>Moreover, the actual library path is dependent on the system, on the library
-version and on the installation mechanism.</p>
+<div class="title">Work around 1: with <code>jextract</code></div>
+<p>It is not yet clear, in the <code>jextract</code> usage description at this time,
+but one can pass to the <code>-l</code> option</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>A library name, which has to be available on one of the paths declared in the
+JVM system property <code>java.library.path</code></p>
+<div class="exampleblock">
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">linux</dt>
+<dd>
+<p><code>/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib</code></p>
+</dd>
+<dt class="hdlist1">macOs</dt>
+<dd>
+<p><code>/Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.</code></p>
+</dd>
+</dl>
+</div>
+</div>
 </div>
 <div class="paragraph">
-<p><code>LIBRARIS</code> is a static final variable that is used by other static variables
+<p>The library must conform to JNI conventions, <code>libsodium.23.dylib</code> or <code>libtasn1.so.6.5.5</code>
+won’t work as they contain version numbers.</p>
+</div>
+</li>
+<li>
+<p>Or an absolute path eg <code>/usr/local/opt/libsodium/lib/libsodium.23.dylib</code>.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>However, the actual library path is dependent on the system, on the library
+version and on the installation mechanism. I could have used <code>jextract</code>
+with <code>-l /usr/local/opt/libsodium/lib/libsodium.23.dylib</code>, but then the generated
+code can not run on Linux without modifications, etc.</p>
+</div>
+<div class="paragraph">
+<div class="title">Work-around 2: Modify generated code</div>
+<p><code>LIBRARIES</code> is a static final variable that is used by other static variables
 in the same class. While it is possible to edit the <code>sodium_h_constants_0</code>
-class, it is still difficult to make this <code>LibraryLookup</code> configurable
+class, it is still difficult to make this <code>LibraryLookup</code> code configurable
 without a significant refactoring.</p>
 </div>
 <div class="paragraph">
+<p>Oracle engineers are aware of this problem <a href="https://bugs.openjdk.java.net/browse/JDK-8262126">JDK-8262126</a>,
+so we might see it fixed in the final JEP-389 release.</p>
+</div>
+<div class="paragraph">
 <p>For this article the easiest solution, is to declare the local libsodium path
-as I did above.</p>
+in the code, as I did in the first section of this blog.</p>
 </div>
 <div class="listingblock">
 <div class="content">
