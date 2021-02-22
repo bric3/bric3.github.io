@@ -290,7 +290,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 63 min read
+    <i class="fas fa-clock"></i> 73 min read
 
     
     
@@ -342,6 +342,10 @@ The following examples were based on <strong>JDK 16 release candidate build 36 (
 </td>
 </tr>
 </tbody></table>
+</div>
+<div class="paragraph">
+<p><em>Thanks to <a href="https://twitter.com/jpbempel">Jean-Phillipe Bempel</a> for the review and
+in particular spotting errors</em>.</p>
 </div>
 <div class="sect1">
 <h2 id="_the_crypto_sealed_box_example"><a class="anchor" href="#_the_crypto_sealed_box_example"></a><a class="link" href="#_the_crypto_sealed_box_example">The crypto sealed box example</a></h2>
@@ -502,14 +506,15 @@ this as an array size, I will map it to an <code>int</code>.</p>
                .downcallHandle(
                        libsodiumLookup.lookup(&#34;crypto_box_sealbytes&#34;).get(),
                        MethodType.methodType(int.class),
-                       FunctionDescriptor.of(C_INT)
+                       FunctionDescriptor.of(CLinker.C_INT)
                );
 
 var crypto_box_SEALBYTES = (int) crypto_box_sealbytes.invokeExact();</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The java type and the C descriptor must match, otherwise the call will fail at runtime with a <code>IllegalArgumentException</code>.</p>
+<p>The java type and the C descriptor must match, otherwise the call will fail at
+runtime with a <code>IllegalArgumentException</code>.</p>
 </div>
 <div class="exampleblock primary">
 <div class="title">Example 1. Carrier mismatch long != b32</div>
@@ -538,6 +543,10 @@ the code would have failed with a carrier mismatch.</p>
 </div>
 </div>
 </div>
+</div>
+<div class="paragraph">
+<p>For reference, <code>CLinker.C_INT</code> is actually a <code>MemoryLayout</code>, a <em>layout</em> is used
+to model native memory.</p>
 </div>
 </div>
 <div class="sect2">
@@ -676,7 +685,95 @@ crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);</code></pre>
 <p>When looking at the
 <a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L129-L132">C signature</a>
 however we notice something <em>unusual</em> for Java developers: the message length
-argument is of type <code>long long</code>, Java doesn’t have larger than 64 byte types</p>
+argument is of type <code>long long</code>!</p>
+</div>
+<div class="paragraph">
+<p>In C or C++, this declaration means the type is at least 8 bytes (64 bits),
+this means a Java <code>long</code> type is what is needed.</p>
+</div>
+<div class="paragraph">
+<p>In particular here’s a breakdown of the signed integers. It is incomplete
+as they can be declared differently (eg. <code>long</code> is the same as <code>long int</code>,
+or <code>long long</code> is the same as <code>long long int</code>), this <a href="https://en.wikipedia.org/wiki/C_data_types">wikipedia page</a> has a more complete overview of
+C data types.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Signed integers</caption>
+<colgroup>
+<col style="width: 20%;"/>
+<col style="width: 80%;"/>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>int</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>A signed integer type with &#34;the natural size suggested by the
+architecture of the execution environment&#34;, with a minimum of 2 byte (16 bits,
+\$[-32767; +32767]\$).</p>
+</div>
+<div class="paragraph">
+<p>On a 64bits CPU, <code>int</code> is 4bytes and the range becomes \$[-2147483647; +2147483647]\$;</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>long</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>A signed integer type that is at least so 4 bytes (\$[-2147483647; +2147483647]\$).</p>
+</div>
+<div class="paragraph">
+<p>On a 64bits CPU, <code>long</code> is 4bytes and the range becomes \$[−9223372036854775807; +9223372036854775807]\$;</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>long long</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>A signed integer type that is at least so 8 bytes (\$[−9223372036854775807; +9223372036854775807]\$).</p>
+</div>
+<div class="paragraph">
+<p>On a 64bits CPU, <code>long long</code> is still 8 bytes long.</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>When you start to study these C data types a bit more, you’ll notice
+two things that just don’t match with Java types:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>unsigned</code> integers, while they do have the same width as their signed
+counterpart, their math is different as their range is different:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>unsigned long</code>&#39;s range is \$[0; +4294967295]\$ (on a 64 bit CPU)</p>
+</li>
+<li>
+<p><code>unsigned long long</code>&#39;s range is \$[0; +18446744073709551615]\$ (on a 64 bit CPU)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>long double</code>s are larger than 64 bytes, I never had to use those, but it
+seems they can be as big as 128 bits (16 bytes).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>As a reminder <code>size_t</code> is unsigned.</p>
+</div>
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_seal definition (.c)</div>
@@ -688,10 +785,8 @@ int crypto_box_seal(unsigned char *c, const unsigned char *m,
 </div>
 </div>
 <div class="paragraph">
-<p>There is no choice but accept the shorter <code>long</code> native type.
-Fortunately for this post since I intend to pass a short <code>String</code> message,
-which is baked by a char array so the value will be an <code>int</code> will work albeit
-the presence of the cast instruction.</p>
+<p>Also, for this post, and I intend to pass a short <code>String</code> message,
+which is baked by a <code>char</code> array whose length can only be an <code>int</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_seal (.java)</div>
@@ -725,18 +820,23 @@ try (var scope = NativeScope.unboundedScope()) {
 </div>
 </div>
 <div class="paragraph">
-<p>Note that I am specifically passing the <code>US_ASCII</code> charset, as I now that
-the byte array representation of the string will be 1 byte per char, and as such
-I can use the <code>String::length</code> method. If the string used characters that do
-not fit in a single byte, I would have needed to extract the byte array using
-<code>UTF-8</code> charset encoder first and use the length of the byte array.</p>
+<p>There’s a few thing to notice :</p>
 </div>
-<div class="paragraph">
-<p>Notice here the <code>var ret</code> is not used, however due to the <em>dynamic</em>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>I am specifically passing the <code>US_ASCII</code> charset, as I now that
+the byte array representation of the string will be 1 byte per <code>char</code>, implying
+I can use the <code>String::length</code> method.
+If the string used characters that do not fit in a single byte, I would have
+needed to extract the byte array using <code>UTF-8</code> charset encoder first and use
+the length of the byte array instead.</p>
+</li>
+<li>
+<p>The <code>var ret</code> is not used, however due to the <em>dynamic</em>
 nature of <code>invokeExact</code>, the compiler needs the <strong>exact</strong> signature on the
 call-site, that’s why the result of this invocation is assigned to an <code>int</code>
 variable even if it is not used.</p>
-</div>
 <div class="paragraph">
 <p>Without this assignment the JVM would have raised a <code>WrongMethodTypeException</code>,
 in this case the exception message helps to identify the type differences
@@ -746,6 +846,9 @@ in the signature:</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">java.lang.invoke.WrongMethodTypeException: expected (MemoryAddress,MemoryAddress,long,MemoryAddress)int but found (MemoryAddress,MemoryAddress,long,MemoryAddress)void</code></pre>
 </div>
+</div>
+</li>
+</ol>
 </div>
 </div>
 <div class="sect2">
@@ -929,17 +1032,17 @@ I don’t have experience with JNA, so I may be lacking perspective there.</p>
 <div class="paragraph">
 <p>There’s a few pitfalls like the <code>CLinker::toJavaString</code> or the
 <code>MemorySegment</code> lifecycles which get more complicated if those segments
-are shared between threads. I found the API well designed and well
+are shared between threads. I found the API well-designed and well
 documented, but if you’re novice in this area, you’ll likely need
-other materials, a package wide documentation should definitely fill
-in the gaps in my opinion.</p>
+other materials. A package wide documentation, in <code>jdk.incubator.foreign</code>,
+should definitely fill this gap in my opinion.</p>
 </div>
 <div class="paragraph">
-<p>This example was short in native code, but writing the stubs in Java
+<p>The chosen example was concise in native code, but writing the stubs in Java
 is quickly tedious and verbose. JDK developers felt the same way as they
-are currently backing a tool named <code>jextract</code> whose goal is to do this
-tedious work. I’ll show in section below what can be done with the current
-state of <code>jextract</code>.</p>
+are also investing energy on a tool named <code>jextract</code> whose goal is to reduce
+the tedious work amount. I’ll show in a section below what can be done with
+the current state of <code>jextract</code>.</p>
 </div>
 </div>
 </div>
@@ -1156,6 +1259,10 @@ for incubation, but since it complements JEP-389, I wanted to give
 it a try and showcase its usefulness.</p>
 </div>
 <div class="paragraph">
+<p>This tool leverages the native <code>libclang</code> and as such the <code>jdk.incubator.foreign</code>
+module.</p>
+</div>
+<div class="paragraph">
 <p>In order to be able to use it, one should download the panama jdk
 here: <a href="https://jdk.java.net/panama/" class="bare">https://jdk.java.net/panama/</a>. Don’t be scared by <em>early access</em>,
 JDK 17 (very early at this stage) or the other warnings, you just need
@@ -1165,7 +1272,7 @@ to use <code>jextract</code> not the panama jdk.</p>
 <p>When I started to bootstrap work on JDK16 and libsodium, the built
 panama JDK didn’t contain the <code>jextract</code>, as I wasn’t sure
 I voiced <a href="https://twitter.com/bricedutheil/status/1361086142402199554?s=21">this on Twitter</a>,
-Oracle confirmed me this was a bug in the release
+Oracle engineers confirmed me this was a bug in the release
 <a href="https://bugs.openjdk.java.net/browse/JDK-8261733">JDK-8261733</a> if this every
 happen again, or you want to try the latest <code>jextract</code>, you’ll need to build
 the panama JDK.</p>
@@ -1760,10 +1867,9 @@ as a <code>String</code>.</p>
 are similar and don’t require to do the tedious handle declaration.</p>
 </div>
 <div class="paragraph">
-<p>Although as I mentionned in the first section, these two method
-declares an argument of type <code>long long</code> type in the C signature, and those
-native types are not supported in Java, there’s a statement on the panama
-download page.</p>
+<p>This type raised a few questions about how to map them in Java in the first section
+where I used manually <code>jdk.incubator.foreign</code>. Also there’s statement at this time
+about <code>jextract</code> not supporting some wide types.</p>
 </div>
 <div class="quoteblock">
 <blockquote>
@@ -1777,9 +1883,243 @@ download page.</p>
 </blockquote>
 </div>
 <div class="paragraph">
-<p><code>jextract</code> proposes a generated code that passes an argument of type <code>long</code> like
-I did in the first section.</p>
+<p>How does it handle these unsupported types, the answer is in the source code.</p>
 </div>
+<div class="paragraph">
+<p>In here we learn that unsigned types are represented with their signed counterpart and
+the types wider than 64 bits are represented with a specific <em>unsupported</em> layout
+during headers processing. The symbols with unsupported layouts won’t be generated
+as the JEP-389 linker won’t be able to link them.</p>
+</div>
+<details>
+<summary class="title">Some details on how <code>jextract</code>&#39;s primitive types handling</summary>
+<div class="content">
+<div class="paragraph">
+<p>The enum below in jextract show how native primitive types are mapped to their
+respective memory layout whether they are supported of not.</p>
+</div>
+<div class="listingblock">
+<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/Type.java">Type.Primitive.Kind</a></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">enum Kind {
+    /**
+     * {@code void} type.
+     */
+    Void(&#34;void&#34;, null),
+    /**
+     * {@code Bool} type.
+     */
+    Bool(&#34;_Bool&#34;, CLinker.C_CHAR),
+    /**
+     * {@code char} type.
+     */
+    Char(&#34;char&#34;, CLinker.C_CHAR),
+    /**
+     * {@code char16} type.
+     */
+    Char16(&#34;char16&#34;, UnsupportedLayouts.CHAR16),
+    /**
+     * {@code short} type.
+     */
+    Short(&#34;short&#34;, CLinker.C_SHORT),
+    /**
+     * {@code int} type.
+     */
+    Int(&#34;int&#34;, CLinker.C_INT),
+    /**
+     * {@code long} type.
+     */
+    Long(&#34;long&#34;, CLinker.C_LONG),
+    /**
+     * {@code long long} type.
+     */
+    LongLong(&#34;long long&#34;, CLinker.C_LONG_LONG),
+    /**
+     * {@code int128} type.
+     */
+    Int128(&#34;__int128&#34;, UnsupportedLayouts.__INT128),
+    /**
+     * {@code float} type.
+     */
+    Float(&#34;float&#34;, CLinker.C_FLOAT),
+    /**
+     * {@code double} type.
+     */
+    Double(&#34;double&#34;,CLinker.C_DOUBLE),
+    /**
+      * {@code long double} type.
+      */
+    LongDouble(&#34;long double&#34;, UnsupportedLayouts.LONG_DOUBLE),
+    /**
+     * {@code float128} type.
+     */
+    Float128(&#34;float128&#34;, UnsupportedLayouts._FLOAT128),
+    /**
+     * {@code float16} type.
+     */
+    HalfFloat(&#34;__fp16&#34;, UnsupportedLayouts.__FP16),
+    /**
+     * {@code wchar} type.
+     */
+    WChar(&#34;wchar_t&#34;, UnsupportedLayouts.WCHAR_T);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Those types can be <em>qualified</em>, in particular integer types can be unsigned:</p>
+</div>
+<div class="listingblock">
+<div class="title">jdk.internal.jextract.impl.TypeMaker#makeTypeInternal</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">case UShort: {
+    Type chType = Type.primitive(Primitive.Kind.Short);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case UInt: {
+    Type chType = Type.primitive(Primitive.Kind.Int);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case ULong: {
+    Type chType = Type.primitive(Primitive.Kind.Long);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case ULongLong: {
+    Type chType = Type.primitive(Primitive.Kind.LongLong);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case UChar: {
+    Type chType = Type.primitive(Primitive.Kind.Char);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Going further we can see that signed and unsigned integers use the same
+memory layout, eg. <code>long long</code> and <code>unsigned long long</code> use the same layout
+<code>C_LONG_LONG</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/6aafbbbeeb59050f79d82f4d7cec85011e99f6bb/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/LayoutUtils.java">LayoutUtils.getLayout</a></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static MemoryLayout getLayout(Type t) {
+    Supplier&lt;UnsupportedOperationException&gt; unsupported = () -&gt;
+            new UnsupportedOperationException(&#34;unsupported: &#34; + t.kind());
+    switch(t.kind()) {
+        case UChar, Char_U:
+        case SChar, Char_S:
+            return Primitive.Kind.Char.layout().orElseThrow(unsupported);
+        case Short:
+        case UShort:
+            return Primitive.Kind.Short.layout().orElseThrow(unsupported);
+        case Int:
+        case UInt:
+            return Primitive.Kind.Int.layout().orElseThrow(unsupported);
+        case ULong:
+        case Long:
+            return Primitive.Kind.Long.layout().orElseThrow(unsupported);
+        case ULongLong:
+        case LongLong:
+            return Primitive.Kind.LongLong.layout().orElseThrow(unsupported); <i class="conum" data-value="1"></i><b>(1)</b>
+        case UInt128:
+        case Int128:
+            return Primitive.Kind.Int128.layout().orElseThrow(unsupported); <i class="conum" data-value="2"></i><b>(2)</b>
+        case Enum:
+            return valueLayoutForSize(t.size() * 8).layout().orElseThrow(unsupported);
+        case Bool:
+            return Primitive.Kind.Bool.layout().orElseThrow(unsupported);
+        case Float:
+            return Primitive.Kind.Float.layout().orElseThrow(unsupported);
+        case Double:
+            return Primitive.Kind.Double.layout().orElseThrow(unsupported);
+        case LongDouble:
+            return Primitive.Kind.LongDouble.layout().orElseThrow(unsupported);
+        case Complex:
+            throw new UnsupportedOperationException(&#34;unsupported: &#34; + t.kind());
+        case Record:
+            return getRecordLayout(t);
+        case Vector:
+            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+        case ConstantArray:
+            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+        case IncompleteArray:
+            return MemoryLayout.ofSequence(getLayout(t.getElementType()));
+        case Unexposed:
+            Type canonical = t.canonicalType();
+            if (canonical.equalType(t)) {
+                throw new TypeMaker.TypeException(&#34;Unknown type with same canonical type: &#34; + t.spelling());
+            }
+            return getLayout(canonical);
+        case Typedef:
+        case Elaborated:
+            return getLayout(t.canonicalType());
+        case Pointer:
+        case BlockPointer:
+            return C_POINTER;
+        default:
+            throw new UnsupportedOperationException(&#34;unsupported: &#34; + t.kind());
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>C_LONG_LONG</code> will be used for both <code>long long</code> and <code>unsigned long long</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Native types longer than 64 bits are still represented internally by jextract.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>jextract identify unsupported types, and represents them correctly during the C
+header processing. But the symbols that use them will be skipped during the
+Java generation.</p>
+</div>
+<div class="listingblock">
+<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/1af1f2558760f8177b807d96582546a027959cbd/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/UnsupportedLayouts.java">jdk.internal.jextract.impl.UnsupportedLayouts</a></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">private static final String ATTR_LAYOUT_KIND = &#34;jextract.abi.unsupported.layout.kind&#34;;
+
+public static final ValueLayout __INT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, &#34;__int128&#34;);
+
+public static final ValueLayout LONG_DOUBLE = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, &#34;long double&#34;);
+
+public static final ValueLayout _FLOAT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, &#34;_float128&#34;);
+
+public static final ValueLayout __FP16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, &#34;__fp16&#34;);
+
+public static final ValueLayout CHAR16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, &#34;char16&#34;);
+
+public static final ValueLayout WCHAR_T = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, &#34;wchar_t&#34;);
+
+static boolean isUnsupported(MemoryLayout vl) { <i class="conum" data-value="1"></i><b>(1)</b>
+    return vl.attribute(ATTR_LAYOUT_KIND).isPresent();
+}
+
+static String getUnsupportedTypeName(MemoryLayout vl) {
+    return (String)
+            vl.attribute(ATTR_LAYOUT_KIND).orElseThrow(IllegalArgumentException::new);
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Invoked during java representation generation.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</details>
 </div>
 </div>
 <div class="sect2">
