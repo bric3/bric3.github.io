@@ -27,6 +27,9 @@ obsolete for the next JDK as API and behavior are further refined.
 
 TIP: The following examples were based on *JDK 16 release candidate build 36 (2021/2/8)*.
 
+_Thanks to https://twitter.com/jpbempel[Jean-Phillipe Bempel] for the review and
+in particular spotting errors_.
+
 == The crypto sealed box example
 
 Let's try to reproduce the following example from the
@@ -160,13 +163,14 @@ MethodHandle crypto_box_sealbytes =
                .downcallHandle(
                        libsodiumLookup.lookup("crypto_box_sealbytes").get(),
                        MethodType.methodType(int.class),
-                       FunctionDescriptor.of(C_INT)
+                       FunctionDescriptor.of(CLinker.C_INT)
                );
 
 var crypto_box_SEALBYTES = (int) crypto_box_sealbytes.invokeExact();
 ----
 
-The java type and the C descriptor must match, otherwise the call will fail at runtime with a `IllegalArgumentException`.
+The java type and the C descriptor must match, otherwise the call will fail at
+runtime with a `IllegalArgumentException`.
 
 .Carrier mismatch long != b32
 [role="primary"]
@@ -192,6 +196,8 @@ java.lang.IllegalArgumentException: Carrier size mismatch: int != b64[abi/kind=L
 ----
 ====
 
+For reference, `CLinker.C_INT` is actually a `MemoryLayout`, a _layout_ is used
+to model native memory.
 
 
 === Then a more interesting case, passing argument pointers
@@ -310,7 +316,81 @@ crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);
 When looking at the
 https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L129-L132[C signature]
 however we notice something _unusual_ for Java developers: the message length
-argument is of type `long long`, Java doesn't have larger than 64 byte types
+argument is of type `long long`!
+
+In C or C++, this declaration means the type is at least 8 bytes (64 bits),
+this means a Java `long` type is what is needed.
+
+In particular here's a breakdown of the signed integers. It is incomplete
+as they can be declared differently (eg. `long` is the same as `long int`,
+or `long long` is the same as `long long int`), this https://en.wikipedia.org/wiki/C_data_types[wikipedia page] has a more complete overview of
+C data types.
+
+.Signed integers
+[cols="2m,8a"]
+|===
+
+| int | A signed integer type with "the natural size suggested by the
+architecture of the execution environment", with a minimum of 2 byte (16 bits,
+asciimath:[[-32767; +32767\]]).
+
+On a 64bits CPU, `int` is 4bytes and the range becomes asciimath:[[-2147483647; +2147483647\]];
+| long | A signed integer type that is at least so 4 bytes (asciimath:[[-2147483647; +2147483647\]]).
+
+On a 64bits CPU, `long` is 4bytes and the range becomes asciimath:[[−9223372036854775807; +9223372036854775807\]];
+
+| long long | A signed integer type that is at least so 8 bytes (asciimath:[[−9223372036854775807; +9223372036854775807\]]).
+
+On a 64bits CPU, `long long` is still 8 bytes long.
+
+|===
+
+[CAUTION]
+====
+When you start to study these C data types a bit more, you'll notice
+two things that just don't match with Java types:
+
+* `unsigned` integers, while they do have the same width as their signed
+counterpart, their math is different as their range is different:
+** ``unsigned long``'s range is stem:[[0; +4294967295\]] (on a 64 bit CPU)
+** ``unsigned long long``'s range is stem:[[0; +18446744073709551615\]] (on a 64 bit CPU)
+* ``long double``s are larger than 64 bytes, I never had to use those, but it
+seems they can be as big as 128 bits (16 bytes).
+
+As a reminder `size_t` is unsigned.
+====
+
+////
+#include<stdio.h>
+// #include<limits.h> // see INT_MAX, LONG_MAX, LLONG_MAX
+
+
+int main()
+{
+    printf("size of size_t = %ld\n", sizeof(size_t));
+
+    printf("Size of int = %ld\n", sizeof(int));
+    printf("Size of long = %ld\n", sizeof(long));
+    printf("Size of long long = %ld\n", sizeof(long long));
+
+    printf("Size of unsigned int = %ld\n", sizeof(unsigned int));
+    printf("Size of unsigned long = %ld\n", sizeof(unsigned long));
+    printf("Size of unsigned long long = %ld\n", sizeof(unsigned long long));
+
+    printf("Size of long double = %ld\n", sizeof(long double));
+}
+
+(sysctl machdep.cpu => Intel(R) Core(TM) i7-8559U CPU @ 2.70GHz / x86_64)
+
+size of size_t = 8
+Size of int = 4
+Size of long = 8
+Size of long long = 8
+Size of unsigned int = 4
+Size of unsigned long = 8
+Size of unsigned long long = 8
+Size of long double = 16
+////
 
 .crypto_box_seal definition (.c)
 [source, c]
@@ -321,10 +401,8 @@ int crypto_box_seal(unsigned char *c, const unsigned char *m,
             __attribute__ ((nonnull(1, 4)));
 ----
 
-There is no choice but accept the shorter `long` native type.
-Fortunately for this post since I intend to pass a short `String` message,
-which is baked by a char array so the value will be an `int` will work albeit
-the presence of the cast instruction.
+Also, for this post, and I intend to pass a short `String` message,
+which is baked by a `char` array whose length can only be an `int`.
 
 .crypto_box_seal (.java)
 [source, java]
@@ -357,21 +435,24 @@ try (var scope = NativeScope.unboundedScope()) {
 }
 ----
 
-Note that I am specifically passing the `US_ASCII` charset, as I now that
-the byte array representation of the string will be 1 byte per char, and as such
-I can use the `String::length` method. If the string used characters that do
-not fit in a single byte, I would have needed to extract the byte array using
-`UTF-8` charset encoder first and use the length of the byte array.
+There's a few thing to notice :
 
-Notice here the `var ret` is not used, however due to the _dynamic_
+. I am specifically passing the `US_ASCII` charset, as I now that
+the byte array representation of the string will be 1 byte per `char`, implying
+I can use the `String::length` method.
+If the string used characters that do not fit in a single byte, I would have
+needed to extract the byte array using `UTF-8` charset encoder first and use
+the length of the byte array instead.
+
+. The `var ret` is not used, however due to the _dynamic_
 nature of `invokeExact`, the compiler needs the *exact* signature on the
 call-site, that's why the result of this invocation is assigned to an `int`
 variable even if it is not used.
-
++
 Without this assignment the JVM would have raised a `WrongMethodTypeException`,
 in this case the exception message helps to identify the type differences
 in the signature:
-
++
 [source]
 ----
 java.lang.invoke.WrongMethodTypeException: expected (MemoryAddress,MemoryAddress,long,MemoryAddress)int but found (MemoryAddress,MemoryAddress,long,MemoryAddress)void
@@ -521,16 +602,16 @@ I don't have experience with JNA, so I may be lacking perspective there.
 
 There's a few pitfalls like the `CLinker::toJavaString` or the
 `MemorySegment` lifecycles which get more complicated if those segments
-are shared between threads. I found the API well designed and well
+are shared between threads. I found the API well-designed and well
 documented, but if you're novice in this area, you'll likely need
-other materials, a package wide documentation should definitely fill
-in the gaps in my opinion.
+other materials. A package wide documentation, in `jdk.incubator.foreign`,
+should definitely fill this gap in my opinion.
 
-This example was short in native code, but writing the stubs in Java
+The chosen example was concise in native code, but writing the stubs in Java
 is quickly tedious and verbose. JDK developers felt the same way as they
-are currently backing a tool named `jextract` whose goal is to do this
-tedious work. I'll show in section below what can be done with the current
-state of `jextract`.
+are also investing energy on a tool named `jextract` whose goal is to reduce
+the tedious work amount. I'll show in a section below what can be done with
+the current state of `jextract`.
 
 == Remarks about ``MemorySegment``s  memory mapping
 
@@ -693,6 +774,9 @@ time to get this API right. They are doing a fantastic job in my opinion.
 for incubation, but since it complements JEP-389, I wanted to give
 it a try and showcase its usefulness.
 
+This tool leverages the native `libclang` and as such the `jdk.incubator.foreign`
+module.
+
 In order to be able to use it, one should download the panama jdk
 here: https://jdk.java.net/panama/. Don't be scared by _early access_,
 JDK 17 (very early at this stage) or the other warnings, you just need
@@ -701,7 +785,7 @@ to use `jextract` not the panama jdk.
 When I started to bootstrap work on JDK16 and libsodium, the built
 panama JDK didn't contain the `jextract`, as I wasn't sure
 I voiced https://twitter.com/bricedutheil/status/1361086142402199554?s=21[this on Twitter],
-Oracle confirmed me this was a bug in the release
+Oracle engineers confirmed me this was a bug in the release
 https://bugs.openjdk.java.net/browse/JDK-8261733[JDK-8261733] if this every
 happen again, or you want to try the latest `jextract`, you'll need to build
 the panama JDK.
@@ -1150,15 +1234,229 @@ The other two methods in this example  `crypto_box_seal` and `crypto_box_seal_op
 are similar and don't require to do the tedious handle declaration.
 
 
-Although as I mentionned in the first section, these two method
-declares an argument of type `long long` type in the C signature, and those
-native types are not supported in Java, there's a statement on the panama
-download page.
+This type raised a few questions about how to map them in Java in the first section
+where I used manually `jdk.incubator.foreign`. Also there's statement at this time
+about `jextract` not supporting some wide types.
 
 > * jextract does not support certain C types bigger than 64 bits (e.g. `long double`).
 
-`jextract` proposes a generated code that passes an argument of type `long` like
-I did in the first section.
+How does it handle these unsupported types, the answer is in the source code.
+
+In here we learn that unsigned types are represented with their signed counterpart and
+the types wider than 64 bits are represented with a specific _unsupported_ layout
+during headers processing. The symbols with unsupported layouts won't be generated
+as the JEP-389 linker won't be able to link them.
+
+.Some details on how ``jextract``'s primitive types handling
+[%collapsible]
+====
+
+The enum below in jextract show how native primitive types are mapped to their
+respective memory layout whether they are supported of not.
+
+.https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/Type.java[Type.Primitive.Kind]
+[source, java]
+----
+enum Kind {
+    /**
+     * {@code void} type.
+     */
+    Void("void", null),
+    /**
+     * {@code Bool} type.
+     */
+    Bool("_Bool", CLinker.C_CHAR),
+    /**
+     * {@code char} type.
+     */
+    Char("char", CLinker.C_CHAR),
+    /**
+     * {@code char16} type.
+     */
+    Char16("char16", UnsupportedLayouts.CHAR16),
+    /**
+     * {@code short} type.
+     */
+    Short("short", CLinker.C_SHORT),
+    /**
+     * {@code int} type.
+     */
+    Int("int", CLinker.C_INT),
+    /**
+     * {@code long} type.
+     */
+    Long("long", CLinker.C_LONG),
+    /**
+     * {@code long long} type.
+     */
+    LongLong("long long", CLinker.C_LONG_LONG),
+    /**
+     * {@code int128} type.
+     */
+    Int128("__int128", UnsupportedLayouts.__INT128),
+    /**
+     * {@code float} type.
+     */
+    Float("float", CLinker.C_FLOAT),
+    /**
+     * {@code double} type.
+     */
+    Double("double",CLinker.C_DOUBLE),
+    /**
+      * {@code long double} type.
+      */
+    LongDouble("long double", UnsupportedLayouts.LONG_DOUBLE),
+    /**
+     * {@code float128} type.
+     */
+    Float128("float128", UnsupportedLayouts._FLOAT128),
+    /**
+     * {@code float16} type.
+     */
+    HalfFloat("__fp16", UnsupportedLayouts.__FP16),
+    /**
+     * {@code wchar} type.
+     */
+    WChar("wchar_t", UnsupportedLayouts.WCHAR_T);
+----
+
+Those types can be _qualified_, in particular integer types can be unsigned:
+
+.jdk.internal.jextract.impl.TypeMaker#makeTypeInternal
+[source, java]
+----
+case UShort: {
+    Type chType = Type.primitive(Primitive.Kind.Short);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case UInt: {
+    Type chType = Type.primitive(Primitive.Kind.Int);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case ULong: {
+    Type chType = Type.primitive(Primitive.Kind.Long);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case ULongLong: {
+    Type chType = Type.primitive(Primitive.Kind.LongLong);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+case UChar: {
+    Type chType = Type.primitive(Primitive.Kind.Char);
+    return Type.qualified(Delegated.Kind.UNSIGNED, chType);
+}
+----
+
+Going further we can see that signed and unsigned integers use the same
+memory layout, eg. `long long` and `unsigned long long` use the same layout
+`C_LONG_LONG`.
+
+.https://github.com/openjdk/panama-foreign/blob/6aafbbbeeb59050f79d82f4d7cec85011e99f6bb/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/LayoutUtils.java[LayoutUtils.getLayout]
+[source, java]
+----
+public static MemoryLayout getLayout(Type t) {
+    Supplier<UnsupportedOperationException> unsupported = () ->
+            new UnsupportedOperationException("unsupported: " + t.kind());
+    switch(t.kind()) {
+        case UChar, Char_U:
+        case SChar, Char_S:
+            return Primitive.Kind.Char.layout().orElseThrow(unsupported);
+        case Short:
+        case UShort:
+            return Primitive.Kind.Short.layout().orElseThrow(unsupported);
+        case Int:
+        case UInt:
+            return Primitive.Kind.Int.layout().orElseThrow(unsupported);
+        case ULong:
+        case Long:
+            return Primitive.Kind.Long.layout().orElseThrow(unsupported);
+        case ULongLong:
+        case LongLong:
+            return Primitive.Kind.LongLong.layout().orElseThrow(unsupported); <1>
+        case UInt128:
+        case Int128:
+            return Primitive.Kind.Int128.layout().orElseThrow(unsupported); <2>
+        case Enum:
+            return valueLayoutForSize(t.size() * 8).layout().orElseThrow(unsupported);
+        case Bool:
+            return Primitive.Kind.Bool.layout().orElseThrow(unsupported);
+        case Float:
+            return Primitive.Kind.Float.layout().orElseThrow(unsupported);
+        case Double:
+            return Primitive.Kind.Double.layout().orElseThrow(unsupported);
+        case LongDouble:
+            return Primitive.Kind.LongDouble.layout().orElseThrow(unsupported);
+        case Complex:
+            throw new UnsupportedOperationException("unsupported: " + t.kind());
+        case Record:
+            return getRecordLayout(t);
+        case Vector:
+            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+        case ConstantArray:
+            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+        case IncompleteArray:
+            return MemoryLayout.ofSequence(getLayout(t.getElementType()));
+        case Unexposed:
+            Type canonical = t.canonicalType();
+            if (canonical.equalType(t)) {
+                throw new TypeMaker.TypeException("Unknown type with same canonical type: " + t.spelling());
+            }
+            return getLayout(canonical);
+        case Typedef:
+        case Elaborated:
+            return getLayout(t.canonicalType());
+        case Pointer:
+        case BlockPointer:
+            return C_POINTER;
+        default:
+            throw new UnsupportedOperationException("unsupported: " + t.kind());
+    }
+}
+----
+<1> `C_LONG_LONG` will be used for both `long long` and `unsigned long long`.
+<2> Native types longer than 64 bits are still represented internally by jextract.
+
+jextract identify unsupported types, and represents them correctly during the C
+header processing. But the symbols that use them will be skipped during the
+Java generation.
+
+.https://github.com/openjdk/panama-foreign/blob/1af1f2558760f8177b807d96582546a027959cbd/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/UnsupportedLayouts.java[jdk.internal.jextract.impl.UnsupportedLayouts]
+[source, java]
+----
+private static final String ATTR_LAYOUT_KIND = "jextract.abi.unsupported.layout.kind";
+
+public static final ValueLayout __INT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, "__int128");
+
+public static final ValueLayout LONG_DOUBLE = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, "long double");
+
+public static final ValueLayout _FLOAT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, "_float128");
+
+public static final ValueLayout __FP16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, "__fp16");
+
+public static final ValueLayout CHAR16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, "char16");
+
+public static final ValueLayout WCHAR_T = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+        withAttribute(ATTR_LAYOUT_KIND, "wchar_t");
+
+static boolean isUnsupported(MemoryLayout vl) { <1>
+    return vl.attribute(ATTR_LAYOUT_KIND).isPresent();
+}
+
+static String getUnsupportedTypeName(MemoryLayout vl) {
+    return (String)
+            vl.attribute(ATTR_LAYOUT_KIND).orElseThrow(IllegalArgumentException::new);
+}
+----
+<1> Invoked during java representation generation.
+
+
+====
+
 
 === Wrapping up on `jextract`
 
