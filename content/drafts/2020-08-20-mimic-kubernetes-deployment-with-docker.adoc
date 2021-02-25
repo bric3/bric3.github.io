@@ -1,0 +1,405 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-08-20T15:41:39+02:00"
+language: en
+draft: true
+#tags: ["kubernetes", "docker", "java", "jvm", "memory", "cpu", "filesystem"]
+slug: "mimic-kubernetes-deployment-with-docker"
+title: "Mimic kubernetes deployment options with docker"
+summary: Your workload consumption may suffer from native memory fragmentation.
+---
+
+
+// TODO Kubernetes / GKE containerd engine ?
+// Kubernetes will use containerd since 1.20 as the container runtime, and made a few select choices
+
+== Container resources
+Resources in a kubernetes deployment descriptor :
+
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "java-app"
+spec:
+  template:
+    spec:
+      containers:
+      - name: "java-app"
+        resources:
+          limits:
+            cpu: "8"
+            memory: "5Gi"
+          requests:
+            cpu: "3"
+            memory: "3Gi"
+----
+
+
+Kubernetes translates
+* The limit is expressed as 1000 millicores or 1 core, they in fact represent a
+**quota of time period** of the Linux CFS, it is based on two values `cfs_period_us`
+and `cfs_quota_us`. On Kubernetes the period is 100ms (100000µs) and it cannot
+be changed in the deployment descriptor at this time. For example 100m CPU,
+100 milliCPU, and 0.1 CPU are all the same, and they are translated to 10000µs
+quota.
+* The request 1000 millicores or 1 core as 1024 **cpu shares**. For example
+1500 millicores are translated into 1536 **cpu shares**.
+
+
+The resources tree declared above is equivalent to these docker params
+
+[source,shell]
+----
+$ docker run \
+  --cpu-shares=3072 \ # <1>
+  --cpu-quota=800000 \ # <2>
+  --memory=5g \ # <3>
+  --memory-swap=5g \ # <4>
+  ...
+----
+<1> cpu request, this is the relative weight of that container for CPU time
+<2> cpu limit, this limits the CPU time of container’s processes, that means throttling
+<3> memory limit, tells the OS to kill (oomkill) the container’s processes if they hit this limit
+<4> kubernetes disable swap, so need to set the amount of physical memory (`--memory`) and the sam of
+Physical memory and swap (`--memory-swap`) to the same value
+
+[INFO]
+====
+In the command above I used `--cpu-quota=800000` to expresse the CPU limit,
+but I could have done the same using `--cpus=8`, docker cli computes the quota
+value for us.
+====
+
+These values can be retrieved within the container via the `/sys` filesystem.
+
+[source,shell]
+----
+$ cat /sys/fs/cgroup/cpu/{cpu.cfs_period_us,cpu.cfs_quota_us,cpu.shares}
+100000
+800000
+3072
+----
+
+[CAUTION]
+====
+Using CPU limits may have severe performance drawbacks, in particular if the
+process is multi-threaded, the quota indicates a time period that is shared for
+all process threads, or more exactly all process threads in the same cgroup.
+That means if the limit is 8 cpus (400000µs quota), and they are 20 parallel
+threads running, then the quota for the period will be consumed in 400000 / 20
+in 20000 µs = 20ms and the process in this cgroup will get throttled for the
+rest of the period, for 80ms.
+
+It’s possible to examine how much a process has been throttled by CFS, for
+example on a container with a 0.1 CPU limit
+
+[source,shell]
+----
+$ cat /sys/fs/cgroup/cpu/cpu.stat
+nr_periods 422 <1>
+nr_throttled 403 <2>
+throttled_time 103934922199 <3>
+----
+<1> scheduled periods
+<2> throttled periods, 403 periods were throttled out of 422 periods
+<3> throttled for 103.935s (103,934,922,199 ns)
+====
+
+The Kubernetes memory request is used for scheduling the pod on nodes.
+
+Beware that by default the CPU share is 1024, in this case the JVM will not use this value and instead use the number of processors of the host machine.
+
+[source,shell]
+----
+$ cat /sys/fs/cgroup/cpu/cpu.shares
+1024
+$ env -u JDK_JAVA_OPTIONS jshell -s - \
+    <<<'System.out.printf("procs: %d%n", Runtime.getRuntime().availableProcessors())'
+procs: 32
+----
+
+
+
+
+
+**TODO** other resources like hugepages
+
+[source]
+----
+spec.containers[].resources.limits.hugepages-<size>
+spec.containers[].resources.requests.hugepages-<size>
+----
+
+
+== NUMA (Non-Uniform Memory Address) or Topology
+Even if I understand how that works, I have no concrete experience with it, so 
+I didn't tested it. This is exposed as a 
+https://kubernetes.io/blog/2020/04/01/kubernetes-1-18-feature-topoloy-manager-beta/[beta feature since Kubernetes 1.18], 
+whereas in docker it doesn't see to be well-supported or supported at all.
+
+A container in my Kubernetes cluster gives this.
+
+[source,shell]
+----
+$ cat /proc/6/numa_maps
+700000000 default anon=1052736 dirty=1052736 N0=1052736 kernelpagesize_kB=4
+801040000 default
+5653635fd000 default file=/usr/lib/jvm/java-11-amazon-corretto/bin/java mapped=1 mapmax=2 N0=1 kernelpagesize_kB=4
+5653637fe000 default file=/usr/lib/jvm/java-11-amazon-corretto/bin/java anon=1 dirty=1 N0=1 kernelpagesize_kB=4
+5653637ff000 default file=/usr/lib/jvm/java-11-amazon-corretto/bin/java anon=1 dirty=1 N0=1 kernelpagesize_kB=4
+565363a10000 default heap anon=85366 dirty=85366 N0=85366 kernelpagesize_kB=4
+7f808eafb000 default
+7f808eaff000 default anon=8 dirty=8 N0=8 kernelpagesize_kB=4
+...
+----
+
+However, the `numa_maps` is missing on my local docker.
+
+
+== Security context
+
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "java-app"
+spec:
+  template:
+    spec:
+      containers:
+      - name: "java-app"
+        securityContext:
+          fsGroup: 43600
+          runAsUser: 43514
+----
+
+[source,shell]
+----
+$ id
+uid=43514 gid=0(root) groups=0(root),43600
+
+$ ps -A -o pid,user,group,command
+    PID USER     GROUP    COMMAND
+      1 43514    root     /usr/bin/dumb-init -- /usr/bin/java -Dfile.encoding=UT
+      6 43514    root     /usr/bin/java -Dfile.encoding=UTF-8 -Duser.timezone=UT
+   1039 43514    root     /bin/bash
+   1069 43514    root     ps -A -o pid,user,group,command
+
+$ ls -lah
+total 98M
+drwxr-xr-x    1 root root  4.0K Oct 28 08:50 .
+drwxr-xr-x    1 root root  4.0K Oct 28 08:50 ..
+drwxr-xr-x    1 root root  4.0K Apr  7  2020 bin
+drwxr-xr-x    2 root root  4.0K Feb  1  2020 boot
+drwxr-xr-x    5 root root   360 Oct 28 08:50 dev
+-rw-r--r--    1 root root   60M Oct 23 08:30 java-app.jar
+drwxr-xr-x    1 root root  4.0K Oct 28 08:50 etc
+drwxrwsrwx    2 root 43600 4.0K Oct 28 11:57 diag
+drwxr-xr-x    2 root root  4.0K Feb  1  2020 home
+...
+dr-xr-xr-x 1263 root root     0 Oct 28 08:50 proc
+drwx------    2 root root  4.0K Mar 27  2020 root
+...
+drwxr-xr-x    1 root root  4.0K Mar 27  2020 var
+----
+
+The `fsGroup` option is not dynamically re-mappable in docker (see this issue
+https://github.com/moby/moby/issues/2259[moby/moby#2259]).You’ll need to `chown`
+these mounts within the container. However, if a mounted volume have files with
+the groupid `46000` then the right way to be able to read them is to enable the
+supplementary group via `--group-add`.
+
+[source,shell]
+----
+$ docker run \
+  --user 43514 \
+  --group-add 43600 \
+  ...
+----
+
+[source,shell]
+----
+I have no name!@3f7dc5eef417:/$ id
+uid=43514 gid=0(root) groups=0(root),43600
+----
+
+However, if the `runAsGroup` is present it means the user `43514` is no longer
+part of the `root` group :
+
+[source,yaml]
+----
+      - name: "java-app"
+        securityContext:
+          fsGroup: 43600
+          runAsUser: 43514
+          runAsGroup: 43500
+----
+
+[source,shell]
+----
+$ docker run \
+  --user 43514:43500 \
+  --group-add 43600 \
+  ...
+----
+
+[source,shell]
+----
+I have no name!@3f7dc5eef417:/$ id
+uid=43514 gid=43500 groups=43500,43600
+----
+
+
+
+
+
+.Consequences on the java discovery mechanism
+****
+If the specified user identifier does not exists in `/etc/passwd`, then the
+shell will display `I have no name!` instead of the user name.
+
+[source,shell]
+----
+I have no name!@0063735c19f7:/$
+----
+
+But this has another consequence, the java discovery mechanism rely on the
+user name (**TODO** `hsperfdata_$(whoami)`), if there’s none, then diagnostic
+commands like `jps` or `jcmd` are not able to discover the running Java process.
+
+// TODO reference to JDK code
+
+[source,shell]
+----
+I have no name!@0063735c19f7:/$ jps -v
+I have no name!@0063735c19f7:/$
+----
+
+However, if the user exists in the `/etc/passwd` of the container, e.g. it
+contains the following line
+
+[source]
+----
+java:x:43514:43500:java:/:/bin/bash
+----
+
+[source,shell]
+----
+java@c5c84475d8b6:/$ ls -lah /tmp/hsperfdata_java/
+total 40K
+drwxr-xr-x 2 java java 4.0K Oct 28 12:58 .
+drwxrwxrwt 1 root root 4.0K Oct 28 12:52 ..
+-rw------- 1 java java  32K Oct 28 13:12 6
+----
+
+[source,shell]
+----
+java@c5c84475d8b6:/$ jps -v
+100 Jps -Dapplication.home=/usr/lib/jvm/java-11-amazon-corretto -Xms8m -Djdk.module.main=jdk.jcmd
+6 /java-app.jar -Dfile.encoding=UTF-8 -Duser.timezone=UTC -Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true -XX:NativeMemoryTracking=summary
+----
+
+****
+
+
+
+== Volumes mounts
+
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "java-app"
+spec:
+  template:
+    spec:
+      containers:
+      - name: "java-app"
+        volumeMounts:
+        - mountPath: "/diag"
+          name: "diagnostic-files"
+        - mountPath: "/etc/java-app/config.yaml"
+          name: "config"
+          subPath: "config.yaml"
+
+      volumes:
+      - emptyDir: {}
+        name: "diagnostic-files"
+      - configMap:
+          defaultMode: 420
+          name: "java-app"
+        name: "config"
+----
+
+[source,shell]
+----
+$ docker run \
+  --mount=type=bind,source=$(pwd)/test.yaml,target=/etc/user-action/config.yaml \ # <1>
+  --mount=type=bind,source=$(pwd)/tmp-diag,target=/diag \ # <2>
+  ...
+----
+<1> Bind mount equivalent to the `config` volume mount
+<2> Bind mount using local folder `./tmp-diag`, but this can be replaced by another docker volume
+
+
+== Environment variables
+
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "java-app"
+spec:
+  template:
+    spec:
+      containers:
+      - name: "java-app"
+        - name: "JDK_JAVA_OPTIONS"
+          value: "-Xms3g -Xmx3g -XX:+AlwaysPreTouch"
+        - name: "SECRET_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              key: "secret-token"
+              name: "component-token"
+        - name: "APP_VERSION"
+          valueFrom:
+            fieldRef:
+              fieldPath: "metadata.labels['java.app.image/version']"
+        - name: "HOST_IP"
+          valueFrom:
+            fieldRef:
+              fieldPath: "status.hostIP"
+
+
+----
+
+[source,shell]
+----
+$ docker run \
+  --env JDK_JAVA_OPTIONS="-Xms3g -Xmx3g -XX:+AlwaysPreTouch" \
+  ...
+----
+
+This one is straightforward, no surprises here.
+
+
+== Other there are other flags that can be passed to mimic the Kubernetes behavior
+* `spec.template.spec.restartPolicy` can be mapped to the same values as
+`--restart` to control the restart policy, but it’s rarely useful to test that.
+
+
+.References
+* https://docs.docker.com/engine/reference/commandline/run/[docker run]
+* https://docs.docker.com/config/containers/resource_constraints/[Docker resource contraints]
+* https://kubernetes.io/docs/tasks/administer-cluster/topology-manager/[Kubernetes Topology Management]
+* https://kubernetes.io/docs/tasks/configure-pod-container/security-context/[Kubernetes Security Context]
+* https://kubernetes.io/docs/setup/production-environment/container-runtimes/[Kubernetes Container runtimes]
+* https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy[Kubernetes Pod restart policy]
+* https://docs.docker.com/config/containers/start-containers-automatically/[Docker restart policy]
+* https://www.alibabacloud.com/blog/docker-container-resource-management-cpu-ram-and-io-part-2_594575[Docker Container Resource Management: CPU, RAM and IO: Part 2 - Alibaba Cloud Community]
+
