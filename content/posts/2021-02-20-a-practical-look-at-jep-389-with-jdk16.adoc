@@ -61,6 +61,44 @@ if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
 }
 ----
 
+=== Testing the idea in `jshell`
+
+One of the cool thing with `jshell` is that you can try small ideas with a rapid
+feedback loop. With the right configuration, it is also possible to play the
+foreign linker.
+
+.Allow jshell to use the foreign module
+[source, shell]
+----
+$ jshell --add-modules jdk.incubator.foreign -R-Dforeign.restricted=permit
+----
+
+Then within jshell, let's try out a simple smoke test.
+
+.Smoke testing the foreign module
+[source]
+----
+jshell> import java.lang.invoke.*;
+jshell> import jdk.incubator.foreign.*;
+jshell> var getpid = CLinker.getInstance()
+   ...>                     .downcallHandle(
+   ...>                             LibraryLookup.ofDefault().lookup("getpid").get(),
+   ...>                             MethodType.methodType(long.class),
+   ...>                             FunctionDescriptor.of(CLinker.C_LONG)
+   ...>                     );
+getpid ==> MethodHandle()long
+
+jshell> (long) getpid.invokeExact();
+$4 ==> 53699
+
+jshell> ProcessHandle.current().pid()
+$5 ==> 53699
+----
+
+Yes it works ! It really is easy to try a things for almost free, without
+leaving Java this is really neat. Now I would like to focus on the small example
+with libsodium within a project. I'll explain how to use the API along the way.
+
 
 === Configuring Gradle
 
