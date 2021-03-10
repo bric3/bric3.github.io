@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.80.0" />
+
+    
+    
+    
+
+<title>Rediscovering JVM ergonomics with containers • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="Rediscovering JVM ergonomics with containers">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/11/03/jvm-ergonomics/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+    
+
+<meta property="og:updated_time" content="2020-11-03T14:11:09&#43;0100">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Rediscovering JVM ergonomics with containers">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde.dd81e7ab42051dce4af5e995f71cc9ffa0a9d977c7fa252fbf1cfea75d1d463b.css" integrity="sha256-3YHnq0IFHc5K9emV9xzJ/6Cp2XfH&#43;iUvvxz&#43;p10dRjs=">
+
+
+<link rel="stylesheet" href="/scss/hyde-hyde-dark.8dcf235ba9845159df4d1ea26547422f22737b721fb3bb5a9d1b7ecec0f09be8.css" integrity="sha256-jc8jW6mEUVnfTR6iZUdCLyJze3Ifs7tanRt&#43;zsDwm&#43;g=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <!-- Icons -->
+    
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+    
+    <link rel="shortcut icon" sizes="192x192" href="/android-192-favicon.png">
+
+    
+    <link rel="shortcut icon" href="/android-192-favicon.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css" integrity="sha512-KNosrY5jkv7dI1q54vqk0N3x1xEmEn4sjzpU1lWL6bv5VVddcYKQVhHV08468FK6eBBSXTwGlMMZLPTXSpHYHA==" crossorigin="anonymous" />
+
+    
+    
+
+
+    
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2021 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    <header>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2020-09-23-rediscovering-jvm-ergonomics.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+</header>
+
+            
+    
+
+<article>
+  <header>
+    <h1>Rediscovering JVM ergonomics with containers</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2020-11-03
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 30 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+  <div class="post adoc">
+    <div class="paragraph">
+<p>See :
+- <a href="https://gist.github.com/petrbouda/92d794370134fc9dda1fdc05473c7165">Memory LIMIT and REQUEST in Containers and JVM · GitHub</a></p>
+</div>
+<div class="paragraph">
+<p>Ergonomics tunes internal JVM values, such as thread pool sizes used by the GC.
+They may even choose a GC algorithm for you.</p>
+</div>
+<div class="paragraph">
+<p><strong>Ergonomics</strong> for servers was first introduced in
+<a href="https://www.oracle.com/java/technologies/ergonomics5.html">Java SE 5.0</a>.</p>
+</div>
+<div class="paragraph">
+<p>Ergonomics greatly reduced time spent on tuning <em>server</em> applications — at the
+time the JVM had two mode <em>client</em> and <em>server</em> — in particular heap
+sizing and other <em>advanced</em> GC flag tuning. But other components were affected
+like the compiler threads.</p>
+</div>
+<div class="paragraph">
+<p>Since the Java 7, the <em>client</em> mode is inactive on a 64 bit JDK</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p><code>-client</code>
+Selects the Java HotSpot Client VM. A 64-bit capable JDK currently ignores
+this option and instead uses the Java Hotspot Server VM.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>which should effectively eliminate the two modes <code>-client</code> and <code>-server</code>. However
+the concept behind server-class still remains and actually may cause you some
+surprises.</p>
+</div>
+<div class="paragraph">
+<p>In the next section I’ll take a look at the following items</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>GC threads</p>
+</li>
+<li>
+<p>GC region sizes // TODO Maybe not, the region sizes as this is usually modified by Xms/Xmx</p>
+</li>
+<li>
+<p>HotSpot compilation thread count</p>
+</li>
+<li>
+<p>Code cache sizes</p>
+</li>
+<li>
+<p><code>ForkJoinPool</code> (and incidentally <code>CompletableFuture</code>)</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Unless specified on the command line via <code>ActiveProcessorCount</code> the
+<a href="https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/runtime/os.hpp#L149"><code>os::initialize_initial_active_processor_count()</code></a>
+<a href="https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/os/linux/os_linux.cpp#L5490-L5522">method on Linux</a>
+will use either a syscall to get the number of processors, or get the value from the cgroup’s
+relevant <code>cpu.shares</code> and <code>cpu.quota</code> files (see
+<a href="https://github.com/openjdk/jdk11u/blob/1007c9c1f46644d325bb4d4bd3a3d6dc718c713e/src/hotspot/os/linux/osContainer_linux.cpp#L568-L655"><code>OSContainer::active_processor_count()</code></a>).</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Using the flag <code>-XX:+PrintFlagsFinal</code> to see these default values is immediately
+useful. And a live application one can use <code>jcmd $(pidof java) VM.flags -all</code>.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect1">
+<h2 id="_gc"><a class="anchor" href="#_gc"></a><a class="link" href="#_gc">GC</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <a href="https://docs.oracle.com/en/java/javase/11/gctuning/ergonomics.html">JDK 11 GC tuning and ergonomics</a>
+page mentions these points :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><em>Garbage-First (G1) collector,</em> ⇐ Actually that’s not always the default GC,
+there’s always the <em>server-class</em> mechanism in place.</p>
+</li>
+<li>
+<p><em>The maximum number of GC threads is limited by heap size and available CPU resources</em> ⇐
+CPU counts indeed but the size of the heap isn’t, it’s the available memory.</p>
+</li>
+<li>
+<p><em>Initial heap size of 1/64 of physical memory</em> ⇐ ✔</p>
+</li>
+<li>
+<p><em>Maximum heap size of 1/4 of physical memory</em> ⇐ ✔</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This section will focus on the worker thread ergonomics, heaping sizing, heap
+spaces (eden, survivor, old), regions are other ergonomics that this article
+won’t dive into.</p>
+</div>
+<div class="paragraph">
+<p>Let’s take a simple look at GC threads:</p>
+</div>
+<div class="listingblock">
+<div class="title">On the OS</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java -XX:+PrintFlagsFinal --version | grep -E &#34;GCThreads|Use.*GC\b&#34;
+     uint ConcGCThreads                            = 2                                         {product} {ergonomic} <i class="conum" data-value="2"></i><b>(2)</b>
+     uint ParallelGCThreads                        = 8                                         {product} {default} <i class="conum" data-value="3"></i><b>(3)</b>
+     bool UseAdaptiveSizePolicyWithSystemGC        = false                                     {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseDynamicNumberOfGCThreads              = true                                      {product} {default}
+     bool UseG1GC                                  = true                                      {product} {ergonomic} <i class="conum" data-value="1"></i><b>(1)</b>
+     bool UseMaximumCompactionOnSystemGC           = true                                      {product} {default}
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = false                                     {product} {default}
+     bool UseShenandoahGC                          = false                                     {product} {default}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>On this machine G1GC has been chosen ergonomically</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>ConcGCThreads</code> is configured ergonomically</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><code>ParallelGCThreads</code> appears to be the default, but as we’ll see the default
+value is chosen as a function of the available processors</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The math of these flags is different for each GC and could change on new JDK release.</p>
+</div>
+<div class="paragraph">
+<p>For G1GC <code>ParallelGCThreads</code> and <code>ConcGCThreads</code>
+this <a href="http://www.oracle.com/technetwork/articles/java/g1gc-1984535.html">Oracle Tech Network article</a>
+(by <a href="https://twitter.com/mon_beck">Monica Beckwith</a>) mentions (emphasis are mine)</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>The value of n is the same as the number of logical processors up to a value of 8.
+If there are more than eight logical processors, sets the value of n to approximately <strong>5/8 of the logical processors</strong>.</p>
+</div>
+</blockquote>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Sets n to approximately <strong>1/4 of the number of parallel garbage collection threads</strong> (<code>ParallelGCThreads</code>).</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>Let’s play with docker to show these values <em>in action</em> within a constrained <em>cgroup</em> (note the use of <code>--cpus</code> which
+sets a <em>cpu-quota</em> for a <code>cpu-period</code>).</p>
+</div>
+<div class="listingblock">
+<div class="title">In a CPU-limited cgroup</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ docker container run --rm -it --cpus=0.8 adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E &#34;GCThreads|Use.*GC\b&#34;
+     uint ConcGCThreads                            = 0                                         {product} {default} <i class="conum" data-value="2"></i><b>(2)</b>
+     uint ParallelGCThreads                        = 0                                         {product} {default} <i class="conum" data-value="2"></i><b>(2)</b>
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = false                                     {product} {default}
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = true                                      {product} {ergonomic} <i class="conum" data-value="1"></i><b>(1)</b>
+     bool UseShenandoahGC                          = false                                     {product} {default}
+
+$ docker container run --rm -it --cpus=1.2 adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E &#34;GCThreads|Use.*GC\b&#34;
+     uint ConcGCThreads                            = 1                                         {product} {ergonomic}
+     uint ParallelGCThreads                        = 2                                         {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = true                                      {product} {ergonomic} <i class="conum" data-value="3"></i><b>(3)</b>
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = false                                     {product} {default}
+     bool UseShenandoahGC                          = false                                     {product} {default}
+
+$ docker container run --rm -it --cpus=1.2 --memory=1.5g adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E &#34;GCThreads|Use.*GC\b&#34;
+     uint ConcGCThreads                            = 0                                         {product} {default}
+     uint ParallelGCThreads                        = 0                                         {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = false                                     {product} {default}
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = true                                      {product} {ergonomic} <i class="conum" data-value="4"></i><b>(4)</b>
+     bool UseShenandoahGC                          = false                                     {product} {default}
+
+$ docker container run --rm -it --cpus=6 --memory=2g adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E &#34;GCThreads|Use.*GC\b&#34;
+     uint ConcGCThreads                            = 2                                         {product} {ergonomic}
+     uint ParallelGCThreads                        = 6                                         {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = true                                      {product} {ergonomic} <i class="conum" data-value="5"></i><b>(5)</b>
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = false                                     {product} {default}
+     bool UseShenandoahGC                          = false                                     {product} {default}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>CPU is less than 1, which sets <code>SerialGC</code> as the default GC because the JVM
+assumes there’s at most one hardware thread</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Consequently there’s no need for GC threads</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>If they are more than 1 CPU, G1GC is chosen as the default this time</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>If there’s less than 2 CPU and less than 2 GiB, <code>SerialGC</code> is again the default</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>If there’s more than 2 CPU and less than 2 GiB, then it is G1GC</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+If the application is running with fewer than <code>2 cpus</code> and less than <code>1792 GiB</code>
+of memory the JVM heuristics <em>think</em> the app is not running on a server which makes
+the <code>SerialGC</code> the default GC.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Running the <code>SerialGC</code> may not be an issue for some workload, but it can be one
+on others. In this case it might be useful to toggle the GC explicitly.</p>
+</div>
+<div class="paragraph">
+<p>Let’s look at the source to get a precise picture of what’s going on.</p>
+</div>
+<div class="listingblock">
+<div class="title"><a href="https://github.com/openjdk/jdk11u/blob/d1db307ad5c6ec18f9ed4d4e61411067b1a9a8be/src/hotspot/share/runtime/os.cpp#L1656-L1675">os::is_server_class_machine()</a></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">// This is the working definition of a server class machine:
+// &gt;= 2 physical CPU&#39;s and &gt;=2GB of memory, with some fuzz
+// because the graphics memory (?) sometimes masks physical memory.
+// If you want to change the definition of a server class machine
+// on some OS or platform, e.g., &gt;=4GB on Windows platforms,
+// then you&#39;ll have to parameterize this method based on that state,
+// as was done for logical processors here, or replicate and
+// specialize this method for each platform.  (Or fix os to have
+// some inheritance structure and use subclassing.  Sigh.)
+// If you want some platform to always or never behave as a server
+// class machine, change the setting of AlwaysActAsServerClassMachine
+// and NeverActAsServerClassMachine in globals*.hpp.
+bool os::is_server_class_machine() {
+  // First check for the early returns
+  if (NeverActAsServerClassMachine) { <i class="conum" data-value="1"></i><b>(1)</b>
+    return false;
+  }
+  if (AlwaysActAsServerClassMachine) { <i class="conum" data-value="2"></i><b>(2)</b>
+    return true;
+  }
+  // Then actually look at the machine
+  bool         result            = false;
+  const unsigned int    server_processors = 2;
+  const julong server_memory     = 2UL * G;
+  // We seem not to get our full complement of memory.
+  //     We allow some part (1/8?) of the memory to be &#34;missing&#34;,
+  //     based on the sizes of DIMMs, and maybe graphics cards.
+  const julong missing_memory   = 256UL * M;
+
+  /* Is this a server class machine? */
+  if ((os::active_processor_count() &gt;= (int)server_processors) &amp;&amp; <i class="conum" data-value="3"></i><b>(3)</b>
+      (os::physical_memory() &gt;= (server_memory - missing_memory))) {</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Tell the JVM to never act as server</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Tell the JVM to always act as server</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The server-class ergonomic code :  if there’s at least 2 active processor and the memory is at least 1792 MiB</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title"><a href="https://github.com/openjdk/jdk11u/blob/d1db307ad5c6ec18f9ed4d4e61411067b1a9a8be/src/hotspot/share/gc/shared/gcConfig.cpp#L108-L122">GCConfig::select_gc_ergonomically()</a></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-cpp hljs" data-lang="cpp">void GCConfig::select_gc_ergonomically() {
+  if (os::is_server_class_machine()) {
+#if INCLUDE_G1GC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseG1GC, true);
+#elif INCLUDE_PARALLELGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseParallelGC, true);
+#elif INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  } else {
+#if INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Inspecting the source code it is possible to guide the JVM heuristics on this matter :</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Use <code>-XX:+AlwaysActAsServerClassMachine</code> which consequently let the <em>server</em> GC be used,</p>
+</li>
+<li>
+<p>Enable a GC algorithm explicitly</p>
+</li>
+<li>
+<p>Use <code>-XX:ActiveProcessorCount=&lt;number&gt;</code>, but memory</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In my opinion enabling a particular GC algorithm is the superior choice has it is
+explicit, in regard of the GC parameters.</p>
+</div>
+<div class="paragraph">
+<p>Now let’s focus on the worker threads for the different GCs. The table below
+summarize the worker threads for GCs you can find in the JDK (starting from JDK11u).</p>
+</div>
+<div class="paragraph">
+<p><em>ZGC is experimental from JDK 11 to JDK 15 excluded and as such require
+to unlock experimental options to be used.</em></p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;"/>
+<col style="width: 60%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Garbage Collector</th>
+<th class="tableblock halign-left valign-top">Worker threads options</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Serial</strong></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>non-applicable of course</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Parallel</strong></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p><code>ParallelGCThreads</code></p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>CMS</strong></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p><code>ParallelGCThreads</code></p>
+</li>
+<li>
+<p><code>ConcGCThreads</code></p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>G1</strong></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p><code>ParallelGCThreads</code></p>
+</li>
+<li>
+<p><code>ConcGCThreads</code></p>
+</li>
+<li>
+<p><code>G1ConcRefinementThreads</code></p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Shenandoah</strong></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p><code>ParallelGCThreads</code></p>
+</li>
+<li>
+<p><code>ConcGCThreads</code></p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>ZGC</strong></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p><code>ParallelGCThreads</code></p>
+</li>
+<li>
+<p><code>ConcGCThreads</code></p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>In general one can say that</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The <em>parallel threads</em>  are threads that will perform work when the world is paused</p>
+</li>
+<li>
+<p>The <em>concurrent threads</em> are threads that will perform work concurrently with the application</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The GC thread count is based on the number of processors reported by the system
+and differ for each GC. In the subsequent sections I’ll have an overlook for
+G1, Shenandoah and ZGC. I will skip Parallel and CMS GC as G1 is now default
+since JDK 11 but the rationale is the same.</p>
+</div>
+<div class="paragraph">
+<p>In order tweak those we need to understand what they are supposed to do, and to
+understand what they are supposed to do it is essential to have a basic understanding
+of how the GC work.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+I will use the term <code>ncpus</code> as the <em>active processor count</em>.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect2">
+<h3 id="_g1_threads"><a class="anchor" href="#_g1_threads"></a><a class="link" href="#_g1_threads">G1 Threads</a></h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 37.5%;"/>
+<col style="width: 37.5%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Pool</th>
+<th class="tableblock halign-left valign-top">Controlled by</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><strong>Stop-the-world threads</strong></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><code>-XX:ParallelGCThreads</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>\$= {(ncpus, if ncpus &lt;= 8),  (8 + ((ncpus - 8) * 5) / 8, if ncpus &gt; 8):}\$</p>
+</div>
+<div class="paragraph">
+<p>source : <a href="https://github.com/openjdk/jdk11u/blob/727ddb06fd780ecba80dd31db0700a0005ffedda/src/hotspot/share/runtime/vm_version.cpp#L355-L401">vm_version.cpp</a></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Parallel operations : evacuation, remark and cleanup</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><strong>Concurrent</strong></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><code>-XX:ConcGCThreads</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>\$= max((text{ParallelGCThreads} + 2) / 4, 1)\$</p>
+</div>
+<div class="paragraph">
+<p>source : <a href="https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/g1/g1ConcurrentMark.cpp#L416-L421">g1ConcurrentMark.cpp</a>
+and <a href="https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/g1/g1ConcurrentMark.cpp#L337-L342">here</a></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Object marking and region liveness</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><strong>Concurrent Remembered set processing</strong></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p><code>-XX:G1ConcRefinementThreads</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><div class="content"><div class="paragraph">
+<p>\$=\ text{ParallelGCThreads}\$</p>
+</div>
+<div class="paragraph">
+<p>source : <a href="https://github.com/openjdk/jdk11u/blob/727ddb06fd780ecba80dd31db0700a0005ffedda/src/hotspot/share/gc/g1/g1Arguments.cpp#L86-L88">g1Arguments.cpp</a></p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Process the RSet buffer</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The source code indicates the <code>ParallelGCThreads</code> for G1GC (and CMS) is not
+defined as being set ergonomically (<code>FLAG_SET_DEFAULT</code>), but in my opinion this
+flag is somewhat <em>ergonomic</em> in its nature.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>To understand exactly what these ergonomics affect, it’s possible to rely on the
+official G1GC documentation, in particular there is <a href="https://docs.oracle.com/en/java/javase/11/gctuning/garbage-first-garbage-collector.html#GUID-F1BE86FA-3EDC-4D4F-BDB4-4B044AD83180">this schema</a>
+that tries to picture G1 collections cycle. Otherwise, there’s this great
+<a href="https://plumbr.io/handbook/garbage-collection-algorithms-implementations#g1">documentation</a>
+by the people of <a href="https://plumber.io">plumber.io</a>.</p>
+</div>
+<div class="paragraph">
+<div class="title">G1 Collection Cycle Overview</div>
+<p>image::/assets/rediscovering-jvm-ergonomics/g1-cycle.png</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+blue dots are young collections, young evacuation pauses happens there,
+orange dots are remark and cleanup pauses respectively, red dots are part of
+the space reclamation phase (mixed collections, full gc)
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>ParallelGCThreads</code></dt>
+<dd>
+<p>These threads are employed during stoop-the-world pauses, they are in particular
+doing the following job:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Evacuation</strong> : This pause moves live objects to another region, the reference
+of moved objects will need to be updated.</p>
+</li>
+<li>
+<p><strong>Remark</strong> : This is a pause that finalizes the concurrent marking (of live objects)
+itself, additionally this pause may be an opportunity to unload classes.</p>
+</li>
+<li>
+<p><strong>Cleanup</strong> : This pause is a step where G1GC determines whether a space-reclamation
+phase need to follow. Also, the cleanup phase is when G1GC can collect dead humongous
+objects. Finally, if G1GC deems space-reclamation necessary, ie collect old regions,
+this phase will prepare for a <em>mixed young collection</em>.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><code>ConcGCThreads</code></dt>
+<dd>
+<p>In the original design of G1GC, the marking of live objects is performed concurrently,
+so the main job is:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Marking</strong> : Marking live objects is also used to determine the liveness of regions.</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1"><code>G1ConcRefinementThreads</code></dt>
+<dd>
+<p>This a specific G1 pool of threads that work concurrently and updates remembered-sets.
+For reference <em>remembered-sets</em> (aka <em>RSets</em>) are per-region entries that are
+used by G1 GC to track inbound object references into a heap region.
+The RSets avoid scanning the whole heap to track references, this is particularly helpful
+to keep evacuation pauses &#34;reasonably&#34; short as G1 just needs to scan the region’s RSet.</p>
+<div class="paragraph">
+<p>The RSet is in fact a buffer that log object updates. It is expected is that
+this entry is processed by the refinement threads only. However, if there are
+too many updates or too many cross-region references, the refinement threads may
+not keep up, and the application threads will take over.</p>
+</div>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Personally I never had to tweak the concurrent marking of G1 (<code>ConcGCThreads</code>)
+or the RSets (<code>G1ConcRefinementThread</code>), with containers however I really had to
+tweak the stop-the-world worker (<code>ParallelGCThreads</code>).
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The JVM has a lot of flags here and there that can be used to alter the default
+<strong>ergonomics</strong>, e.g. <code>UseDynamicNumberOfGCThreads</code>, if you use them you enter the
+tuning terrain!</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_shenandoah"><a class="anchor" href="#_shenandoah"></a><a class="link" href="#_shenandoah">Shenandoah</a></h3>
+<div class="paragraph">
+<p>Shenandoah is a <em>next_generation</em> low-pause collector, and like all GCs in OpenJDK
+it defines a pool of threads for certain tasks</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3334%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Pool</th>
+<th class="tableblock halign-left valign-top">Controlled by</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Concurrent GC Threads</strong></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>-XX:ConcGCThreads</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">\$max(1, &#34;ncpus&#34; / 4)\$</p>
+<p class="tableblock">source: <a href="https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/shenandoah/shenandoahArguments.cpp#L70-L72">shenandoahArguments.cpp</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This where most of the work is done, from updating references to moving objects</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Parallel GC Threads</strong></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>-XX:ParallelGCThreads</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">\$max(1, &#34;ncpus&#34; / 2)\$</p>
+<p class="tableblock">  // Set up default number of parallel threads. We want to have decent pauses performance
+  // which would use parallel threads, but we also do not want to do too many threads
+  // that will overwhelm the OS scheduler. Using 1/2 of available threads seems to be a fair
+  // compromise here. Due to implementation constraints, it should not be lower than
+  // the number of concurrent threads.
+  bool ergo_parallel = FLAG_IS_DEFAULT(ParallelGCThreads);
+  if (ergo_parallel) {
+    FLAG_SET_DEFAULT(ParallelGCThreads, MAX2(1, os::initial_active_processor_count() / 2));
+  }</p>
+<p class="tableblock">source: <a href="https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/shenandoah/shenandoahArguments.cpp#L79-L87">shenandoahArguments.cpp</a></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If the concurrent GC didn’t keep up there’s an <em>allocation failure</em>, in which
+case Shenandoah starts a <em>degenerated gc</em>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The source code indicates these two pool of threads are not marked as
+being set ergonomically (<code>FLAG_SET_DEFAULT</code>), but in my opinion these flags are
+somewhat <em>ergonomic</em> in their definition.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p><a href="https://wiki.openjdk.java.net/display/shenandoah">Wiki</a></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_zgc"><a class="anchor" href="#_zgc"></a><a class="link" href="#_zgc">ZGC</a></h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3334%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Pool</th>
+<th class="tableblock halign-left valign-top">Controlled by</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Parallel GC Threads</strong></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>-XX:ParallelGCThreads</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">TODO</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Concurrent GC Threads</strong></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>-XX:ConcGCThreads</code></p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">TODO</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="https://wiki.openjdk.java.net/display/zgc">Wiki</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_compiler"><a class="anchor" href="#_compiler"></a><a class="link" href="#_compiler">Compiler</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <a href="https://docs.oracle.com/en/java/javase/11/gctuning/ergonomics.html">JDK 11 GC tuning and ergonomics</a>
+page</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Tiered compiler, using both C1 and C2 ⇐ :y:</p>
+</li>
+</ul>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3334%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Ergonomic</th>
+<th class="tableblock halign-left valign-top">Controlled by</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compiler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CICompilerCount</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">\$max(log(ncpus)-1,1) = 2\$</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_other_ergonomics"><a class="anchor" href="#_other_ergonomics"></a><a class="link" href="#_other_ergonomics">Other ergonomics</a></h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3333%;"/>
+<col style="width: 33.3334%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Ergonomic</th>
+<th class="tableblock halign-left valign-top">Controlled by</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compressed pointers</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseCompressedOops</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">\$true if 64bits\$</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compressed class pointers</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseCompressedClassPointers</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">\$true if 64bits\$</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Non-Uniform Memory Access interleaving old and eden space</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>UseNUMAInterleaving</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">\$true if &#34;UseNUMA&#34; = true\$</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_end_words"><a class="anchor" href="#_end_words"></a><a class="link" href="#_end_words">End words</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In the code source it should be easy to find ergonomic flags as they are usually
+prefixed by <code>FLAG_SET_ERGO</code>, but it happens that GC authors have chosen to use
+<code>FLAG_SET_DEFAULT</code> instead for reason I have not yet investigated.</p>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/2020/08/20/mimic-kubernetes-deployment-with-docker/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Mimic kubernetes deployment options with docker</span>
+    </a>
+    
+    
+    <a href="/drafts/2020/11/07/tweakble-jvm-setting-per-helm-release/" class="navigation-next">
+      <span class="navigation-tittle">Tweakble JVM setting per helm release</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  
+
+</article>
+
+
+            
+    
+<footer>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2020-09-23-rediscovering-jvm-ergonomics.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/highlight.min.js" integrity="sha512-DrpaExP2d7RJqNhXB41Q/zzzQrtb6J0zfnXD5XeVEWE8d9Hj54irCLj6dRS3eNepPja7DvKcV+9PnHC7A/g83A==" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+
+</footer>
+
+    
+
+
+
+        </div>
+    </body>
+</html>
+
