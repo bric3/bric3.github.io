@@ -1,0 +1,504 @@
+---
+authors: ["brice.dutheil"]
+date: "2020-11-03T14:11:09+01:00"
+language: en
+draft: true
+#tags: ["kubernetes", "docker", "java", "jvm", "ergonomics", "gc", "thread", "cpu"]
+slug: "rediscover-jvm-ergonomics-with-containers"
+title: "Rediscovering JVM ergonomics with containers"
+summary: Running your production in containers will help you redicover the JVM ergonomics.
+---
+
+:y: ✔
+:n: ✖︎
+
+
+
+Ergonomics tunes internal JVM values, such as thread pool sizes used by the GC.
+They may even choose a GC algorithm for you.
+
+*Ergonomics* for servers was first introduced in
+https://www.oracle.com/java/technologies/ergonomics5.html[Java SE 5.0].
+
+Ergonomics greatly reduced time spent on tuning _server_ applications -- at the
+time the JVM had two mode _client_ and _server_ -- in particular heap
+sizing and other _advanced_ GC flag tuning. But other components were affected
+like the compiler threads.
+
+Since the Java 7, the _client_ mode is inactive on a 64 bit JDK
+
+> `-client`
+> Selects the Java HotSpot Client VM. A 64-bit capable JDK currently ignores
+> this option and instead uses the Java Hotspot Server VM.
+
+which should effectively eliminate the two modes `-client` and `-server`. However
+the concept behind server-class still remains and actually may cause you some
+surprises.
+
+In the next section I'll take a look at the following items
+
+* GC threads
+* GC region sizes // TODO Maybe not, the region sizes as this is usually modified by Xms/Xmx
+* HotSpot compilation thread count
+* Code cache sizes
+* `ForkJoinPool` (and incidentally `CompletableFuture`)
+
+//For the CPU, before the container support that landed in JDK10, the JVM used a
+//https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/os/linux/os_linux.cpp#L365[`sysconf(_SC_NPROCESSORS_CONF))` call]
+//to get the number of processors. With container support, the JVM process look
+//up the relavant `cpu.shares` and `cpu.quota` files to get an _estimation of the active processors_.
+
+Unless specified on the command line via `ActiveProcessorCount` the
+https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/runtime/os.hpp#L149[`os::initialize_initial_active_processor_count()`]
+https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/os/linux/os_linux.cpp#L5490-L5522[method on Linux]
+will use either a syscall to get the number of processors, or get the value from the cgroup's
+relevant `cpu.shares` and `cpu.quota` files (see
+https://github.com/openjdk/jdk11u/blob/1007c9c1f46644d325bb4d4bd3a3d6dc718c713e/src/hotspot/os/linux/osContainer_linux.cpp#L568-L655[`OSContainer::active_processor_count()`]).
+
+
+TIP: Using the flag `-XX:+PrintFlagsFinal` to see these default values is immediately
+useful. And a live application one can use `jcmd $(pidof java) VM.flags -all`.
+
+
+== GC
+
+The https://docs.oracle.com/en/java/javase/11/gctuning/ergonomics.html[JDK 11 GC tuning and ergonomics]
+page mentions these points :
+
+ * _Garbage-First (G1) collector,_ <= Actually that's not always the default GC,
+there's always the _server-class_ mechanism in place.
+ * _The maximum number of GC threads is limited by heap size and available CPU resources_ <=
+CPU counts indeed but the size of the heap isn't, it's the available memory.
+ * _Initial heap size of 1/64 of physical memory_ <= {y}
+ * _Maximum heap size of 1/4 of physical memory_ <= {y}
+
+This section will focus on the worker thread ergonomics, heaping sizing, heap
+spaces (eden, survivor, old), regions are other ergonomics that this article
+won't dive into.
+
+Let's take a simple look at GC threads:
+
+.On the OS
+[source,shell]
+----
+$ java -XX:+PrintFlagsFinal --version | grep -E "GCThreads|Use.*GC\b"
+     uint ConcGCThreads                            = 2                                         {product} {ergonomic} <2>
+     uint ParallelGCThreads                        = 8                                         {product} {default} <3>
+     bool UseAdaptiveSizePolicyWithSystemGC        = false                                     {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseDynamicNumberOfGCThreads              = true                                      {product} {default}
+     bool UseG1GC                                  = true                                      {product} {ergonomic} <1>
+     bool UseMaximumCompactionOnSystemGC           = true                                      {product} {default}
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = false                                     {product} {default}
+     bool UseShenandoahGC                          = false                                     {product} {default}
+----
+<1> On this machine G1GC has been chosen ergonomically
+<2> `ConcGCThreads` is configured ergonomically
+<3> `ParallelGCThreads` appears to be the default, but as we'll see the default
+value is chosen as a function of the available processors
+
+The math of these flags is different for each GC and could change on new JDK release.
+
+For G1GC `ParallelGCThreads` and `ConcGCThreads`
+this http://www.oracle.com/technetwork/articles/java/g1gc-1984535.html[Oracle Tech Network article]
+(by https://twitter.com/mon_beck[Monica Beckwith]) mentions (emphasis are mine)
+
+> The value of n is the same as the number of logical processors up to a value of 8.
+> If there are more than eight logical processors, sets the value of n to approximately *5/8 of the logical processors*.
+
+> Sets n to approximately *1/4 of the number of parallel garbage collection threads* (`ParallelGCThreads`).
+
+
+Let's play with docker to show these values _in action_ within a constrained _cgroup_ (note the use of `--cpus` which
+sets a _cpu-quota_ for a `cpu-period`).
+
+
+.In a CPU-limited cgroup
+[source,shell]
+----
+$ docker container run --rm -it --cpus=0.8 adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E "GCThreads|Use.*GC\b"
+     uint ConcGCThreads                            = 0                                         {product} {default} <2>
+     uint ParallelGCThreads                        = 0                                         {product} {default} <2>
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = false                                     {product} {default}
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = true                                      {product} {ergonomic} <1>
+     bool UseShenandoahGC                          = false                                     {product} {default}
+
+$ docker container run --rm -it --cpus=1.2 adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E "GCThreads|Use.*GC\b"
+     uint ConcGCThreads                            = 1                                         {product} {ergonomic}
+     uint ParallelGCThreads                        = 2                                         {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = true                                      {product} {ergonomic} <3>
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = false                                     {product} {default}
+     bool UseShenandoahGC                          = false                                     {product} {default}
+
+$ docker container run --rm -it --cpus=1.2 --memory=1.5g adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E "GCThreads|Use.*GC\b"
+     uint ConcGCThreads                            = 0                                         {product} {default}
+     uint ParallelGCThreads                        = 0                                         {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = false                                     {product} {default}
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = true                                      {product} {ergonomic} <4>
+     bool UseShenandoahGC                          = false                                     {product} {default}
+
+$ docker container run --rm -it --cpus=6 --memory=2g adoptopenjdk/openjdk11:latest java -XX:+PrintFlagsFinal --version | grep -E "GCThreads|Use.*GC\b"
+     uint ConcGCThreads                            = 2                                         {product} {ergonomic}
+     uint ParallelGCThreads                        = 6                                         {product} {default}
+     bool UseConcMarkSweepGC                       = false                                     {product} {default}
+     bool UseG1GC                                  = true                                      {product} {ergonomic} <5>
+     bool UseParallelGC                            = false                                     {product} {default}
+     bool UseParallelOldGC                         = false                                     {product} {default}
+     bool UseSerialGC                              = false                                     {product} {default}
+     bool UseShenandoahGC                          = false                                     {product} {default}
+----
+<1> CPU is less than 1, which sets `SerialGC` as the default GC because the JVM
+assumes there's at most one hardware thread
+<2> Consequently there's no need for GC threads
+<3> If they are more than 1 CPU, G1GC is chosen as the default this time
+<4> If there's less than 2 CPU and less than 2 GiB, `SerialGC` is again the default
+<5> If there's more than 2 CPU and less than 2 GiB, then it is G1GC
+
+
+CAUTION: If the application is running with fewer than `2 cpus` and less than `1792 GiB`
+of memory the JVM heuristics _think_ the app is not running on a server which makes
+the `SerialGC` the default GC.
+
+Running the `SerialGC` may not be an issue for some workload, but it can be one
+on others. In this case it might be useful to toggle the GC explicitly.
+
+Let's look at the source to get a precise picture of what's going on.
+
+.https://github.com/openjdk/jdk11u/blob/d1db307ad5c6ec18f9ed4d4e61411067b1a9a8be/src/hotspot/share/runtime/os.cpp#L1656-L1675[os::is_server_class_machine()]
+[source,cpp]
+----
+// This is the working definition of a server class machine:
+// >= 2 physical CPU's and >=2GB of memory, with some fuzz
+// because the graphics memory (?) sometimes masks physical memory.
+// If you want to change the definition of a server class machine
+// on some OS or platform, e.g., >=4GB on Windows platforms,
+// then you'll have to parameterize this method based on that state,
+// as was done for logical processors here, or replicate and
+// specialize this method for each platform.  (Or fix os to have
+// some inheritance structure and use subclassing.  Sigh.)
+// If you want some platform to always or never behave as a server
+// class machine, change the setting of AlwaysActAsServerClassMachine
+// and NeverActAsServerClassMachine in globals*.hpp.
+bool os::is_server_class_machine() {
+  // First check for the early returns
+  if (NeverActAsServerClassMachine) { // <1>
+    return false;
+  }
+  if (AlwaysActAsServerClassMachine) { // <2>
+    return true;
+  }
+  // Then actually look at the machine
+  bool         result            = false;
+  const unsigned int    server_processors = 2;
+  const julong server_memory     = 2UL * G;
+  // We seem not to get our full complement of memory.
+  //     We allow some part (1/8?) of the memory to be "missing",
+  //     based on the sizes of DIMMs, and maybe graphics cards.
+  const julong missing_memory   = 256UL * M;
+  
+  /* Is this a server class machine? */
+  if ((os::active_processor_count() >= (int)server_processors) && // <3>
+      (os::physical_memory() >= (server_memory - missing_memory))) {
+----
+<1> Tell the JVM to never act as server
+<2> Tell the JVM to always act as server
+<3> The server-class ergonomic code :  if there's at least 2 active processor and the memory is at least 1792 MiB
+
+.https://github.com/openjdk/jdk11u/blob/d1db307ad5c6ec18f9ed4d4e61411067b1a9a8be/src/hotspot/share/gc/shared/gcConfig.cpp#L108-L122[GCConfig::select_gc_ergonomically()]
+[source,cpp]
+----
+void GCConfig::select_gc_ergonomically() {
+  if (os::is_server_class_machine()) {
+#if INCLUDE_G1GC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseG1GC, true);
+#elif INCLUDE_PARALLELGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseParallelGC, true);
+#elif INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  } else {
+#if INCLUDE_SERIALGC
+    FLAG_SET_ERGO_IF_DEFAULT(bool, UseSerialGC, true);
+#endif
+  }
+}
+----
+
+
+Inspecting the source code it is possible to guide the JVM heuristics on this matter :
+
+* Use `-XX:+AlwaysActAsServerClassMachine` which consequently let the _server_ GC be used,
+* Enable a GC algorithm explicitly
+* Use `-XX:ActiveProcessorCount=<number>`, but memory
+
+In my opinion enabling a particular GC algorithm is the superior choice has it is
+explicit, in regard of the GC parameters.
+
+
+Now let's focus on the worker threads for the different GCs. The table below
+summarize the worker threads for GCs you can find in the JDK (starting from JDK11u).
+
+_ZGC is experimental from JDK 11 to JDK 15 excluded and as such require
+to unlock experimental options to be used._
+
+[cols="2,3a"]
+|===
+| Garbage Collector |  Worker threads options
+
+| *Serial* | non-applicable of course
+
+| *Parallel* |
+* `ParallelGCThreads`
+
+| *CMS* |
+* `ParallelGCThreads`
+* `ConcGCThreads`
+
+| *G1* |
+* `ParallelGCThreads`
+* `ConcGCThreads`
+* `G1ConcRefinementThreads`
+
+| *Shenandoah* |
+* `ParallelGCThreads`
+* `ConcGCThreads`
+
+| *ZGC* |
+* `ParallelGCThreads`
+* `ConcGCThreads`
+
+|===
+
+In general one can say that
+
+. The _parallel threads_  are threads that will perform work when the world is paused
+. The _concurrent threads_ are threads that will perform work concurrently with the application
+
+
+The GC thread count is based on the number of processors reported by the system
+and differ for each GC. In the subsequent sections I'll have an overlook for
+G1, Shenandoah and ZGC. I will skip Parallel and CMS GC as G1 is now default
+since JDK 11 but the rationale is the same.
+
+In order tweak those we need to understand what they are supposed to do, and to
+understand what they are supposed to do it is essential to have a basic understanding
+of how the GC work.
+
+NOTE: I will use the term `ncpus` as the _active processor count_.
+
+
+
+=== G1 Threads
+
+[cols="2a,3a,3a"]
+|===
+| Pool | Controlled by | Default
+
+| **Stop-the-world threads**
+.2+| `-XX:ParallelGCThreads`
+.2+| stem:[= {(ncpus, if ncpus <= 8),  (8 + ((ncpus - 8) * 5) / 8, if ncpus > 8):}]
+
+source : https://github.com/openjdk/jdk11u/blob/727ddb06fd780ecba80dd31db0700a0005ffedda/src/hotspot/share/runtime/vm_version.cpp#L355-L401[vm_version.cpp]
+| Parallel operations : evacuation, remark and cleanup
+
+| **Concurrent**
+.2+| `-XX:ConcGCThreads`
+.2+| stem:[= max((text{ParallelGCThreads} + 2) / 4, 1)]
+
+source : https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/g1/g1ConcurrentMark.cpp#L416-L421[g1ConcurrentMark.cpp]
+and https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/g1/g1ConcurrentMark.cpp#L337-L342[here]
+| Object marking and region liveness
+
+| **Concurrent Remembered set processing**
+.2+| `-XX:G1ConcRefinementThreads`
+.2+| stem:[=\ text{ParallelGCThreads}]
+
+source : https://github.com/openjdk/jdk11u/blob/727ddb06fd780ecba80dd31db0700a0005ffedda/src/hotspot/share/gc/g1/g1Arguments.cpp#L86-L88[g1Arguments.cpp]
+| Process the RSet buffer
+
+|===
+
+NOTE: The source code indicates the `ParallelGCThreads` for G1GC (and CMS) is not
+defined as being set ergonomically (`FLAG_SET_DEFAULT`), but in my opinion this
+flag is somewhat _ergonomic_ in its nature.
+
+To understand exactly what these ergonomics affect, it's possible to rely on the
+official G1GC documentation, in particular there is https://docs.oracle.com/en/java/javase/11/gctuning/garbage-first-garbage-collector.html#GUID-F1BE86FA-3EDC-4D4F-BDB4-4B044AD83180[this schema]
+that tries to picture G1 collections cycle. Otherwise, there's this great
+https://plumbr.io/handbook/garbage-collection-algorithms-implementations#g1[documentation]
+by the people of https://plumber.io[plumber.io].
+
+.G1 Collection Cycle Overview
+image::/assets/rediscovering-jvm-ergonomics/g1-cycle.png
+
+TIP: blue dots are young collections, young evacuation pauses happens there,
+orange dots are remark and cleanup pauses respectively, red dots are part of
+the space reclamation phase (mixed collections, full gc)
+
+
+`ParallelGCThreads`::
+These threads are employed during stoop-the-world pauses, they are in particular
+doing the following job:
+
+* *Evacuation* : This pause moves live objects to another region, the reference
+of moved objects will need to be updated.
+* *Remark* : This is a pause that finalizes the concurrent marking (of live objects)
+itself, additionally this pause may be an opportunity to unload classes.
+* *Cleanup* : This pause is a step where G1GC determines whether a space-reclamation
+phase need to follow. Also, the cleanup phase is when G1GC can collect dead humongous
+objects. Finally, if G1GC deems space-reclamation necessary, ie collect old regions,
+this phase will prepare for a _mixed young collection_.
+
+`ConcGCThreads`::
+In the original design of G1GC, the marking of live objects is performed concurrently,
+so the main job is:
+
+* *Marking* : Marking live objects is also used to determine the liveness of regions.
+
+`G1ConcRefinementThreads`::
+This a specific G1 pool of threads that work concurrently and updates remembered-sets.
+For reference _remembered-sets_ (aka _RSets_) are per-region entries that are
+used by G1 GC to track inbound object references into a heap region.
+The RSets avoid scanning the whole heap to track references, this is particularly helpful
+to keep evacuation pauses "reasonably" short as G1 just needs to scan the region's RSet.
++
+The RSet is in fact a buffer that log object updates. It is expected is that
+this entry is processed by the refinement threads only. However, if there are
+too many updates or too many cross-region references, the refinement threads may
+not keep up, and the application threads will take over.
+
+
+NOTE: Personally I never had to tweak the concurrent marking of G1 (`ConcGCThreads`)
+or the RSets (`G1ConcRefinementThread`), with containers however I really had to
+tweak the stop-the-world worker (`ParallelGCThreads`).
+
+The JVM has a lot of flags here and there that can be used to alter the default
+*ergonomics*, e.g. `UseDynamicNumberOfGCThreads`, if you use them you enter the
+tuning terrain!
+
+
+
+
+=== Shenandoah
+
+Shenandoah is a _next_generation_ low-pause collector, and like all GCs in OpenJDK
+it defines a pool of threads for certain tasks
+
+|===
+| Pool | Controlled by | Default
+
+| **Concurrent GC Threads**
+.2+| `-XX:ConcGCThreads`
+.2+| stem:[max(1, "ncpus" / 4)]
+
+source: https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/shenandoah/shenandoahArguments.cpp#L70-L72[shenandoahArguments.cpp]
+
+| This where most of the work is done, from updating references to moving objects
+
+| **Parallel GC Threads**
+.2+| `-XX:ParallelGCThreads`
+.2+| stem:[max(1, "ncpus" / 2)]
+
+  // Set up default number of parallel threads. We want to have decent pauses performance
+  // which would use parallel threads, but we also do not want to do too many threads
+  // that will overwhelm the OS scheduler. Using 1/2 of available threads seems to be a fair
+  // compromise here. Due to implementation constraints, it should not be lower than
+  // the number of concurrent threads.
+  bool ergo_parallel = FLAG_IS_DEFAULT(ParallelGCThreads);
+  if (ergo_parallel) {
+    FLAG_SET_DEFAULT(ParallelGCThreads, MAX2(1, os::initial_active_processor_count() / 2));
+  }
+
+source: https://github.com/openjdk/jdk11u/blob/1549539c00c2b348882b1aca7a65eb97174d6b7c/src/hotspot/share/gc/shenandoah/shenandoahArguments.cpp#L79-L87[shenandoahArguments.cpp]
+| If the concurrent GC didn't keep up there's an _allocation failure_, in which
+case Shenandoah starts a _degenerated gc_.
+
+|===
+
+NOTE: The source code indicates these two pool of threads are not marked as
+being set ergonomically (`FLAG_SET_DEFAULT`), but in my opinion these flags are
+somewhat _ergonomic_ in their definition.
+
+https://wiki.openjdk.java.net/display/shenandoah[Wiki]
+
+
+
+
+=== ZGC
+
+
+[options="header"]
+|===
+| Pool | Controlled by | Default
+
+| **Parallel GC Threads**
+.2+| `-XX:ParallelGCThreads`
+.2+| TODO
+|
+
+| **Concurrent GC Threads**
+.2+| `-XX:ConcGCThreads`
+.2+| TODO
+|
+
+|===
+
+https://wiki.openjdk.java.net/display/zgc[Wiki]
+
+
+== Compiler
+
+The https://docs.oracle.com/en/java/javase/11/gctuning/ergonomics.html[JDK 11 GC tuning and ergonomics]
+page
+
+* Tiered compiler, using both C1 and C2 <= :y:
+
+|===
+| Ergonomic | Controlled by | Default
+
+| Compiler
+| `CICompilerCount`
+| stem:[max(log(ncpus)-1,1) = 2]
+
+|===
+
+
+
+== Other ergonomics
+
+|===
+| Ergonomic | Controlled by | Default
+
+| Compressed pointers
+| `UseCompressedOops`
+| stem:[true if 64bits]
+
+| Compressed class pointers
+| `UseCompressedClassPointers`
+| stem:[true if 64bits]
+
+| Non-Uniform Memory Access interleaving old and eden space
+| `UseNUMAInterleaving`
+| stem:[true if "UseNUMA" = true]
+
+
+|===
+
+
+== End words
+
+In the code source it should be easy to find ergonomic flags as they are usually
+prefixed by `FLAG_SET_ERGO`, but it happens that GC authors have chosen to use
+`FLAG_SET_DEFAULT` instead for reason I have not yet investigated.
+

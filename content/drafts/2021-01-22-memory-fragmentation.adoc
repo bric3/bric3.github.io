@@ -5,7 +5,7 @@ language: en
 draft: true
 #tags: ["kubernetes", "docker", "java", "jvm", "memory", "glibc", "tcmalloc", "jemalloc"]
 slug: "native-memory-fragmentation-with-glibc"
-title: "Glibc can lead to native memory fragmentation"
+title: "Handling native memory fragmentation of glibc"
 summary: Your workload consumption may suffer from native memory fragmentation.
 ---
 
@@ -135,7 +135,7 @@ the arena heaps, I will need several elements, the _layout_ of the memory
 mapping and its size.
 
 I remember people mentioned a `64 MiB` segments, but without proof or linking
-documentation, let's make sure it is indeed and it is always this value. The
+documentation, let's make sure it is indeed, and it is always this value. The
 glibc source code is available https://sourceware.org/glibc/wiki/GlibcGit[there].
 
 
@@ -178,7 +178,6 @@ Also in the `arena.c` file there is an interesting function : `new_heap`,
 this code describe how a heap is created.
 
 // TODO dissipate misunderstanding of the new_heap function code.
-
 ----
 new_heap {
   handle alignment
@@ -217,7 +216,7 @@ native method `malloc_info`.
 
 
 
-== Writing my own pmap inspector
+== Inspecting the output of `pmap`
 
 Usually on a JVM the memory mapping can be quite large and intimidating, while
 it is certainly possible to identify memory mapping patterns with the eye,
@@ -384,3 +383,7 @@ during the lifetime of the application).
 * [Malloc Internals and You - Red Hat Developer](https://developers.redhat.com/blog/2017/03/02/malloc-internals-and-you/)
 * [An introduction to virtual memory - Internal Pointers](https://www.internalpointers.com/post/introduction-virtual-memory)
 * [Testing Memory Allocators: ptmalloc2 vs tcmalloc vs hoard vs jemalloc While Trying to Simulate Real-World Loads - IT Hare on Soft.ware](http://ithare.com/testing-memory-allocators-ptmalloc2-tcmalloc-hoard-jemalloc-while-trying-to-simulate-real-world-loads/)
+
+
+
+// https://github.com/jvm-profiling-tools/async-profiler/issues/336
