@@ -17,7 +17,7 @@
     
     
 
-<title>Mimic kubernetes deployment options with docker • Brice Dutheil</title>
+<title>Mimic kubernetes deployment options with Docker • Brice Dutheil</title>
 
 
 
@@ -34,7 +34,7 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="Mimic kubernetes deployment options with docker">
+<meta property="og:title" content="Mimic kubernetes deployment options with Docker">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://blog.arkey.fr/drafts/2020/08/20/mimic-kubernetes-deployment-with-docker/" />
 <meta property="og:description" content="Java mostly, and general tech">
@@ -53,7 +53,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Mimic kubernetes deployment options with docker">
+<meta name="twitter:title" content="Mimic kubernetes deployment options with Docker">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -249,7 +249,7 @@
 
 <article>
   <header>
-    <h1>Mimic kubernetes deployment options with docker</h1>
+    <h1>Mimic kubernetes deployment options with Docker</h1>
     
     
 <div class="post__meta">
@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 15 min read
+    <i class="fas fa-clock"></i> 20 min read
 
     
     
@@ -276,7 +276,24 @@
   
   
   <div class="post adoc">
-    <div class="sect1">
+    <div class="paragraph">
+<p>In this article I will show how to duplicate options one could see in
+a <em>deployment</em> descriptor locally in via the docker command line.</p>
+</div>
+<div class="paragraph">
+<p>I will also show what the JVM sees when it is running within these containers.</p>
+</div>
+<div class="paragraph">
+<p>In the following article I will focus on the cgroup system paths, however the
+JVM has a nifty option, <code>-XshowSettings:system</code>, that reads the content of these
+files on Linux.</p>
+</div>
+<div class="paragraph">
+<p>There’s an additional way to discover these values with <code>-Xlog=container*=trace</code>,
+however I find this quite unpractical to be used in the console output. Also
+the cgroup information is repeatedly logged, which is spamming the console.</p>
+</div>
+<div class="sect1">
 <h2 id="_container_resources"><a class="anchor" href="#_container_resources"></a><a class="link" href="#_container_resources">Container resources</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
@@ -295,7 +312,7 @@ spec:
       - name: &#34;java-app&#34;
         resources:
           limits:
-            cpu: &#34;8&#34;
+            cpu: &#34;6&#34;
             memory: &#34;5Gi&#34;
           requests:
             cpu: &#34;3&#34;
@@ -303,15 +320,23 @@ spec:
 </div>
 </div>
 <div class="paragraph">
-<p>Kubernetes translates
-* The limit is expressed as 1000 millicores or 1 core, they in fact represent a
+<p>Kubernetes translates</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The limit is expressed as 1000 millicores or 1 core, they in fact represent a
 <strong>quota of time period</strong> of the Linux CFS, it is based on two values <code>cfs_period_us</code>
 and <code>cfs_quota_us</code>. On Kubernetes the period is 100ms (100000µs) and it cannot
 be changed in the deployment descriptor at this time. For example 100m CPU,
 100 milliCPU, and 0.1 CPU are all the same, and they are translated to 10000µs
-quota.
-* The request 1000 millicores or 1 core as 1024 <strong>cpu shares</strong>. For example
+quota.</p>
+</li>
+<li>
+<p>The request 1000 millicores or 1 core as 1024 <strong>cpu shares</strong>. For example
 1500 millicores are translated into 1536 <strong>cpu shares</strong>.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
 <p>The resources tree declared above is equivalent to these docker params</p>
@@ -320,7 +345,7 @@ quota.
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ docker run \
   --cpu-shares=3072 \ <i class="conum" data-value="1"></i><b>(1)</b>
-  --cpu-quota=800000 \ <i class="conum" data-value="2"></i><b>(2)</b>
+  --cpu-quota=600000 \ <i class="conum" data-value="2"></i><b>(2)</b>
   --memory=5g \ <i class="conum" data-value="3"></i><b>(3)</b>
   --memory-swap=5g \ <i class="conum" data-value="4"></i><b>(4)</b>
   ...</code></pre>
@@ -350,8 +375,8 @@ Physical memory and swap (<code>--memory-swap</code>) to the same value</td>
 <div class="exampleblock">
 <div class="content">
 <div class="paragraph">
-<p>In the command above I used <code>--cpu-quota=800000</code> to expresse the CPU limit,
-but I could have done the same using <code>--cpus=8</code>, docker cli computes the quota
+<p>In the command above I used <code>--cpu-quota=600000</code> to expresse the CPU limit,
+but I could have done the same using <code>--cpus=6</code>, docker cli computes the quota
 value for us.</p>
 </div>
 </div>
@@ -363,7 +388,7 @@ value for us.</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /sys/fs/cgroup/cpu/{cpu.cfs_period_us,cpu.cfs_quota_us,cpu.shares}
 100000
-800000
+600000
 3072</code></pre>
 </div>
 </div>
@@ -419,16 +444,51 @@ throttled_time 103934922199 <i class="conum" data-value="3"></i><b>(3)</b></code
 <p>The Kubernetes memory request is used for scheduling the pod on nodes.</p>
 </div>
 <div class="paragraph">
-<p>Beware that by default the CPU share is 1024, in this case the JVM will not use this value and instead use the number of processors of the host machine.</p>
+<p>Beware that by default the CPU share is 1024, in this case the JVM will not use
+this value and instead use the number of processors of the host machine.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ cat /sys/fs/cgroup/cpu/cpu.shares
-1024
-$ env -u JDK_JAVA_OPTIONS jshell -s - \
-    &lt;&lt;&lt;&#39;System.out.printf(&#34;procs: %d%n&#34;, Runtime.getRuntime().availableProcessors())&#39;
+1024 <i class="conum" data-value="1"></i><b>(1)</b>
+$ env -u JDK_JAVA_OPTIONS jshell -J-XshowSettings:system -s - \
+    s&lt;&lt;&lt;&#39;System.out.printf(&#34;procs: %d%n&#34;, Runtime.getRuntime().availableProcessors())&#39;
+Operating System Metrics:
+    Provider: cgroupv1
+    Effective CPU Count: 32
+    CPU Period: 100000us
+    CPU Quota: -1
+    CPU Shares: -1 <i class="conum" data-value="2"></i><b>(2)</b>
+    List of Processors, 32 total:
+    0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    List of Effective Processors, 32 total:
+    0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    List of Memory Nodes, 1 total:
+    0
+    List of Available Memory Nodes, 1 total:
+    0
+    CPUSet Memory Pressure Enabled: false
+    Memory Limit: 2.00G
+    Memory Soft Limit: Unlimited
+    Memory &amp; Swap Limit: Unlimited
+    Kernel Memory Limit: Unlimited
+    TCP Memory Limit: Unlimited
+    Out Of Memory Killer Enabled: true
+
 procs: 32</code></pre>
 </div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>CPU shares is this cgroup file is by default 1024</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The JVM reports the default</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p><strong>TODO</strong> other resources like hugepages</p>
@@ -446,7 +506,7 @@ spec.containers[].resources.requests.hugepages-&lt;size&gt;</code></pre>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Even if I understand how that works, I have no concrete experience with it, so
-I didn’t tested it. This is exposed as a
+I didn’t test it. This is exposed as a
 <a href="https://kubernetes.io/blog/2020/04/01/kubernetes-1-18-feature-topoloy-manager-beta/">beta feature since Kubernetes 1.18</a>,
 whereas in docker it doesn’t see to be well-supported or supported at all.</p>
 </div>
