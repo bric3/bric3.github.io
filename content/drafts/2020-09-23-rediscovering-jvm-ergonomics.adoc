@@ -444,13 +444,36 @@ https://wiki.openjdk.java.net/display/shenandoah[Wiki]
 
 | **Parallel GC Threads**
 .2+| `-XX:ParallelGCThreads`
-.2+| TODO
-|
+.2+| stem:[min(\|~ 60% of "ncpus" ~\|, "2% of MaxHeapSize" / (2 MiB))]
+
+// math ceil notation in asciimath : |~ value ~|   (where `|` is escaped as inside a table)
+// https://www.intmath.com/help/send-math-email-syntax.php
+
+MIN2(nworkers_based_on_ncpus(cpu_share_in_percent),
+              nworkers_based_on_heap_size(2.0));
+
+static uint nworkers_based_on_ncpus(double cpu_share_in_percent) {
+  return ceil(os::initial_active_processor_count() * cpu_share_in_percent / 100.0);
+}
+
+static uint nworkers_based_on_heap_size(double reserve_share_in_percent) {
+  const int nworkers = (MaxHeapSize * (reserve_share_in_percent / 100.0)) / ZPageSizeSmall;
+  return MAX2(nworkers, 1);
+}
+
+source: zHeuristics
+
+| Todo
 
 | **Concurrent GC Threads**
 .2+| `-XX:ConcGCThreads`
-.2+| TODO
-|
+.2+| stem:[min(\|~ 12.5% of "ncpus" ~\|, "2% of MaxHeapSize" / (2 MiB))]
+
+
+
+source: zHeuristics
+
+| Todo
 
 |===
 
@@ -476,6 +499,13 @@ page
 
 
 == Other ergonomics
+
+
+How to discover ergonomics
+
+* `FLAG_SET_ERGO`
+* `-Xlog:gc+ergo`
+
 
 |===
 | Ergonomic | Controlled by | Default
