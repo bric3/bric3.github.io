@@ -13,6 +13,7 @@ summary: Your workload consumption may suffer from native memory fragmentation.
 .TODO
 - [ ] pmap inspector
 - [ ] glibc arenas (// cpu limit ?)
+- [ ] glibc thread cache introduced in 2.26 (ptmalloc2) (In glibc-2.26, TCache (per-thread cache), a new feature, was introduced in malloc.) ?
 - [ ] TCMalloc
 - [ ] Jemalloc
 
@@ -35,7 +36,7 @@ image::/assets/glibc-fragmentation/rss-leading-to-oom.png[]
 I spent time to identify where the memory was consumed for some
 workload I tried to match the memory accounted by the Native Memory Tracking
 report by the one reported via `pmap`, and in this case the memory mapping were
-always higher. But, more importantly the RSS kept growing, while NMT didn't
+always higher. More importantly the RSS kept growing, while NMT didn't
 report big changes.
 
 ``DirectByteBuffer``s weren't responsible either. Their number was relatively
@@ -124,20 +125,54 @@ swap.
 |===
 
 
-// TODO add drawing
-
+// TODO add drawing, memory hierarchy (main arena, thread arenas)
+// data structures
 
 == Measuring the issue
 
 I decided to analyse the memory mapping of the application, using the knowledge
-gained by the use of `pmap` / procfs. However, to detect properly
+gained by the use of `pmap` / _procfs_. However, to detect properly
 the arena heaps, I will need several elements, the _layout_ of the memory
 mapping and its size.
 
-I remember people mentioned a `64 MiB` segments, but without proof or linking
-documentation, let's make sure it is indeed, and it is always this value. The
+=== Identifying arena characteristics
+
+This section will mostly focus on glibc source code, and how I used it to have
+_hard proof_ of what I am doing.
+
+==== Arena size
+
+Some people mentioned a `64 MiB` mappings when talking about glibc, but without
+proof or linking documentation. This number is interesting as it might ease
+the ability to discover such segments.
+
+So let's first make sure this is indeed `64 MiB` and always `64 MiB` ; the
 glibc source code is available https://sourceware.org/glibc/wiki/GlibcGit[there].
 
+So let's define what we might be interested in : In particular we are interested
+in the *arena* size, or the *heap* size.
+
+Looking at the `arena.c` source file there's some interesting definitions, in
+particular it does define (`MAX_HEAP_SIZE`), it is the size of the biggest heap
+in a single arena.
+
+.`HEAP_MAX_SIZE` in https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=bf17be27d48c7a39fc3b421957cb020a4451cc50;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l29[arena.c]
+[source, c]
+----
+#define HEAP_MIN_SIZE (32 * 1024)
+#ifndef HEAP_MAX_SIZE
+# ifdef DEFAULT_MMAP_THRESHOLD_MAX // <1>
+#  define HEAP_MAX_SIZE (2 * DEFAULT_MMAP_THRESHOLD_MAX) // <2>
+# else
+#  define HEAP_MAX_SIZE (1024 * 1024) /* must be a power of two */
+# endif
+#endif
+----
+<1> `DEFAULT_MMAP_THRESHOLD_MAX` is always defined
+<2> The maximum heap size for an arena is asciimath:[(2 * "DEFAULT_MMAP_THRESHOLD_MAX")]
+
+Looking at the `DEFAULT_MMAP_THRESHOLD_MAX` definition, we learn that it depends
+on the type of architecture. I'm inspecting a 64-bit system.
 
 .`DEFAULT_MMAP_THRESHOLD_MAX` in https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967[malloc.c]
 [source, c]
@@ -150,34 +185,60 @@ glibc source code is available https://sourceware.org/glibc/wiki/GlibcGit[there]
 # if __WORDSIZE == 32
 #  define DEFAULT_MMAP_THRESHOLD_MAX (512 * 1024)
 # else
-#  define DEFAULT_MMAP_THRESHOLD_MAX (4 * 1024 * 1024 * sizeof(long))
+#  define DEFAULT_MMAP_THRESHOLD_MAX (4 * 1024 * 1024 * sizeof(long)) // <1>
 # endif
 #endif
 ----
+<1> `DEFAULT_MMAP_THRESHOLD_MAX` is then asciimath:[(4 * 1024 * 1024 * sizeof(long)) "bits"]
 
 
-.`HEAP_MAX_SIZE` in https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=bf17be27d48c7a39fc3b421957cb020a4451cc50;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l29[arena.c]
-[source, c]
+The size of the `long` is usually the most painful information to get, as in C
+it depends on the architecture, the OS and mostly the compiler. The minimum
+guaranteed size of a `long` is 4 bytes (32 bits) but it can be more.
+
+In my containers, if look at `getconf`, a little POSIX utility, to see the size
+of a `long` and use this value as _hint_ for my calculus.
+
+[source, shell]
 ----
-#define HEAP_MIN_SIZE (32 * 1024)
-#ifndef HEAP_MAX_SIZE
-# ifdef DEFAULT_MMAP_THRESHOLD_MAX <1>
-#  define HEAP_MAX_SIZE (2 * DEFAULT_MMAP_THRESHOLD_MAX) <2>
-# else
-#  define HEAP_MAX_SIZE (1024 * 1024) /* must be a power of two */
-# endif
-#endif
+$ getconf LONG_BIT
+64
 ----
-<1> `DEFAULT_MMAP_THRESHOLD_MAX` is always defined
-<2> which means the max heap size is `64 MiB` (`65536 KiB`)
 
-This is a compile-time constant and it is not tunable. Now I need to understand
-how this address space is mapped.
+So if I suppose that glibc has been compiled using this configuration, a 4 byte
+`long`, then:
+
+[asciimath]
+++++
+"HEAP_MAX_SIZE" = 2 * (4 * 1024 * 1024 * 8)
+
+"HEAP_MAX_SIZE" = 67108864 "bit"
+
+"HEAP_MAX_SIZE" = 65536 "KiB"
+
+"HEAP_MAX_SIZE" = 64 "MiB"
+++++
+
+ - [x] This value concords with the number others people were reporting.
+
+ - [x] This is a compile-time constant, and it is not tunable.
+
+
+// TODO one may ask: this is the heap max not the arena max
+
+Now, I'd like to understand how this space is mapped.
+
+==== Arena memory mapping
+
+// is new_heap function that useful ?
 
 Also in the `arena.c` file there is an interesting function : `new_heap`,
 this code describe how a heap is created.
 
 // TODO dissipate misunderstanding of the new_heap function code.
+// this may help : https://www.blackhat.com/presentations/bh-usa-07/Ferguson/Whitepaper/bh-usa-07-ferguson-WP.pdf
+// could be useful to have sequence diagrams there
+
 ----
 new_heap {
   handle alignment
@@ -189,7 +250,7 @@ new_heap {
 <2> Immediately changes the permission to read and write for the initial size
 of this heap.
 
-From that I understand that in a `pmap` output a glibc malloc `arena` would look
+From that I gather from a `pmap` output, a glibc `malloc` _arena_ would look
 this :
 
 [source]
@@ -387,3 +448,9 @@ during the lifetime of the application).
 
 
 // https://github.com/jvm-profiling-tools/async-profiler/issues/336
+// https://jipanyang.wordpress.com/2014/06/09/glibc-malloc-internal-arena-bin-chunk-and-sub-heap-1/
+// https://azeria-labs.com/heap-exploitation-part-2-glibc-heap-free-bins/
+// https://sploitfun.wordpress.com/2015/02/10/understanding-glibc-malloc/
+// https://raydenchia.com/heaps-of-fun-with-glibc-malloc/
+// https://dangokyo.me/2018/01/16/extra-heap-exploitation-tcache-and-potential-exploitation/
+// https://reverseengineering.stackexchange.com/questions/15033/how-does-glibc-malloc-work
