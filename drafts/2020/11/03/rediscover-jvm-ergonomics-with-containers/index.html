@@ -1031,18 +1031,29 @@ somewhat <em>ergonomic</em> in their definition.
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Parallel GC Threads</strong></p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>-XX:ParallelGCThreads</code></p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">TODO</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">\$min(|~ 60% of &#34;ncpus&#34; ~|, &#34;2% of MaxHeapSize&#34; / (2 MiB))\$</p>
+<p class="tableblock">MIN2(nworkers_based_on_ncpus(cpu_share_in_percent),
+              nworkers_based_on_heap_size(2.0));</p>
+<p class="tableblock">static uint nworkers_based_on_ncpus(double cpu_share_in_percent) {
+  return ceil(os::initial_active_processor_count() * cpu_share_in_percent / 100.0);
+}</p>
+<p class="tableblock">static uint nworkers_based_on_heap_size(double reserve_share_in_percent) {
+  const int nworkers = (MaxHeapSize * (reserve_share_in_percent / 100.0)) / ZPageSizeSmall;
+  return MAX2(nworkers, 1);
+}</p>
+<p class="tableblock">source: zHeuristics</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Todo</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Concurrent GC Threads</strong></p></td>
 <td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock"><code>-XX:ConcGCThreads</code></p></td>
-<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">TODO</p></td>
+<td class="tableblock halign-left valign-top" rowspan="2"><p class="tableblock">\$min(|~ 12.5% of &#34;ncpus&#34; ~|, &#34;2% of MaxHeapSize&#34; / (2 MiB))\$</p>
+<p class="tableblock">source: zHeuristics</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Todo</p></td>
 </tr>
 </tbody>
 </table>
@@ -1092,6 +1103,19 @@ page</p>
 <div class="sect1">
 <h2 id="_other_ergonomics"><a class="anchor" href="#_other_ergonomics"></a><a class="link" href="#_other_ergonomics">Other ergonomics</a></h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>How to discover ergonomics</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>FLAG_SET_ERGO</code></p>
+</li>
+<li>
+<p><code>-Xlog:gc+ergo</code></p>
+</li>
+</ul>
+</div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 33.3333%;"/>

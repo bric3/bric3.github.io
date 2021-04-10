@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 25 min read
+    <i class="fas fa-clock"></i> 28 min read
 
     
     
@@ -284,6 +284,9 @@
 </li>
 <li>
 <p><i class="fa fa-square-o"></i> glibc arenas (// cpu limit ?)</p>
+</li>
+<li>
+<p><i class="fa fa-square-o"></i> glibc thread cache introduced in 2.26 (ptmalloc2) (In glibc-2.26, TCache (per-thread cache), a new feature, was introduced in malloc.) ?</p>
 </li>
 <li>
 <p><i class="fa fa-square-o"></i> TCMalloc</p>
@@ -318,7 +321,7 @@ until out workload started to ran in memory constrained containers :
 <p>I spent time to identify where the memory was consumed for some
 workload I tried to match the memory accounted by the Native Memory Tracking
 report by the one reported via <code>pmap</code>, and in this case the memory mapping were
-always higher. But, more importantly the RSS kept growing, while NMT didn’t
+always higher. More importantly the RSS kept growing, while NMT didn’t
 report big changes.</p>
 </div>
 <div class="paragraph">
@@ -444,30 +447,35 @@ swap.</p></td>
 <div class="sectionbody">
 <div class="paragraph">
 <p>I decided to analyse the memory mapping of the application, using the knowledge
-gained by the use of <code>pmap</code> / procfs. However, to detect properly
+gained by the use of <code>pmap</code> / <em>procfs</em>. However, to detect properly
 the arena heaps, I will need several elements, the <em>layout</em> of the memory
 mapping and its size.</p>
 </div>
+<div class="sect2">
+<h3 id="_identifying_arena_characteristics"><a class="anchor" href="#_identifying_arena_characteristics"></a><a class="link" href="#_identifying_arena_characteristics">Identifying arena characteristics</a></h3>
 <div class="paragraph">
-<p>I remember people mentioned a <code>64 MiB</code> segments, but without proof or linking
-documentation, let’s make sure it is indeed, and it is always this value. The
+<p>This section will mostly focus on glibc source code, and how I used it to have
+<em>hard proof</em> of what I am doing.</p>
+</div>
+<div class="sect3">
+<h4 id="_arena_size"><a class="anchor" href="#_arena_size"></a><a class="link" href="#_arena_size">Arena size</a></h4>
+<div class="paragraph">
+<p>Some people mentioned a <code>64 MiB</code> mappings when talking about glibc, but without
+proof or linking documentation. This number is interesting as it might ease
+the ability to discover such segments.</p>
+</div>
+<div class="paragraph">
+<p>So let’s first make sure this is indeed <code>64 MiB</code> and always <code>64 MiB</code> ; the
 glibc source code is available <a href="https://sourceware.org/glibc/wiki/GlibcGit">there</a>.</p>
 </div>
-<div class="listingblock">
-<div class="title"><code>DEFAULT_MMAP_THRESHOLD_MAX</code> in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967">malloc.c</a></div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#ifndef DEFAULT_MMAP_THRESHOLD_MAX
-  /* For 32-bit platforms we cannot increase the maximum mmap
-     threshold much because it is also the minimum value for the
-     maximum heap size and its alignment.  Going above 512k (i.e., 1M
-     for new heaps) wastes too much address space.  */
-# if __WORDSIZE == 32
-#  define DEFAULT_MMAP_THRESHOLD_MAX (512 * 1024)
-# else
-#  define DEFAULT_MMAP_THRESHOLD_MAX (4 * 1024 * 1024 * sizeof(long))
-# endif
-#endif</code></pre>
+<div class="paragraph">
+<p>So let’s define what we might be interested in : In particular we are interested
+in the <strong>arena</strong> size, or the <strong>heap</strong> size.</p>
 </div>
+<div class="paragraph">
+<p>Looking at the <code>arena.c</code> source file there’s some interesting definitions, in
+particular it does define (<code>MAX_HEAP_SIZE</code>), it is the size of the biggest heap
+in a single arena.</p>
 </div>
 <div class="listingblock">
 <div class="title"><code>HEAP_MAX_SIZE</code> in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/arena.c;h=bf17be27d48c7a39fc3b421957cb020a4451cc50;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l29">arena.c</a></div>
@@ -490,14 +498,84 @@ glibc source code is available <a href="https://sourceware.org/glibc/wiki/GlibcG
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>which means the max heap size is <code>64 MiB</code> (<code>65536 KiB</code>)</td>
+<td>The maximum heap size for an arena is \$(2 * &#34;DEFAULT_MMAP_THRESHOLD_MAX&#34;)\$</td>
 </tr>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>This is a compile-time constant and it is not tunable. Now I need to understand
-how this address space is mapped.</p>
+<p>Looking at the <code>DEFAULT_MMAP_THRESHOLD_MAX</code> definition, we learn that it depends
+on the type of architecture. I’m inspecting a 64-bit system.</p>
 </div>
+<div class="listingblock">
+<div class="title"><code>DEFAULT_MMAP_THRESHOLD_MAX</code> in <a href="https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c;h=1f4bbd8edf8b97701b779f183475565c7d0a6762;hb=fcfa4bb48da965d92c7d01229d01e6c5ba59e69a#l967">malloc.c</a></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#ifndef DEFAULT_MMAP_THRESHOLD_MAX
+  /* For 32-bit platforms we cannot increase the maximum mmap
+     threshold much because it is also the minimum value for the
+     maximum heap size and its alignment.  Going above 512k (i.e., 1M
+     for new heaps) wastes too much address space.  */
+# if __WORDSIZE == 32
+#  define DEFAULT_MMAP_THRESHOLD_MAX (512 * 1024)
+# else
+#  define DEFAULT_MMAP_THRESHOLD_MAX (4 * 1024 * 1024 * sizeof(long)) <i class="conum" data-value="1"></i><b>(1)</b>
+# endif
+#endif</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>DEFAULT_MMAP_THRESHOLD_MAX</code> is then \$(4 * 1024 * 1024 * sizeof(long)) &#34;bits&#34;\$</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The size of the <code>long</code> is usually the most painful information to get, as in C
+it depends on the architecture, the OS and mostly the compiler. The minimum
+guaranteed size of a <code>long</code> is 4 bytes (32 bits) but it can be more.</p>
+</div>
+<div class="paragraph">
+<p>In my containers, if look at <code>getconf</code>, a little POSIX utility, to see the size
+of a <code>long</code> and use this value as <em>hint</em> for my calculus.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ getconf LONG_BIT
+64</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So if I suppose that glibc has been compiled using this configuration, a 4 byte
+<code>long</code>, then:</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\$&#34;HEAP_MAX_SIZE&#34; = 2 * (4 * 1024 * 1024 * 8)\$
+<br/>
+\$&#34;HEAP_MAX_SIZE&#34; = 67108864 &#34;bit&#34;\$
+<br/>
+\$&#34;HEAP_MAX_SIZE&#34; = 65536 &#34;KiB&#34;\$
+<br/>
+\$&#34;HEAP_MAX_SIZE&#34; = 64 &#34;MiB&#34;\$
+</div>
+</div>
+<div class="ulist checklist">
+<ul class="checklist">
+<li>
+<p><i class="fa fa-check-square-o"></i> This value concords with the number others people were reporting.</p>
+</li>
+<li>
+<p><i class="fa fa-check-square-o"></i> This is a compile-time constant, and it is not tunable.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Now, I’d like to understand how this space is mapped.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_arena_memory_mapping"><a class="anchor" href="#_arena_memory_mapping"></a><a class="link" href="#_arena_memory_mapping">Arena memory mapping</a></h4>
 <div class="paragraph">
 <p>Also in the <code>arena.c</code> file there is an interesting function : <code>new_heap</code>,
 this code describe how a heap is created.</p>
@@ -525,7 +603,7 @@ of this heap.</td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>From that I understand that in a <code>pmap</code> output a glibc malloc <code>arena</code> would look
+<p>From that I gather from a <code>pmap</code> output, a glibc <code>malloc</code> <em>arena</em> would look
 this :</p>
 </div>
 <div class="listingblock">
@@ -577,6 +655,8 @@ native method <code>malloc_info</code>.
 </td>
 </tr>
 </tbody></table>
+</div>
+</div>
 </div>
 </div>
 </div>
