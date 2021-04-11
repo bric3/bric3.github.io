@@ -262,7 +262,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 28 min read
+    <i class="fas fa-clock"></i> 30 min read
 
     
     
@@ -297,7 +297,7 @@
 </ul>
 </div>
 <div class="paragraph">
-<p>Back in June 2020, I had a pretty good picture of what was the memory usage, or
+<p>Back in July 2020, I had a pretty good picture of what was the memory usage, or
 more precisely the memory demands of the JVM workloads I had running in
 production. This resulted in the following article I published last year
 <a href="https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/">JVM’s off-heap memory</a>.</p>
@@ -319,14 +319,17 @@ until out workload started to ran in memory constrained containers :
 <div class="sectionbody">
 <div class="paragraph">
 <p>I spent time to identify where the memory was consumed for some
-workload I tried to match the memory accounted by the Native Memory Tracking
-report by the one reported via <code>pmap</code>, and in this case the memory mapping were
-always higher. More importantly the RSS kept growing, while NMT didn’t
-report big changes.</p>
+workload I tried to match the memory accounted by the <strong>N</strong>ative <strong>M</strong>emory
+<strong>T</strong>racking report by the one reported via <code>pmap</code> : the sum
+of the memory mapping sizes were always significantly higher. More importantly
+the RSS of the workloads kept growing, while NMT didn’t report significant
+increase.</p>
 </div>
 <div class="paragraph">
-<p><code>DirectByteBuffer</code>s weren’t responsible either. Their number was relatively
-small and relatively stable.</p>
+<p><code>DirectByteBuffer</code>s weren’t responsible either, their
+number was relatively small and relatively stable, and there’s almost a handful
+of very small memory mapped files (a few kilobytes at most) and their number
+was stable too.</p>
 </div>
 <div class="paragraph">
 <p>Then I focused my attention on native memory. I wasn’t sure were to start.
@@ -392,18 +395,96 @@ managed with its own mutexes.</p>
 applications, glibc creates additional <strong>memory allocation arenas</strong> if mutex
 contention is detected.</em> as this is what the answer in SO talks about.</p>
 </div>
-<div class="paragraph">
-<p>Also, arena memory management is
-<a href="https://en.wikipedia.org/wiki/Region-based_memory_management">a known technic to manage memory</a>.</p>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The word <em>arena</em> refers to
+<a href="https://en.wikipedia.org/wiki/Region-based_memory_management">a technic to manage memory</a>.
+</td>
+</tr>
+</tbody></table>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_in_the_context_of_glibc_what_exactly_are_these_arenas"><a class="anchor" href="#_in_the_context_of_glibc_what_exactly_are_these_arenas"></a><a class="link" href="#_in_the_context_of_glibc_what_exactly_are_these_arenas">In the context of glibc, what exactly are these arenas ?</a></h2>
+<h2 id="_what_exactly_are_these_arenas_how_do_they_work"><a class="anchor" href="#_what_exactly_are_these_arenas_how_do_they_work"></a><a class="link" href="#_what_exactly_are_these_arenas_how_do_they_work">What exactly are these arenas ? How do they work?</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The source code of glibc is available <a href="https://sourceware.org/glibc/wiki/GlibcGit">there</a>.
-On their <a href="https://sourceware.org/glibc/wiki/HomePage">wiki</a> there is a
+<p>In order to answer these questions, this section will dive in the glibc
+native memory allocator.</p>
+</div>
+<div class="paragraph">
+<p>C programs can allocate memory in a <em>heap</em>. In order to allocate to the said
+heap, native code calls <code>malloc</code> function. Which is in fact an interface, that
+happens to be implemented in the standard <em>glibc</em> library that will in turn call
+system functions like <code>mmap</code> and, <code>brk</code>/<code>sbrk</code>.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/src/static/assets/off-heap-recon/malloc-mmap.svg" alt="malloc mmap" title="glibc’s malloc overview"/></span></p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>The source code of glibc is available <a href="https://sourceware.org/glibc/wiki/GlibcGit">there</a>.</p>
+</div>
+<div class="paragraph">
+<p>The glibc hosts a variety of function, like <code>sprintf</code>, <code>raise</code>, etc. In our case
+we are focused on the memory allocator function that comes with <code>glibc</code> : <code>malloc</code>.</p>
+</div>
+<div class="paragraph">
+<p>The specific code we’re interested in is of course <code>malloc.c</code> at the git <strong>tag
+<code>glibc-2.28</code></strong>.</p>
+</div>
+<div class="paragraph">
+<p>The header shows a few interesting information, it is based on
+Doug Lea’s work and this <code>malloc</code> implementation can be referred to as
+<code>ptmalloc2</code> :</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="listingblock">
+<div class="content">
+<pre>This is a version (aka ptmalloc2) of malloc/free/realloc written by
+Doug Lea and adapted to multiple threads/arenas by Wolfram Gloger.</pre>
+</div>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>We can see this allocator claims to be memory-efficient, fast and stable for
+server applications.</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="listingblock">
+<div class="content">
+<pre>This is not the fastest, most space-conserving, most portable, or
+most tunable malloc ever written. However it is among the fastest
+while also being among the most space-conserving, portable and tunable.
+Consistent balance across these factors results in a good general-purpose
+allocator for malloc-intensive programs.</pre>
+</div>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>This entry will show you there are better alternatives.</p>
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>On their <a href="https://sourceware.org/glibc/wiki/HomePage">wiki</a> there is a
 <a href="https://sourceware.org/glibc/wiki/MallocInternals">page presenting internals of
 <code>malloc</code></a>, and there is in particular a very useful terminology:</p>
 </div>
@@ -819,7 +900,7 @@ There are several options :</p>
 <p>tcmalloc (long history, now maintained by google)</p>
 </li>
 <li>
-<p>minimalloc (efficient malloc contribution from microsoft)</p>
+<p>minimalloc (efficient <code>malloc</code> contribution from microsoft)</p>
 </li>
 </ul>
 </div>
