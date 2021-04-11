@@ -17,7 +17,7 @@ summary: Your workload consumption may suffer from native memory fragmentation.
 - [ ] TCMalloc
 - [ ] Jemalloc
 
-Back in June 2020, I had a pretty good picture of what was the memory usage, or
+Back in July 2020, I had a pretty good picture of what was the memory usage, or
 more precisely the memory demands of the JVM workloads I had running in
 production. This resulted in the following article I published last year
 https://blog.arkey.fr/2020/11/30/off-heap-reconnaissance/[JVM's off-heap memory].
@@ -34,13 +34,16 @@ image::/assets/glibc-fragmentation/rss-leading-to-oom.png[]
 == Different memory analysis didn't add up
 
 I spent time to identify where the memory was consumed for some
-workload I tried to match the memory accounted by the Native Memory Tracking
-report by the one reported via `pmap`, and in this case the memory mapping were
-always higher. More importantly the RSS kept growing, while NMT didn't
-report big changes.
+workload I tried to match the memory accounted by the **N**ative **M**emory
+**T**racking report by the one reported via `pmap` : the sum
+of the memory mapping sizes were always significantly higher. More importantly
+the RSS of the workloads kept growing, while NMT didn't report significant
+increase.
 
-``DirectByteBuffer``s weren't responsible either. Their number was relatively
-small and relatively stable.
+``DirectByteBuffer``s weren't responsible either, their
+number was relatively small and relatively stable, and there's almost a handful
+of very small memory mapped files (a few kilobytes at most) and their number
+was stable too.
 
 
 Then I focused my attention on native memory. I wasn't sure were to start.
@@ -87,13 +90,59 @@ This caught my attention _To scalably handle memory allocation in multithreaded
 applications, glibc creates additional *memory allocation arenas* if mutex
 contention is detected._ as this is what the answer in SO talks about.
 
-Also, arena memory management is
-https://en.wikipedia.org/wiki/Region-based_memory_management[a known technic to manage memory].
+NOTE: The word _arena_ refers to
+https://en.wikipedia.org/wiki/Region-based_memory_management[a technic to manage memory].
 
 
-== In the context of glibc, what exactly are these arenas ?
+== What exactly are these arenas ? How do they work?
 
+In order to answer these questions, this section will dive in the glibc
+native memory allocator.
+
+C programs can allocate memory in a _heap_. In order to allocate to the said
+heap, native code calls `malloc` function. Which is in fact an interface, that
+happens to be implemented in the standard _glibc_ library that will in turn call
+system functions like `mmap` and, `brk`/`sbrk`.
+
+
+image:/assets/off-heap-recon/malloc-mmap.svg[align="center", title="glibc's malloc overview"]
+
+
+[NOTE]
+====
 The source code of glibc is available https://sourceware.org/glibc/wiki/GlibcGit[there].
+
+The glibc hosts a variety of function, like `sprintf`, `raise`, etc. In our case
+we are focused on the memory allocator function that comes with `glibc` : `malloc`.
+
+The specific code we're interested in is of course `malloc.c` at the git *tag
+`glibc-2.28`*.
+
+The header shows a few interesting information, it is based on
+Doug Lea's work and this `malloc` implementation can be referred to as
+`ptmalloc2` :
+
+> ----
+> This is a version (aka ptmalloc2) of malloc/free/realloc written by
+> Doug Lea and adapted to multiple threads/arenas by Wolfram Gloger.
+> ----
+
+We can see this allocator claims to be memory-efficient, fast and stable for
+server applications.
+
+> ----
+> This is not the fastest, most space-conserving, most portable, or
+> most tunable malloc ever written. However it is among the fastest
+> while also being among the most space-conserving, portable and tunable.
+> Consistent balance across these factors results in a good general-purpose
+> allocator for malloc-intensive programs.
+> ----
+
+This entry will show you there are better alternatives.
+====
+
+
+
 On their https://sourceware.org/glibc/wiki/HomePage[wiki] there is a
 https://sourceware.org/glibc/wiki/MallocInternals[page presenting internals of
 `malloc`], and there is in particular a very useful terminology:
@@ -127,6 +176,7 @@ swap.
 
 // TODO add drawing, memory hierarchy (main arena, thread arenas)
 // data structures
+
 
 == Measuring the issue
 
@@ -376,7 +426,7 @@ There are several options :
 
 * jemalloc (long history, robust)
 * tcmalloc (long history, now maintained by google)
-* minimalloc (efficient malloc contribution from microsoft)
+* minimalloc (efficient `malloc` contribution from microsoft)
 
 I used TCMalloc as it’s very old and maintained by google, and can be installed with allocation profiling tool.
 Others are fine, especially jemalloc that can come with allocation profiler as well.
@@ -454,3 +504,6 @@ during the lifetime of the application).
 // https://raydenchia.com/heaps-of-fun-with-glibc-malloc/
 // https://dangokyo.me/2018/01/16/extra-heap-exploitation-tcache-and-potential-exploitation/
 // https://reverseengineering.stackexchange.com/questions/15033/how-does-glibc-malloc-work
+
+// TODO look at this bug
+// https://bugs.openjdk.java.net/browse/JDK-8193521[glibc wastes memory with default configuration]
