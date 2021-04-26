@@ -1,0 +1,131 @@
+// Hugo {{ .TableOfContents }}
+$toc-background-color: rgb(245, 244, 235);
+$toc-font-size: .8rem;
+$toc-link-hover-bg-color: rgb(234, 210, 199);
+$title-transition-from-background-color: $toc-link-hover-bg-color;
+$title-transition-to-background-color: white; // body bg-color
+
+.toc-wrapper {
+  font-size: $toc-font-size;
+  position: fixed;
+  top: 2rem;
+  right: 1rem;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  label {
+    background-color: $toc-background-color;
+
+    display: block;
+    cursor: pointer;
+    padding-left: 0.5rem;
+  }
+}
+#TableOfContents {
+  overflow: auto !important;
+  margin-top: -0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 1rem;
+  background: $toc-background-color;
+  width: 20em;
+  z-index: 1000;
+  border-radius: 5px;
+
+  > ul {
+    list-style-type: disc;
+    padding-left: 0.8rem;
+
+    > li {
+      a {
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all .10s;
+        display: block;
+        border: none;
+        padding-left: 0.2rem;
+        padding-right: 0.2rem;
+
+        &:hover {
+          background: $toc-link-hover-bg-color;
+        }
+      }
+      ul {
+        list-style-type: disc;
+        padding-left: 1em;
+      }
+    }
+  }
+}
+
+input#tocToggle {
+  display: none;
+  background: $toc-background-color;
+
+  + label {
+    border-radius: 5px;
+    font-weight: bold;
+    min-width: 3em;
+    span#toc-title {
+      display: initial;
+      margin-left: 1em;
+    }
+  }
+  ~ #TableOfContents {
+    height: 100%;
+  }
+  &:checked {
+    + label {
+      min-height: 1em;
+      span#toc-title {
+        display: none;
+      }
+    }
+    ~ #TableOfContents {
+      display: none;
+    }
+  }
+}
+
+h2:target, h3:target, h4:target, h5:target {
+  animation: highlight 2s ease;
+}
+
+@keyframes highlight {
+  from { background: $title-transition-from-background-color; }
+  to { background: $title-transition-to-background-color; }
+}
+
+
+@media (prefers-color-scheme: dark) {
+  $dark-toc-background-color: rgb(70, 57, 46);
+  $dark-toc-link-hover-bg-color: rgb(32, 28, 27);
+  $dark-title-transition-from-background-color: #b6a581;
+  $dark-title-transition-to-background-color: rgb(36, 32, 25); // body bg-color
+
+  .toc-wrapper {
+    label {
+      background-color: $dark-toc-background-color;
+    }
+  }
+  #TableOfContents {
+    background: $dark-toc-background-color;
+    > ul {
+      > li {
+        a {
+          &:hover {
+            background: $dark-toc-link-hover-bg-color;
+          }
+        }
+      }
+    }
+  }
+  input#tocToggle {
+    background: $dark-toc-background-color;
+  }
+
+  @keyframes highlight {
+    from { background: $dark-title-transition-from-background-color; }
+    to { background: $dark-title-transition-to-background-color; }
+  }
+}
