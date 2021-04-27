@@ -5,6 +5,10 @@ $toc-link-hover-bg-color: rgb(234, 210, 199);
 $title-transition-from-background-color: $toc-link-hover-bg-color;
 $title-transition-to-background-color: white; // body bg-color
 
+$box-shadow-color: rgba(149, 157, 165, 0.2);
+$dark-box-shadow-color: pink;
+//$dark-box-shadow-color: rgb(87, 63, 18);
+
 .toc-wrapper {
   font-size: $toc-font-size;
   position: fixed;
@@ -13,6 +17,8 @@ $title-transition-to-background-color: white; // body bg-color
   max-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-flow: column;
 
   label {
     background-color: $toc-background-color;
@@ -20,17 +26,21 @@ $title-transition-to-background-color: white; // body bg-color
     display: block;
     cursor: pointer;
     padding-left: 0.5rem;
+    margin-top: 10px;
   }
 }
+
 #TableOfContents {
-  overflow: auto !important;
-  margin-top: -0.5rem;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  margin-top: -0.3rem;
   padding-left: 0.5rem;
   padding-right: 1rem;
   background: $toc-background-color;
   width: 20em;
-  z-index: 1000;
+  //z-index: 1000;
   border-radius: 5px;
+  overscroll-behavior: contain;
 
   > ul {
     list-style-type: disc;
@@ -50,6 +60,7 @@ $title-transition-to-background-color: white; // body bg-color
           background: $toc-link-hover-bg-color;
         }
       }
+
       ul {
         list-style-type: disc;
         padding-left: 1em;
@@ -61,30 +72,6 @@ $title-transition-to-background-color: white; // body bg-color
 input#tocToggle {
   display: none;
   background: $toc-background-color;
-
-  + label {
-    border-radius: 5px;
-    font-weight: bold;
-    min-width: 3em;
-    span#toc-title {
-      display: initial;
-      margin-left: 1em;
-    }
-  }
-  ~ #TableOfContents {
-    height: 100%;
-  }
-  &:checked {
-    + label {
-      min-height: 1em;
-      span#toc-title {
-        display: none;
-      }
-    }
-    ~ #TableOfContents {
-      display: none;
-    }
-  }
 }
 
 h2:target, h3:target, h4:target, h5:target {
@@ -92,8 +79,12 @@ h2:target, h3:target, h4:target, h5:target {
 }
 
 @keyframes highlight {
-  from { background: $title-transition-from-background-color; }
-  to { background: $title-transition-to-background-color; }
+  from {
+    background: $title-transition-from-background-color;
+  }
+  to {
+    background: $title-transition-to-background-color;
+  }
 }
 
 
@@ -110,6 +101,7 @@ h2:target, h3:target, h4:target, h5:target {
   }
   #TableOfContents {
     background: $dark-toc-background-color;
+
     > ul {
       > li {
         a {
@@ -125,7 +117,132 @@ h2:target, h3:target, h4:target, h5:target {
   }
 
   @keyframes highlight {
-    from { background: $dark-title-transition-from-background-color; }
-    to { background: $dark-title-transition-to-background-color; }
+    from {
+      background: $dark-title-transition-from-background-color;
+    }
+    to {
+      background: $dark-title-transition-to-background-color;
+    }
+  }
+}
+
+// make toc toggle-able
+@media only screen and (max-width: 1799px) {
+  input#tocToggle {
+    + label {
+      font-weight: bold;
+      min-width: 3em;
+      border-radius: 5px;
+    }
+
+    &:not(:checked) {
+      + label {
+        margin-left: 24px;
+        margin-right: 24px;
+        position: relative;
+
+        &::before {
+          box-shadow: $box-shadow-color 0 8px 24px 0px;
+          position: absolute;
+          border-radius: 5px;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          content: "";
+          z-index: -1;  /* Draw the shadow behind */
+        }
+
+        span#toc-title {
+          display: initial;
+          margin-left: 1em;
+        }
+      }
+
+      ~ #TableOfContents {
+        height: 100%;
+        margin-left: 24px;
+        margin-right: 24px;
+        margin-bottom: 24px;
+        position: relative;
+
+        &::before {
+          box-shadow: $box-shadow-color 0 8px 24px 0px;
+          position: absolute;
+          border-radius: 5px;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          //width: 100%;
+          //height: 100%;
+          content: "";
+          z-index: -1; /* Draw the shadow behind */
+        }
+      }
+    }
+
+    &:checked {
+      + label {
+        min-height: 1em;
+
+        span#toc-title {
+          display: none;
+        }
+      }
+
+        ~ #TableOfContents {
+        display: none;
+      }
+    }
+    ~ #toc-toggle-cover {
+      display: none;
+    }
+  }
+}
+
+
+@media only screen and (max-width: 1799px) and (prefers-color-scheme: dark) {
+  input#tocToggle:not(:checked) {
+    + label::before {
+      box-shadow: $dark-box-shadow-color 0 8px 24px 0px;
+    }
+
+    ~ #TableOfContents::before {
+      box-shadow: $dark-box-shadow-color 0 8px 24px 0px;
+    }
+  }
+}
+
+// always display toc on large screens
+@media only screen and (min-width: 1800px) {
+  input#tocToggle, input#tocToggle:checked, input#tocToggle:not(:checked) {
+    + label {
+      border-radius: 5px;
+      font-weight: bold;
+      min-width: 3em;
+
+      span#toc-title {
+        display: inline-block;
+        margin-left: 1em;
+      }
+    }
+
+    // prevent the checkbox to be clickable
+    ~ #toc-toggle-cover {
+      width: 100%;
+      height: 3.5em;
+      background: transparent;
+      position: absolute;
+      z-index: 1100;
+      top: -1em;
+      left: 0;
+      display: block;
+
+    }
+
+    ~ #TableOfContents {
+      height: 100%;
+    }
   }
 }
