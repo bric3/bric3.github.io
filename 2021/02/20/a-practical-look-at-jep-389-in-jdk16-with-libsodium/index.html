@@ -75,6 +75,11 @@
 
 
 
+
+<link rel="stylesheet" href="/scss/hugo-toc.d31afb68f96b4b4a16c6def81c6cfb18992a6924bd88766a480bb24a08ca5796.css" integrity="sha256-0xr7aPlrS0oWxt74HGz7GJkqaSS9iHZqSAuySgjKV5Y=">
+
+
+
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
@@ -303,8 +308,45 @@
   
   
   
+    <div class="toc-wrapper">
+      <input type="checkbox" id="tocToggle" checked>
+      <label for="tocToggle"><i class="fas fa-list-ul fa-lg"></i><span id="toc-title">On this page</span></label>
+      <div id="toc-toggle-cover"></div>
+
+      
+          <nav id="TableOfContents">
+  <ul>
+    <li><a href="#_the_crypto_sealed_box_example">The crypto sealed box example</a>
+      <ul>
+        <li><a href="#_testing_the_idea_in_jshell">Testing the idea in <code>jshell</code></a></li>
+        <li><a href="#_configuring_gradle">Configuring Gradle</a></li>
+        <li><a href="#_the_first_and_minimal_call_crypto_box_sealbytes">The first and minimal call <code>crypto_box_sealbytes</code></a></li>
+        <li><a href="#_then_a_more_interesting_case_passing_argument_pointers">Then a more interesting case, passing argument pointers</a></li>
+        <li><a href="#_next_invoking_the_sealing_method">Next invoking the sealing method</a></li>
+        <li><a href="#_ending_the_crypto_box_example">Ending the crypto box example</a></li>
+        <li><a href="#_wrap_up_on_manually_using_the_foreign_linker_api">Wrap up on manually using the Foreign Linker API</a></li>
+      </ul>
+    </li>
+    <li><a href="#_remarks_about_memorysegments_memory_mapping">Remarks about <code>MemorySegment</code>s  memory mapping</a></li>
+    <li><a href="#_jep_389_is_still_incubating">JEP-389 is still incubating</a></li>
+    <li><a href="#_jextract"><code>jextract</code></a>
+      <ul>
+        <li><a href="#_extracting_java_liking_code_from_the_libsodium_headers">Extracting Java liking code from the Libsodium headers</a></li>
+        <li><a href="#_invoking_the_library">Invoking the library</a></li>
+        <li><a href="#_wrapping_up_on_jextract">Wrapping up on <code>jextract</code></a></li>
+      </ul>
+    </li>
+    <li><a href="#_closing_words">Closing words</a></li>
+  </ul>
+</nav>
+      
+    </div>
+  
+  
+  
   <div class="post adoc">
-    <div class="paragraph">
+    
+<div class="paragraph">
 <p>JDK 16 is coming and with the <strong>incubating</strong> <a href="https://openjdk.java.net/jeps/389">JEP-389</a>
 (Foreign Linker API).</p>
 </div>
@@ -739,7 +781,12 @@ as they can be declared differently (eg. <code>long</code> is the same as <code>
 or <code>long long</code> is the same as <code>long long int</code>), this <a href="https://en.wikipedia.org/wiki/C_data_types">wikipedia page</a> has a more complete overview of
 C data types.</p>
 </div>
-<table class="tableblock frame-all grid-all stretch">
+<div class="paragraph">
+
+
+
+<div class="table-wrapper">
+    <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Signed integers</caption>
 <colgroup>
 <col style="width: 20%;"/>
@@ -816,6 +863,10 @@ seems they can be as big as 128 bits (16 bytes).</p>
 </td>
 </tr>
 </tbody></table>
+</div>
+
+</div>
+
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_seal definition (.c)</div>
@@ -2498,6 +2549,8 @@ function select(selected) {
 $(addBlockSwitches);
 $(globalSwitch);
 </script>
+
+
 
 
 
