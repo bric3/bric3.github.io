@@ -5,9 +5,8 @@ $toc-link-hover-bg-color: rgb(234, 210, 199);
 $title-transition-from-background-color: $toc-link-hover-bg-color;
 $title-transition-to-background-color: white; // body bg-color
 
-$box-shadow-color: rgba(149, 157, 165, 0.2);
-$dark-box-shadow-color: pink;
-//$dark-box-shadow-color: rgb(87, 63, 18);
+$box-shadow-color: rgba(149, 157, 165, 0.9);
+$dark-box-shadow-color: black;
 
 .toc-wrapper {
   font-size: $toc-font-size;
@@ -20,13 +19,15 @@ $dark-box-shadow-color: pink;
   display: flex;
   flex-flow: column;
 
+  border-radius: 5px;
+
+
   label {
     background-color: $toc-background-color;
 
     display: block;
     cursor: pointer;
     padding-left: 0.5rem;
-    margin-top: 10px;
   }
 }
 
@@ -38,7 +39,6 @@ $dark-box-shadow-color: pink;
   padding-right: 1rem;
   background: $toc-background-color;
   width: 20em;
-  //z-index: 1000;
   border-radius: 5px;
   overscroll-behavior: contain;
 
@@ -128,6 +128,10 @@ h2:target, h3:target, h4:target, h5:target {
 
 // make toc toggle-able
 @media only screen and (max-width: 1799px) {
+  .toc-wrapper {
+    box-shadow: $box-shadow-color 0 8px 24px 0px;
+  }
+
   input#tocToggle {
     + label {
       font-weight: bold;
@@ -137,22 +141,6 @@ h2:target, h3:target, h4:target, h5:target {
 
     &:not(:checked) {
       + label {
-        margin-left: 24px;
-        margin-right: 24px;
-        position: relative;
-
-        &::before {
-          box-shadow: $box-shadow-color 0 8px 24px 0px;
-          position: absolute;
-          border-radius: 5px;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          left: 0;
-          content: "";
-          z-index: -1;  /* Draw the shadow behind */
-        }
-
         span#toc-title {
           display: initial;
           margin-left: 1em;
@@ -161,24 +149,6 @@ h2:target, h3:target, h4:target, h5:target {
 
       ~ #TableOfContents {
         height: 100%;
-        margin-left: 24px;
-        margin-right: 24px;
-        margin-bottom: 24px;
-        position: relative;
-
-        &::before {
-          box-shadow: $box-shadow-color 0 8px 24px 0px;
-          position: absolute;
-          border-radius: 5px;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          left: 0;
-          //width: 100%;
-          //height: 100%;
-          content: "";
-          z-index: -1; /* Draw the shadow behind */
-        }
       }
     }
 
@@ -203,14 +173,8 @@ h2:target, h3:target, h4:target, h5:target {
 
 
 @media only screen and (max-width: 1799px) and (prefers-color-scheme: dark) {
-  input#tocToggle:not(:checked) {
-    + label::before {
-      box-shadow: $dark-box-shadow-color 0 8px 24px 0px;
-    }
-
-    ~ #TableOfContents::before {
-      box-shadow: $dark-box-shadow-color 0 8px 24px 0px;
-    }
+  .toc-wrapper {
+    box-shadow: $dark-box-shadow-color 0 8px 24px 0px;
   }
 }
 
