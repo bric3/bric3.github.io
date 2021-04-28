@@ -47,7 +47,7 @@ https://martinfowler.com/eaaDev/EventSourcing.html[_Event Sourcing_] system.
 
 
 .JFR big picture
-image::/assets/jfr/java-flight-recorder-big-picture2.svg[align="center"]
+image::{image-assets}/jfr/java-flight-recorder-big-picture2.svg[align="center"]
 
 // source https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#JFRUH172
 
@@ -930,13 +930,13 @@ which displays each thread as an horizontal bar, and JFR event are painted on th
 at the time they happened and for how long. At the bottom there's the time axis.
 
 .Thread Lanes
-image::/assets/jfr/startup-0-thread-lanes.png[align="center"]
+image::{image-assets}/jfr/startup-0-thread-lanes.png[align="center"]
 
 The first things that catch our eyes will be the vertical patterns, especially the one with
 yellow and red around 12:51:15. Let's zoom (you can select and right click, or use arrow keys.).
 
 .Zooming on the problematic
-image::/assets/jfr/startup-0-threads-lanes-closer.png[align="center"]
+image::{image-assets}/jfr/startup-0-threads-lanes-closer.png[align="center"]
 
 The vertical pattern is more precise, these vertical pattern indicates a _cross
 threads phenomena_. And we can notice that all thread are not affected the same way.
@@ -957,7 +957,7 @@ a slightly different tone / shade of red, yellow or else. Just click on the even
 to see what's going on.
 
 .monitor blocked
-image::/assets/jfr/startup-1-threads-jedis-lock-event.png[align="center"]
+image::{image-assets}/jfr/startup-1-threads-jedis-lock-event.png[align="center"]
 
 The UI could be improved but going over the events shows a popup with its details,
 for the Monitor Blocked event, there's the duration this monitor was block, who held
@@ -965,7 +965,7 @@ this monitor before, and the monitor address in the heap.
 
 This monitor was held for ~9s, that's a big bottleneck !
 
-image::/assets/jfr/startup-1-threads-jedis-monitor-acquire-blocked.png[align="center"]
+image::{image-assets}/jfr/startup-1-threads-jedis-monitor-acquire-blocked.png[align="center"]
 
 In this case this application had ~200 thread competing for this lock in particular. And finding
 the thread that acquired it is not automated, it's a bit tedious, but in the end didn't reveal
@@ -975,7 +975,7 @@ However, the Monitor Blocked event has another interesting element, the stacktra
 pane of JMC, if the event is selected, we can see the stack trace where this event was emitted.
 
 .jedis classloading
-image::/assets/jfr/startup-1-threads-jedis-monitor-blocked-stack.png[align="center"]
+image::{image-assets}/jfr/startup-1-threads-jedis-monitor-blocked-stack.png[align="center"]
 
 Here that's the JDK classloader. I would never have thought that the JDK code would cause ~9s
 contention. But looking at the stacktrace, there _jedis_ (a Redis client) connection pool involved.
@@ -988,13 +988,13 @@ afterward. Let's look at the story on the IO side, open the Socket IO view.
 Identify which one is related to redis, either via IP or via port (Redis is `6379`).
 
 .Socket IO with redis port selected
-image::/assets/jfr/startup-1-socketio-redis-port.png[align="center"]
+image::{image-assets}/jfr/startup-1-socketio-redis-port.png[align="center"]
 
 While we see a total time of 30s, it's the accumulated time for all thread for the recording duration (6m).
 So nothing fancy here. However, we see that actual IO happens later, around 12:51:22.
 
 .Socket IO actual Redis read / write
-image::/assets/jfr/startup-1-socketio-redis.png[align="center"]
+image::{image-assets}/jfr/startup-1-socketio-redis.png[align="center"]
 
 I'm not sure of the cause, we can definitely rule out Redis, the is either in the network, during
 connection establishment, or actually during classloading.
@@ -1004,7 +1004,7 @@ So in order to avoid the contention the code was changed to pre-connect to redis
 application startup before the application is considered ready. And it worked, this
 specific issue disappeared.
 
-image::/assets/jfr/startup-2-thread-lanes.png[align="center"]
+image::{image-assets}/jfr/startup-2-thread-lanes.png[align="center"]
 
 The issue identified in the first recording showed some contention on redis, this is now gone.
 There is however in this second iteration multiple other issues when flying the mouse pointer
@@ -1015,77 +1015,77 @@ over the yellow and red events.
 [caption="",role="primary"]
 ====
 .Jersey's `ListMultiMap` classloading
-image::/assets/jfr/startup-2-stack-01.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-01.png[align="center"]
 ====
 
 .2
 [caption="",role="secondary"]
 ====
 .Jackson's `SerializerCache` initialization
-image::/assets/jfr/startup-2-stack-02.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-02.png[align="center"]
 ====
 
 .3
 [caption="",role="secondary"]
 ====
 .Jersey's `ImprovedAbstractMap` classloading
-image::/assets/jfr/startup-2-stack-03.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-03.png[align="center"]
 ====
 
 .4
 [caption="",role="secondary"]
 ====
 .Jackson's `PropertySerializerMap` initialization
-image::/assets/jfr/startup-2-stack-04.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-04.png[align="center"]
 ====
 
 .5
 [caption="",role="secondary"]
 ====
 .Jackson's `TypeFactory` initialization
-image::/assets/jfr/startup-2-stack-05.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-05.png[align="center"]
 ====
 
 .6
 [caption="",role="secondary"]
 ====
 .Jackson's `DeserializerCache` initialization
-image::/assets/jfr/startup-2-stack-06.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-06.png[align="center"]
 ====
 
 .7
 [caption="",role="secondary"]
 ====
 .Guava's `hash` function involving classloading
-image::/assets/jfr/startup-2-stack-07.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-07.png[align="center"]
 ====
 
 .8
 [caption="",role="secondary"]
 ====
 .Newrelic's `SynchronizedCollection.size()`
-image::/assets/jfr/startup-2-stack-08.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-08.png[align="center"]
 ====
 
 .9
 [caption="",role="secondary"]
 ====
 .Jackson's `PropertySerializerMap` initialization
-image::/assets/jfr/startup-2-stack-09.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-09.png[align="center"]
 ====
 
 .10
 [caption="",role="secondary"]
 ====
 .Datastax cassandra driver's `ChainedResultSetFuture` involving classloading
-image::/assets/jfr/startup-2-stack-10.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-10.png[align="center"]
 ====
 
 .11
 [caption="",role="secondary"]
 ====
 .Jersey's `AbstractMapBasedMultimap` involving classloading
-image::/assets/jfr/startup-2-stack-11.png[align="center"]
+image::{image-assets}/jfr/startup-2-stack-11.png[align="center"]
 ====
 
 All the stacktraces above have one thing in common, a contention on a lock.
@@ -1095,7 +1095,7 @@ queuing, and made tomcat creates new _http nio_ worked threads until the maximum
 are lazy initialized. And it worked too. Most contention disappeared afterward.
 
 .Better startup / C2 compiler event
-image::/assets/jfr/startup-3-C2-compiler.png[align="center"]
+image::{image-assets}/jfr/startup-3-C2-compiler.png[align="center"]
 
 There was still some potential gain however. I noticed a few C2 compiler related events.
 If you don't know C1 and C2, those are the compilers that transform bytecode to assembly.
@@ -1116,7 +1116,7 @@ And the result for this work load in particular, just activating the Graal compi
 these two successive rollouts.
 
 .Improved P99
-image::/assets/jfr/startup-3-grafana.png[align="center"]
+image::{image-assets}/jfr/startup-3-grafana.png[align="center"]
 
 This graph is falling under the https://latencytipoftheday.blogspot.com/2014/06/latencytipoftheday-most-page-loads.html[_percentlie_]
 but the improvement is still visible.
@@ -1130,35 +1130,35 @@ This VM operation is done during safepoint during which the JVM is paused. At th
 bias revocation event appears, so we removed them, and it works too.
 
 .Revoke Bias locking
-image::/assets/jfr/startup-4-threads-revoke-biased-locks.png[align="center"]
+image::{image-assets}/jfr/startup-4-threads-revoke-biased-locks.png[align="center"]
 
 The graphic below shows the difference in startup time. Other consuming backend services had to timeout
 and eventually perform retries during rollouts which increased the pressure on the application.
 
 .Before => after
-image::/assets/jfr/startup-5-before-after.png[align="center"]
+image::{image-assets}/jfr/startup-5-before-after.png[align="center"]
 
 Other smaller issues could be discovered and tackled, for example I noticed a few gaps
 200ms wide at 30/1min intervals that were related to GC pauses.
 
 .GC gaps
-image:/assets/jfr/startup-9-gc-pause-1.png[title="GC gap 1"] image:/assets/jfr/startup-9-gc-pause-2.png[title="GC gap 2"]
+image:{image-assets}/jfr/startup-9-gc-pause-1.png[title="GC gap 1"] image:{image-assets}/jfr/startup-9-gc-pause-2.png[title="GC gap 2"]
 
 For this application the GC is working within 20ms excepts for a few larger pauses
 during the early minutes of startup:
 
 .GC pauses causes new HTTP worker threads
-image::/assets/jfr/startup-9-thread-lanes-gc-pauses-effect.png[align="center"]
+image::{image-assets}/jfr/startup-9-thread-lanes-gc-pauses-effect.png[align="center"]
 
 Tuning GC is out of scope for this article, but JMC presents a nice view that could help identify GC
 causes. In my opinion it's currently a bit less powerful as GC logs because GC events lack
 useful information only found in GC logs with appropriate tags and level.
 
 .Java Application view
-image::/assets/jfr/jmc-java-application-view.png[align="center"]
+image::{image-assets}/jfr/jmc-java-application-view.png[align="center"]
 
 .Garbage Collection view
-image::/assets/jfr/jmc-garbage-collection-view.png[align="center"]
+image::{image-assets}/jfr/jmc-garbage-collection-view.png[align="center"]
 
 Anyway from there we could imagine a _setting_ file in the JDK dedicated for GC events.
 Instead of parsing log files whose _string format_ that may change a bit over releases

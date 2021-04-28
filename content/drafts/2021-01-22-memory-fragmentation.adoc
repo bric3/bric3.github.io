@@ -28,8 +28,8 @@ until out workload started to ran in memory constrained containers :
 *native memory fragmentation*.
 
 .oomkiller in action
-image::/assets/glibc-fragmentation/rss-leading-to-oom.png[]
-//image:assets/glibc-fragmentation/increasing-rss.png[]
+image::{image-assets}/glibc-fragmentation/rss-leading-to-oom.png[]
+//image:{image-assets}/glibc-fragmentation/increasing-rss.png[]
 
 == Different memory analysis didn't add up
 
@@ -105,7 +105,7 @@ happens to be implemented in the standard _glibc_ library that will in turn call
 system functions like `mmap` and, `brk`/`sbrk`.
 
 
-image:/assets/off-heap-recon/malloc-mmap.svg[align="center", title="glibc's malloc overview"]
+image:{image-assets}/off-heap-recon/malloc-mmap.svg[align="center", title="glibc's malloc overview"]
 
 
 [NOTE]
@@ -432,7 +432,7 @@ I used TCMalloc as it’s very old and maintained by google, and can be installe
 Others are fine, especially jemalloc that can come with allocation profiler as well.
 The results are very good, RSS is stable and even decreasing on lower activity.
 
-image::/assets/glibc-fragmentation/comparative-memory-usage.png[]
+image::{image-assets}/glibc-fragmentation/comparative-memory-usage.png[]
 
 One thing to note: removing the CPU limits had a nice effect on glibc native
 memory usage, but I’m uncertain in the long run. I still need to understand that
@@ -445,10 +445,10 @@ Also, the used memory is quite bumpy compared to TCMalloc, but jemalloc is able
 to give back memory to the OS.
 
 .tcmalloc vs jemalloc (1 cpu)
-image::/assets/glibc-fragmentation/tcmalloc-jemalloc.png[]
+image::{image-assets}/glibc-fragmentation/tcmalloc-jemalloc.png[]
 
 .jemalloc vs tcmalloc (2 cpu)
-image::/assets/glibc-fragmentation/jemaloc-tcmalloc-request.cpu=2.png[]
+image::{image-assets}/glibc-fragmentation/jemaloc-tcmalloc-request.cpu=2.png[]
 
 The other change in this graph is the number of CPU, this deployment was running
 1 CPU. After bumping the `requests.cpu` to 2 the memory usage range is

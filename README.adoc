@@ -27,6 +27,48 @@ asciidoctor with wanted options, like `-r asciidoctor-diagram`.
 exec env PATH=$PWD/bin:$PATH hugo serve --baseUrl=blog.local --bind=0.0.0.0 --buildDrafts
 ----
 
+=== Interesting attributes
+
+This site now rely on asciidoc content, in order to ease content edition and
+publication, it is useful to set a few attributes in the editor.
+
+[cols="m,a,a"]
+|===
+| Attribute | Value | Description
+
+| image-assets
+| path to the `static/assets` local folder
+| This attribute is used to allow images to show up in the IDE preview.
+Site images are published on `/assets/...`, whn this path is used, the IDE will
+look this path on the local disk which will not work of course ; also
+when an image path has a leading slash, the `imagesdir` / `imagesoutdir` are
+ignored, and this didn't work well anyway with diagram generation https://github.com/asciidoctor/asciidoctor-diagram/issues/110[asciidoctor-diagram#110].
+
+Note 1: it is set to `/assets` in the site `config.toml`.
+
+Note 2: this is a custom attribute.
+
+| ditaa-format
+| svg
+| Renders DITAA diagrams as SVG, better legibility on high dpi screens
+
+| plantuml-format
+| svg
+| Renders PlantUML diagrams as SVG, better legibility on high dpi screens
+
+| svgbob
+| path to `svgbob` binary
+| If the IDE don't correctly detect `svgbob` path, it can be set with this
+attribute. The https://github.com/ivanceras/svgbob/[`svgbob` tool] is used
+to generate SVG from ascii character.
+
+| icons
+| `font`
+| Tells asciidoctor to use font-awesome for admonition blocks.
+
+|===
+
+
 === Publish locally
 
 There's also the `publish.sh` script which allows to publish locally the site

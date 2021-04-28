@@ -14,7 +14,7 @@ It all started when opening a JFR recording, I noticed a very large and
 growing number of very short-lived anonymous threads. Was it bad coding,
 or something else?
 
-image:/assets/cf-fjp-burstable/short-threads.png[]
+image:{image-assets}/cf-fjp-burstable/short-threads.png[]
 
 However, when looking at the *Java Thread Start* or the *Java Thread End* events
 there is no stack trace. Fortunately these short-lived thread created objects,
@@ -24,7 +24,7 @@ which triggered the *Allocation in new TLAB* events.
 (where objects are created) for each thread, when these new threads are created they
 require a new TLAB for their new objects.
 
-image:/assets/cf-fjp-burstable/short-threads-flamegraph.png[]
+image:{image-assets}/cf-fjp-burstable/short-threads-flamegraph.png[]
 
 Now that I know what those threads are executing it will be easier to follow
 the trail to where these threads get created.
