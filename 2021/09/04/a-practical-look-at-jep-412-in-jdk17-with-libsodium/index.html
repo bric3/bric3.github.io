@@ -11,7 +11,7 @@
 
     <link href="https://gmpg.org/xfn/11" rel="profile">
     
-    <link rel="canonical" href="https://blog.arkey.fr/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/">
+    <link rel="canonical" href="https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/">
     
 
     <meta charset="utf-8">
@@ -25,7 +25,7 @@
     
     
 
-<title>A practical look at JEP-389 in JDK16 with libsodium • Brice Dutheil</title>
+<title>A practical look at JEP-412 in JDK17 with libsodium • Brice Dutheil</title>
 
 
 
@@ -42,9 +42,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="A practical look at JEP-389 in JDK16 with libsodium">
+<meta property="og:title" content="A practical look at JEP-412 in JDK17 with libsodium">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/" />
+<meta property="og:url" content="https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -55,13 +55,13 @@
 <meta property="og:image:height" content="512">
     
 
-<meta property="og:updated_time" content="2021-02-20T16:01:06&#43;0100">
+<meta property="og:updated_time" content="2021-09-04T16:38:06&#43;0100">
 
 
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="A practical look at JEP-389 in JDK16 with libsodium">
+<meta name="twitter:title" content="A practical look at JEP-412 in JDK17 with libsodium">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -247,7 +247,7 @@
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2021-02-20-a-practical-look-at-jep-389-with-jdk16.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2021-09-03-a-practical-look-at-jep-412-with-jdk17.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
@@ -261,13 +261,13 @@
 
 <article>
   <header>
-    <h1>A practical look at JEP-389 in JDK16 with libsodium</h1>
+    <h1>A practical look at JEP-412 in JDK17 with libsodium</h1>
     
     
 <div class="post__meta">
     
     
-      <i class="fas fa-calendar-alt"></i> 2021-02-20
+      <i class="fas fa-calendar-alt"></i> 2021-09-04
     
     
     
@@ -279,6 +279,9 @@
            <i class="fas fa-tags"></i>
           
           <a class="badge badge-tag" href="/tags/jep-389">jep-389</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jep-412">jep-412</a>
            
       
           <a class="badge badge-tag" href="/tags/java">java</a>
@@ -296,7 +299,7 @@
           <a class="badge badge-tag" href="/tags/foreign">foreign</a>
            
       
-          <a class="badge badge-tag" href="/tags/jdk16">jdk16</a>
+          <a class="badge badge-tag" href="/tags/jdk17">jdk17</a>
            
       
           <a class="badge badge-tag" href="/tags/panama">panama</a>
@@ -305,7 +308,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 78 min read
+    <i class="fas fa-clock"></i> 83 min read
 
     
     
@@ -337,13 +340,13 @@
         <li><a href="#_wrap_up_on_manually_using_the_foreign_linker_api">Wrap up on manually using the Foreign Linker API</a></li>
       </ul>
     </li>
-    <li><a href="#_remarks_about_memorysegments_memory_mapping">Remarks about <code>MemorySegment</code>s  memory mapping</a></li>
-    <li><a href="#_jep_389_is_still_incubating">JEP-389 is still incubating</a></li>
+    <li><a href="#memory-allocation">Remarks about <code>MemorySegment</code>s  memory mapping</a></li>
+    <li><a href="#_jep_389_now_jep_412_foreign_functions_and_memory_is_still_incubating">JEP-389, now JEP-412 foreign functions and memory is still incubating</a></li>
     <li><a href="#_jextract"><code>jextract</code></a>
       <ul>
         <li><a href="#_extracting_java_liking_code_from_the_libsodium_headers">Extracting Java liking code from the Libsodium headers</a></li>
         <li><a href="#_invoking_the_library">Invoking the library</a></li>
-        <li><a href="#_wrapping_up_on_jextract">Wrapping up on <code>jextract</code></a></li>
+        <li><a href="#_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167">Wrapping up on <code>jextract</code> for JEP-412 / build 17-panama+3-167</a></li>
       </ul>
     </li>
     <li><a href="#_closing_words">Closing words</a></li>
@@ -363,18 +366,18 @@
 <i class="fa icon-important" title="Important"></i>
 </td>
 <td class="content">
-<a href="https://openjdk.java.net/projects/jdk/17/">JDK-17</a> will be released on
-the September 14th 2021, it will come with another incubator
-<a href="https://openjdk.java.net/jeps/412">JEP-412</a> for foreign function and foreign
-memory, go to the
-<a href="https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/">updated article for JDK-17</a>.
+This article is an updated version of this
+<a href="https://blog.arkey.fr/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/">article on JEP-389 shipped with JDK 16</a>.
+This updated version merely reflects the change that appeared in JEP-412, along
+with update to the gradle section.
 </td>
 </tr>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>JDK 16 is coming and with the <strong>incubating</strong> <a href="https://openjdk.java.net/jeps/389">JEP-389</a>
-(Foreign Linker API).</p>
+<p><a href="https://openjdk.java.net/projects/jdk/17/">JDK 17</a> will be released on September
+14th 2021 with yet another <strong>incubator</strong> <a href="https://openjdk.java.net/jeps/412">JEP-412</a>
+of the <em>Foreign Linker API</em>.</p>
 </div>
 <div class="paragraph">
 <p>The Foreign Linker API is a very convenient and attractive way to connect to
@@ -393,7 +396,7 @@ In order to do so I wanted Java code to interact with the infamous
 <i class="fa icon-caution" title="Caution"></i>
 </td>
 <td class="content">
-Note that JEP-389 is still incubating, therefore examples below are to be
+Note that JEP-412 is still incubating, therefore examples below are to be
 obsolete for the next JDK as API and behavior are further refined.
 </td>
 </tr>
@@ -406,11 +409,65 @@ obsolete for the next JDK as API and behavior are further refined.
 <i class="fa icon-tip" title="Tip"></i>
 </td>
 <td class="content">
-The following examples were based on <strong>JDK 16 release candidate build 36 (2021/2/8)</strong>.
+The following examples were based on <strong>JDK 17 release candidate build 35 (2021/8/6)</strong>.
 </td>
 </tr>
 </tbody></table>
 </div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Changes</caption>
+<colgroup>
+<col style="width: 50%;"/>
+<col style="width: 50%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">JEP-389</th>
+<th class="tableblock halign-left valign-top">JEP-412</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>-Dforeign.restricted=permit</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>--enable-native-access=ALL-UNNAMED</code>
+The new option allows fine-grained restriction over which module is permitted
+to invoke native code. <code>ALL-UNNAMED</code> is a special value to refer to classpath
+based code.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LibraryLookup.ofDefault()</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CLinker.systemLookup()</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LibraryLookup.ofPath(Path)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">There’s no straight replacement, instead the code has to a combination of</p>
+<p class="tableblock">[source]
+----
+System.load(String)
+SymbolLookup.loaderLookup()
+----</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>NativeScope.unboundedScope()</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ResourceScope.newConfinedScope()</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MemorySegment.allocateNative(long)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MemorySegment.allocateNative(long, ResourceScope)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>NativeScope.allocate*</code> methods</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.allocate*</code>, the allocator has factory methods taking a
+<code>ResourceScope</code>, eg <code>SegmentAllocator.ofScope(scope)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CLinker.toCString(String, Charset, ResourceScope)</code>,
+<code>CLinker.toJavaString(MemorySegment, Charset)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">There’s no equivalent, encoding/decoding a string to/from a given charset
+must be done manually.</p></td>
+</tr>
+</tbody>
+</table>
 <div class="paragraph">
 <p><em>Thanks to <a href="https://twitter.com/jpbempel">Jean-Phillipe Bempel</a> for the review and
 in particular spotting errors</em>.</p>
@@ -458,7 +515,7 @@ foreign linker.</p>
 <div class="listingblock">
 <div class="title">Allow jshell to use the foreign module</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jshell --add-modules jdk.incubator.foreign -R-Dforeign.restricted=permit</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jshell --add-modules jdk.incubator.foreign -R--enable-native-access=ALL-UNNAMED</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -471,7 +528,7 @@ foreign linker.</p>
 jshell&gt; import jdk.incubator.foreign.*;
 jshell&gt; var getpid = CLinker.getInstance()
    ...&gt;                     .downcallHandle(
-   ...&gt;                             LibraryLookup.ofDefault().lookup(&#34;getpid&#34;).get(),
+   ...&gt;                             CLinker.systemLookup().lookup(&#34;getpid&#34;).get(),
    ...&gt;                             MethodType.methodType(long.class),
    ...&gt;                             FunctionDescriptor.of(CLinker.C_LONG)
    ...&gt;                     );
@@ -487,7 +544,7 @@ $5 ==&gt; 53699</code></pre>
 <div class="paragraph">
 <p>Yes it works ! It really is easy to try a things for almost free, without
 leaving Java this is really neat. Now I would like to focus on the small example
-with libsodium within a project. I’ll explain how to use the API along the way.</p>
+with <strong>libsodium</strong> within a project. I’ll explain how to use the API along the way.</p>
 </div>
 </div>
 <div class="sect2">
@@ -503,11 +560,11 @@ to add the <code>jdk.incubator.foreign</code> module when invoking the compilati
 </div>
 <div class="paragraph">
 <p>This module also needs to be declared when running this code, as well as
-another property <code>foreign.restricted</code> to be able to invoke native code.</p>
+another option --enable-native-access to <em>permit</em> modules to perform native operations.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -515,12 +572,24 @@ another property <code>foreign.restricted</code> to be able to invoke native cod
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jshell -R-Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jshell -R--enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign ...</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Then comes the question to configure the build tool. I am using Gradle, the
 configuration is likely similar for other build tool.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+The following lines assume Gradle 7.2.
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="listingblock">
 <div class="title">build.gradle.kts</div>
@@ -529,30 +598,27 @@ configuration is likely similar for other build tool.</p>
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(16))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
 tasks {
     withType&lt;JavaCompile&gt;().configureEach {
-        options.forkOptions.jvmArgs = listOf(
-                &#34;--add-opens&#34;, &#34;jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED&#34; <i class="conum" data-value="1"></i><b>(1)</b>
-        )
-
         options.compilerArgs = listOf(
-                &#34;--add-modules&#34;, &#34;jdk.incubator.foreign&#34; <i class="conum" data-value="2"></i><b>(2)</b>
+                &#34;--add-modules&#34;, &#34;jdk.incubator.foreign&#34; <i class="conum" data-value="1"></i><b>(1)</b>
         )
-        options.release.set(16)
+        options.release.set(17)
     }
 
     withType&lt;JavaExec&gt;().configureEach {
-        jvmArgs(&#34;-Dforeign.restricted=permit&#34;, <i class="conum" data-value="3"></i><b>(3)</b>
+        jvmArgs(&#34;--enable-native-access=ALL-UNNAMED&#34;, <i class="conum" data-value="2"></i><b>(2)</b>
                 &#34;--add-modules&#34;, &#34;jdk.incubator.foreign&#34;)
+        javaLauncher.set(project.javaToolchains.launcherFor(java.toolchain)) <i class="conum" data-value="3"></i><b>(3)</b>
     }
 
     withType&lt;Test&gt;().configureEach {
         useJUnitPlatform()
-        jvmArgs(&#34;-Dforeign.restricted=permit&#34;, <i class="conum" data-value="4"></i><b>(4)</b>
+        jvmArgs(&#34;--enable-native-access=ALL-UNNAMED&#34;, <i class="conum" data-value="4"></i><b>(4)</b>
                 &#34;--add-modules&#34;, &#34;jdk.incubator.foreign&#34;)
     }
 }</code></pre>
@@ -562,19 +628,17 @@ tasks {
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Gradle itself can run on a different JDK, but the code needs to be compiled
-with JDK16, at this time Gradle 6.8.2 does not support the new module restriction
-introduced with JDK16 by default, hence it is necessary to explicitly open modules.
-See <a href="https://github.com/gradle/gradle/issues/15538#issuecomment-744299876">gradle/gradle#15538</a>.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Let the compiler knows about the <code>jdk.incubator.foreign</code> module</td>
 </tr>
 <tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>Configure the tasks that executes a main class, while this is not immediately useful
 IntelliJ IDEA will pick up this configuration, when you click running a <code>main</code> method.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Currently a the project toolchain is not the default value for some properties
+like the <code>JavaExec</code> task launcher, see <a href="https://github.com/gradle/gradle/issues/16791">gradle/gradle/issues#16791</a>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
@@ -585,11 +649,101 @@ IntelliJ IDEA will pick up this configuration, when you click running a <code>ma
 </div>
 <div class="sect2">
 <h3 id="_the_first_and_minimal_call_crypto_box_sealbytes"><a class="anchor" href="#_the_first_and_minimal_call_crypto_box_sealbytes"></a><a class="link" href="#_the_first_and_minimal_call_crypto_box_sealbytes">The first and minimal call <code>crypto_box_sealbytes</code></a></h3>
+<div class="sect3">
+<h4 id="_lookup"><a class="anchor" href="#_lookup"></a><a class="link" href="#_lookup">Lookup</a></h4>
 <div class="paragraph">
-<p>The first lines makes use of a few macros (the lines starting with <code>#define</code>),
-we can assume that <code>MESSAGE</code> will be a method parameter, <code>MESSAGE_LEN</code>
-will be derived from the message parameter, and <code>CIPHERTEXT_LEN</code> is also derived
-from the message but needs another constant <code>crypto_box_SEALBYTES</code>.</p>
+<p>The very first thing to setup is the native symbol lookup mechanism. In JDK 17
+the nifty <code>LibraryLookup</code> is gone, in my opinion this API was better as it allowed
+to pass a path, which is particularly useful when embedding native libraries in JARs.</p>
+</div>
+<div class="paragraph">
+<p>Basically in the JDK 17 there’s two options:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>CLinker.systemLookup()</code> this mechanism will find symbols in the system libraries,
+these seem to be the symbol of libraries f the JVM itself, and the path is
+defined in this property <code>sun.boot.library.path</code></p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jshell -s - &lt;&lt;&lt; &#34;System.out.println(System.getProperty(\&#34;sun.boot.library.path\&#34;))&#34;
+/Users/brice/.asdf/installs/java/openjdk-17/lib</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And it doesnt seem related to classloader.</p>
+</div>
+</li>
+<li>
+<p><code>SymbolLookup.loaderLookup()</code> on the other hand appear to be based library
+loaded via <code>System.load</code> / <code>System.loadLibrary</code>, which are tied to the classloader.
+This mechanism will lookup libraries defined in the <code>java.library.path</code> property</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">jshell -s - &lt;&lt;&lt; &#34;System.out.println(System.getProperty(\&#34;java.library.path\&#34;))&#34;
+/Users/brice/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>So which method to choose ?</p>
+</div>
+<div class="paragraph">
+<p>Assuming libsodium has been installed with <a href="https://brew.sh">homebrew</a>
+(<code>brew install libsodium</code>) this should install a symbolic link in
+<code>$(brew --prefix)/lib/libsodium.dylib</code> (or <code>/usr/local/lib/libsodium.dylib</code>).</p>
+</div>
+<div class="paragraph">
+<p>Basically there’s two choice to consume this library, and it is very similar to
+what was needed with JNI.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>either the runtime execution requires alteration via the environment variable
+<code>JAVA_LIBRARY_PATH</code>, and the library can be loaded by it’s name <code>System.loadLibrary(&#34;sodium&#34;)</code> .</p>
+<div class="listingblock">
+<div class="content">
+<pre>env JAVA_LIBRARY_PATH=:/usr/local/lib java --enable-native-access=ALL-UNNAMED ...</pre>
+</div>
+</div>
+</li>
+<li>
+<p>or the code explicitly load the library from a path <code>System.load(&#34;/usr/local/lib/libsodium.dylib&#34;)</code>
+withut requiring to change environment variable.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In the code however the question remain: Which lookup mechanism ?
+* Well if it’s a library loaded via either <code>System::load</code> or <code>System:loadLibrary</code>
+has to use <code>SymbolLookup.loaderLookup()</code>.
+* If it is system library with system symbols like <code>printf</code> or <code>getpid</code>, the code
+need to use <code>CLinker.systemLookup</code>.</p>
+</div>
+<div class="paragraph">
+<p>Let’s define the lookup this way for this article</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static {
+    System.load(&#34;/usr/local/lib/libsodium.dylib&#34;);
+    libsodiumLookup = SymbolLookup.loaderLookup();
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_from_c_to_java"><a class="anchor" href="#_from_c_to_java"></a><a class="link" href="#_from_c_to_java">From C to Java</a></h4>
+<div class="paragraph">
+<p>Going back to the snippt to translate, the first lines makes use of a few macros
+(the lines starting with <code>#define</code>), we can assume that <code>MESSAGE</code> will be a
+method parameter, <code>MESSAGE_LEN</code> will be derived from the message parameter,
+and <code>CIPHERTEXT_LEN</code> is also derived from the message but needs another constant
+<code>crypto_box_SEALBYTES</code>.</p>
 </div>
 <div class="paragraph">
 <p>The first thing needed is to acquire the <code>crypto_box_SEALBYTES</code> constant, looking at
@@ -656,7 +810,9 @@ the code would have failed with a carrier mismatch.</p>
 </div>
 <div class="paragraph">
 <p>For reference, <code>CLinker.C_INT</code> is actually a <code>MemoryLayout</code>, a <em>layout</em> is used
-to model native memory.</p>
+to model native memory, it is particularly useful when modeling the native
+datatype like <code>struct</code>s, <code>union</code>s, etc.</p>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -705,8 +861,8 @@ will be passed.</p>
                 FunctionDescriptor.ofVoid(C_POINTER, C_POINTER)
         );
 
-var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
-var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes());
+var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes(), scope); <i class="conum" data-value="1"></i><b>(1)</b>
+var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes(), scope); <i class="conum" data-value="1"></i><b>(1)</b>
 crypto_box_keypair.invokeExact(recipientPublicKey.address(),
                                recipientSecretKey.address());
 
@@ -716,51 +872,35 @@ var kp = new CryptoBoxKeyPair(
 );</code></pre>
 </div>
 </div>
-<div class="admonitionblock important">
+<div class="colist arabic">
 <table>
 <tbody><tr>
-<td class="icon">
-<i class="fa icon-important" title="Important"></i>
-</td>
-<td class="content">
-This code works, but there is something that must be taken care of,
-<strong>the native segment lifecycle</strong>.
-</td>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>MemorySegment::allocateNative</code> method takes the segment size and a <code>ResourceScope</code>.</td>
 </tr>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>The above code snippet <strong>never</strong> deallocate native memory. Fortunately
-in JDK 16 the <code>MemorySegment</code> class implements <code>AutoCloseable</code>, declaring it
-in a <em>try-with_resources</em> block will solve the issue.</p>
-</div>
-<div class="listingblock">
-<div class="title"><code>MemorySegment</code> lifecycle</div>
-<div class="content">
-<pre>try (var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
-     var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes())) {
-    crypto_box_keypair.invokeExact(recipientPublicKey.address(),
-                                   recipientSecretKey.address());
-
-    return new CryptoBoxKeyPair(
-            recipientPublicKey.toByteArray(),
-            recipientSecretKey.toByteArray()
-    );
-}</pre>
-</div>
+<p>JEP-389 already had the concept of bounded usage of these memory segment with
+the <code>NativeScope</code> class, but it was still possible to write code that never
+deallocates native memory.
+The API in the JEP-412 improves over JEP-389 and now imposes the user to handle
+<strong>the native segment lifecycle</strong> via the same concepts embodied by the
+<code>ResourceScope</code> type.</p>
 </div>
 <div class="paragraph">
-<p>However, JEP-389 comes with the concept of scopes, which allows to express
-temporal bounds of these segments, in JDK16 look for the <code>NativeScope</code> class,
-it allows registering segments in a <em>code section</em> and allocating segments
-anywhere in this section.</p>
+<p>The above can completed by wrapping it in a <em>try-with-resources</em> block with a
+<code>ResourceScope</code>, the scope will be take care the allocated memory segment upon
+the block exit.</p>
 </div>
 <div class="listingblock">
-<div class="title">crypto_box_keypair with <code>NativeScope</code> (.java)</div>
+<div class="title">crypto_box_keypair with <code>ResourceScope</code> (.java)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
-    var recipientPublicKey = scope.allocate(crypto_box_publickeybytes());
-    var recipientSecretKey = scope.allocate(crypto_box_secretkeybytes());
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = ResourceScope.unboundedScope()) {
+    var recipientPublicKey = scope.allocate(crypto_box_publickeybytes(), scope);
+    var recipientSecretKey = scope.allocate(crypto_box_secretkeybytes(), scope);
+
+    MethodHandle crypto_box_keypair = ...
 
     crypto_box_keypair.invokeExact(recipientPublicKey.address(),
                                    recipientSecretKey.address());
@@ -776,6 +916,10 @@ anywhere in this section.</p>
 <p>In order to get back the off-heap content into Java types, the code can call
 any of the <code>to{The Java Type}</code> methods on the <code>MemorySegment</code> instance, they
 will take care of the conversion.</p>
+</div>
+<div class="paragraph">
+<p>There’s more to say about allocation API in JEP 412, please refer to section :
+<a href="#memory-allocation">Remarks about <code>MemorySegment</code>s  memory mapping</a>.</p>
 </div>
 </div>
 <div class="sect2">
@@ -926,12 +1070,13 @@ which is baked by a <code>char</code> array whose length can only be an <code>in
 
 );
 
-try (var scope = NativeScope.unboundedScope()) {
-    var cipherText = scope.allocate(crypto_box_sealbytes() + message.length());
+try (var scope = ResourceScope.newConfinedScope()) {
+    var nativeMessage = CLinker.toCString(message, scope);
+    var cipherText = scope.allocate(crypto_box_sealbytes() + nativeMessage.byteSize(), scope);
     var ret = (int) crypto_box_seal.invokeExact(
             cipherText.address(),
-            CLinker.toCString(message, StandardCharsets.US_ASCII, scope).address(),
-            (long) message.length(),
+            CLinker.toCString(message, scope).address(),
+            (long) nativeMessage.byteSize(),
             scope.allocateArray(C_CHAR, publicKey).address()
     );
     return cipherText.toByteArray();
@@ -944,12 +1089,21 @@ try (var scope = NativeScope.unboundedScope()) {
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>I am specifically passing the <code>US_ASCII</code> charset, as I now that
-the byte array representation of the string will be 1 byte per <code>char</code>, implying
-I can use the <code>String::length</code> method.
-If the string used characters that do not fit in a single byte, I would have
-needed to extract the byte array using <code>UTF-8</code> charset encoder first and use
-the length of the byte array instead.</p>
+<p>The <code>toCString</code> method don’t take anymore a charset compared to JEP-389 (JDK-16),
+and encode the String to UTF-8. This change implies to pay attention to native APIs
+that may not understand wide characters like <code>中文</code> that require more than 1 byte
+to encode the character. Consequently native API that may need the length
+have to pay attention to the this detail too — UTF-8 encode characters in one or
+more byte if necessary — in other words don’t rely on <code>String::length</code> to count
+bytes.</p>
+<div class="paragraph">
+<p>In the above snippet, the <code>String</code> is first encoded then the length is
+taken from the memory segment <code>nativeMessage.byteSize()</code>.</p>
+</div>
+<div class="paragraph">
+<p>Alternatively the encoding could have been done using a charset via <code>String::getBytes</code>.
+And the actual size taken from the resulting byte array.</p>
+</div>
 </li>
 <li>
 <p>The <code>var ret</code> is not used, however due to the <em>dynamic</em>
@@ -974,7 +1128,7 @@ in the signature:</p>
 <h3 id="_ending_the_crypto_box_example"><a class="anchor" href="#_ending_the_crypto_box_example"></a><a class="link" href="#_ending_the_crypto_box_example">Ending the crypto box example</a></h3>
 <div class="paragraph">
 <p>The last method call of this snippet ends the libsodium <em>crypto box</em> example.
-The method <code>crypto_box_seal_open</code> take pointers and a ciphered text length
+The method <code>crypto_box_seal_open</code> take pointers and a ciphered text length,
 so let’s apply again what has been done for <code>crypto_box_seal</code>.</p>
 </div>
 <div class="listingblock">
@@ -1011,130 +1165,109 @@ if (crypto_box_seal_open(decrypted, ciphertext, CIPHERTEXT_LEN,
         )
 );
 
-try (var scope = NativeScope.unboundedScope()) {
-    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
+try (var scope = ResourceScope.newConfinedScope()) {
+    var allocator = SegmentAllocator.ofScope(scope); <i class="conum" data-value="1"></i><b>(1)</b>
+    var decipheredText = allocator.allocateArray(C_CHAR,
+                                                 cipherText.length - crypto_box_sealbytes());
     var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
                                                      scope.allocateArray(C_CHAR, cipherText).address(),
                                                      (long) cipherText.length,
                                                      scope.allocateArray(C_CHAR, publicKey).address(),
                                                      scope.allocateArray(C_CHAR, secretkey).address());
 
-    return CLinker.toJavaString(decipheredText, StandardCharsets.US_ASCII);
+    return CLinker.toJavaString(decipheredText); <i class="conum" data-value="2"></i><b>(2)</b>
 }</code></pre>
 </div>
 </div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>MemorySegment</code> offers API to allocate segments, to allocate arrays <code>SegmentAllocator</code>
+offers a better API</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>In JDK 16, using <code>toJavaString</code> raised a <code>IndexOutOfBoundsException</code> with the message
+<code>Out of bound access on segment MemorySegment{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1</code>.
 <div class="paragraph">
-<p>Yet running this code raise an error:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">java.lang.IndexOutOfBoundsException: Out of bound access on segment MemorySegment{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.outOfBoundException(AbstractMemorySegmentImpl.java:495)
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBoundsSmall(AbstractMemorySegmentImpl.java:465)
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBounds(AbstractMemorySegmentImpl.java:446)
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkAccess(AbstractMemorySegmentImpl.java:401)
-	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.checkAddress(MemoryAccessVarHandleByteHelper.java:80)
-	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.get(MemoryAccessVarHandleByteHelper.java:113)
-	at jdk.incubator.foreign/jdk.incubator.foreign.MemoryAccess.getByteAtOffset(MemoryAccess.java:105)
-	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.strlen(SharedUtils.java:259)
-	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.toJavaStringInternal(SharedUtils.java:249)
-	at jdk.incubator.foreign/jdk.incubator.foreign.CLinker.toJavaString(CLinker.java:342)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>I didn’t get why this code failed at first.</p>
+<p>Indeed during my first use of the foreign linker API in the JDK 16 I use
+<code>String::length</code> to indicate the number of bytes to <em>seal</em>, a Java String length
+that didn’t included the null character <code>\0</code> that terminates a C string. Which caused
+this bound issue during the reverse operation <code>toJavaString</code>.</p>
 </div>
 <div class="paragraph">
-<p><code>CLinker::toJavaString</code> is the mirror function of the <code>CLinker::toCString</code>, so it looked correct.</p>
+<p>The seal example in this JDK 17 version uses the memory segment length, which
+thereby prevents ths issue from happening.</p>
+</div></td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+This reminds us that one has to be careful with String and encodings.
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
-<p>The exception message indicates the segment has the size 20 which is the length
-of the string <code>Hello foreign code !</code>, there’s <code>new offset is 20</code> indicating the
-segment was read up to the 20th byte / character, and there is the <code>new length = 1</code>,
-which suggests <code>toJavaString</code> needs to read an additional character but can’t.</p>
+<p>A side note, in this snippet too I have intentionally left out the returned
+status of <code>crypto_box_seal_open</code>, to focus on the foreign module API, but this
+would make sense to perform checks on the returned value before returning the
+buffer as suggested on the libsodium documentation.</p>
 </div>
 <div class="paragraph">
-<p>The javadoc of <code>toJavaString</code> says (emphasis is mine) :</p>
-</div>
-<div class="quoteblock">
-<blockquote>
-<div class="paragraph">
-<p><strong>Converts a null-terminated C string</strong> stored at given address into a Java string, using the platform’s default charset.</p>
-</div>
-</blockquote>
+<p>More interestingly this example introduces the <code>SegmentAllocator</code> of the JEP-412
+which offers a richer set of API that can use <em>layout</em>s, in particular it can
+be used for array allocation.</p>
 </div>
 <div class="paragraph">
-<p>This immediately clicked: libsodium’s <em>message</em> does not imply it is a string.
-It’s API takes a pointer to a memory region and the length to read in that memory
-region. For all that matter, the message could be any binary payload.</p>
+<p><code>SegmentAllocator</code> provides different allocation strategies.</p>
 </div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Different segment allocators</caption>
+<colgroup>
+<col style="width: 50%;"/>
+<col style="width: 50%;"/>
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.ofScope(ResourceScope)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">It is a regular allocator for native memory.
+It uses a standard <code>malloc</code> call. The new allocated segments will all be cleaned when the
+scope closes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.ofSegment(MemorySegment)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This allows to reuse, or recycle, the same memory segment.
+Allocated segments are all sub parts of this parent memory segment. This is
+useful to limit allocations as <code>malloc</code> operations as they are known to be
+expensive.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.arenaAllocator(scope)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This allocator is doing <a href="https://en.wikipedia.org/wiki/Region-based_memory_management">region based memory management</a>.
+The short version of the arena memory management is : the allocator allocates
+a chunk of memory and either use a slice of that segment, or allocate a new
+chunk of memory to satisfy the allocation request.
+Since segment are scoped in inside a ResourceScope, they are freed, and their
+slice can be used again.
+This allocator is useful to limit costly <code>malloc</code> operations, yet allows more
+flexibility than the alternative segment recycling.</p>
+<p class="tableblock">The factory has an overload that takes a size, in this case allocations are possible
+until no further allocation is possible, ie it won’t add a new underlying chunk
+of memory.</p></td>
+</tr>
+</tbody>
+</table>
 <div class="paragraph">
-<p>Let’s look at the string <code>Hello</code></p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Libsodium <em>seal</em> method will be passed the following byte array
-<code>CLinker.toCString(&#34;Hello&#34;, StandardCharsets.US_ASCII).toByteArray()</code> ⇒ <code>48656C6C6F00</code></p>
-</li>
-<li>
-<p>But since the code is using <code>String::length</code>, libsodium will only seal up to 5 bytes : <code>48656C6C6F</code>.</p>
-</li>
-<li>
-<p>Then <em>opening the seal</em>, the content of the <code>MemorySegment</code> that contains the decrypted message
-will be <code>48656C6C6F</code></p>
-</li>
-<li>
-<p>But <code>CLinker.toJavaString(decipheredText, StandardCharsets.US_ASCII)</code> expects
-the memory segment to be a valid C string, terminated by the <code>\0</code> character. And since
-the actual decrypted memory segment is not terminated by &#39;\0&#39;, the code emit an error.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>For this reason this suggests the code to use is
-<code>new String(decipheredText.toByteArray(), StandardCharsets.US_ASCII)</code>. They are other
-possibilities like not using the <code>CLinker::toCString</code> with the <code>crypto_box_seal</code>
-method and instead, or to increment by 1 the length when <code>CLinker::toCString</code>
-is passed.</p>
-</div>
-<div class="paragraph">
-<p>For reference here are the bytes returned by <code>String::getBytes</code> and
-<code>CLinker::toCString</code>.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>&#34;Hello&#34;.getBytes(US_ASCII)</code> ⇒ <code>48656C6C6F</code></p>
-</li>
-<li>
-<p><code>CLinker.toCString(&#34;Hello&#34;, US_ASCII).toByteArray()</code> ⇒ <code>48656C6C6F00</code></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>For this blog post I’d like to keep the assumption the sealed message is a <code>String</code>,
-which leads to the following correct code :</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
-    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
-    var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
-                                                     scope.allocateArray(C_CHAR, cipherText).address(),
-                                                     (long) cipherText.length,
-                                                     scope.allocateArray(C_CHAR, publicKey).address(),
-                                                     scope.allocateArray(C_CHAR, secretkey).address());
-
-    return new String(decipheredText.toByteArray(), StandardCharsets.US_ASCII);
-}</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Also, I have intentionally left out the returned status of <code>crypto_box_seal_open</code>,
-to focus on the foreign module API, but this would make sense to perform checks
-on the returned value before returning the buffer as suggested on the libsodium
-documentation.</p>
+<p>All allocators are thread safe, but a confined scope will restrict the allocation
+to the owner thread.</p>
 </div>
 </div>
 <div class="sect2">
@@ -1142,19 +1275,20 @@ documentation.</p>
 <div class="paragraph">
 <p>I didn’t cover everything this API has to offer, like the <em>up call</em> stubs,
 which is a way to pass a function pointer to the native code, nor did I cover
-the every feature of JEP-389, like <code>MemorySegment</code> or <code>MemoryLayout</code> API.</p>
+the every feature of JEP-412, like <code>MemorySegment</code> or <code>MemoryLayout</code> API.</p>
 </div>
 <div class="paragraph">
-<p>At this time I find this API a pleasure to use compared to JNI. Note that
-I don’t have experience with JNA, so I may be lacking perspective there.</p>
+<p>At this time I find this API a pleasure to use compared to JNI. <em>Note that
+I don’t have experience with JNA, so I may be lacking perspective there.</em></p>
 </div>
 <div class="paragraph">
-<p>There’s a few pitfalls like the <code>CLinker::toJavaString</code> or the
-<code>MemorySegment</code> lifecycles which get more complicated if those segments
-are shared between threads. I found the API well-designed and well
-documented, but if you’re novice in this area, you’ll likely need
-other materials. A package wide documentation, in <code>jdk.incubator.foreign</code>,
-should definitely fill this gap in my opinion.</p>
+<p>There’s a few pitfalls to be aware of using API that use pointers or reference,
+String encoding is of particular interest, and <code>MemorySegment</code> lifecycles
+get more complicated if those segments are shared between threads.
+Overall I found the API well-designed and well documented, but if you’re novice
+in this area, you’ll likely need other reading materials. A package wide
+documentation, in <code>jdk.incubator.foreign</code>, should definitely fill this gap in
+my opinion.</p>
 </div>
 <div class="paragraph">
 <p>The chosen example was concise in native code, but writing the stubs in Java
@@ -1167,7 +1301,7 @@ the current state of <code>jextract</code>.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_remarks_about_memorysegments_memory_mapping"><a class="anchor" href="#_remarks_about_memorysegments_memory_mapping"></a><a class="link" href="#_remarks_about_memorysegments_memory_mapping">Remarks about <code>MemorySegment</code>s  memory mapping</a></h2>
+<h2 id="memory-allocation"><a class="anchor" href="#memory-allocation"></a><a class="link" href="#memory-allocation">Remarks about <code>MemorySegment</code>s  memory mapping</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p><code>MemorySegment</code> do have the same constraints as <code>DirectByteBuffer</code>s,
@@ -1206,7 +1340,7 @@ inspect memory mappings of the JVM.</p>
 <div class="listingblock">
 <div class="title">/pmap output of a 2GiB native segment</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">151:   java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign -XX:MaxDirectMemorySize=2100m MemorySegments.java
+<pre class="highlightjs highlight"><code class="language-none hljs">151:   java --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign -XX:MaxDirectMemorySize=2100m MemorySegments.java
 Address           Kbytes     RSS   Dirty Mode  Mapping
 ...
 0000557635ba1000       4       0       0 r-x-- java
@@ -1243,7 +1377,7 @@ to free the native mapping, and as such had to wait for the GC to kick in
 order to be freed.</p>
 </div>
 <div class="paragraph">
-<div class="title">Initilization</div>
+<div class="title">Initialization</div>
 <p>Another thing to remind is that the memory mapping is zeroed, that means
 a big segment will take a noticeable time to get initialized. As with
 <code>DirectByteBuffer</code>s this pattern is interesting when inspecting off-heap memory.</p>
@@ -1252,7 +1386,7 @@ a big segment will take a noticeable time to get initialized. As with
 <div class="title">Scope</div>
 <p>Usually it is more practical to use the <code>NativeScope</code> API as it is easier to
 reason about boundaries of the involved memory mapping.
-Using a larger <code>MemorySegment</code> coud be interesting when it has to be sliced and
+Using a larger <code>MemorySegment</code> could be interesting when it has to be sliced and
 shared among various threads. Also given the high initialization cost for large
 segments it’s likely to have the same lifecycle as the application.
 Typically, in a few years, Netty, Aeron, Kafka, Cassandra, …​
@@ -1260,60 +1394,31 @@ could make use of this API !</p>
 </div>
 <div class="paragraph">
 <div class="title">Slices</div>
-<p>One thing that caught me off-guard, is that when closing a <em>slice</em> (created by
-<code>MemorySegment::asSlice</code>) also closes the underlying segment.</p>
-</div>
-<div class="paragraph">
-<div class="title">Multiple allocations</div>
-<p>Finally, when the code requires new native allocation, the JVM appears to be able to
-grow native mappings. In short the JVM tries to put these segment in a bigger
-memory mapping.</p>
+<p><span class="line-through">One thing that caught me off-guard with JEP-389, is that when closing a <em>slice</em> (created by
+<code>MemorySegment::asSlice</code>) also closes the underlying segment.</span> This is no longer the case
+with JEP-412 since <code>MemorySegment</code> is not anymore <code>AutoCloseable</code>. Problem solved.</p>
 </div>
 <div class="paragraph">
 <div class="title">Access modes</div>
-<p>The access modes allows to define a set of <em>permissions</em> of the <code>MemorySegment</code>,
-by default all permissions are given. In the example below this segment won’t
-be readable by</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var ms = MemorySegment.allocateNative(segmentSize)
-                      .withAccessModes(MemorySegment.WRITE | MemorySegment.CLOSE);
-
-ms.asByteBuffer().getLong(); <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Throws UnsupportedOperationException: Required access mode READ ; current access modes: [WRITE, CLOSE]</td>
-</tr>
-</tbody></table>
+<p>The <code>READ</code>, <code>WRITE</code>, <code>CLOSE</code> access modes and related API disappeared from
+<code>MemorySegment</code>, now the only choice is to return a read-only view of the
+segment via <code>MemorySegment::asReadOnly</code>. Which is more limited, but way more
+intuitive to use.</p>
 </div>
 <div class="paragraph">
-<p>I am not quite sure how to use these at this time. It certainly would be useful
-to prevent a slice from being closed though.</p>
-</div>
-<div class="paragraph">
-<p>Also, the <code>WRITE</code> and <code>READ</code> permissions only apply to the Java object, the
-native memory mapping isn’t afected, which is expected since it can hold multiple
-<code>MemorySegment</code>.</p>
-</div>
-<div class="paragraph">
-<div class="title">From a file</div>
+<div class="title">File API</div>
 <p>Until JEP-389, we used a <code>FileChannel</code> and a <code>MappedByteBuffer</code> to memory map a
 file. The JEP-389 also take care of this use case, by using the <code>mapFile</code> factory
-method.</p>
+method. JEP 412 amend this API with a <code>ResourceScope</code> parameter.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var mmaped = MemorySegment.mapFile(
-    path, <i class="conum" data-value="1"></i><b>(1)</b>
-    0, <i class="conum" data-value="2"></i><b>(2)</b>
-    Files.size(path), <i class="conum" data-value="3"></i><b>(3)</b>
-    FileChannel.MapMode.READ_ONLY <i class="conum" data-value="4"></i><b>(4)</b>
-)) {
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = ResourceScope.newConfinedScope()) {
+    MemorySegment.mapFile(path, <i class="conum" data-value="1"></i><b>(1)</b>
+                          0, <i class="conum" data-value="2"></i><b>(2)</b>
+                          Files.size(path), <i class="conum" data-value="3"></i><b>(3)</b>
+                          FileChannel.MapMode.READ_ONLY, <i class="conum" data-value="4"></i><b>(4)</b>
+                          scope);
   // ...
 }</code></pre>
 </div>
@@ -1339,34 +1444,33 @@ method.</p>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>What is really nice here is that the <code>MemorySegment</code> is also immediately freed
-when the code leaves the try-with-resources block.</p>
+<p>The <code>MemorySegment</code> is not anymore auto closeable, but it will be immediately
+freed when the code leaves the try-with-resources block.</p>
+</div>
+<div class="paragraph">
+<p>Also with JEP 412, a <code>MemorySegment</code> gains some API (<code>MemorySegment::load</code>,
+<code>MemorySegment::unload</code>, <code>MemorySegment::force</code>) that allows to force IO operations.
+THe <code>force</code> method looks particularly useful when forcing a write to disk (<code>fsync</code>)
+to page-out to a colder storage such as a disk.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_jep_389_is_still_incubating"><a class="anchor" href="#_jep_389_is_still_incubating"></a><a class="link" href="#_jep_389_is_still_incubating">JEP-389 is still incubating</a></h2>
+<h2 id="_jep_389_now_jep_412_foreign_functions_and_memory_is_still_incubating"><a class="anchor" href="#_jep_389_now_jep_412_foreign_functions_and_memory_is_still_incubating"></a><a class="link" href="#_jep_389_now_jep_412_foreign_functions_and_memory_is_still_incubating">JEP-389, now JEP-412 foreign functions and memory is still incubating</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>I mentioned that <code>MemorySegment</code> is implementing <code>AutoCloseable</code>, it won’t be
-the case in the next JDK release.
-In the same manner I mentioned <code>NativeScope</code> earlier, which is a JDK16 API, but
-in the current panama state it will be replaced by a slightly different
-construct.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (ResourceScope scope : ResourceScope.ofConfined()) {
-  MemorySegment.allocateNative(layout, scope):
-  MemorySegment.mapFile(… , scope);
-  CLinker.upcallStub(… , scope);
-}</code></pre>
-</div>
+<p>In JDK 17 <code>MemorySegment</code> dropped <code>AutoCloseable</code>, <code>NativeScope</code> is replaced by
+<code>ResourceScope</code>, the loss of the <code>LibraryLookup</code> with an API with a different
+scope replaced by <code>SymbolLookup</code> API, appearance of the <code>SegmentAllocator</code>.
+<code>jextract</code> saw very good improvement, yet it seem mature enough to be featured
+in a standard JDK (even as part of incubator).</p>
 </div>
 <div class="paragraph">
-<p>Given the current state I have doubts JEP-389 will get out of incubating
-for JDK 17. JEP-389 is working well, but I think the developers may need more
-time to get this API right. They are doing a fantastic job in my opinion.</p>
+<p>Given all this, I am not sure JEP-412 will get out of incubating for JDK 18 as
+well. JEP-412 is working well and show great refinements, but to me the
+developers are still tackling the API to get it right, indeed a broken API
+could lead to broken applications. As with the previous
+incubator, I think they are doing a fantastic job in my opinion.</p>
 </div>
 </div>
 </div>
@@ -1374,9 +1478,22 @@ time to get this API right. They are doing a fantastic job in my opinion.</p>
 <h2 id="_jextract"><a class="anchor" href="#_jextract"></a><a class="link" href="#_jextract"><code>jextract</code></a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><code>jextract</code> is still being backed and was not ready to be included in JDK 16
-for incubation, but since it complements JEP-389, I wanted to give
+<p><code>jextract</code> is still being backed and was not ready to be included in JDK 17
+for incubation, but since it complements JEP-412, I wanted to give
 it a try and showcase its usefulness.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+The jextract version used in this entry comes the <em>build 17-panama+3-167</em>
+that can be downloaded <a href="https://jdk.java.net/panama/">here</a>.
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="paragraph">
 <p>This tool leverages the native <code>libclang</code> and as such the <code>jdk.incubator.foreign</code>
@@ -1387,15 +1504,6 @@ module.</p>
 here: <a href="https://jdk.java.net/panama/" class="bare">https://jdk.java.net/panama/</a>. Don’t be scared by <em>early access</em>,
 JDK 17 (very early at this stage) or the other warnings, you just need
 to use <code>jextract</code> not the panama jdk.</p>
-</div>
-<div class="paragraph">
-<p>When I started to bootstrap work on JDK16 and libsodium, the built
-panama JDK didn’t contain the <code>jextract</code>, as I wasn’t sure
-I voiced <a href="https://twitter.com/bricedutheil/status/1361086142402199554?s=21">this on Twitter</a>,
-Oracle engineers confirmed me this was a bug in the release
-<a href="https://bugs.openjdk.java.net/browse/JDK-8261733">JDK-8261733</a> if this every
-happen again, or you want to try the latest <code>jextract</code>, you’ll need to build
-the panama JDK.</p>
 </div>
 <div class="admonitionblock caution">
 <table>
@@ -1413,40 +1521,25 @@ That means it that everything below can be obsolete any time.
 <div class="sect2">
 <h3 id="_extracting_java_liking_code_from_the_libsodium_headers"><a class="anchor" href="#_extracting_java_liking_code_from_the_libsodium_headers"></a><a class="link" href="#_extracting_java_liking_code_from_the_libsodium_headers">Extracting Java liking code from the Libsodium headers</a></h3>
 <div class="paragraph">
-<p>The first thing I need is to get the headers of libsodium, and for that
-I cloned the repo. Then checked out the 1.0.18 tag as I intend to target
-this released binary.</p>
+<p>The first thing I need is to get the headers of libsodium, either use
+the headers installed by homebrew with symbolic links placed in
+<code>/usr/local/include</code> (or <code>$(brew --prefix)/include</code>), or clone the repo
+(Make sure to check out the correct tag for the installed binary library,
+<code>1.0.18</code> at this time).</p>
 </div>
+<div class="sect3">
+<h4 id="_first_contact_with_jextract"><a class="anchor" href="#_first_contact_with_jextract"></a><a class="link" href="#_first_contact_with_jextract">First contact with <code>jextract</code></a></h4>
 <div class="listingblock">
-<div class="title">Get the libsodium source</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ git clone https://github.com/jedisct1/libsodium.git
-Cloning into &#39;libsodium&#39;...
-remote: Enumerating objects: 151, done.
-remote: Counting objects: 100% (151/151), done.
-remote: Compressing objects: 100% (105/105), done.
-remote: Total 32369 (delta 74), reused 86 (delta 41), pack-reused 32218
-Receiving objects: 100% (32369/32369), 8.24 MiB | 10.52 MiB/s, done.
-Resolving deltas: 100% (19205/19205), done.
-$ git checkout 1.0.18</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Headers are located in this folder <code>src/libsodium/include</code>. Now let use
-<code>jextract</code>.</p>
-</div>
-<div class="listingblock">
-<div class="title">First contact with <code>jextract</code></div>
+<div class="title"><code>jextract</code> first use</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract
-  -d libsodium-jextract \ <i class="conum" data-value="1"></i><b>(1)</b>
+  -d src/main/java \ <i class="conum" data-value="1"></i><b>(1)</b>
   -l sodium \ <i class="conum" data-value="2"></i><b>(2)</b>
   --target-package com.github.bric3.sodium \ <i class="conum" data-value="3"></i><b>(3)</b>
-  -I src/libsodium/include/ \ <i class="conum" data-value="4"></i><b>(4)</b>
-  -I src/libsodium/include/sodium \ <i class="conum" data-value="4"></i><b>(4)</b>
-  --filter sodium.h \ <i class="conum" data-value="5"></i><b>(5)</b>
-  src/libsodium/include/sodium.h <i class="conum" data-value="6"></i><b>(6)</b>
-src/libsodium/include/sodium/export.h:5:10: fatal error: &#39;stddef.h&#39; file not found</code></pre>
+  -I $(brew --prefix)/include/sodium \ <i class="conum" data-value="4"></i><b>(4)</b>
+  $(brew --prefix)/include/sodium.h <i class="conum" data-value="5"></i><b>(5)</b>
+WARNING: Using incubator modules: jdk.incubator.foreign, jdk.incubator.jextract
+/usr/local/include/sodium/crypto_hash_sha512.h:13:10: fatal error: &#39;stdlib.h&#39; file not found</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1457,7 +1550,9 @@ src/libsodium/include/sodium/export.h:5:10: fatal error: &#39;stddef.h&#39; file
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Extracts or more precisely generate sources, instead of classes</td>
+<td>Specifies the name of library, this option is important as it will drive the
+way the library is loaded, with <code>-l sodium</code> the library has to be available on
+the <code>java.library.path</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
@@ -1469,50 +1564,55 @@ src/libsodium/include/sodium/export.h:5:10: fatal error: &#39;stddef.h&#39; file
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>Only includes symbols from the given file, otherwise symbols of
-other includes may be extracted</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="6"></i><b>6</b></td>
 <td>The C header file</td>
 </tr>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>Obviously the standard C headers are not discovered by <code>jextract</code>.
-I tried to solve this by declaring the system includes in <code>/usr/include</code>
-and <code>/usr/include/linux</code> (<code>/usr/include/linux/stddef.h</code>) but the error
-went a bit further with <code>unknown type name &#39;size_t&#39;</code>. This is a known issue
-that for some platforms jextract has issues to find the system headers
-(<a href="https://bugs.openjdk.java.net/browse/JDK-8262127">JDK-8262127</a>).</p>
+<p>Obviously some of the standard C headers are not discovered by <code>jextract</code>.</p>
 </div>
 <div class="paragraph">
-<p><code>size_t</code> is a standard C alias representing the <em>unsigned integer type</em>.
-I found help in this <a href="https://www.mail-archive.com/dev@tomcat.apache.org/msg129346.html">old thread from november 2018</a>.
-Instead of using the includes under <code>/usr/includes</code>, it is necessary to use
-the includes of the compiler ; on my docker image they were located
-here : <code>/usr/lib/gcc/x86_64-redhat-linux/8/include</code>.</p>
+<div class="title">macOs</div>
+<p>On macOs the solution is to use the header that are installed by the XCode, at this location</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<div class="title">Linux</div>
+<p>The above command used to fail for an equivalent reason, I had to find the local
+compiler includes like this on Fedora <code>/usr/lib/gcc/x86_64-redhat-linux/8/include</code>.
+Now with the <em>build 17-panama+3-167</em> <code>jextract</code> worked fine.</p>
+</div>
+<div class="paragraph">
+<p>This issue is tracked by the ticket <a href="https://bugs.openjdk.java.net/browse/JDK-8262127">JDK-8262127</a>.</p>
 </div>
 <div class="paragraph">
 <p>Also I noticed that <code>jextract</code> generates classes first, but you can pass
 a <code>--source</code> option to configure it to generate sources instead.</p>
 </div>
+<details>
+<summary class="title">Possible problems when working with libsodium repository clone</summary>
+<div class="content">
 <div class="paragraph">
-<p>On the next run of <code>jextract</code> the <code>extraction</code> process stopped on
-the file <code>version.h</code>.</p>
+<p><code>jextract</code> might fail the <code>extraction</code> process on the file <code>version.h</code>.</p>
+</div>
+<div class="paragraph">
+<p>Reminder, in the libsodium repository, headers are located in this folder <code>src/libsodium/include</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">Includes the compiler headers</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract \
-  -d libsodium-jextract \
+  -d src/main/java \
    -l sodium \
    --source \ <i class="conum" data-value="1"></i><b>(1)</b>
    --target-package com.github.bric3.sodium \
    -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <i class="conum" data-value="2"></i><b>(2)</b>
    -I src/libsodium/include/ \
    -I src/libsodium/include/sodium \
-   --filter sodium.h \
    src/libsodium/include/sodium.h
 src/libsodium/include/sodium.h:5:10: fatal error: &#39;sodium/version.h&#39; file not found</code></pre>
 </div>
@@ -1521,7 +1621,7 @@ src/libsodium/include/sodium.h:5:10: fatal error: &#39;sodium/version.h&#39; fil
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>generates the sources</td>
+<td>Generates the sources</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1617,142 +1717,147 @@ config.status: executing libtool commands</code></pre>
 <div class="paragraph">
 <p>Finally, this time <code>jextract</code> worked as expected.</p>
 </div>
-<div class="listingblock">
-<div class="title">Working jextract command</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract \
-  -d libsodium-jextract \
-   -l sodium \
-   --source \
-   --target-package com.github.bric3.sodium \
-   -I /usr/lib/gcc/x86_64-redhat-linux/8/include \
-   -I src/libsodium/include/ \
-   -I src/libsodium/include/sodium \
-   --filter sodium.h \
-   src/libsodium/include/sodium.h</code></pre>
 </div>
+</details>
+</div>
+<div class="sect3">
+<h4 id="_narrowing_down_the_extraction"><a class="anchor" href="#_narrowing_down_the_extraction"></a><a class="link" href="#_narrowing_down_the_extraction">Narrowing down the extraction</a></h4>
+<div class="paragraph">
+<p>Looking at the generated classes, there’s a bag of <strong>288 files</strong>, not even
+mentioning the symbols in these types.</p>
 </div>
 <div class="paragraph">
-<p>However, when I opened <code>sodium_h.java</code> it was empty.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public final class sodium_h  {
-
-    /* package-private */ sodium_h() {}
-}</code></pre>
-</div>
+<p>When I looked at <code>jextract</code> during my review of JEP 389, <code>jextract</code> had
+an option <code>--filter</code> that was supposed to only emit symbols of a specific file.
+At this time of writing, this option is gone and replaced by a different mechanism.</p>
 </div>
 <div class="paragraph">
-<p>In the 1.x tree the <a href="https://github.com/jedisct1/libsodium/blob/1.0.18/src/libsodium/include/sodium.h"><code>sodium.h</code></a>
-file <strong>only includes the declaration of other headers</strong>.
-When I explicitly filtered on <code>sodium.h</code>, <code>jextract</code> evicted symbols
-of the includes.</p>
-</div>
-<div class="paragraph">
-<p>How to keep the declarations of the other headers ?
-At this time <code>jextract</code> help is a bit vague.</p>
+<p>The previous mechanism filtered headers by their path, the new mechanism however
+allows to filter by <code>type</code>, see these option in the help message.</p>
 </div>
 <div class="listingblock">
-<div class="title">Jextract help</div>
+<div class="title">include-(function|macro|struct|typedef|union|var) options</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract --help
-Non-option arguments:
-[String] -- header file
-
-Option                         Description
-------                         -----------
--?, -h, --help                 print help
--C &lt;String&gt;                    pass through argument for clang
--I &lt;String&gt;                    specify include files path
--d &lt;String&gt;                    specify where to place generated files
---filter &lt;String&gt;              header files to filter
--l &lt;String&gt;                    specify a library
---source                       generate java sources
--t, --target-package &lt;String&gt;  target package for specified header files</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">--include-function &lt;String&gt;    name of function to include
+--include-macro &lt;String&gt;       name of constant macro to include
+--include-struct &lt;String&gt;      name of struct definition to include
+--include-typedef &lt;String&gt;     name of type definition to include
+--include-union &lt;String&gt;       name of union definition to include
+--include-var &lt;String&gt;         name of global variable to include</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Looking at the <a href="https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/JextractTool.java#L199-L201"><code>jextract</code> source code</a> was the way to go, first the code suggests
-that it’s possible to pass multiple filters (<code>--filter</code>), just like it
-is possible to pass multiple include (<code>-I</code>).
-Although it is not very practical with multiple values, isn’t is
-possible to pass a pattern ?</p>
+<p>At first this looks like a huge effort to list every symbols (function, data
+types, variables, etc), but there’s a nifty trick. <code>jextract</code> comes with
+<code>--dump-includes</code>. This option alter <code>jextract</code> behavior in that it won’t generate
+source or class bindings but instead it will dump symbols in the given file.</p>
 </div>
-<div class="paragraph">
-<p>This is answered here in this document
-(<a href="https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/doc/panama_jextract.md">Using the <code>jextract</code> tool</a>)
-or in the source code in the <a href="https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/Filter.java#L45-L50"><code>Filter</code></a> class ;
-it’s possible to pass <code>--filter</code> a part of the path, the current
-code will just verify if this string is contained in the header path.</p>
-</div>
-<div class="paragraph">
-<p>Concretely I can use the string <code>sodium</code> as a filter to include headers
-located in <code>include/sodium/</code> folder.</p>
-</div>
-<div class="listingblock">
-<div class="title">Correct jextract command</div>
+<div class="listingblock primary">
+<div class="title">dumping symbols configuration</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract \
-  -d libsodium-jextract \  <i class="conum" data-value="1"></i><b>(1)</b>
-  --source \ <i class="conum" data-value="2"></i><b>(2)</b>
-  --target-package com.github.bric3.sodium \ <i class="conum" data-value="3"></i><b>(3)</b>
-  -l sodium \ <i class="conum" data-value="4"></i><b>(4)</b>
-  -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <i class="conum" data-value="5"></i><b>(5)</b>
-  -I src/libsodium/include/ \ <i class="conum" data-value="6"></i><b>(6)</b>
-  -I src/libsodium/include/sodium \ <i class="conum" data-value="6"></i><b>(6)</b>
-  --filter sodium \ <i class="conum" data-value="7"></i><b>(7)</b>
-  src/libsodium/include/sodium.h <i class="conum" data-value="8"></i><b>(8)</b></code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">jextract \
+  -d src/main/java \
+  -l sodium \
+  --source \
+  --target-package com.github.bric3.sodium \
+  -I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include \
+  -I $(brew --prefix)/include/sodium \
+  --dump-includes sodium.conf \ <i class="conum" data-value="1"></i><b>(1)</b>
+  $(brew --prefix)/include/sodium.h
+WARNING: Using incubator modules: jdk.incubator.jextract, jdk.incubator.foreign
+WARNING: skipping strtold because of unsupported type usage: long double
+WARNING: Layout size not available for sys_errlist</code></pre>
 </div>
 </div>
 <div class="colist arabic">
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Destination of the generated sources</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Extracts or more precisely generate sources, instead of classes</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Indicates the target package of the generated source</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>Name without the JNI prefix and suffix (or path) of the library to load</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>Includes C definitions or includes like <code>size_t</code>, <code>stddef.h</code> etc.</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="6"></i><b>6</b></td>
-<td>Includes of the library (some files include others in the library)</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="7"></i><b>7</b></td>
-<td>Only includes symbols from the given file, otherwise symbols of
-other includes may be extracted</td>
-</tr>
-<tr>
-<td><i class="conum" data-value="8"></i><b>8</b></td>
-<td>The C header file</td>
+<td>the dump option</td>
 </tr>
 </tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title">sodium.conf</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">#### Extracted from: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+
+--include-macro MAC_OS_VERSION_11_0         # header: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+--include-macro MAC_OS_X_VERSION_10_0       # header: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+--include-macro MAC_OS_X_VERSION_10_1       # header: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+--include-macro MAC_OS_X_VERSION_10_10
+
+...
+
+#### Extracted from: /usr/local/include/sodium/core.h
+
+--include-function sodium_init               # header: /usr/local/include/sodium/core.h
+--include-function sodium_misuse             # header: /usr/local/include/sodium/core.h
+--include-function sodium_set_misuse_handler # header: /usr/local/include/sodium/core.h
+
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When looking at the generated file (<code>sodium.conf</code>), we notice that <code>jextract</code>
+actually wrote the <code>--include-(function|macro|struct|typedef|union|var)</code> options
+with the found symbol, more <code>jextract</code> indicates were this file was found.</p>
+</div>
+<div class="paragraph">
+<p>The ultimate part of this trick is that this file can be used on the command line</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">jextract \
+  -d src/main/java \
+  -l sodium \
+  --source \
+  --target-package com.github.bric3.sodium \
+  -I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include \
+  -I $(brew --prefix)/include/sodium \
+  @sodium.conf \ <i class="conum" data-value="1"></i><b>(1)</b>
+  $(brew --prefix)/include/sodium.h</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Pass the option file into <code>jextract</code>, notice the preceding <code>@</code>.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>By editing the <code>sodium.conf</code> file and removing everything non related to
+<em>libsodium</em>, it was possible to cut down the generated bindings by more than a
+half. Depending on the required API usage it is of course possible to remove
+even more by selecting more aggressively the symbols.</p>
+</div>
+<div class="paragraph">
+<p>One could even go further and move the other options (<code>-d</code>, <code>-l</code>, <code>--source</code>,
+<code>--target-package</code>, etc), in this option file. Making the command even simpler</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract @sodium-only.conf $(brew --prefix)/include/sodium.h</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>This work was part of the following ticket <a href="https://bugs.openjdk.java.net/browse/JDK-8260976">JDK-8260976</a>.</em></p>
 </div>
 <div class="listingblock">
 <div class="title">Generated files</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ ls -lh libsodium-jextract-f/com/github/bric3/sodium/
-total 956K
--rw-r--r--. 1 root root  557 Feb 16 14:10 C.java
--rw-r--r--. 1 root root 8.8K Feb 16 14:10 RuntimeHelper.java
--rw-r--r--. 1 root root 350K Feb 16 14:10 sodium_h.java
--rw-r--r--. 1 root root 124K Feb 16 14:10 sodium_h_0.java
--rw-r--r--. 1 root root 329K Feb 16 14:10 sodium_h_constants_0.java
--rw-r--r--. 1 root root 131K Feb 16 14:10 sodium_h_constants_1.java</code></pre>
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ \ls -lh src/main/java/com/github/bric3/sodium
+total 1944
+-rw-r--r--  1 brice  staff   8.9K Sep  4 14:50 RuntimeHelper.java
+-rw-r--r--  1 brice  staff   1.9K Sep  4 14:50 constants$0.java
+-rw-r--r--  1 brice  staff   2.2K Sep  4 14:50 constants$1.java
+...
+-rw-r--r--  1 brice  staff    14K Sep  4 14:50 randombytes_implementation.java
+-rw-r--r--  1 brice  staff   398K Sep  4 14:50 sodium_h.java
+-rw-r--r--  1 brice  staff   1.1K Sep  4 14:50 sodium_set_misuse_handler$handler.java</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -1788,84 +1893,36 @@ The native <code>crypto_box_sealbytes</code> method compensates this limitation.
 </div>
 <div class="paragraph">
 <p><code>jextract</code> is however reading the headers, in doing so it actually extracts
-the constant <code>crypto_box_SEALBYTES</code>. It is still exposed as method,
-and it is declared in a different class <code>sodium_h_0#crypto_box_SEALBYTES</code>.</p>
+the constant <code>crypto_box_SEALBYTES</code>. It is still also exposed as method.</p>
 </div>
 <div class="paragraph">
-<p>Note that <code>sodium_h</code> extends <code>sodium_h_0</code>, so one will write</p>
+<p>I noticed that if the library has lots of symbols bindings <code>jextract</code> use
+inheritance: There’s a single entry point like the public type <code>sodium_h</code>, and
+this type inherits package visible classes like <code>sodium_h_0</code>, <code>sodium_h_1</code> and so on.
+The members in these package visible classes are public, and by inheritance
+these members are accessible via the public entry point.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">sodium_h.crypto_box_SEALBYTES()</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>Behind the scene this call invokes <code>sodium_h_constants_1#crypto_box_SEALBYTES</code>,
-and for <code>sodium_h</code> this split in two classes due to the class limits.
-<code>sodium_h_constants_1</code> extends <code>sodium_h_constants_0</code>.</p>
-</div>
 <div class="sect3">
-<h4 id="_first_hiccup"><a class="anchor" href="#_first_hiccup"></a><a class="link" href="#_first_hiccup">First hiccup</a></h4>
+<h4 id="_library_loading"><a class="anchor" href="#_library_loading"></a><a class="link" href="#_library_loading">Library loading</a></h4>
 <div class="paragraph">
-<p>When I accessed this constant for the first time, I got this
-error :</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">java.lang.ExceptionInInitializerError
-	at com.github.bric3.sodium.sodium_h_0.crypto_box_PUBLICKEYBYTES(sodium_h_0.java:1511)
-	at com.github.bric3.sodium.Libsodium$JextractedLibsodium.crypto_box_keypair(Libsodium.java:263)
-	at com.github.bric3.sodium.LibsodiumTest.can_invoke_crypto_box_keypair(LibsodiumTest.java:44)
-
-Caused by: java.lang.IllegalArgumentException: Library not found: sodium
-	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.lookup(LibrariesHelper.java:94)
-	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.loadLibrary(LibrariesHelper.java:60)
-	at jdk.incubator.foreign/jdk.incubator.foreign.LibraryLookup.ofLibrary(LibraryLookup.java:150)
-	at com.github.bric3.sodium.RuntimeHelper.lambda$libraries$0(RuntimeHelper.java:46)
-	at com.github.bric3.sodium.RuntimeHelper.libraries(RuntimeHelper.java:49)
-	at com.github.bric3.sodium.sodium_h_constants_0.&lt;clinit&gt;(sodium_h_constants_0.java:14)</code></pre>
-</div>
+<p>Remember the passed <code>jextract</code> option <code>-l sodium</code>, this option makes the generated
+code to load the library via the well-known <code>System.loadLibrary(&#34;sodium&#34;)</code> upon
+class loading the of the generated type (<code>sodium_h</code>).</p>
 </div>
 <div class="paragraph">
-<p>The stacktrace points to this code:</p>
-</div>
-<div class="listingblock">
-<div class="title">sodium_h_constants_0.LIBRARIES</div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
-    &#34;sodium&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
-});</code></pre>
-</div>
-</div>
-<div class="colist arabic">
-<table>
-<tbody><tr>
-<td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>This is the value I passed to the <code>jextract</code> command.</td>
-</tr>
-</tbody></table>
+<p>This operation expects the library to be available on the java library path, the
+one set via this property <code>System.getProperty(&#34;java.library.path&#34;)</code>, or amended via
+<code>JAVA_LIBRARY_PATH</code>.</p>
 </div>
 <div class="paragraph">
-<p><code>RuntimeHelper::libraries</code> can load a library from a name (using JNI conventions,
-<a href="https://github.com/openjdk/jdk16u/blob/1cc98bde6703d330b07ae873770df2c369b47eb2/src/hotspot/os/posix/include/jvm_md.h#L47-L55"><code>JNI_LIB_PREFIX</code> and <code>JNI_LIB_PREFIX</code></a>)
-or a path.</p>
+<p>If the library was installed in one of the lookup path there’s no issue, but if
+it isn’t you need to alter the java library path.</p>
 </div>
-<div class="paragraph">
-<p>The value above is the value I used in the <code>-l sodium</code> option of <code>jextract</code>,
-yet this value here is obviously incorrect for my use case.</p>
-</div>
-<div class="paragraph">
-<div class="title">Work around 1: with <code>jextract</code></div>
-<p>It is not yet clear, in the <code>jextract</code> usage description at this time,
-but one can pass to the <code>-l</code> option</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>A library name, which has to be available on one of the paths declared in the
-JVM system property <code>java.library.path</code></p>
-<div class="exampleblock">
-<div class="content">
 <div class="dlist">
 <dl>
 <dt class="hdlist1">linux</dt>
@@ -1878,53 +1935,55 @@ JVM system property <code>java.library.path</code></p>
 </dd>
 </dl>
 </div>
-</div>
-</div>
 <div class="paragraph">
-<p>The library must conform to JNI conventions, <code>libsodium.23.dylib</code> or <code>libtasn1.so.6.5.5</code>
-won’t work as they contain version numbers.</p>
-</div>
-</li>
-<li>
-<p>Or an absolute path eg <code>/usr/local/opt/libsodium/lib/libsodium.23.dylib</code>.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>However, the actual library path is dependent on the system, on the library
-version and on the installation mechanism. I could have used <code>jextract</code>
-with <code>-l /usr/local/opt/libsodium/lib/libsodium.23.dylib</code>, but then the generated
-code can not run on Linux without modifications, etc.</p>
-</div>
-<div class="paragraph">
-<p>My final objective for this code is to declare the libsodium bindings in java,
-and link with the actual libsodium on the platform macOs or Linux.</p>
-</div>
-<div class="paragraph">
-<div class="title">Work-around 2: Modify generated code</div>
-<p><code>LIBRARIES</code> is a static final variable that is used by other static variables
-in the same class. While it is possible to edit the <code>sodium_h_constants_0</code>
-class, it is still difficult to make this <code>LibraryLookup</code> code configurable
-without a significant refactoring.</p>
-</div>
-<div class="paragraph">
-<p>Oracle engineers are aware of this problem <a href="https://bugs.openjdk.java.net/browse/JDK-8262126">JDK-8262126</a>,
-so we might see it fixed in the final JEP-389 release.</p>
-</div>
-<div class="paragraph">
-<p>For this article the easiest solution, is to declare the local libsodium path
-in the code, as I did in the first section of this blog.</p>
+<p>Otherwise the code will fail with the following stacktrace</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
-    &#34;/usr/local/opt/libsodium/lib/libsodium.23.dylib&#34;
-});</code></pre>
+<pre class="highlightjs highlight"><code class="language-none hljs">no sodium in java.library.path: /Users/brice/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+java.lang.UnsatisfiedLinkError: no sodium in java.library.path: /Users/brice/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+	at java.base/java.lang.ClassLoader.loadLibrary(ClassLoader.java:2429)
+	at java.base/java.lang.Runtime.loadLibrary0(Runtime.java:818)
+	at java.base/java.lang.System.loadLibrary(System.java:1989)
+	at com.github.bric3.libsodium.sodium_h.&lt;clinit&gt;(sodium_h.java:13)
+	at com.github.bric3.sodium.Libsodium$JextractedLibsodium.crypto_box_keypair(Libsodium.java:283)
+	at com.github.bric3.sodium.LibsodiumTest.can_invoke_crypto_box_keypair(LibsodiumTest.java:45)</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>In the end I’ll rework this initialization later though with custom code
-to find the actual libsodium on the current platform.</p>
+<p>This is a nice improvement over my previous try of jextract generated code,
+before the stacktrace was a bit less obvious and the code harder to change,
+because the loading mechanism was nested deep in the generated code.</p>
+</div>
+<div class="paragraph">
+<p>But if one need to load the library from a custom path, eg jar that pack
+native libraries (and extract them in some temporary folder), it’s possible to
+drop the <code>-l sodium</code> option, in this case the generated code just won’t emit
+the <code>System::loadLibrary</code> in the static initialization of <code>sodium_h</code>. Instead
+it becomes possible necessary to manually load the library to your need.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">System.load(&#34;tmp/path/to/libsodium.so&#34;); <i class="conum" data-value="1"></i><b>(1)</b>
+sodium_h.crypto_kdf_blake2b_keybytes(); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Load the library</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Simply use the library bindings</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>This is a direct improvement (see <a href="https://bugs.openjdk.java.net/browse/JDK-8262126">JDK-8262126</a>)
+over my previous use of <code>jextract</code>, loading a library from a specific location
+was difficult to do.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1939,9 +1998,10 @@ these allocations.</p>
 <div class="listingblock">
 <div class="title">crypto_box_keypair</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = NativeScope.unboundedScope()) {
-    var recipientPublicKey = scope.allocate(sodium_h.crypto_box_PUBLICKEYBYTES());
-    var recipientSecretKey = scope.allocate(sodium_h.crypto_box_SECRETKEYBYTES());
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = ResourceScope.newConfinedScope()) {
+    var segmentAllocator = SegmentAllocator.ofScope(scope);
+    var recipientPublicKey = segmentAllocator.allocate(sodium_h.crypto_box_PUBLICKEYBYTES());
+    var recipientSecretKey = segmentAllocator.allocate(sodium_h.crypto_box_SECRETKEYBYTES());
     sodium_h.crypto_box_keypair(recipientPublicKey, recipientSecretKey); <i class="conum" data-value="1"></i><b>(1)</b>
     return new CryptoBoxKeyPair(
             recipientPublicKey.toByteArray(),
@@ -1954,7 +2014,7 @@ these allocations.</p>
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>the <em>jextracted</em> method</td>
+<td>Use the <em>jextracted</em> method</td>
 </tr>
 </tbody></table>
 </div>
@@ -1966,18 +2026,18 @@ method which is basically what I showed in the first part of this blog post.</p>
 <div class="paragraph">
 <p>As reflex, I always like to navigate the code I’m invoking.
 The method we are invoking are just the public API methods, checking null,
-and declaring a correct callsite (correct return type, correct argument types).</p>
+and declaring a correct call-site (correct return type, correct argument types).</p>
 </div>
 <div class="listingblock">
 <div class="title">sodium_h.crypto_box_keypair</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static  MethodHandle crypto_box_keypair$MH() {
-    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
-                                        &#34;unresolved symbol: crypto_box_keypair&#34;);
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static MethodHandle crypto_box_keypair$MH() {
+    return RuntimeHelper.requireNonNull(constants$22.crypto_box_keypair$MH,
+                                        &#34;crypto_box_keypair&#34;);
 }
 public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
-    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
-                                           &#34;unresolved symbol: crypto_box_keypair&#34;);
+    var mh$ = RuntimeHelper.requireNonNull(constants$22.crypto_box_keypair$MH,
+                                           &#34;crypto_box_keypair&#34;);
     try {
         return (int)mh$.invokeExact(pk.address(), sk.address());
     } catch (Throwable ex$) {
@@ -1992,19 +2052,19 @@ public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
 <div class="listingblock">
 <div class="title">sodium_h_constants_0.crypto_box_keypair$MH</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">static final FunctionDescriptor crypto_box_keypair$FUNC = FunctionDescriptor.of(
     C_INT,
     C_POINTER,
     C_POINTER
 );
 
-static final MethodHandle crypto_box_keypair$MH_ = RuntimeHelper.downcallHandle(
-    LIBRARIES,
+static final MethodHandle crypto_box_keypair$MH = RuntimeHelper.downcallHandle(
+    sodium_h.LIBRARIES,
     &#34;crypto_box_keypair&#34;,
     &#34;(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I&#34;, <i class="conum" data-value="1"></i><b>(1)</b>
-    crypto_box_keypair$FUNC_, false
-);
-static final java.lang.invoke.MethodHandle crypto_box_keypair$MH() { return crypto_box_keypair$MH_; }</code></pre>
+    constants$22.crypto_box_keypair$FUNC,
+    false
+);</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -2072,7 +2132,7 @@ as the JEP-389 linker won’t be able to link them.</p>
 respective memory layout whether they are supported of not.</p>
 </div>
 <div class="listingblock">
-<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/Type.java">Type.Primitive.Kind</a></div>
+<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/Type.java">Type.Primitive.Kind</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">enum Kind {
     /**
@@ -2134,14 +2194,17 @@ respective memory layout whether they are supported of not.</p>
     /**
      * {@code wchar} type.
      */
-    WChar(&#34;wchar_t&#34;, UnsupportedLayouts.WCHAR_T);</code></pre>
+    WChar(&#34;wchar_t&#34;, UnsupportedLayouts.WCHAR_T);
+
+    // ...
+}</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Those types can be <em>qualified</em>, in particular integer types can be unsigned:</p>
 </div>
 <div class="listingblock">
-<div class="title">jdk.internal.jextract.impl.TypeMaker#makeTypeInternal</div>
+<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/TypeMaker.java#L138-L157">jdk.internal.jextract.impl.TypeMaker#makeTypeInternal</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">case UShort: {
     Type chType = Type.primitive(Primitive.Kind.Short);
@@ -2171,7 +2234,7 @@ memory layout, eg. <code>long long</code> and <code>unsigned long long</code> us
 <code>C_LONG_LONG</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/6aafbbbeeb59050f79d82f4d7cec85011e99f6bb/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/LayoutUtils.java">LayoutUtils.getLayout</a></div>
+<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/LayoutUtils.java#L63-L120">LayoutUtils.getLayout</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static MemoryLayout getLayout(Type t) {
     Supplier&lt;UnsupportedOperationException&gt; unsupported = () -&gt;
@@ -2210,11 +2273,11 @@ memory layout, eg. <code>long long</code> and <code>unsigned long long</code> us
         case Record:
             return getRecordLayout(t);
         case Vector:
-            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+            return MemoryLayout.sequenceLayout(t.getNumberOfElements(), getLayout(t.getElementType()));
         case ConstantArray:
-            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+            return MemoryLayout.sequenceLayout(t.getNumberOfElements(), getLayout(t.getElementType()));
         case IncompleteArray:
-            return MemoryLayout.ofSequence(getLayout(t.getElementType()));
+            return MemoryLayout.sequenceLayout(getLayout(t.getElementType()));
         case Unexposed:
             Type canonical = t.canonicalType();
             if (canonical.equalType(t)) {
@@ -2246,31 +2309,31 @@ memory layout, eg. <code>long long</code> and <code>unsigned long long</code> us
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>jextract identify unsupported types, and represents them correctly during the C
+<p><code>jextract</code> identify unsupported types, and represents them correctly during the C
 header processing. But the symbols that use them will be skipped during the
 Java generation.</p>
 </div>
 <div class="listingblock">
-<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/1af1f2558760f8177b807d96582546a027959cbd/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/UnsupportedLayouts.java">jdk.internal.jextract.impl.UnsupportedLayouts</a></div>
+<div class="title"><a href="https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/UnsupportedLayouts.java#L37-L64">jdk.internal.jextract.impl.UnsupportedLayouts</a></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">private static final String ATTR_LAYOUT_KIND = &#34;jextract.abi.unsupported.layout.kind&#34;;
 
-public static final ValueLayout __INT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+public static final ValueLayout __INT128 = MemoryLayout.valueLayout(128, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, &#34;__int128&#34;);
 
-public static final ValueLayout LONG_DOUBLE = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+public static final ValueLayout LONG_DOUBLE = MemoryLayout.valueLayout(128, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, &#34;long double&#34;);
 
-public static final ValueLayout _FLOAT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+public static final ValueLayout _FLOAT128 = MemoryLayout.valueLayout(128, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, &#34;_float128&#34;);
 
-public static final ValueLayout __FP16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+public static final ValueLayout __FP16 = MemoryLayout.valueLayout(16, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, &#34;__fp16&#34;);
 
-public static final ValueLayout CHAR16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+public static final ValueLayout CHAR16 = MemoryLayout.valueLayout(16, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, &#34;char16&#34;);
 
-public static final ValueLayout WCHAR_T = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+public static final ValueLayout WCHAR_T = MemoryLayout.valueLayout(16, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, &#34;wchar_t&#34;);
 
 static boolean isUnsupported(MemoryLayout vl) { <i class="conum" data-value="1"></i><b>(1)</b>
@@ -2296,19 +2359,22 @@ static String getUnsupportedTypeName(MemoryLayout vl) {
 </div>
 </div>
 <div class="sect2">
-<h3 id="_wrapping_up_on_jextract"><a class="anchor" href="#_wrapping_up_on_jextract"></a><a class="link" href="#_wrapping_up_on_jextract">Wrapping up on <code>jextract</code></a></h3>
+<h3 id="_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167"><a class="anchor" href="#_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167"></a><a class="link" href="#_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167">Wrapping up on <code>jextract</code> for JEP-412 / build 17-panama+3-167</a></h3>
 <div class="paragraph">
-<p>In the end <code>jextract</code> is useful but there’s a few little hiccups along the way.
-The generated code is currently lacking in some usability. Also, the generated
-code is a tad verbose, I would wish a way to eliminate some unneeded generated
-methods. Using <code>jextract</code> is a bit obscure as well, and they are a few pitfalls
-there too, and may require peeking at the <code>jdk.incubating.jextract</code> source code
-(in the panama repository).</p>
+<p>This iteration showed massive improvements of <code>jextract</code>, for my usage the
+pitfalls present at the time of JEP-389 (JDK 16) are gone. I tend to think the
+generated code is still a bit verbose, but it got better.</p>
 </div>
 <div class="paragraph">
-<p>While I mention these point, this should not diminish the work done on this tool
-and what this tool could become. When ready, this could be leveraged by Gradle,
-or Jetbrains IntelliJ IDEA, etc.</p>
+<p>Most welcome is the precise inclusion of symbols. Thi mechanism is powerful
+but not quite visible. The new dump / include mechanism is useful.</p>
+</div>
+<div class="paragraph">
+<p>If there’s something that need improvement it’s the help. But I’m sure it will
+be fixed before the final release.</p>
+</div>
+<div class="paragraph">
+<p>When ready, this could be leveraged by Gradle or Jetbrains IntelliJ IDEA, etc.</p>
 </div>
 </div>
 </div>
@@ -2318,24 +2384,26 @@ or Jetbrains IntelliJ IDEA, etc.</p>
 <div class="sectionbody">
 <div class="paragraph">
 <div class="title">Cool part</div>
-<p>In JDK16 the foreign module is really easy to use albeit <code>javac</code> and <code>java</code>
-command line requirement. The API is well-designed and easy to use.
-I also appreciated the idea of scoped segments, a bit like what was
+<p>In JDK17 the foreign module is even easier and particularly safer to use
+albeit <code>javac</code> and <code>java</code> command line requirement. The API is well-designed and
+easy to use. I also appreciated the idea of scoped segments, a bit like what was
 implemented in the Rust language. There’s also the coolness of being able
-to free memory segment at will, without depending on the GC.</p>
+to free memory segment (in particular for mapped file) at will, without
+depending on the GC.</p>
 </div>
 <div class="paragraph">
 <div class="title">Sad part</div>
-<p>This is the third incubator and there’s still planned API. Some of this
-blog post content will eventually become incorrect when JDK17 comes out.
-<code>jextract</code> looks like a very practical tool, yet it is still
-being <em>cooked</em>.</p>
+<p>This is yet another incubator and API change or not impossible. Some of this
+blog post content will eventually become incorrect when the next JDK comes out.
+<code>jextract</code> solidify its position as a very practical tool, too sad it isn’t
+included in the JDK yet, but the safer approach wins here.</p>
 </div>
 <div class="paragraph">
 <div class="title">Overall</div>
-<p>JEP-389 looks like solid replacement of JNI or JNA. I can only applaud the work
-done! My only regret is it’s not yet <em>already</em> available. That said as a
-developer I support the idea to not ship until ready.</p>
+<p>JEP-412 is yet another solid step-stone toward what looks like looks like
+the replacement (in term of usage) of JNI or JNA. As before I can only applaud
+the work done! My only regret is it’s not yet <em>already</em> available. That said as
+a developer I support the idea to not ship until ready.</p>
 </div>
 <hr/>
 <div class="ulist">
@@ -2343,6 +2411,9 @@ developer I support the idea to not ship until ready.</p>
 <ul>
 <li>
 <p><a href="https://openjdk.java.net/jeps/389" class="bare">https://openjdk.java.net/jeps/389</a></p>
+</li>
+<li>
+<p><a href="https://openjdk.java.net/jeps/412" class="bare">https://openjdk.java.net/jeps/412</a></p>
 </li>
 <li>
 <p><a href="https://mail.openjdk.java.net/pipermail/panama-dev/" class="bare">https://mail.openjdk.java.net/pipermail/panama-dev/</a></p>
@@ -2371,6 +2442,12 @@ developer I support the idea to not ship until ready.</p>
 <li>
 <p><a href="https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/" class="bare">https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/</a></p>
 </li>
+<li>
+<p><a href="https://foojay.io/today/project-panama-for-newbies-part-1/" class="bare">https://foojay.io/today/project-panama-for-newbies-part-1/</a></p>
+</li>
+<li>
+<p><a href="https://foojay.io/today/project-panama-for-newbies-part-2/" class="bare">https://foojay.io/today/project-panama-for-newbies-part-2/</a></p>
+</li>
 </ul>
 </div>
 <div class="paragraph">
@@ -2394,16 +2471,11 @@ developer I support the idea to not ship until ready.</p>
 
 <div class="navigation navigation-single">
     
-    <a href="/2020/12/11/completablefuture-with-burstable-pods/" class="navigation-prev">
+    <a href="/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/" class="navigation-prev">
       <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Anonymous CompletableFuture threads with burstable pods</span>
+      <span class="navigation-tittle">A practical look at JEP-389 in JDK16 with libsodium</span>
     </a>
     
-    
-    <a href="/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/" class="navigation-next">
-      <span class="navigation-tittle">A practical look at JEP-412 in JDK17 with libsodium</span>
-      <i aria-hidden="true" class="fa fa-chevron-right"></i>
-    </a>
     
 </div>
 
@@ -2416,9 +2488,9 @@ developer I support the idea to not ship until ready.</p>
         
         
         
-        this.page.identifier = 'https://blog.arkey.fr/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/';
-        this.page.title = 'A practical look at JEP-389 in JDK16 with libsodium';
-        this.page.url = 'https://blog.arkey.fr/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/';
+        this.page.identifier = 'https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/';
+        this.page.title = 'A practical look at JEP-412 in JDK17 with libsodium';
+        this.page.url = 'https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/';
     };
     (function() {
         if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
@@ -2444,7 +2516,7 @@ developer I support the idea to not ship until ready.</p>
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2021-02-20-a-practical-look-at-jep-389-with-jdk16.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2021-09-03-a-practical-look-at-jep-412-with-jdk17.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
