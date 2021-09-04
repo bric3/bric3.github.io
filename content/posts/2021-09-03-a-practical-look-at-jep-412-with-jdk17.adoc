@@ -1,22 +1,21 @@
 ---
 authors: ["brice.dutheil"]
-date: "2021-02-20T16:01:06+01:00"
+date: "2021-09-04T16:38:06+01:00"
 language: en
-tags: [ "jep-389", "java", "jvm", "memory", "linker", "foreign", "jdk16", "panama" ]
-slug: "a-practical-look-at-jep-389-in-JDK16-with-libsodium"
-title: "A practical look at JEP-389 in JDK16 with libsodium"
-summary: "JDK 16 is coming and with the incubating JEP-389, let's have a practical look at this API that should supersede JNI."
+tags: [ "jep-389", "jep-412", "java", "jvm", "memory", "linker", "foreign", "jdk17", "panama" ]
+slug: "a-practical-look-at-jep-412-in-JDK17-with-libsodium"
+title: "A practical look at JEP-412 in JDK17 with libsodium"
+summary: "JDK 17 is coming and with the incubating JEP-412, let's have a practical look at this API that should supersede JNI."
 ---
 
-IMPORTANT: https://openjdk.java.net/projects/jdk/17/[JDK-17] will be released on
-the September 14th 2021, it will come with another incubator
-https://openjdk.java.net/jeps/412[JEP-412] for foreign function and foreign
-memory, go to the
-https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/[updated article for JDK-17].
+IMPORTANT: This article is an updated version of this
+https://blog.arkey.fr/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/[article on JEP-389 shipped with JDK 16].
+This updated version merely reflects the change that appeared in JEP-412, along
+with update to the gradle section.
 
-
-JDK 16 is coming and with the *incubating* https://openjdk.java.net/jeps/389[JEP-389]
-(Foreign Linker API).
+https://openjdk.java.net/projects/jdk/17/[JDK 17] will be released on September
+14th 2021 with yet another *incubator* https://openjdk.java.net/jeps/412[JEP-412]
+of the _Foreign Linker API_.
 
 
 The Foreign Linker API is a very convenient and attractive way to connect to
@@ -28,10 +27,50 @@ First I will focus on using the foreign linker API, then I will show how to use
 `jextract` in its current state (it is still being actively developed).
 
 
-CAUTION: Note that JEP-389 is still incubating, therefore examples below are to be
+CAUTION: Note that JEP-412 is still incubating, therefore examples below are to be
 obsolete for the next JDK as API and behavior are further refined.
 
-TIP: The following examples were based on *JDK 16 release candidate build 36 (2021/2/8)*.
+TIP: The following examples were based on *JDK 17 release candidate build 35 (2021/8/6)*.
+
+.Changes
+|===
+| JEP-389 | JEP-412
+
+| `-Dforeign.restricted=permit`
+| `--enable-native-access=ALL-UNNAMED`
+The new option allows fine-grained restriction over which module is permitted
+to invoke native code. `ALL-UNNAMED` is a special value to refer to classpath
+based code.
+
+| `LibraryLookup.ofDefault()`
+| `CLinker.systemLookup()`
+
+| `LibraryLookup.ofPath(Path)`
+| There's no straight replacement, instead the code has to a combination of
+
+[source]
+----
+System.load(String)
+SymbolLookup.loaderLookup()
+----
+
+
+| `NativeScope.unboundedScope()`
+| `ResourceScope.newConfinedScope()`
+
+| `MemorySegment.allocateNative(long)`
+| `MemorySegment.allocateNative(long, ResourceScope)`
+
+| `NativeScope.allocate*` methods
+| `SegmentAllocator.allocate*`, the allocator has factory methods taking a
+`ResourceScope`, eg `SegmentAllocator.ofScope(scope)`
+
+| `CLinker.toCString(String, Charset, ResourceScope)`,
+`CLinker.toJavaString(MemorySegment, Charset)`
+| There's no equivalent, encoding/decoding a string to/from a given charset
+must be done manually.
+
+|===
 
 _Thanks to https://twitter.com/jpbempel[Jean-Phillipe Bempel] for the review and
 in particular spotting errors_.
@@ -76,7 +115,7 @@ foreign linker.
 .Allow jshell to use the foreign module
 [source, shell]
 ----
-$ jshell --add-modules jdk.incubator.foreign -R-Dforeign.restricted=permit
+$ jshell --add-modules jdk.incubator.foreign -R--enable-native-access=ALL-UNNAMED
 ----
 
 Then within jshell, let's try out a simple smoke test.
@@ -88,7 +127,7 @@ jshell> import java.lang.invoke.*;
 jshell> import jdk.incubator.foreign.*;
 jshell> var getpid = CLinker.getInstance()
    ...>                     .downcallHandle(
-   ...>                             LibraryLookup.ofDefault().lookup("getpid").get(),
+   ...>                             CLinker.systemLookup().lookup("getpid").get(),
    ...>                             MethodType.methodType(long.class),
    ...>                             FunctionDescriptor.of(CLinker.C_LONG)
    ...>                     );
@@ -103,7 +142,7 @@ $5 ==> 53699
 
 Yes it works ! It really is easy to try a things for almost free, without
 leaving Java this is really neat. Now I would like to focus on the small example
-with libsodium within a project. I'll explain how to use the API along the way.
+with **libsodium** within a project. I'll explain how to use the API along the way.
 
 
 === Configuring Gradle
@@ -117,22 +156,25 @@ $ javac --add-modules jdk.incubator.foreign ...
 ----
 
 This module also needs to be declared when running this code, as well as
-another property `foreign.restricted` to be able to invoke native code.
+another option --enable-native-access to _permit_ modules to perform native operations.
 
 [source, shell]
 ----
-$ java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...
+$ java --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign ...
 ----
 
 If you like to play with `jshell`, it will be necessary to use these two as well
 
 [source, shell]
 ----
-$ jshell -R-Dforeign.restricted=permit --add-modules jdk.incubator.foreign ...
+$ jshell -R--enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign ...
 ----
 
 Then comes the question to configure the build tool. I am using Gradle, the
 configuration is likely similar for other build tool.
+
+TIP: The following lines assume Gradle 7.2.
+
 
 .build.gradle.kts
 [source, kotlin]
@@ -141,49 +183,115 @@ configuration is likely similar for other build tool.
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(16))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
 tasks {
     withType<JavaCompile>().configureEach {
-        options.forkOptions.jvmArgs = listOf(
-                "--add-opens", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED" // <1>
-        )
-
         options.compilerArgs = listOf(
-                "--add-modules", "jdk.incubator.foreign" // <2>
+                "--add-modules", "jdk.incubator.foreign" // <1>
         )
-        options.release.set(16)
+        options.release.set(17)
     }
 
     withType<JavaExec>().configureEach {
-        jvmArgs("-Dforeign.restricted=permit", // <3>
+        jvmArgs("--enable-native-access=ALL-UNNAMED", // <2>
                 "--add-modules", "jdk.incubator.foreign")
+        javaLauncher.set(project.javaToolchains.launcherFor(java.toolchain)) // <3>
     }
 
     withType<Test>().configureEach {
         useJUnitPlatform()
-        jvmArgs("-Dforeign.restricted=permit", // <4>
+        jvmArgs("--enable-native-access=ALL-UNNAMED", // <4>
                 "--add-modules", "jdk.incubator.foreign")
     }
 }
 ----
-<1> Gradle itself can run on a different JDK, but the code needs to be compiled
-with JDK16, at this time Gradle 6.8.2 does not support the new module restriction
-introduced with JDK16 by default, hence it is necessary to explicitly open modules.
-See https://github.com/gradle/gradle/issues/15538#issuecomment-744299876[gradle/gradle#15538].
-<2> Let the compiler knows about the `jdk.incubator.foreign` module
-<3> Configure the tasks that executes a main class, while this is not immediately useful
+<1> Let the compiler knows about the `jdk.incubator.foreign` module
+<2> Configure the tasks that executes a main class, while this is not immediately useful
 IntelliJ IDEA will pick up this configuration, when you click running a `main` method.
+<3> Currently a the project toolchain is not the default value for some properties
+like the `JavaExec` task launcher, see https://github.com/gradle/gradle/issues/16791[gradle/gradle/issues#16791].
 <4> Configure test tasks to be able to run `jdk.incubator.foreign` tests.
 
 === The first and minimal call `crypto_box_sealbytes`
 
-The first lines makes use of a few macros (the lines starting with `#define`),
-we can assume that `MESSAGE` will be a method parameter, `MESSAGE_LEN`
-will be derived from the message parameter, and `CIPHERTEXT_LEN` is also derived
-from the message but needs another constant `crypto_box_SEALBYTES`.
+==== Lookup
+
+The very first thing to setup is the native symbol lookup mechanism. In JDK 17
+the nifty `LibraryLookup` is gone, in my opinion this API was better as it allowed
+to pass a path, which is particularly useful when embedding native libraries in JARs.
+
+Basically in the JDK 17 there's two options:
+
+* `CLinker.systemLookup()` this mechanism will find symbols in the system libraries,
+these seem to be the symbol of libraries f the JVM itself, and the path is
+defined in this property `sun.boot.library.path`
++
+[source, shell]
+----
+$ jshell -s - <<< "System.out.println(System.getProperty(\"sun.boot.library.path\"))"
+/Users/brice/.asdf/installs/java/openjdk-17/lib
+----
++
+And it doesnt seem related to classloader.
+
+* `SymbolLookup.loaderLookup()` on the other hand appear to be based library
+loaded via `System.load` / `System.loadLibrary`, which are tied to the classloader.
+This mechanism will lookup libraries defined in the `java.library.path` property
++
+[source, shell]
+----
+jshell -s - <<< "System.out.println(System.getProperty(\"java.library.path\"))"
+/Users/brice/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+----
+
+So which method to choose ?
+
+Assuming libsodium has been installed with https://brew.sh[homebrew]
+(`brew install libsodium`) this should install a symbolic link in
+`$(brew --prefix)/lib/libsodium.dylib` (or `/usr/local/lib/libsodium.dylib`).
+
+Basically there's two choice to consume this library, and it is very similar to
+what was needed with JNI.
+
+* either the runtime execution requires alteration via the environment variable
+`JAVA_LIBRARY_PATH`, and the library can be loaded by it's name `System.loadLibrary("sodium")` .
++
+----
+env JAVA_LIBRARY_PATH=:/usr/local/lib java --enable-native-access=ALL-UNNAMED ...
+----
+
+* or the code explicitly load the library from a path `System.load("/usr/local/lib/libsodium.dylib")`
+withut requiring to change environment variable.
+
+In the code however the question remain: Which lookup mechanism ?
+* Well if it's a library loaded via either `System::load` or `System:loadLibrary`
+has to use `SymbolLookup.loaderLookup()`.
+* If it is system library with system symbols like `printf` or `getpid`, the code
+need to use `CLinker.systemLookup`.
+
+
+Let's define the lookup this way for this article
+
+[source, java]
+----
+
+static {
+    System.load("/usr/local/lib/libsodium.dylib");
+    libsodiumLookup = SymbolLookup.loaderLookup();
+}
+----
+
+
+==== From C to Java
+
+Going back to the snippt to translate, the first lines makes use of a few macros
+(the lines starting with `#define`), we can assume that `MESSAGE` will be a
+method parameter, `MESSAGE_LEN` will be derived from the message parameter,
+and `CIPHERTEXT_LEN` is also derived from the message but needs another constant
+`crypto_box_SEALBYTES`.
 
 The first thing needed is to acquire the `crypto_box_SEALBYTES` constant, looking at
 https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L125-L127[`crypto_box.h`]
@@ -241,7 +349,8 @@ java.lang.IllegalArgumentException: Carrier size mismatch: int != b64[abi/kind=L
 ====
 
 For reference, `CLinker.C_INT` is actually a `MemoryLayout`, a _layout_ is used
-to model native memory.
+to model native memory, it is particularly useful when modeling the native
+datatype like ``struct``s, ``union``s, etc.
 
 
 === Then a more interesting case, passing argument pointers
@@ -286,8 +395,8 @@ MethodHandle crypto_box_keypair =
                 FunctionDescriptor.ofVoid(C_POINTER, C_POINTER)
         );
 
-var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
-var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes());
+var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes(), scope); // <1>
+var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes(), scope); // <1>
 crypto_box_keypair.invokeExact(recipientPublicKey.address(),
                                recipientSecretKey.address());
 
@@ -296,40 +405,27 @@ var kp = new CryptoBoxKeyPair(
         recipientSecretKey.toByteArray()
 );
 ----
+<1> The `MemorySegment::allocateNative` method takes the segment size and a `ResourceScope`.
 
-IMPORTANT: This code works, but there is something that must be taken care of,
-*the native segment lifecycle*.
+JEP-389 already had the concept of bounded usage of these memory segment with
+the `NativeScope` class, but it was still possible to write code that never
+deallocates native memory.
+The API in the JEP-412 improves over JEP-389 and now imposes the user to handle
+*the native segment lifecycle* via the same concepts embodied by the
+`ResourceScope` type.
 
-The above code snippet *never* deallocate native memory. Fortunately
-in JDK 16 the `MemorySegment` class implements `AutoCloseable`, declaring it
-in a _try-with_resources_ block will solve the issue.
+The above can completed by wrapping it in a _try-with-resources_ block with a
+`ResourceScope`, the scope will be take care the allocated memory segment upon
+the block exit.
 
-.`MemorySegment` lifecycle
-[sorce, java]
-----
-try (var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes());
-     var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes())) {
-    crypto_box_keypair.invokeExact(recipientPublicKey.address(),
-                                   recipientSecretKey.address());
-
-    return new CryptoBoxKeyPair(
-            recipientPublicKey.toByteArray(),
-            recipientSecretKey.toByteArray()
-    );
-}
-----
-
-However, JEP-389 comes with the concept of scopes, which allows to express
-temporal bounds of these segments, in JDK16 look for the `NativeScope` class,
-it allows registering segments in a _code section_ and allocating segments
-anywhere in this section.
-
-.crypto_box_keypair with `NativeScope` (.java)
+.crypto_box_keypair with `ResourceScope` (.java)
 [source, java]
 ----
-try (var scope = NativeScope.unboundedScope()) {
-    var recipientPublicKey = scope.allocate(crypto_box_publickeybytes());
-    var recipientSecretKey = scope.allocate(crypto_box_secretkeybytes());
+try (var scope = ResourceScope.unboundedScope()) {
+    var recipientPublicKey = scope.allocate(crypto_box_publickeybytes(), scope);
+    var recipientSecretKey = scope.allocate(crypto_box_secretkeybytes(), scope);
+
+    MethodHandle crypto_box_keypair = ...
 
     crypto_box_keypair.invokeExact(recipientPublicKey.address(),
                                    recipientSecretKey.address());
@@ -344,6 +440,10 @@ try (var scope = NativeScope.unboundedScope()) {
 In order to get back the off-heap content into Java types, the code can call
 any of the `to{The Java Type}` methods on the `MemorySegment` instance, they
 will take care of the conversion.
+
+There's more to say about allocation API in JEP 412, please refer to section :
+<<memory-allocation>>.
+
 
 === Next invoking the sealing method
 
@@ -472,12 +572,13 @@ var crypto_box_seal = CLinker.getInstance().downcallHandle(
 
 );
 
-try (var scope = NativeScope.unboundedScope()) {
-    var cipherText = scope.allocate(crypto_box_sealbytes() + message.length());
+try (var scope = ResourceScope.newConfinedScope()) {
+    var nativeMessage = CLinker.toCString(message, scope);
+    var cipherText = scope.allocate(crypto_box_sealbytes() + nativeMessage.byteSize(), scope);
     var ret = (int) crypto_box_seal.invokeExact(
             cipherText.address(),
-            CLinker.toCString(message, StandardCharsets.US_ASCII, scope).address(),
-            (long) message.length(),
+            CLinker.toCString(message, scope).address(),
+            (long) nativeMessage.byteSize(),
             scope.allocateArray(C_CHAR, publicKey).address()
     );
     return cipherText.toByteArray();
@@ -486,12 +587,19 @@ try (var scope = NativeScope.unboundedScope()) {
 
 There's a few thing to notice :
 
-. I am specifically passing the `US_ASCII` charset, as I now that
-the byte array representation of the string will be 1 byte per `char`, implying
-I can use the `String::length` method.
-If the string used characters that do not fit in a single byte, I would have
-needed to extract the byte array using `UTF-8` charset encoder first and use
-the length of the byte array instead.
+. The `toCString` method don't take anymore a charset compared to JEP-389 (JDK-16),
+and encode the String to UTF-8. This change implies to pay attention to native APIs
+that may not understand wide characters like `中文` that require more than 1 byte
+to encode the character. Consequently native API that may need the length
+have to pay attention to the this detail too -- UTF-8 encode characters in one or
+more byte if necessary -- in other words don't rely on `String::length` to count
+bytes.
++
+In the above snippet, the `String` is first encoded then the length is
+taken from the memory segment `nativeMessage.byteSize()`.
++
+Alternatively the encoding could have been done using a charset via `String::getBytes`.
+And the actual size taken from the resulting byte array.
 
 . The `var ret` is not used, however due to the _dynamic_
 nature of `invokeExact`, the compiler needs the *exact* signature on the
@@ -511,7 +619,7 @@ java.lang.invoke.WrongMethodTypeException: expected (MemoryAddress,MemoryAddress
 === Ending the crypto box example
 
 The last method call of this snippet ends the libsodium _crypto box_ example.
-The method `crypto_box_seal_open` take pointers and a ciphered text length
+The method `crypto_box_seal_open` take pointers and a ciphered text length,
 so let's apply again what has been done for `crypto_box_seal`.
 
 .crypto_box_seal_open (.c)
@@ -547,96 +655,85 @@ var crypto_box_seal_open = getInstance().downcallHandle(
         )
 );
 
-try (var scope = NativeScope.unboundedScope()) {
-    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
+try (var scope = ResourceScope.newConfinedScope()) {
+    var allocator = SegmentAllocator.ofScope(scope); // <1>
+    var decipheredText = allocator.allocateArray(C_CHAR,
+                                                 cipherText.length - crypto_box_sealbytes());
     var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
                                                      scope.allocateArray(C_CHAR, cipherText).address(),
                                                      (long) cipherText.length,
                                                      scope.allocateArray(C_CHAR, publicKey).address(),
                                                      scope.allocateArray(C_CHAR, secretkey).address());
 
-    return CLinker.toJavaString(decipheredText, StandardCharsets.US_ASCII);
+    return CLinker.toJavaString(decipheredText); // <2>
 }
 ----
+<1> `MemorySegment` offers API to allocate segments, to allocate arrays `SegmentAllocator`
+offers a better API
+<2> In JDK 16, using `toJavaString` raised a `IndexOutOfBoundsException` with the message
+`Out of bound access on segment MemorySegment{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1`.
++
+Indeed during my first use of the foreign linker API in the JDK 16 I use
+`String::length` to indicate the number of bytes to _seal_, a Java String length
+that didn't included the null character `\0` that terminates a C string. Which caused
+this bound issue during the reverse operation `toJavaString`.
++
+The seal example in this JDK 17 version uses the memory segment length, which
+thereby prevents ths issue from happening.
 
-Yet running this code raise an error:
+CAUTION: This reminds us that one has to be careful with String and encodings.
 
-[source]
-----
-java.lang.IndexOutOfBoundsException: Out of bound access on segment MemorySegment{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.outOfBoundException(AbstractMemorySegmentImpl.java:495)
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBoundsSmall(AbstractMemorySegmentImpl.java:465)
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkBounds(AbstractMemorySegmentImpl.java:446)
-	at jdk.incubator.foreign/jdk.internal.foreign.AbstractMemorySegmentImpl.checkAccess(AbstractMemorySegmentImpl.java:401)
-	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.checkAddress(MemoryAccessVarHandleByteHelper.java:80)
-	at java.base/java.lang.invoke.MemoryAccessVarHandleByteHelper.get(MemoryAccessVarHandleByteHelper.java:113)
-	at jdk.incubator.foreign/jdk.incubator.foreign.MemoryAccess.getByteAtOffset(MemoryAccess.java:105)
-	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.strlen(SharedUtils.java:259)
-	at jdk.incubator.foreign/jdk.internal.foreign.abi.SharedUtils.toJavaStringInternal(SharedUtils.java:249)
-	at jdk.incubator.foreign/jdk.incubator.foreign.CLinker.toJavaString(CLinker.java:342)
-----
+A side note, in this snippet too I have intentionally left out the returned
+status of `crypto_box_seal_open`, to focus on the foreign module API, but this
+would make sense to perform checks on the returned value before returning the
+buffer as suggested on the libsodium documentation.
 
-I didn't get why this code failed at first.
+More interestingly this example introduces the `SegmentAllocator` of the JEP-412
+which offers a richer set of API that can use __layout__s, in particular it can
+be used for array allocation.
 
-`CLinker::toJavaString` is the mirror function of the `CLinker::toCString`, so it looked correct.
+`SegmentAllocator` provides different allocation strategies.
 
-The exception message indicates the segment has the size 20 which is the length
-of the string `Hello foreign code !`, there's `new offset is 20` indicating the
-segment was read up to the 20th byte / character, and there is the `new length = 1`,
-which suggests `toJavaString` needs to read an additional character but can't.
+.Different segment allocators
+[cols="2"]
+|===
 
-The javadoc of `toJavaString` says (emphasis is mine) :
+| `SegmentAllocator.ofScope(ResourceScope)`
+| It is a regular allocator for native memory.
+It uses a standard `malloc` call. The new allocated segments will all be cleaned when the
+scope closes.
 
-> *Converts a null-terminated C string* stored at given address into a Java string, using the platform's default charset.
 
-This immediately clicked: libsodium's _message_ does not imply it is a string.
-It's API takes a pointer to a memory region and the length to read in that memory
-region. For all that matter, the message could be any binary payload.
+| `SegmentAllocator.ofSegment(MemorySegment)`
+| This allows to reuse, or recycle, the same memory segment.
+Allocated segments are all sub parts of this parent memory segment. This is
+useful to limit allocations as `malloc` operations as they are known to be
+expensive.
 
-Let's look at the string `Hello`
+| `SegmentAllocator.arenaAllocator(scope)`
+| This allocator is doing https://en.wikipedia.org/wiki/Region-based_memory_management[region based memory management].
+The short version of the arena memory management is : the allocator allocates
+a chunk of memory and either use a slice of that segment, or allocate a new
+chunk of memory to satisfy the allocation request.
+Since segment are scoped in inside a ResourceScope, they are freed, and their
+slice can be used again.
+This allocator is useful to limit costly `malloc` operations, yet allows more
+flexibility than the alternative segment recycling.
 
-. Libsodium _seal_ method will be passed the following byte array
-`CLinker.toCString("Hello", StandardCharsets.US_ASCII).toByteArray()` => `48656C6C6F00`
-. But since the code is using `String::length`, libsodium will only seal up to 5 bytes : `48656C6C6F`.
-. Then _opening the seal_, the content of the `MemorySegment` that contains the decrypted message
-will be `48656C6C6F`
-. But `CLinker.toJavaString(decipheredText, StandardCharsets.US_ASCII)` expects
-the memory segment to be a valid C string, terminated by the `\0` character. And since
-the actual decrypted memory segment is not terminated by '\0', the code emit an error.
+The factory has an overload that takes a size, in this case allocations are possible
+until no further allocation is possible, ie it won't add a new underlying chunk
+of memory.
 
-For this reason this suggests the code to use is
-`new String(decipheredText.toByteArray(), StandardCharsets.US_ASCII)`. They are other
-possibilities like not using the `CLinker::toCString` with the `crypto_box_seal`
-method and instead, or to increment by 1 the length when `CLinker::toCString`
-is passed.
 
-For reference here are the bytes returned by `String::getBytes` and
-`CLinker::toCString`.
+|===
 
-* `"Hello".getBytes(US_ASCII)` => `48656C6C6F`
-* `CLinker.toCString("Hello", US_ASCII).toByteArray()` => `48656C6C6F00`
+All allocators are thread safe, but a confined scope will restrict the allocation
+to the owner thread.
 
-For this blog post I'd like to keep the assumption the sealed message is a `String`,
-which leads to the following correct code :
 
-[source, java]
-----
-try (var scope = NativeScope.unboundedScope()) {
-    var decipheredText = scope.allocateArray(C_CHAR, cipherText.length - crypto_box_sealbytes());
-    var ret = (int) crypto_box_seal_open.invokeExact(decipheredText.address(),
-                                                     scope.allocateArray(C_CHAR, cipherText).address(),
-                                                     (long) cipherText.length,
-                                                     scope.allocateArray(C_CHAR, publicKey).address(),
-                                                     scope.allocateArray(C_CHAR, secretkey).address());
 
-    return new String(decipheredText.toByteArray(), StandardCharsets.US_ASCII);
-}
-----
 
-Also, I have intentionally left out the returned status of `crypto_box_seal_open`,
-to focus on the foreign module API, but this would make sense to perform checks
-on the returned value before returning the buffer as suggested on the libsodium
-documentation.
+
 
 
 
@@ -644,17 +741,18 @@ documentation.
 
 I didn't cover everything this API has to offer, like the _up call_ stubs,
 which is a way to pass a function pointer to the native code, nor did I cover
-the every feature of JEP-389, like `MemorySegment` or `MemoryLayout` API.
+the every feature of JEP-412, like `MemorySegment` or `MemoryLayout` API.
 
-At this time I find this API a pleasure to use compared to JNI. Note that
-I don't have experience with JNA, so I may be lacking perspective there.
+At this time I find this API a pleasure to use compared to JNI. _Note that
+I don't have experience with JNA, so I may be lacking perspective there._
 
-There's a few pitfalls like the `CLinker::toJavaString` or the
-`MemorySegment` lifecycles which get more complicated if those segments
-are shared between threads. I found the API well-designed and well
-documented, but if you're novice in this area, you'll likely need
-other materials. A package wide documentation, in `jdk.incubator.foreign`,
-should definitely fill this gap in my opinion.
+There's a few pitfalls to be aware of using API that use pointers or reference,
+String encoding is of particular interest, and `MemorySegment` lifecycles
+get more complicated if those segments are shared between threads.
+Overall I found the API well-designed and well documented, but if you're novice
+in this area, you'll likely need other reading materials. A package wide
+documentation, in `jdk.incubator.foreign`, should definitely fill this gap in
+my opinion.
 
 The chosen example was concise in native code, but writing the stubs in Java
 is quickly tedious and verbose. JDK developers felt the same way as they
@@ -662,6 +760,7 @@ are also investing energy on a tool named `jextract` whose goal is to reduce
 the tedious work amount. I'll show in a section below what can be done with
 the current state of `jextract`.
 
+[[memory-allocation]]
 == Remarks about ``MemorySegment``s  memory mapping
 
 
@@ -699,7 +798,7 @@ inspect memory mappings of the JVM.
 ./pmap output of a 2GiB native segment
 [source]
 ----
-151:   java -Dforeign.restricted=permit --add-modules jdk.incubator.foreign -XX:MaxDirectMemorySize=2100m MemorySegments.java
+151:   java --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign -XX:MaxDirectMemorySize=2100m MemorySegments.java
 Address           Kbytes     RSS   Dirty Mode  Mapping
 ...
 0000557635ba1000       4       0       0 r-x-- java
@@ -726,7 +825,7 @@ when called.
 to free the native mapping, and as such had to wait for the GC to kick in
 order to be freed.
 
-.Initilization
+.Initialization
 Another thing to remind is that the memory mapping is zeroed, that means
 a big segment will take a noticeable time to get initialized. As with
 ``DirectByteBuffer``s this pattern is interesting when inspecting off-heap memory.
@@ -734,56 +833,36 @@ a big segment will take a noticeable time to get initialized. As with
 .Scope
 Usually it is more practical to use the `NativeScope` API as it is easier to
 reason about boundaries of the involved memory mapping.
-Using a larger `MemorySegment` coud be interesting when it has to be sliced and
+Using a larger `MemorySegment` could be interesting when it has to be sliced and
 shared among various threads. Also given the high initialization cost for large
 segments it's likely to have the same lifecycle as the application.
 Typically, in a few years, Netty, Aeron, Kafka, Cassandra, ...
 could make use of this API !
 
 .Slices
-One thing that caught me off-guard, is that when closing a _slice_ (created by
-`MemorySegment::asSlice`) also closes the underlying segment.
-
-.Multiple allocations
-Finally, when the code requires new native allocation, the JVM appears to be able to
-grow native mappings. In short the JVM tries to put these segment in a bigger
-memory mapping.
+[.line-through]#One thing that caught me off-guard with JEP-389, is that when closing a _slice_ (created by
+`MemorySegment::asSlice`) also closes the underlying segment.# This is no longer the case
+with JEP-412 since `MemorySegment` is not anymore `AutoCloseable`. Problem solved.
 
 .Access modes
-The access modes allows to define a set of _permissions_ of the `MemorySegment`,
-by default all permissions are given. In the example below this segment won't
-be readable by
+The `READ`, `WRITE`, `CLOSE` access modes and related API disappeared from
+`MemorySegment`, now the only choice is to return a read-only view of the
+segment via `MemorySegment::asReadOnly`. Which is more limited, but way more
+intuitive to use.
 
-[source,java]
-----
-var ms = MemorySegment.allocateNative(segmentSize)
-                      .withAccessModes(MemorySegment.WRITE | MemorySegment.CLOSE);
-
-ms.asByteBuffer().getLong(); <1>
-----
-<1> Throws UnsupportedOperationException: Required access mode READ ; current access modes: [WRITE, CLOSE]
-
-I am not quite sure how to use these at this time. It certainly would be useful
-to prevent a slice from being closed though.
-
-Also, the `WRITE` and `READ` permissions only apply to the Java object, the
-native memory mapping isn't afected, which is expected since it can hold multiple
-`MemorySegment`.
-
-
-.From a file
+.File API
 Until JEP-389, we used a `FileChannel` and a `MappedByteBuffer` to memory map a
 file. The JEP-389 also take care of this use case, by using the `mapFile` factory
-method.
+method. JEP 412 amend this API with a `ResourceScope` parameter.
 
 [source, java]
 ----
-try (var mmaped = MemorySegment.mapFile(
-    path, // <1>
-    0, // <2>
-    Files.size(path), // <3>
-    FileChannel.MapMode.READ_ONLY // <4>
-)) {
+try (var scope = ResourceScope.newConfinedScope()) {
+    MemorySegment.mapFile(path, // <1>
+                          0, // <2>
+                          Files.size(path), // <3>
+                          FileChannel.MapMode.READ_ONLY, // <4>
+                          scope);
   // ...
 }
 ----
@@ -792,37 +871,38 @@ try (var mmaped = MemorySegment.mapFile(
 <3> The size of the mapping, here the complete file
 <4> The mapping mode
 
-What is really nice here is that the `MemorySegment` is also immediately freed
-when the code leaves the try-with-resources block.
+The `MemorySegment` is not anymore auto closeable, but it will be immediately
+freed when the code leaves the try-with-resources block.
+
+Also with JEP 412, a `MemorySegment` gains some API (`MemorySegment::load`,
+`MemorySegment::unload`, `MemorySegment::force`) that allows to force IO operations.
+THe `force` method looks particularly useful when forcing a write to disk (`fsync`)
+to page-out to a colder storage such as a disk.
 
 
-== JEP-389 is still incubating
+== JEP-389, now JEP-412 foreign functions and memory is still incubating
 
-I mentioned that `MemorySegment` is implementing `AutoCloseable`, it won't be
-the case in the next JDK release.
-In the same manner I mentioned `NativeScope` earlier, which is a JDK16 API, but
-in the current panama state it will be replaced by a slightly different
-construct.
+In JDK 17 `MemorySegment` dropped `AutoCloseable`, `NativeScope` is replaced by
+`ResourceScope`, the loss of the `LibraryLookup` with an API with a different
+scope replaced by `SymbolLookup` API, appearance of the `SegmentAllocator`.
+`jextract` saw very good improvement, yet it seem mature enough to be featured
+in a standard JDK (even as part of incubator).
 
-[source, java]
-----
-try (ResourceScope scope : ResourceScope.ofConfined()) {
-  MemorySegment.allocateNative(layout, scope):
-  MemorySegment.mapFile(… , scope);
-  CLinker.upcallStub(… , scope);
-}
-----
-
-Given the current state I have doubts JEP-389 will get out of incubating
-for JDK 17. JEP-389 is working well, but I think the developers may need more
-time to get this API right. They are doing a fantastic job in my opinion.
+Given all this, I am not sure JEP-412 will get out of incubating for JDK 18 as
+well. JEP-412 is working well and show great refinements, but to me the
+developers are still tackling the API to get it right, indeed a broken API
+could lead to broken applications. As with the previous
+incubator, I think they are doing a fantastic job in my opinion.
 
 
 == `jextract`
 
-`jextract` is still being backed and was not ready to be included in JDK 16
-for incubation, but since it complements JEP-389, I wanted to give
+`jextract` is still being backed and was not ready to be included in JDK 17
+for incubation, but since it complements JEP-412, I wanted to give
 it a try and showcase its usefulness.
+
+TIP: The jextract version used in this entry comes the _build 17-panama+3-167_
+that can be downloaded https://jdk.java.net/panama/[here].
 
 This tool leverages the native `libclang` and as such the `jdk.incubator.foreign`
 module.
@@ -832,97 +912,83 @@ here: https://jdk.java.net/panama/. Don't be scared by _early access_,
 JDK 17 (very early at this stage) or the other warnings, you just need
 to use `jextract` not the panama jdk.
 
-When I started to bootstrap work on JDK16 and libsodium, the built
-panama JDK didn't contain the `jextract`, as I wasn't sure
-I voiced https://twitter.com/bricedutheil/status/1361086142402199554?s=21[this on Twitter],
-Oracle engineers confirmed me this was a bug in the release
-https://bugs.openjdk.java.net/browse/JDK-8261733[JDK-8261733] if this every
-happen again, or you want to try the latest `jextract`, you'll need to build
-the panama JDK.
-
 CAUTION: Again the `jextract` tool is still being backed at this time.
 That means it that everything below can be obsolete any time.
 
 === Extracting Java liking code from the Libsodium headers
 
-The first thing I need is to get the headers of libsodium, and for that
-I cloned the repo. Then checked out the 1.0.18 tag as I intend to target
-this released binary.
+The first thing I need is to get the headers of libsodium, either use
+the headers installed by homebrew with symbolic links placed in
+`/usr/local/include` (or `$(brew --prefix)/include`), or clone the repo
+(Make sure to check out the correct tag for the installed binary library,
+`1.0.18` at this time).
 
-.Get the libsodium source
-[source, shell]
-----
-$ git clone https://github.com/jedisct1/libsodium.git
-Cloning into 'libsodium'...
-remote: Enumerating objects: 151, done.
-remote: Counting objects: 100% (151/151), done.
-remote: Compressing objects: 100% (105/105), done.
-remote: Total 32369 (delta 74), reused 86 (delta 41), pack-reused 32218
-Receiving objects: 100% (32369/32369), 8.24 MiB | 10.52 MiB/s, done.
-Resolving deltas: 100% (19205/19205), done.
-$ git checkout 1.0.18
-----
+==== First contact with `jextract`
 
-Headers are located in this folder `src/libsodium/include`. Now let use
-`jextract`.
-
-.First contact with `jextract`
+.`jextract` first use
 [source, shell]
 ----
 $ jextract
-  -d libsodium-jextract \ <1>
+  -d src/main/java \ <1>
   -l sodium \ <2>
   --target-package com.github.bric3.sodium \ <3>
-  -I src/libsodium/include/ \ <4>
-  -I src/libsodium/include/sodium \ <4>
-  --filter sodium.h \ <5>
-  src/libsodium/include/sodium.h <6>
-src/libsodium/include/sodium/export.h:5:10: fatal error: 'stddef.h' file not found
+  -I $(brew --prefix)/include/sodium \ <4>
+  $(brew --prefix)/include/sodium.h <5>
+WARNING: Using incubator modules: jdk.incubator.foreign, jdk.incubator.jextract
+/usr/local/include/sodium/crypto_hash_sha512.h:13:10: fatal error: 'stdlib.h' file not found
 ----
 <1> Destination of the generated sources
-<2> Extracts or more precisely generate sources, instead of classes
+<2> Specifies the name of library, this option is important as it will drive the
+way the library is loaded, with `-l sodium` the library has to be available on
+the `java.library.path`.
 <3> Indicates the target package of the generated source
 <4> Includes of the library (some files include others in the library)
-<5> Only includes symbols from the given file, otherwise symbols of
-other includes may be extracted
-<6> The C header file
+//<5> Only includes symbols from the given file, otherwise symbols of
+//other includes may be extracted
+<5> The C header file
 
-Obviously the standard C headers are not discovered by `jextract`.
-I tried to solve this by declaring the system includes in `/usr/include`
-and `/usr/include/linux` (`/usr/include/linux/stddef.h`) but the error
-went a bit further with `unknown type name 'size_t'`. This is a known issue
-that for some platforms jextract has issues to find the system headers
-(https://bugs.openjdk.java.net/browse/JDK-8262127[JDK-8262127]).
+Obviously some of the standard C headers are not discovered by `jextract`.
 
-`size_t` is a standard C alias representing the _unsigned integer type_.
-I found help in this https://www.mail-archive.com/dev@tomcat.apache.org/msg129346.html[old thread from november 2018].
-Instead of using the includes under `/usr/includes`, it is necessary to use
-the includes of the compiler ; on my docker image they were located
-here : `/usr/lib/gcc/x86_64-redhat-linux/8/include`.
+.macOs
+On macOs the solution is to use the header that are installed by the XCode, at this location
+
+[source]
+----
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+----
+
+.Linux
+The above command used to fail for an equivalent reason, I had to find the local
+compiler includes like this on Fedora `/usr/lib/gcc/x86_64-redhat-linux/8/include`.
+Now with the _build 17-panama+3-167_ `jextract` worked fine.
+
+This issue is tracked by the ticket https://bugs.openjdk.java.net/browse/JDK-8262127[JDK-8262127].
 
 Also I noticed that `jextract` generates classes first, but you can pass
 a `--source` option to configure it to generate sources instead.
 
+.Possible problems when working with libsodium repository clone
+[%collapsible]
+====
+`jextract` might fail the `extraction` process on the file `version.h`.
 
-On the next run of `jextract` the `extraction` process stopped on
-the file `version.h`.
+Reminder, in the libsodium repository, headers are located in this folder `src/libsodium/include`.
 
 .Includes the compiler headers
 [source, shell]
 ----
 $ jextract \
-  -d libsodium-jextract \
+  -d src/main/java \
    -l sodium \
    --source \ <1>
    --target-package com.github.bric3.sodium \
    -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <2>
    -I src/libsodium/include/ \
    -I src/libsodium/include/sodium \
-   --filter sodium.h \
    src/libsodium/include/sodium.h
 src/libsodium/include/sodium.h:5:10: fatal error: 'sodium/version.h' file not found
 ----
-<1> generates the sources
+<1> Generates the sources
 <2> the compiler includes installed on this linux image
 
 In the libsodium repository there's a file named `version.h.in`,
@@ -1004,109 +1070,126 @@ config.status: executing libtool commands
 
 Finally, this time `jextract` worked as expected.
 
-.Working jextract command
+====
+
+
+==== Narrowing down the extraction
+
+Looking at the generated classes, there's a bag of *288 files*, not even
+mentioning the symbols in these types.
+
+When I looked at `jextract` during my review of JEP 389, `jextract` had
+an option `--filter` that was supposed to only emit symbols of a specific file.
+At this time of writing, this option is gone and replaced by a different mechanism.
+
+The previous mechanism filtered headers by their path, the new mechanism however
+allows to filter by `type`, see these option in the help message.
+
+.include-(function|macro|struct|typedef|union|var) options
+[source]
+----
+--include-function <String>    name of function to include
+--include-macro <String>       name of constant macro to include
+--include-struct <String>      name of struct definition to include
+--include-typedef <String>     name of type definition to include
+--include-union <String>       name of union definition to include
+--include-var <String>         name of global variable to include
+----
+
+At first this looks like a huge effort to list every symbols (function, data
+types, variables, etc), but there's a nifty trick. `jextract` comes with
+`--dump-includes`. This option alter `jextract` behavior in that it won't generate
+source or class bindings but instead it will dump symbols in the given file.
+
+.dumping symbols configuration
+[source, shell, role="primary"]
+----
+jextract \
+  -d src/main/java \
+  -l sodium \
+  --source \
+  --target-package com.github.bric3.sodium \
+  -I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include \
+  -I $(brew --prefix)/include/sodium \
+  --dump-includes sodium.conf \ <1>
+  $(brew --prefix)/include/sodium.h
+WARNING: Using incubator modules: jdk.incubator.jextract, jdk.incubator.foreign
+WARNING: skipping strtold because of unsupported type usage: long double
+WARNING: Layout size not available for sys_errlist
+----
+<1> the dump option
+
+.sodium.conf
+[source, role="secondary"]
+----
+
+#### Extracted from: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+
+--include-macro MAC_OS_VERSION_11_0         # header: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+--include-macro MAC_OS_X_VERSION_10_0       # header: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+--include-macro MAC_OS_X_VERSION_10_1       # header: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityVersions.h
+--include-macro MAC_OS_X_VERSION_10_10
+
+...
+
+#### Extracted from: /usr/local/include/sodium/core.h
+
+--include-function sodium_init               # header: /usr/local/include/sodium/core.h
+--include-function sodium_misuse             # header: /usr/local/include/sodium/core.h
+--include-function sodium_set_misuse_handler # header: /usr/local/include/sodium/core.h
+
+...
+----
+
+When looking at the generated file (`sodium.conf`), we notice that `jextract`
+actually wrote the `--include-(function|macro|struct|typedef|union|var)` options
+with the found symbol, more `jextract` indicates were this file was found.
+
+The ultimate part of this trick is that this file can be used on the command line
+
 [source, shell]
 ----
-$ jextract \
-  -d libsodium-jextract \
-   -l sodium \
-   --source \
-   --target-package com.github.bric3.sodium \
-   -I /usr/lib/gcc/x86_64-redhat-linux/8/include \
-   -I src/libsodium/include/ \
-   -I src/libsodium/include/sodium \
-   --filter sodium.h \
-   src/libsodium/include/sodium.h
+jextract \
+  -d src/main/java \
+  -l sodium \
+  --source \
+  --target-package com.github.bric3.sodium \
+  -I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include \
+  -I $(brew --prefix)/include/sodium \
+  @sodium.conf \ <1>
+  $(brew --prefix)/include/sodium.h
 ----
+<1> Pass the option file into `jextract`, notice the preceding `@`.
 
-However, when I opened `sodium_h.java` it was empty.
+By editing the `sodium.conf` file and removing everything non related to
+_libsodium_, it was possible to cut down the generated bindings by more than a
+half. Depending on the required API usage it is of course possible to remove
+even more by selecting more aggressively the symbols.
 
-[source, java]
-----
-public final class sodium_h  {
+One could even go further and move the other options (`-d`, `-l`, `--source`,
+`--target-package`, etc), in this option file. Making the command even simpler
 
-    /* package-private */ sodium_h() {}
-}
-----
-
-In the 1.x tree the https://github.com/jedisct1/libsodium/blob/1.0.18/src/libsodium/include/sodium.h[`sodium.h`]
-file *only includes the declaration of other headers*.
-When I explicitly filtered on `sodium.h`, `jextract` evicted symbols
-of the includes.
-
-How to keep the declarations of the other headers ?
-At this time `jextract` help is a bit vague.
-
-.Jextract help
 [source, shell]
 ----
-$ jextract --help
-Non-option arguments:
-[String] -- header file
-
-Option                         Description
-------                         -----------
--?, -h, --help                 print help
--C <String>                    pass through argument for clang
--I <String>                    specify include files path
--d <String>                    specify where to place generated files
---filter <String>              header files to filter
--l <String>                    specify a library
---source                       generate java sources
--t, --target-package <String>  target package for specified header files
+$ jextract @sodium-only.conf $(brew --prefix)/include/sodium.h
 ----
 
-Looking at the https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/JextractTool.java#L199-L201[`jextract` source code] was the way to go, first the code suggests
-that it's possible to pass multiple filters (`--filter`), just like it
-is possible to pass multiple include (`-I`).
-Although it is not very practical with multiple values, isn't is
-possible to pass a pattern ?
 
-This is answered here in this document
-(https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/doc/panama_jextract.md[Using the `jextract` tool])
-or in the source code in the https://github.com/openjdk/panama-foreign/blob/e4cd13dfc2b5a398645067bb6cb0807ad451f6df/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/Filter.java#L45-L50[`Filter`] class ;
-it's possible to pass `--filter` a part of the path, the current
-code will just verify if this string is contained in the header path.
-
-Concretely I can use the string `sodium` as a filter to include headers
-located in `include/sodium/` folder.
-
-.Correct jextract command
-[source, shell]
-----
-$ jextract \
-  -d libsodium-jextract \  <1>
-  --source \ <2>
-  --target-package com.github.bric3.sodium \ <3>
-  -l sodium \ <4>
-  -I /usr/lib/gcc/x86_64-redhat-linux/8/include \ <5>
-  -I src/libsodium/include/ \ <6>
-  -I src/libsodium/include/sodium \ <6>
-  --filter sodium \ <7>
-  src/libsodium/include/sodium.h <8>
-----
-<1> Destination of the generated sources
-<2> Extracts or more precisely generate sources, instead of classes
-<3> Indicates the target package of the generated source
-<4> Name without the JNI prefix and suffix (or path) of the library to load
-<5> Includes C definitions or includes like `size_t`, `stddef.h` etc.
-<6> Includes of the library (some files include others in the library)
-<7> Only includes symbols from the given file, otherwise symbols of
-other includes may be extracted
-<8> The C header file
+_This work was part of the following ticket https://bugs.openjdk.java.net/browse/JDK-8260976[JDK-8260976]._
 
 
 .Generated files
 [source, shell]
 ----
-$ ls -lh libsodium-jextract-f/com/github/bric3/sodium/
-total 956K
--rw-r--r--. 1 root root  557 Feb 16 14:10 C.java
--rw-r--r--. 1 root root 8.8K Feb 16 14:10 RuntimeHelper.java
--rw-r--r--. 1 root root 350K Feb 16 14:10 sodium_h.java
--rw-r--r--. 1 root root 124K Feb 16 14:10 sodium_h_0.java
--rw-r--r--. 1 root root 329K Feb 16 14:10 sodium_h_constants_0.java
--rw-r--r--. 1 root root 131K Feb 16 14:10 sodium_h_constants_1.java
+$ \ls -lh src/main/java/com/github/bric3/sodium
+total 1944
+-rw-r--r--  1 brice  staff   8.9K Sep  4 14:50 RuntimeHelper.java
+-rw-r--r--  1 brice  staff   1.9K Sep  4 14:50 constants$0.java
+-rw-r--r--  1 brice  staff   2.2K Sep  4 14:50 constants$1.java
+...
+-rw-r--r--  1 brice  staff    14K Sep  4 14:50 randombytes_implementation.java
+-rw-r--r--  1 brice  staff   398K Sep  4 14:50 sodium_h.java
+-rw-r--r--  1 brice  staff   1.1K Sep  4 14:50 sodium_set_misuse_handler$handler.java
 ----
 
 
@@ -1128,106 +1211,75 @@ which is not visible as a symbol when performing a _library lookup_.
 The native `crypto_box_sealbytes` method compensates this limitation.
 
 `jextract` is however reading the headers, in doing so it actually extracts
-the constant `crypto_box_SEALBYTES`. It is still exposed as method,
-and it is declared in a different class `sodium_h_0#crypto_box_SEALBYTES`.
+the constant `crypto_box_SEALBYTES`. It is still also exposed as method.
 
-Note that `sodium_h` extends `sodium_h_0`, so one will write
+I noticed that if the library has lots of symbols bindings `jextract` use
+inheritance: There's a single entry point like the public type `sodium_h`, and
+this type inherits package visible classes like `sodium_h_0`, `sodium_h_1` and so on.
+The members in these package visible classes are public, and by inheritance
+these members are accessible via the public entry point.
 
 [source, java]
 ----
 sodium_h.crypto_box_SEALBYTES()
 ----
 
-Behind the scene this call invokes `sodium_h_constants_1#crypto_box_SEALBYTES`,
-and for `sodium_h` this split in two classes due to the class limits.
-`sodium_h_constants_1` extends `sodium_h_constants_0`.
 
-==== First hiccup
+==== Library loading
 
-When I accessed this constant for the first time, I got this
-error :
+Remember the passed `jextract` option `-l sodium`, this option makes the generated
+code to load the library via the well-known `System.loadLibrary("sodium")` upon
+class loading the of the generated type (`sodium_h`).
 
-[source]
-----
-java.lang.ExceptionInInitializerError
-	at com.github.bric3.sodium.sodium_h_0.crypto_box_PUBLICKEYBYTES(sodium_h_0.java:1511)
-	at com.github.bric3.sodium.Libsodium$JextractedLibsodium.crypto_box_keypair(Libsodium.java:263)
-	at com.github.bric3.sodium.LibsodiumTest.can_invoke_crypto_box_keypair(LibsodiumTest.java:44)
+This operation expects the library to be available on the java library path, the
+one set via this property `System.getProperty("java.library.path")`, or amended via
+`JAVA_LIBRARY_PATH`.
 
-Caused by: java.lang.IllegalArgumentException: Library not found: sodium
-	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.lookup(LibrariesHelper.java:94)
-	at jdk.incubator.foreign/jdk.internal.foreign.LibrariesHelper.loadLibrary(LibrariesHelper.java:60)
-	at jdk.incubator.foreign/jdk.incubator.foreign.LibraryLookup.ofLibrary(LibraryLookup.java:150)
-	at com.github.bric3.sodium.RuntimeHelper.lambda$libraries$0(RuntimeHelper.java:46)
-	at com.github.bric3.sodium.RuntimeHelper.libraries(RuntimeHelper.java:49)
-	at com.github.bric3.sodium.sodium_h_constants_0.<clinit>(sodium_h_constants_0.java:14)
-----
+If the library was installed in one of the lookup path there's no issue, but if
+it isn't you need to alter the java library path.
 
-The stacktrace points to this code:
-
-.sodium_h_constants_0.LIBRARIES
-[source, java]
-----
-static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
-    "sodium", <1>
-});
-----
-<1> This is the value I passed to the `jextract` command.
-
-`RuntimeHelper::libraries` can load a library from a name (using JNI conventions,
-https://github.com/openjdk/jdk16u/blob/1cc98bde6703d330b07ae873770df2c369b47eb2/src/hotspot/os/posix/include/jvm_md.h#L47-L55[`JNI_LIB_PREFIX` and `JNI_LIB_PREFIX`])
-or a path.
-
-The value above is the value I used in the `-l sodium` option of `jextract`,
-yet this value here is obviously incorrect for my use case.
-
-.Work around 1: with `jextract`
-It is not yet clear, in the `jextract` usage description at this time,
-but one can pass to the `-l` option
-
-. A library name, which has to be available on one of the paths declared in the
-JVM system property `java.library.path`
-+
-====
 linux:: `/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib`
 
 macOs:: `/Users/bric3/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.`
-====
-+
-The library must conform to JNI conventions, `libsodium.23.dylib` or `libtasn1.so.6.5.5`
-won't work as they contain version numbers.
-. Or an absolute path eg `/usr/local/opt/libsodium/lib/libsodium.23.dylib`.
 
-However, the actual library path is dependent on the system, on the library
-version and on the installation mechanism. I could have used `jextract`
-with `-l /usr/local/opt/libsodium/lib/libsodium.23.dylib`, but then the generated
-code can not run on Linux without modifications, etc.
 
-My final objective for this code is to declare the libsodium bindings in java,
-and link with the actual libsodium on the platform macOs or Linux.
+Otherwise the code will fail with the following stacktrace
 
-.Work-around 2: Modify generated code
-`LIBRARIES` is a static final variable that is used by other static variables
-in the same class. While it is possible to edit the `sodium_h_constants_0`
-class, it is still difficult to make this `LibraryLookup` code configurable
-without a significant refactoring.
+[source]
+----
+no sodium in java.library.path: /Users/brice/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+java.lang.UnsatisfiedLinkError: no sodium in java.library.path: /Users/brice/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+	at java.base/java.lang.ClassLoader.loadLibrary(ClassLoader.java:2429)
+	at java.base/java.lang.Runtime.loadLibrary0(Runtime.java:818)
+	at java.base/java.lang.System.loadLibrary(System.java:1989)
+	at com.github.bric3.libsodium.sodium_h.<clinit>(sodium_h.java:13)
+	at com.github.bric3.sodium.Libsodium$JextractedLibsodium.crypto_box_keypair(Libsodium.java:283)
+	at com.github.bric3.sodium.LibsodiumTest.can_invoke_crypto_box_keypair(LibsodiumTest.java:45)
 
-Oracle engineers are aware of this problem https://bugs.openjdk.java.net/browse/JDK-8262126[JDK-8262126],
-so we might see it fixed in the final JEP-389 release.
+----
 
-For this article the easiest solution, is to declare the local libsodium path
-in the code, as I did in the first section of this blog.
+This is a nice improvement over my previous try of jextract generated code,
+before the stacktrace was a bit less obvious and the code harder to change,
+because the loading mechanism was nested deep in the generated code.
 
+But if one need to load the library from a custom path, eg jar that pack
+native libraries (and extract them in some temporary folder), it's possible to
+drop the `-l sodium` option, in this case the generated code just won't emit
+the `System::loadLibrary` in the static initialization of `sodium_h`. Instead
+it becomes possible necessary to manually load the library to your need.
 
 [source, java]
 ----
-static final LibraryLookup[] LIBRARIES = RuntimeHelper.libraries(new String[] {
-    "/usr/local/opt/libsodium/lib/libsodium.23.dylib"
-});
+System.load("tmp/path/to/libsodium.so"); // <1>
+sodium_h.crypto_kdf_blake2b_keybytes(); // <2>
 ----
+<1> Load the library
+<2> Simply use the library bindings
 
-In the end I'll rework this initialization later though with custom code
-to find the actual libsodium on the current platform.
+
+This is a direct improvement (see https://bugs.openjdk.java.net/browse/JDK-8262126[JDK-8262126])
+over my previous use of `jextract`, loading a library from a specific location
+was difficult to do.
 
 
 
@@ -1242,17 +1294,18 @@ these allocations.
 .crypto_box_keypair
 [source, java]
 ----
-try (var scope = NativeScope.unboundedScope()) {
-    var recipientPublicKey = scope.allocate(sodium_h.crypto_box_PUBLICKEYBYTES());
-    var recipientSecretKey = scope.allocate(sodium_h.crypto_box_SECRETKEYBYTES());
-    sodium_h.crypto_box_keypair(recipientPublicKey, recipientSecretKey); <1>
+try (var scope = ResourceScope.newConfinedScope()) {
+    var segmentAllocator = SegmentAllocator.ofScope(scope);
+    var recipientPublicKey = segmentAllocator.allocate(sodium_h.crypto_box_PUBLICKEYBYTES());
+    var recipientSecretKey = segmentAllocator.allocate(sodium_h.crypto_box_SECRETKEYBYTES());
+    sodium_h.crypto_box_keypair(recipientPublicKey, recipientSecretKey); // <1>
     return new CryptoBoxKeyPair(
             recipientPublicKey.toByteArray(),
             recipientSecretKey.toByteArray()
     );
 }
 ----
-<1> the _jextracted_ method
+<1> Use the _jextracted_ method
 
 The IDE might suggest a method named `crypto_box_keypair$MH` ; the suffix
 `$MH` simply indicates this returns the **M**ethod **H**andle for this native
@@ -1260,18 +1313,18 @@ method which is basically what I showed in the first part of this blog post.
 
 As reflex, I always like to navigate the code I'm invoking.
 The method we are invoking are just the public API methods, checking null,
-and declaring a correct callsite (correct return type, correct argument types).
+and declaring a correct call-site (correct return type, correct argument types).
 
 .sodium_h.crypto_box_keypair
 [source, java]
 ----
-public static  MethodHandle crypto_box_keypair$MH() {
-    return RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
-                                        "unresolved symbol: crypto_box_keypair");
+public static MethodHandle crypto_box_keypair$MH() {
+    return RuntimeHelper.requireNonNull(constants$22.crypto_box_keypair$MH,
+                                        "crypto_box_keypair");
 }
 public static int crypto_box_keypair ( Addressable pk,  Addressable sk) {
-    var mh$ = RuntimeHelper.requireNonNull(sodium_h_constants_0.crypto_box_keypair$MH(),
-                                           "unresolved symbol: crypto_box_keypair");
+    var mh$ = RuntimeHelper.requireNonNull(constants$22.crypto_box_keypair$MH,
+                                           "crypto_box_keypair");
     try {
         return (int)mh$.invokeExact(pk.address(), sk.address());
     } catch (Throwable ex$) {
@@ -1285,19 +1338,19 @@ Going further down to see how the `MethodHandle` is declared:
 .sodium_h_constants_0.crypto_box_keypair$MH
 [source, java]
 ----
-static final FunctionDescriptor crypto_box_keypair$FUNC_ = FunctionDescriptor.of(
+static final FunctionDescriptor crypto_box_keypair$FUNC = FunctionDescriptor.of(
     C_INT,
     C_POINTER,
     C_POINTER
 );
 
-static final MethodHandle crypto_box_keypair$MH_ = RuntimeHelper.downcallHandle(
-    LIBRARIES,
+static final MethodHandle crypto_box_keypair$MH = RuntimeHelper.downcallHandle(
+    sodium_h.LIBRARIES,
     "crypto_box_keypair",
-    "(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I", <1>
-    crypto_box_keypair$FUNC_, false
+    "(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I", // <1>
+    constants$22.crypto_box_keypair$FUNC,
+    false
 );
-static final java.lang.invoke.MethodHandle crypto_box_keypair$MH() { return crypto_box_keypair$MH_; }
 ----
 <1> Note that the Java method signature is declared with a String instead
 of the Java API `MethodType`.
@@ -1335,7 +1388,7 @@ as the JEP-389 linker won't be able to link them.
 The enum below in jextract show how native primitive types are mapped to their
 respective memory layout whether they are supported of not.
 
-.https://github.com/openjdk/panama-foreign/blob/bedc58a3c967ea05ffdc0d5ec141e10e43faaf01/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/Type.java[Type.Primitive.Kind]
+.https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/incubator/jextract/Type.java[Type.Primitive.Kind]
 [source, java]
 ----
 enum Kind {
@@ -1399,11 +1452,15 @@ enum Kind {
      * {@code wchar} type.
      */
     WChar("wchar_t", UnsupportedLayouts.WCHAR_T);
+
+    // ...
+}
 ----
+
 
 Those types can be _qualified_, in particular integer types can be unsigned:
 
-.jdk.internal.jextract.impl.TypeMaker#makeTypeInternal
+.https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/TypeMaker.java#L138-L157[jdk.internal.jextract.impl.TypeMaker#makeTypeInternal]
 [source, java]
 ----
 case UShort: {
@@ -1432,7 +1489,7 @@ Going further we can see that signed and unsigned integers use the same
 memory layout, eg. `long long` and `unsigned long long` use the same layout
 `C_LONG_LONG`.
 
-.https://github.com/openjdk/panama-foreign/blob/6aafbbbeeb59050f79d82f4d7cec85011e99f6bb/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/LayoutUtils.java[LayoutUtils.getLayout]
+.https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/LayoutUtils.java#L63-L120[LayoutUtils.getLayout]
 [source, java]
 ----
 public static MemoryLayout getLayout(Type t) {
@@ -1472,11 +1529,11 @@ public static MemoryLayout getLayout(Type t) {
         case Record:
             return getRecordLayout(t);
         case Vector:
-            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+            return MemoryLayout.sequenceLayout(t.getNumberOfElements(), getLayout(t.getElementType()));
         case ConstantArray:
-            return MemoryLayout.ofSequence(t.getNumberOfElements(), getLayout(t.getElementType()));
+            return MemoryLayout.sequenceLayout(t.getNumberOfElements(), getLayout(t.getElementType()));
         case IncompleteArray:
-            return MemoryLayout.ofSequence(getLayout(t.getElementType()));
+            return MemoryLayout.sequenceLayout(getLayout(t.getElementType()));
         case Unexposed:
             Type canonical = t.canonicalType();
             if (canonical.equalType(t)) {
@@ -1497,31 +1554,31 @@ public static MemoryLayout getLayout(Type t) {
 <1> `C_LONG_LONG` will be used for both `long long` and `unsigned long long`.
 <2> Native types longer than 64 bits are still represented internally by jextract.
 
-jextract identify unsupported types, and represents them correctly during the C
+`jextract` identify unsupported types, and represents them correctly during the C
 header processing. But the symbols that use them will be skipped during the
 Java generation.
 
-.https://github.com/openjdk/panama-foreign/blob/1af1f2558760f8177b807d96582546a027959cbd/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/UnsupportedLayouts.java[jdk.internal.jextract.impl.UnsupportedLayouts]
+.https://github.com/openjdk/panama-foreign/blob/9a6de2b4ddc3e7f0f8a9abfc571e7d6aa2a27129/src/jdk.incubator.jextract/share/classes/jdk/internal/jextract/impl/UnsupportedLayouts.java#L37-L64[jdk.internal.jextract.impl.UnsupportedLayouts]
 [source, java]
 ----
 private static final String ATTR_LAYOUT_KIND = "jextract.abi.unsupported.layout.kind";
 
-public static final ValueLayout __INT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+public static final ValueLayout __INT128 = MemoryLayout.valueLayout(128, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, "__int128");
 
-public static final ValueLayout LONG_DOUBLE = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+public static final ValueLayout LONG_DOUBLE = MemoryLayout.valueLayout(128, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, "long double");
 
-public static final ValueLayout _FLOAT128 = MemoryLayout.ofValueBits(128, ByteOrder.nativeOrder()).
+public static final ValueLayout _FLOAT128 = MemoryLayout.valueLayout(128, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, "_float128");
 
-public static final ValueLayout __FP16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+public static final ValueLayout __FP16 = MemoryLayout.valueLayout(16, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, "__fp16");
 
-public static final ValueLayout CHAR16 = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+public static final ValueLayout CHAR16 = MemoryLayout.valueLayout(16, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, "char16");
 
-public static final ValueLayout WCHAR_T = MemoryLayout.ofValueBits(16, ByteOrder.nativeOrder()).
+public static final ValueLayout WCHAR_T = MemoryLayout.valueLayout(16, ByteOrder.nativeOrder()).
         withAttribute(ATTR_LAYOUT_KIND, "wchar_t");
 
 static boolean isUnsupported(MemoryLayout vl) { <1>
@@ -1539,18 +1596,19 @@ static String getUnsupportedTypeName(MemoryLayout vl) {
 ====
 
 
-=== Wrapping up on `jextract`
+=== Wrapping up on `jextract` for JEP-412 / build 17-panama+3-167
 
-In the end `jextract` is useful but there's a few little hiccups along the way.
-The generated code is currently lacking in some usability. Also, the generated
-code is a tad verbose, I would wish a way to eliminate some unneeded generated
-methods. Using `jextract` is a bit obscure as well, and they are a few pitfalls
-there too, and may require peeking at the `jdk.incubating.jextract` source code
-(in the panama repository).
+This iteration showed massive improvements of `jextract`, for my usage the
+pitfalls present at the time of JEP-389 (JDK 16) are gone. I tend to think the
+generated code is still a bit verbose, but it got better.
 
-While I mention these point, this should not diminish the work done on this tool
-and what this tool could become. When ready, this could be leveraged by Gradle,
-or Jetbrains IntelliJ IDEA, etc.
+Most welcome is the precise inclusion of symbols. Thi mechanism is powerful
+but not quite visible. The new dump / include mechanism is useful.
+
+If there's something that need improvement it's the help. But I'm sure it will
+be fixed before the final release.
+
+When ready, this could be leveraged by Gradle or Jetbrains IntelliJ IDEA, etc.
 
 
 
@@ -1598,28 +1656,31 @@ or Jetbrains IntelliJ IDEA, etc.
 == Closing words
 
 .Cool part
-In JDK16 the foreign module is really easy to use albeit `javac` and `java`
-command line requirement. The API is well-designed and easy to use.
-I also appreciated the idea of scoped segments, a bit like what was
+In JDK17 the foreign module is even easier and particularly safer to use
+albeit `javac` and `java` command line requirement. The API is well-designed and
+easy to use. I also appreciated the idea of scoped segments, a bit like what was
 implemented in the Rust language. There's also the coolness of being able
-to free memory segment at will, without depending on the GC.
+to free memory segment (in particular for mapped file) at will, without
+depending on the GC.
 
 .Sad part
-This is the third incubator and there's still planned API. Some of this
-blog post content will eventually become incorrect when JDK17 comes out.
-`jextract` looks like a very practical tool, yet it is still
-being _cooked_.
+This is yet another incubator and API change or not impossible. Some of this
+blog post content will eventually become incorrect when the next JDK comes out.
+`jextract` solidify its position as a very practical tool, too sad it isn't
+included in the JDK yet, but the safer approach wins here.
 
 .Overall
-JEP-389 looks like solid replacement of JNI or JNA. I can only applaud the work
-done! My only regret is it's not yet _already_ available. That said as a
-developer I support the idea to not ship until ready.
+JEP-412 is yet another solid step-stone toward what looks like looks like
+the replacement (in term of usage) of JNI or JNA. As before I can only applaud
+the work done! My only regret is it's not yet _already_ available. That said as
+a developer I support the idea to not ship until ready.
 
 
 '''
 
 .Sources in no particular order
 - https://openjdk.java.net/jeps/389
+- https://openjdk.java.net/jeps/412
 - https://mail.openjdk.java.net/pipermail/panama-dev/
 - https://cr.openjdk.java.net/~mcimadamore/panama/ffi.html
 - https://inside.java/2020/10/06/jextract/
@@ -1629,6 +1690,8 @@ developer I support the idea to not ship until ready.
 - https://github.com/jedisct1/libsodium
 - https://doc.libsodium.org/installation
 - https://inside.java/2021/01/25/memory-access-pulling-all-the-threads/
+- https://foojay.io/today/project-panama-for-newbies-part-1/
+- https://foojay.io/today/project-panama-for-newbies-part-2/
 
 You might also be interested in these two podcasts (thanks to https://twitter.com/delabassee[David Delabassée])
 
