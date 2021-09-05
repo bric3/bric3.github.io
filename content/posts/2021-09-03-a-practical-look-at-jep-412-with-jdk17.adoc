@@ -32,6 +32,8 @@ obsolete for the next JDK as API and behavior are further refined.
 
 TIP: The following examples were based on *JDK 17 release candidate build 35 (2021/8/6)*.
 
+Here's a quick recapitulation of what's changed:
+
 .Changes
 |===
 | JEP-389 | JEP-412
@@ -45,13 +47,13 @@ based code.
 | `LibraryLookup.ofDefault()`
 | `CLinker.systemLookup()`
 
-| `LibraryLookup.ofPath(Path)`
-| There's no straight replacement, instead the code has to a combination of
+| `LibraryLookup.ofLibrary(String)` / `LibraryLookup.ofPath(Path)`
+a| There's no straight replacement, instead the code has to be a sequence of
 
-[source]
+[source, java]
 ----
-System.load(String)
-SymbolLookup.loaderLookup()
+System.load(String); // or System.loadLibrary(String);
+SymbolLookup.loaderLookup();
 ----
 
 
@@ -71,6 +73,8 @@ SymbolLookup.loaderLookup()
 must be done manually.
 
 |===
+
+And `jextract` in particular saw massive improvements.
 
 _Thanks to https://twitter.com/jpbempel[Jean-Phillipe Bempel] for the review and
 in particular spotting errors_.
@@ -226,8 +230,7 @@ to pass a path, which is particularly useful when embedding native libraries in 
 Basically in the JDK 17 there's two options:
 
 * `CLinker.systemLookup()` this mechanism will find symbols in the system libraries,
-these seem to be the symbol of libraries f the JVM itself, and the path is
-defined in this property `sun.boot.library.path`
+libraries of the JVM itself ; the path is defined in this property `sun.boot.library.path`
 +
 [source, shell]
 ----
@@ -264,11 +267,12 @@ env JAVA_LIBRARY_PATH=:/usr/local/lib java --enable-native-access=ALL-UNNAMED ..
 ----
 
 * or the code explicitly load the library from a path `System.load("/usr/local/lib/libsodium.dylib")`
-withut requiring to change environment variable.
+without requiring to change environment variable.
 
 In the code however the question remain: Which lookup mechanism ?
-* Well if it's a library loaded via either `System::load` or `System:loadLibrary`
-has to use `SymbolLookup.loaderLookup()`.
+
+* Well if it's a library loaded via `System::load` or `System::loadLibrary`
+then use `SymbolLookup.loaderLookup()`.
 * If it is system library with system symbols like `printf` or `getpid`, the code
 need to use `CLinker.systemLookup`.
 
@@ -476,14 +480,14 @@ C data types.
 [cols="2m,8a"]
 |===
 
-| int | A signed integer type with "the natural size suggested by the
-architecture of the execution environment", with a minimum of 2 byte (16 bits,
-asciimath:[[-32767; +32767\]]).
+| int a| A signed integer type with _the natural size suggested by the
+architecture of the execution environment_, +
+with a minimum of 2 byte (16 bits, asciimath:[[-32767; +32767\]]).
 
 On a 64bits CPU, `int` is 4bytes and the range becomes asciimath:[[-2147483647; +2147483647\]];
 | long | A signed integer type that is at least so 4 bytes (asciimath:[[-2147483647; +2147483647\]]).
 
-On a 64bits CPU, `long` is 4bytes and the range becomes asciimath:[[−9223372036854775807; +9223372036854775807\]];
+On a 64bits CPU, `long` is 8bytes and the range becomes asciimath:[[−9223372036854775807; +9223372036854775807\]];
 
 | long long | A signed integer type that is at least so 8 bytes (asciimath:[[−9223372036854775807; +9223372036854775807\]]).
 
@@ -491,6 +495,7 @@ On a 64bits CPU, `long long` is still 8 bytes long.
 
 |===
 
+{{< /wrapTable >}}
 
 [CAUTION]
 ====
@@ -507,7 +512,6 @@ seems they can be as big as 128 bits (16 bytes).
 As a reminder `size_t` is unsigned.
 ====
 
-{{< /wrapTable >}}
 
 ////
 #include<stdio.h>
@@ -550,8 +554,9 @@ int crypto_box_seal(unsigned char *c, const unsigned char *m,
             __attribute__ ((nonnull(1, 4)));
 ----
 
-Also, for this post, and I intend to pass a short `String` message,
-which is baked by a `char` array whose length can only be an `int`.
+For this post, and I intend to pass a short `String` message,
+which is baked by a `char` array, and array length in Java are limited
+to the positive values of an `int` (asciimath:[[0; +2147483647\]];).
 
 .crypto_box_seal (.java)
 [source, java]
@@ -765,10 +770,9 @@ the current state of `jextract`.
 
 
 ``MemorySegment`` do have the same constraints as ``DirectByteBuffer``s,
-ie by default the size of the segment can't size can't go over
-`Runtime.getRuntime().maxMemory()`
+ie the segment can't go over `Runtime.getRuntime().maxMemory()`
 
-.Allocating a very bigger segment than than `maxMemory`
+.Allocating a very bigger segment than `maxMemory`
 [source]
 ----
 Exception in thread "main" java.lang.OutOfMemoryError: Cannot reserve 2147483648 bytes of direct buffer memory (allocated: 8192, limit: 522190848)
@@ -876,7 +880,7 @@ freed when the code leaves the try-with-resources block.
 
 Also with JEP 412, a `MemorySegment` gains some API (`MemorySegment::load`,
 `MemorySegment::unload`, `MemorySegment::force`) that allows to force IO operations.
-THe `force` method looks particularly useful when forcing a write to disk (`fsync`)
+The `force` method looks particularly useful when forcing a write to disk (`fsync`)
 to page-out to a colder storage such as a disk.
 
 
@@ -885,7 +889,7 @@ to page-out to a colder storage such as a disk.
 In JDK 17 `MemorySegment` dropped `AutoCloseable`, `NativeScope` is replaced by
 `ResourceScope`, the loss of the `LibraryLookup` with an API with a different
 scope replaced by `SymbolLookup` API, appearance of the `SegmentAllocator`.
-`jextract` saw very good improvement, yet it seem mature enough to be featured
+`jextract` saw very good improvement, yet it seems mature enough to be featured
 in a standard JDK (even as part of incubator).
 
 Given all this, I am not sure JEP-412 will get out of incubating for JDK 18 as
@@ -904,7 +908,7 @@ it a try and showcase its usefulness.
 TIP: The jextract version used in this entry comes the _build 17-panama+3-167_
 that can be downloaded https://jdk.java.net/panama/[here].
 
-This tool leverages the native `libclang` and as such the `jdk.incubator.foreign`
+This tool leverages the native `libclang` and the `jdk.incubator.foreign`
 module.
 
 In order to be able to use it, one should download the panama jdk
@@ -1174,6 +1178,13 @@ One could even go further and move the other options (`-d`, `-l`, `--source`,
 $ jextract @sodium-only.conf $(brew --prefix)/include/sodium.h
 ----
 
+Even the last argument `$(brew --prefix)/include/sodium.h` can be appended in
+the configuration file to use simplify even more the command to the simplest form
+`jextract @sodium-only.conf`.
+
+_Remember that shell variable expansion `$(brew --prefix)` won't work
+and must be expanded manually._
+
 
 _This work was part of the following ticket https://bugs.openjdk.java.net/browse/JDK-8260976[JDK-8260976]._
 
@@ -1266,7 +1277,7 @@ But if one need to load the library from a custom path, eg jar that pack
 native libraries (and extract them in some temporary folder), it's possible to
 drop the `-l sodium` option, in this case the generated code just won't emit
 the `System::loadLibrary` in the static initialization of `sodium_h`. Instead
-it becomes possible necessary to manually load the library to your need.
+it becomes necessary to manually load the library to your need.
 
 [source, java]
 ----
@@ -1355,7 +1366,7 @@ static final MethodHandle crypto_box_keypair$MH = RuntimeHelper.downcallHandle(
 <1> Note that the Java method signature is declared with a String instead
 of the Java API `MethodType`.
 
-This code invokes creates the down-call stub, the only difference with the
+This code creates the _down-call_ stub, the only difference with the
 handcrafted handle in the section above, is the signature of the method declared
 as a `String`.
 
@@ -1602,8 +1613,11 @@ This iteration showed massive improvements of `jextract`, for my usage the
 pitfalls present at the time of JEP-389 (JDK 16) are gone. I tend to think the
 generated code is still a bit verbose, but it got better.
 
-Most welcome is the precise inclusion of symbols. Thi mechanism is powerful
-but not quite visible. The new dump / include mechanism is useful.
+Most welcome is the precise inclusion of symbols which is based on a two phase
+approach : dump symbol include options then load as a configuration file.
+This mechanism is very useful, the sheer number of dumped symbols can be
+a tad intimidating, but this approach is easy to manage. The use of this
+configuration file is great.
 
 If there's something that need improvement it's the help. But I'm sure it will
 be fixed before the final release.
@@ -1664,13 +1678,14 @@ to free memory segment (in particular for mapped file) at will, without
 depending on the GC.
 
 .Sad part
-This is yet another incubator and API change or not impossible. Some of this
+This is yet another incubator with slight API change. It's not unlikely the API
+get refined again, eg to prevent unsafe usage. Some of this
 blog post content will eventually become incorrect when the next JDK comes out.
-`jextract` solidify its position as a very practical tool, too sad it isn't
+Also `jextract` solidify its position as a very practical tool, too sad it isn't
 included in the JDK yet, but the safer approach wins here.
 
 .Overall
-JEP-412 is yet another solid step-stone toward what looks like looks like
+JEP-412 is yet another solid step-stone toward what looks like
 the replacement (in term of usage) of JNI or JNA. As before I can only applaud
 the work done! My only regret is it's not yet _already_ available. That said as
 a developer I support the idea to not ship until ready.
