@@ -414,6 +414,9 @@ The following examples were based on <strong>JDK 17 release candidate build 35 (
 </tr>
 </tbody></table>
 </div>
+<div class="paragraph">
+<p>Here’s a quick recapitulation of what’s changed:</p>
+</div>
 <table class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Changes</caption>
 <colgroup>
@@ -439,13 +442,16 @@ based code.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>CLinker.systemLookup()</code></p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LibraryLookup.ofPath(Path)</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">There’s no straight replacement, instead the code has to a combination of</p>
-<p class="tableblock">[source]
-----
-System.load(String)
-SymbolLookup.loaderLookup()
-----</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LibraryLookup.ofLibrary(String)</code> / <code>LibraryLookup.ofPath(Path)</code></p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>There’s no straight replacement, instead the code has to be a sequence of</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">System.load(String); // or System.loadLibrary(String);
+SymbolLookup.loaderLookup();</code></pre>
+</div>
+</div></div></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>NativeScope.unboundedScope()</code></p></td>
@@ -468,6 +474,9 @@ must be done manually.</p></td>
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>And <code>jextract</code> in particular saw massive improvements.</p>
+</div>
 <div class="paragraph">
 <p><em>Thanks to <a href="https://twitter.com/jpbempel">Jean-Phillipe Bempel</a> for the review and
 in particular spotting errors</em>.</p>
@@ -663,8 +672,7 @@ to pass a path, which is particularly useful when embedding native libraries in 
 <ul>
 <li>
 <p><code>CLinker.systemLookup()</code> this mechanism will find symbols in the system libraries,
-these seem to be the symbol of libraries f the JVM itself, and the path is
-defined in this property <code>sun.boot.library.path</code></p>
+libraries of the JVM itself ; the path is defined in this property <code>sun.boot.library.path</code></p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jshell -s - &lt;&lt;&lt; &#34;System.out.println(System.getProperty(\&#34;sun.boot.library.path\&#34;))&#34;
@@ -713,16 +721,24 @@ what was needed with JNI.</p>
 </li>
 <li>
 <p>or the code explicitly load the library from a path <code>System.load(&#34;/usr/local/lib/libsodium.dylib&#34;)</code>
-withut requiring to change environment variable.</p>
+without requiring to change environment variable.</p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>In the code however the question remain: Which lookup mechanism ?
-* Well if it’s a library loaded via either <code>System::load</code> or <code>System:loadLibrary</code>
-has to use <code>SymbolLookup.loaderLookup()</code>.
-* If it is system library with system symbols like <code>printf</code> or <code>getpid</code>, the code
+<p>In the code however the question remain: Which lookup mechanism ?</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Well if it’s a library loaded via <code>System::load</code> or <code>System::loadLibrary</code>
+then use <code>SymbolLookup.loaderLookup()</code>.</p>
+</li>
+<li>
+<p>If it is system library with system symbols like <code>printf</code> or <code>getpid</code>, the code
 need to use <code>CLinker.systemLookup</code>.</p>
+</li>
+</ul>
 </div>
 <div class="paragraph">
 <p>Let’s define the lookup this way for this article</p>
@@ -966,9 +982,9 @@ C data types.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>int</code></p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
-<p>A signed integer type with &#34;the natural size suggested by the
-architecture of the execution environment&#34;, with a minimum of 2 byte (16 bits,
-\$[-32767; +32767]\$).</p>
+<p>A signed integer type with <em>the natural size suggested by the
+architecture of the execution environment</em>,<br/>
+with a minimum of 2 byte (16 bits, \$[-32767; +32767]\$).</p>
 </div>
 <div class="paragraph">
 <p>On a 64bits CPU, <code>int</code> is 4bytes and the range becomes \$[-2147483647; +2147483647]\$;</p>
@@ -980,7 +996,7 @@ architecture of the execution environment&#34;, with a minimum of 2 byte (16 bit
 <p>A signed integer type that is at least so 4 bytes (\$[-2147483647; +2147483647]\$).</p>
 </div>
 <div class="paragraph">
-<p>On a 64bits CPU, <code>long</code> is 4bytes and the range becomes \$[−9223372036854775807; +9223372036854775807]\$;</p>
+<p>On a 64bits CPU, <code>long</code> is 8bytes and the range becomes \$[−9223372036854775807; +9223372036854775807]\$;</p>
 </div></div></td>
 </tr>
 <tr>
@@ -994,6 +1010,10 @@ architecture of the execution environment&#34;, with a minimum of 2 byte (16 bit
 </tr>
 </tbody>
 </table>
+
+</div>
+
+</div>
 <div class="admonitionblock caution">
 <table>
 <tbody><tr>
@@ -1034,10 +1054,6 @@ seems they can be as big as 128 bits (16 bytes).</p>
 </tr>
 </tbody></table>
 </div>
-
-</div>
-
-</div>
 <div class="listingblock">
 <div class="title">crypto_box_seal definition (.c)</div>
 <div class="content">
@@ -1048,8 +1064,9 @@ int crypto_box_seal(unsigned char *c, const unsigned char *m,
 </div>
 </div>
 <div class="paragraph">
-<p>Also, for this post, and I intend to pass a short <code>String</code> message,
-which is baked by a <code>char</code> array whose length can only be an <code>int</code>.</p>
+<p>For this post, and I intend to pass a short <code>String</code> message,
+which is baked by a <code>char</code> array, and array length in Java are limited
+to the positive values of an <code>int</code> (\$[0; +2147483647]\$;).</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_seal (.java)</div>
@@ -1305,11 +1322,10 @@ the current state of <code>jextract</code>.</p>
 <div class="sectionbody">
 <div class="paragraph">
 <p><code>MemorySegment</code> do have the same constraints as <code>DirectByteBuffer</code>s,
-ie by default the size of the segment can’t size can’t go over
-<code>Runtime.getRuntime().maxMemory()</code></p>
+ie the segment can’t go over <code>Runtime.getRuntime().maxMemory()</code></p>
 </div>
 <div class="listingblock">
-<div class="title">Allocating a very bigger segment than than <code>maxMemory</code></div>
+<div class="title">Allocating a very bigger segment than <code>maxMemory</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">Exception in thread &#34;main&#34; java.lang.OutOfMemoryError: Cannot reserve 2147483648 bytes of direct buffer memory (allocated: 8192, limit: 522190848)</code></pre>
 </div>
@@ -1450,7 +1466,7 @@ freed when the code leaves the try-with-resources block.</p>
 <div class="paragraph">
 <p>Also with JEP 412, a <code>MemorySegment</code> gains some API (<code>MemorySegment::load</code>,
 <code>MemorySegment::unload</code>, <code>MemorySegment::force</code>) that allows to force IO operations.
-THe <code>force</code> method looks particularly useful when forcing a write to disk (<code>fsync</code>)
+The <code>force</code> method looks particularly useful when forcing a write to disk (<code>fsync</code>)
 to page-out to a colder storage such as a disk.</p>
 </div>
 </div>
@@ -1462,7 +1478,7 @@ to page-out to a colder storage such as a disk.</p>
 <p>In JDK 17 <code>MemorySegment</code> dropped <code>AutoCloseable</code>, <code>NativeScope</code> is replaced by
 <code>ResourceScope</code>, the loss of the <code>LibraryLookup</code> with an API with a different
 scope replaced by <code>SymbolLookup</code> API, appearance of the <code>SegmentAllocator</code>.
-<code>jextract</code> saw very good improvement, yet it seem mature enough to be featured
+<code>jextract</code> saw very good improvement, yet it seems mature enough to be featured
 in a standard JDK (even as part of incubator).</p>
 </div>
 <div class="paragraph">
@@ -1496,7 +1512,7 @@ that can be downloaded <a href="https://jdk.java.net/panama/">here</a>.
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>This tool leverages the native <code>libclang</code> and as such the <code>jdk.incubator.foreign</code>
+<p>This tool leverages the native <code>libclang</code> and the <code>jdk.incubator.foreign</code>
 module.</p>
 </div>
 <div class="paragraph">
@@ -1843,6 +1859,15 @@ even more by selecting more aggressively the symbols.</p>
 </div>
 </div>
 <div class="paragraph">
+<p>Even the last argument <code>$(brew --prefix)/include/sodium.h</code> can be appended in
+the configuration file to use simplify even more the command to the simplest form
+<code>jextract @sodium-only.conf</code>.</p>
+</div>
+<div class="paragraph">
+<p><em>Remember that shell variable expansion <code>$(brew --prefix)</code> won’t work
+and must be expanded manually.</em></p>
+</div>
+<div class="paragraph">
 <p><em>This work was part of the following ticket <a href="https://bugs.openjdk.java.net/browse/JDK-8260976">JDK-8260976</a>.</em></p>
 </div>
 <div class="listingblock">
@@ -1960,7 +1985,7 @@ because the loading mechanism was nested deep in the generated code.</p>
 native libraries (and extract them in some temporary folder), it’s possible to
 drop the <code>-l sodium</code> option, in this case the generated code just won’t emit
 the <code>System::loadLibrary</code> in the static initialization of <code>sodium_h</code>. Instead
-it becomes possible necessary to manually load the library to your need.</p>
+it becomes necessary to manually load the library to your need.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2077,7 +2102,7 @@ of the Java API <code>MethodType</code>.</td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>This code invokes creates the down-call stub, the only difference with the
+<p>This code creates the <em>down-call</em> stub, the only difference with the
 handcrafted handle in the section above, is the signature of the method declared
 as a <code>String</code>.</p>
 </div>
@@ -2366,8 +2391,11 @@ pitfalls present at the time of JEP-389 (JDK 16) are gone. I tend to think the
 generated code is still a bit verbose, but it got better.</p>
 </div>
 <div class="paragraph">
-<p>Most welcome is the precise inclusion of symbols. Thi mechanism is powerful
-but not quite visible. The new dump / include mechanism is useful.</p>
+<p>Most welcome is the precise inclusion of symbols which is based on a two phase
+approach : dump symbol include options then load as a configuration file.
+This mechanism is very useful, the sheer number of dumped symbols can be
+a tad intimidating, but this approach is easy to manage. The use of this
+configuration file is great.</p>
 </div>
 <div class="paragraph">
 <p>If there’s something that need improvement it’s the help. But I’m sure it will
@@ -2393,14 +2421,15 @@ depending on the GC.</p>
 </div>
 <div class="paragraph">
 <div class="title">Sad part</div>
-<p>This is yet another incubator and API change or not impossible. Some of this
+<p>This is yet another incubator with slight API change. It’s not unlikely the API
+get refined again, eg to prevent unsafe usage. Some of this
 blog post content will eventually become incorrect when the next JDK comes out.
-<code>jextract</code> solidify its position as a very practical tool, too sad it isn’t
+Also <code>jextract</code> solidify its position as a very practical tool, too sad it isn’t
 included in the JDK yet, but the safer approach wins here.</p>
 </div>
 <div class="paragraph">
 <div class="title">Overall</div>
-<p>JEP-412 is yet another solid step-stone toward what looks like looks like
+<p>JEP-412 is yet another solid step-stone toward what looks like
 the replacement (in term of usage) of JNI or JNA. As before I can only applaud
 the work done! My only regret is it’s not yet <em>already</em> available. That said as
 a developer I support the idea to not ship until ready.</p>
