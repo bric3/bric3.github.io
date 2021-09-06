@@ -308,7 +308,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 83 min read
+    <i class="fas fa-clock"></i> 85 min read
 
     
     
@@ -346,6 +346,7 @@
       <ul>
         <li><a href="#_extracting_java_liking_code_from_the_libsodium_headers">Extracting Java liking code from the Libsodium headers</a></li>
         <li><a href="#_invoking_the_library">Invoking the library</a></li>
+        <li><a href="#_to_be_part_of_the_jdk_or_not">To be part of the JDK or not ?</a></li>
         <li><a href="#_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167">Wrapping up on <code>jextract</code> for JEP-412 / build 17-panama+3-167</a></li>
       </ul>
     </li>
@@ -1499,8 +1500,10 @@ to page-out to a colder storage such as a disk.</p>
 <p>In JDK 17 <code>MemorySegment</code> dropped <code>AutoCloseable</code>, <code>NativeScope</code> is replaced by
 <code>ResourceScope</code>, the loss of the <code>LibraryLookup</code> with an API with a different
 scope replaced by <code>SymbolLookup</code> API, appearance of the <code>SegmentAllocator</code>.
-<code>jextract</code> saw very good improvement, yet it seems mature enough to be featured
-in a standard JDK (even as part of incubator).</p>
+<code>jextract</code> saw very good improvement, it seems mature enough to be featured
+in a standard JDK, yet it is not part of incubator module. In fact, jextract
+might never be part of the JDK itself as it might be distributed by other
+mechanisms, see this <a href="https://mail.openjdk.java.net/pipermail/panama-dev/2021-May/013898.html">discussion</a>.</p>
 </div>
 <div class="paragraph">
 <p>Given all this, I am not sure JEP-412 will get out of incubating for JDK 18 as
@@ -1515,7 +1518,7 @@ incubator, I think they are doing a fantastic job in my opinion.</p>
 <h2 id="_jextract"><a class="anchor" href="#_jextract"></a><a class="link" href="#_jextract"><code>jextract</code></a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><code>jextract</code> is still being backed and was not ready to be included in JDK 17
+<p><code>jextract</code> is still being backed and was not included in JDK 17
 for incubation, but since it complements JEP-412, I wanted to give
 it a try and showcase its usefulness.</p>
 </div>
@@ -2406,6 +2409,23 @@ static String getUnsupportedTypeName(MemoryLayout vl) {
 </div>
 </div>
 <div class="sect2">
+<h3 id="_to_be_part_of_the_jdk_or_not"><a class="anchor" href="#_to_be_part_of_the_jdk_or_not"></a><a class="link" href="#_to_be_part_of_the_jdk_or_not">To be part of the JDK or not ?</a></h3>
+<div class="paragraph">
+<p>It has been brought to me that jextract may never be part of a standard JDK.
+This is still being <a href="https://mail.openjdk.java.net/pipermail/panama-dev/2021-May/013898.html">debated</a>.</p>
+</div>
+<div class="paragraph">
+<p>But the main motivation is the substantial weight of <code>jextract</code>, indeed <code>jextract</code>
+is based on <strong><code>libclang</code></strong> which is about <strong><code>81 MiB</code></strong> on macOs, <strong><code>92 MiB</code></strong> on Linux.
+Panama developers don’t want to put this much weight on the JDK. Moreover this
+tool is likely to be <em>confined</em> to a small audience of Java developers.</p>
+</div>
+<div class="paragraph">
+<p>Instead <code>jextract</code> could be delivered via other means like JMH (Java Microbenchmark Harness),
+or JDK Mission Control.</p>
+</div>
+</div>
+<div class="sect2">
 <h3 id="_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167"><a class="anchor" href="#_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167"></a><a class="link" href="#_wrapping_up_on_jextract_for_jep_412_build_17_panama3_167">Wrapping up on <code>jextract</code> for JEP-412 / build 17-panama+3-167</a></h3>
 <div class="paragraph">
 <p>This iteration showed massive improvements of <code>jextract</code>, for my usage the
@@ -2424,7 +2444,8 @@ configuration file is great.</p>
 be fixed before the final release.</p>
 </div>
 <div class="paragraph">
-<p>When ready, this could be leveraged by Gradle or Jetbrains IntelliJ IDEA, etc.</p>
+<p>When a final version is released, this could be leveraged by Gradle or
+Jetbrains IntelliJ IDEA, etc.</p>
 </div>
 </div>
 </div>
