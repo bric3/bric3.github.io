@@ -901,8 +901,10 @@ to page-out to a colder storage such as a disk.
 In JDK 17 `MemorySegment` dropped `AutoCloseable`, `NativeScope` is replaced by
 `ResourceScope`, the loss of the `LibraryLookup` with an API with a different
 scope replaced by `SymbolLookup` API, appearance of the `SegmentAllocator`.
-`jextract` saw very good improvement, yet it seems mature enough to be featured
-in a standard JDK (even as part of incubator).
+`jextract` saw very good improvement, it seems mature enough to be featured
+in a standard JDK, yet it is not part of incubator module. In fact, jextract
+might never be part of the JDK itself as it might be distributed by other
+mechanisms, see this https://mail.openjdk.java.net/pipermail/panama-dev/2021-May/013898.html[discussion].
 
 Given all this, I am not sure JEP-412 will get out of incubating for JDK 18 as
 well. JEP-412 is working well and show great refinements, but to me the
@@ -913,7 +915,7 @@ incubator, I think they are doing a fantastic job in my opinion.
 
 == `jextract`
 
-`jextract` is still being backed and was not ready to be included in JDK 17
+`jextract` is still being backed and was not included in JDK 17
 for incubation, but since it complements JEP-412, I wanted to give
 it a try and showcase its usefulness.
 
@@ -1620,6 +1622,21 @@ static String getUnsupportedTypeName(MemoryLayout vl) {
 ====
 
 
+=== To be part of the JDK or not ?
+
+It has been brought to me that jextract may never be part of a standard JDK.
+This is still being https://mail.openjdk.java.net/pipermail/panama-dev/2021-May/013898.html[debated].
+
+But the main motivation is the substantial weight of `jextract`, indeed `jextract`
+is based on *`libclang`* which is about *`81 MiB`* on macOs, *`92 MiB`* on Linux.
+Panama developers don't want to put this much weight on the JDK. Moreover this
+tool is likely to be _confined_ to a small audience of Java developers.
+
+Instead `jextract` could be delivered via other means like JMH (Java Microbenchmark Harness),
+or JDK Mission Control.
+
+
+
 === Wrapping up on `jextract` for JEP-412 / build 17-panama+3-167
 
 This iteration showed massive improvements of `jextract`, for my usage the
@@ -1635,7 +1652,12 @@ configuration file is great.
 If there's something that need improvement it's the help. But I'm sure it will
 be fixed before the final release.
 
-When ready, this could be leveraged by Gradle or Jetbrains IntelliJ IDEA, etc.
+
+
+
+
+When a final version is released, this could be leveraged by Gradle or
+Jetbrains IntelliJ IDEA, etc.
 
 
 
