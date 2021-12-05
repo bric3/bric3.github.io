@@ -383,7 +383,7 @@ of the <em>Foreign Linker API</em>.</p>
 <div class="paragraph">
 <p>The Foreign Linker API is a very convenient and attractive way to connect to
 the native world. Let’s have a practical look at this API that should supersede JNI.
-In order to do so I wanted Java code to interact with the infamous
+In order to do so, I wanted Java code to interact with the infamous
 <a href="https://doc.libsodium.org/"><strong>libsodium</strong></a>.</p>
 </div>
 <div class="paragraph">
@@ -470,7 +470,7 @@ SymbolLookup.loaderLookup();</code></pre>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>NativeScope.allocate*</code> methods</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.allocate*</code>, the allocator has factory methods taking a
-<code>ResourceScope</code>, eg <code>SegmentAllocator.ofScope(scope)</code></p></td>
+<code>ResourceScope</code>, e.g. <code>SegmentAllocator.ofScope(scope)</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>CLinker.toCString(String, Charset, ResourceScope)</code>,
@@ -654,12 +654,12 @@ tasks {
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
-<td>Configure the tasks that executes a main class, while this is not immediately useful
+<td>Configure the tasks that execute a main class, while this is not immediately useful
 IntelliJ IDEA will pick up this configuration, when you click running a <code>main</code> method.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Currently a the project toolchain is not the default value for some properties
+<td>Currently, the project toolchain is not the default value for some properties
 like the <code>JavaExec</code> task launcher, see <a href="https://github.com/gradle/gradle/issues/16791">gradle/gradle/issues#16791</a>.</td>
 </tr>
 <tr>
@@ -674,7 +674,7 @@ like the <code>JavaExec</code> task launcher, see <a href="https://github.com/gr
 <div class="sect3">
 <h4 id="_lookup"><a class="anchor" href="#_lookup"></a><a class="link" href="#_lookup">Lookup</a></h4>
 <div class="paragraph">
-<p>The very first thing to setup is the native symbol lookup mechanism. In JDK 17
+<p>The very first thing to set up is the native symbol lookup mechanism. In JDK 17
 the nifty <code>LibraryLookup</code> is gone, in my opinion this API was better as it allowed
 to pass a path, which is particularly useful when embedding native libraries in JARs.</p>
 </div>
@@ -693,13 +693,13 @@ libraries of the JVM itself ; the path is defined in this property <code>sun.boo
 </div>
 </div>
 <div class="paragraph">
-<p>And it doesnt seem related to classloader.</p>
+<p>And it doesn’t seem related to classloader.</p>
 </div>
 </li>
 <li>
 <p><code>SymbolLookup.loaderLookup()</code> on the other hand appear to be based library
 loaded via <code>System.load</code> / <code>System.loadLibrary</code>, which are tied to the classloader.
-This mechanism will lookup libraries defined in the <code>java.library.path</code> property</p>
+This mechanism will look up libraries defined in the <code>java.library.path</code> property</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">jshell -s - &lt;&lt;&lt; &#34;System.out.println(System.getProperty(\&#34;java.library.path\&#34;))&#34;
@@ -725,7 +725,7 @@ what was needed with JNI.</p>
 <ul>
 <li>
 <p>either the runtime execution requires alteration via the environment variable
-<code>JAVA_LIBRARY_PATH</code>, and the library can be loaded by it’s name <code>System.loadLibrary(&#34;sodium&#34;)</code> .</p>
+<code>JAVA_LIBRARY_PATH</code>, and the library can be loaded by its name <code>System.loadLibrary(&#34;sodium&#34;)</code> .</p>
 <div class="listingblock">
 <div class="content">
 <pre>env JAVA_LIBRARY_PATH=:/usr/local/lib java --enable-native-access=ALL-UNNAMED ...</pre>
@@ -768,7 +768,7 @@ need to use <code>CLinker.systemLookup</code>.</p>
 <div class="sect3">
 <h4 id="_from_c_to_java"><a class="anchor" href="#_from_c_to_java"></a><a class="link" href="#_from_c_to_java">From C to Java</a></h4>
 <div class="paragraph">
-<p>Going back to the snippt to translate, the first lines makes use of a few macros
+<p>Going back to the snippet to translate, the first lines makes use of a few macros
 (the lines starting with <code>#define</code>), we can assume that <code>MESSAGE</code> will be a
 method parameter, <code>MESSAGE_LEN</code> will be derived from the message parameter,
 and <code>CIPHERTEXT_LEN</code> is also derived from the message but needs another constant
@@ -910,7 +910,7 @@ var kp = new CryptoBoxKeyPair(
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>JEP-389 already had the concept of bounded usage of these memory segment with
+<p>JEP-389 already had the concept of bounded usage for memory segments with
 the <code>NativeScope</code> class, but it was still possible to write code that never
 deallocates native memory.
 The API in the JEP-412 improves over JEP-389 and now imposes the user to handle
@@ -918,18 +918,18 @@ The API in the JEP-412 improves over JEP-389 and now imposes the user to handle
 <code>ResourceScope</code> type.</p>
 </div>
 <div class="paragraph">
-<p>The above can completed by wrapping it in a <em>try-with-resources</em> block with a
+<p>The above is completed by wrapping it in a <em>try-with-resources</em> block with a
 <code>ResourceScope</code>, the scope will be take care the allocated memory segment upon
 the block exit.</p>
 </div>
 <div class="listingblock">
 <div class="title">crypto_box_keypair with <code>ResourceScope</code> (.java)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">try (var scope = ResourceScope.newConfinedScope()) {
-    var recipientPublicKey = scope.allocate(crypto_box_publickeybytes(), scope);
-    var recipientSecretKey = scope.allocate(crypto_box_secretkeybytes(), scope);
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle crypto_box_keypair = ...
 
-    MethodHandle crypto_box_keypair = ...
+try (var scope = ResourceScope.newConfinedScope()) {
+    var recipientPublicKey = MemorySegment.allocateNative(crypto_box_publickeybytes(), scope);
+    var recipientSecretKey = MemorySegment.allocateNative(crypto_box_secretkeybytes(), scope);
 
     crypto_box_keypair.invokeExact(recipientPublicKey.address(),
                                    recipientSecretKey.address());
@@ -943,7 +943,7 @@ the block exit.</p>
 </div>
 <div class="paragraph">
 <p>In order to get back the off-heap content into Java types, the code can call
-any of the <code>to{The Java Type}</code> methods on the <code>MemorySegment</code> instance, they
+any of the <code>to\{The Java Type}</code> methods on the <code>MemorySegment</code> instance, they
 will take care of the conversion.</p>
 </div>
 <div class="paragraph">
@@ -965,9 +965,9 @@ crypto_box_seal(ciphertext, MESSAGE, MESSAGE_LEN, recipient_pk);</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>When looking at the
+<p>However when looking at the
 <a href="https://github.com/jedisct1/libsodium/blob/ae4add868124a32d4e54da10f9cd99240aecc0aa/src/libsodium/include/sodium/crypto_box.h#L129-L132">C signature</a>
-however we notice something <em>unusual</em> for Java developers: the message length
+we notice something <em>unusual</em> for Java developers: the message length
 argument is of type <code>long long</code>!</p>
 </div>
 <div class="paragraph">
@@ -976,7 +976,7 @@ this means a Java <code>long</code> type is what is needed.</p>
 </div>
 <div class="paragraph">
 <p>In particular here’s a breakdown of the signed integers. It is incomplete
-as they can be declared differently (eg. <code>long</code> is the same as <code>long int</code>,
+as they can be declared differently (e.g. <code>long</code> is the same as <code>long int</code>,
 or <code>long long</code> is the same as <code>long long int</code>), this <a href="https://en.wikipedia.org/wiki/C_data_types">wikipedia page</a> has a more complete overview of
 C data types.</p>
 </div>
@@ -1046,7 +1046,7 @@ counterpart, their math is different as their range is different:</p>
 <div class="ulist">
 <ul>
 <li>
-<p><code>unsigned long</code>&#39;s range is \$[0; +4294967295]\$ (on a 64 bit CPU)</p>
+<p><code>unsigned long</code>&#39;s range is \$[0; +4294967295]\$ (on a 64-bit CPU)</p>
 </li>
 <li>
 <p><code>unsigned long long</code>&#39;s range is \$[0; +18446744073709551615]\$ (on a 64 bit CPU)</p>
@@ -1097,17 +1097,17 @@ to the positive values of an <code>int</code> (\$[0; +2147483647]\$;).</p>
                               C_POINTER,
                               C_LONG_LONG,
                               C_POINTER)
-
 );
 
 try (var scope = ResourceScope.newConfinedScope()) {
+    var segmentAllocator = SegmentAllocator.ofScope(scope);
     var nativeMessage = CLinker.toCString(message, scope);
-    var cipherText = scope.allocate(crypto_box_sealbytes() + nativeMessage.byteSize(), scope);
+    var cipherText = segmentAllocator.allocate(crypto_box_sealbytes() + nativeMessage.byteSize());
     var ret = (int) crypto_box_seal.invokeExact(
             cipherText.address(),
-            CLinker.toCString(message, scope).address(),
+            nativeMessage.address(),
             (long) nativeMessage.byteSize(),
-            scope.allocateArray(C_CHAR, publicKey).address()
+            segmentAllocator.allocateArray(C_CHAR, publicKey).address());
     );
     return cipherText.toByteArray();
 }</code></pre>
@@ -1122,8 +1122,8 @@ try (var scope = ResourceScope.newConfinedScope()) {
 <p>The <code>toCString</code> method don’t take anymore a charset compared to JEP-389 (JDK-16),
 and encode the String to UTF-8. This change implies to pay attention to native APIs
 that may not understand wide characters like <code>中文</code> that require more than 1 byte
-to encode the character. Consequently native API that may need the length
-have to pay attention to the this detail too — UTF-8 encode characters in one or
+to encode the character. Consequently, native API that may need the length
+have to pay attention to this detail too — UTF-8 encode characters in one or
 more byte if necessary — in other words don’t rely on <code>String::length</code> to count
 bytes.</p>
 <div class="paragraph">
@@ -1219,15 +1219,15 @@ offers a better API</td>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
 <td>In JDK 16, using <code>toJavaString</code> raised a <code>IndexOutOfBoundsException</code> with the message
-<code>Out of bound access on segment MemorySegment{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1</code>.
+<code>Out of bound access on segment MemorySegment\{ id=0x6f11d841 limit: 20 }; new offset = 20; new length = 1</code>.
 <div class="paragraph">
-<p>Indeed during my first use of the foreign linker API in the JDK 16 I use
+<p>Indeed, during my first use of the foreign linker API in the JDK 16 I used
 <code>String::length</code> to indicate the number of bytes to <em>seal</em>, a Java String length
-that didn’t included the null character <code>\0</code> that terminates a C string. Which caused
+that didn’t include the null character <code>\0</code> that terminates a C string. Which caused
 this bound issue during the reverse operation <code>toJavaString</code>.</p>
 </div>
 <div class="paragraph">
-<p>The seal example in this JDK 17 version uses the memory segment length, which
+<p>The seal example with JDK 17 API uses the memory segment’s length, which
 thereby prevents ths issue from happening.</p>
 </div></td>
 </tr>
@@ -1249,7 +1249,7 @@ This reminds us that one has to be careful with String and encodings.
 <p>A side note, in this snippet too I have intentionally left out the returned
 status of <code>crypto_box_seal_open</code>, to focus on the foreign module API, but this
 would make sense to perform checks on the returned value before returning the
-buffer as suggested on the libsodium documentation.</p>
+buffer just as it is suggested on the libsodium documentation.</p>
 </div>
 <div class="paragraph">
 <p>More interestingly this example introduces the <code>SegmentAllocator</code> of the JEP-412
@@ -1273,29 +1273,33 @@ be used for array allocation.</p>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.ofScope(ResourceScope)</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">It is a regular allocator for native memory.
-It uses a standard <code>malloc</code> call. The new allocated segments will all be cleaned when the
+<td class="tableblock halign-left valign-top"><p class="tableblock">It is a regular allocator for native memory.<br/>
+It uses a standard <code>malloc</code> call. The new allocated<br/>
+segments will all be cleaned when the<br/>
 scope closes.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.ofSegment(MemorySegment)</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">This allows to reuse, or recycle, the same memory segment.
-Allocated segments are all sub parts of this parent memory segment. This is
-useful to limit allocations as <code>malloc</code> operations as they are known to be
-expensive.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This allows to reuse, or recycle, the same memory segment.</p>
+<p class="tableblock">Allocated segments are all sub parts of this parent memory<br/>
+segment. This is useful to limit allocations as <code>malloc</code><br/>
+operations as they are known to be expensive.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>SegmentAllocator.arenaAllocator(scope)</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">This allocator is doing <a href="https://en.wikipedia.org/wiki/Region-based_memory_management">region based memory management</a>.
-The short version of the arena memory management is : the allocator allocates
-a chunk of memory and either use a slice of that segment, or allocate a new
-chunk of memory to satisfy the allocation request.
-Since segment are scoped in inside a ResourceScope, they are freed, and their
-slice can be used again.
-This allocator is useful to limit costly <code>malloc</code> operations, yet allows more
-flexibility than the alternative segment recycling.</p>
-<p class="tableblock">The factory has an overload that takes a size, in this case allocations are possible
-until no further allocation is possible, ie it won’t add a new underlying chunk
+<td class="tableblock halign-left valign-top"><p class="tableblock">This allocator is doing <a href="https://en.wikipedia.org/wiki/Region-based_memory_management">region based memory management</a>.</p>
+<p class="tableblock">The short version of the arena memory management is :<br/>
+the allocator allocates a chunk of memory and either<br/>
+use a slice of that segment, or allocate a new<br/>
+chunk of memory to satisfy the allocation request.<br/>
+Since segment are scoped in inside a ResourceScope,<br/>
+they are freed, and their slice can be used again.
+This allocator is useful to limit costly <code>malloc</code><br/>
+operations, yet allows more flexibility than the<br/>
+alternative segment recycling.</p>
+<p class="tableblock">The factory has an overload that takes a size, in this<br/>
+case allocations are possible until no further allocation<br/>
+is possible, ie it won’t add a new underlying chunk<br/>
 of memory.</p></td>
 </tr>
 </tbody>
@@ -1376,7 +1380,7 @@ representation, via <code>Long.toHexString(memorySegment.address().toRawLongValu
 inspect memory mappings of the JVM.</p>
 </div>
 <div class="listingblock">
-<div class="title">/pmap output of a 2GiB native segment</div>
+<div class="title">/pmap output of a 2 GiB native segment</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">151:   java --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign -XX:MaxDirectMemorySize=2100m MemorySegments.java
 Address           Kbytes     RSS   Dirty Mode  Mapping
@@ -1465,7 +1469,7 @@ method. JEP 412 amend this API with a <code>ResourceScope</code> parameter.</p>
 <table>
 <tbody><tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>A path eg Path.of(&#34;…​&#34;)</td>
+<td>A path e.g. Path.of(&#34;…​&#34;)</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -1482,14 +1486,14 @@ method. JEP 412 amend this API with a <code>ResourceScope</code> parameter.</p>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>The <code>MemorySegment</code> is not anymore auto closeable, but it will be immediately
+<p>The <code>MemorySegment</code> is not any more auto closeable, instead it will be immediately
 freed when the code leaves the try-with-resources block.</p>
 </div>
 <div class="paragraph">
-<p>Also with JEP 412, a <code>MemorySegment</code> gains some API (<code>MemorySegment::load</code>,
+<p>Also, with JEP 412, a <code>MemorySegment</code> gains some API (<code>MemorySegment::load</code>,
 <code>MemorySegment::unload</code>, <code>MemorySegment::force</code>) that allows to force IO operations.
-The <code>force</code> method looks particularly useful when forcing a write to disk (<code>fsync</code>)
-to page-out to a colder storage such as a disk.</p>
+The <code>force</code> method looks particularly useful when forcing a write operation to
+disk (<code>fsync</code>) to page-out to a colder storage such as a disk.</p>
 </div>
 </div>
 </div>
@@ -1609,11 +1613,11 @@ the <code>java.library.path</code>.</td>
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>Obviously some of the standard C headers are not discovered by <code>jextract</code>.</p>
+<p>Obviously some standard C headers are not discovered by <code>jextract</code>.</p>
 </div>
 <div class="paragraph">
 <div class="title">macOs</div>
-<p>On macOs the solution is to use the header that are installed by the XCode, at this location</p>
+<p>On macOs the solution is to use the header that are installed by XCode, at this location</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1630,7 +1634,7 @@ Now with the <em>build 17-panama+3-167</em> <code>jextract</code> worked fine.</
 <p>This issue is tracked by the ticket <a href="https://bugs.openjdk.java.net/browse/JDK-8262127">JDK-8262127</a>.</p>
 </div>
 <div class="paragraph">
-<p>Also I noticed that <code>jextract</code> generates classes first, but you can pass
+<p>Also, I noticed that <code>jextract</code> generates classes first, but you can pass
 a <code>--source</code> option to configure it to generate sources instead.</p>
 </div>
 <details>
@@ -1671,7 +1675,7 @@ src/libsodium/include/sodium.h:5:10: fatal error: &#39;sodium/version.h&#39; fil
 </div>
 <div class="paragraph">
 <p>In the libsodium repository there’s a file named <code>version.h.in</code>,
-and upon inspection of its content I noticed placeholders that suggests
+and upon inspection of its content I noticed placeholders that suggest
 a preliminary phase in the libsodium build will generate the final <code>version.h</code>.
 In native sources this usually happen via a combination of <code>./autogen.sh</code>
 and <code>./configure</code>.</p>
@@ -1774,7 +1778,7 @@ At this time of writing, this option is gone and replaced by a
 </div>
 <div class="paragraph">
 <p>The previous mechanism filtered headers by their path, the new mechanism however
-allows to filter by <code>type</code>, see these option in the help message.</p>
+allows filtering by <code>type</code>, see these option in the help message.</p>
 </div>
 <div class="listingblock">
 <div class="title">include-(function|macro|struct|typedef|union|var) options</div>
@@ -1788,10 +1792,10 @@ allows to filter by <code>type</code>, see these option in the help message.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>At first this looks like a huge effort to list every symbols (function, data
-types, variables, etc), but there’s a nifty trick. <code>jextract</code> comes with
+<p>At first this looks like a huge effort to list every symbol (function, data
+types, variables, etc.), but there’s a nifty trick. <code>jextract</code> comes with
 <code>--dump-includes</code>. This option alter <code>jextract</code> behavior in that it won’t generate
-source or class bindings but instead it will dump symbols in the given file.</p>
+source or class bindings, but instead it will dump symbols in the given file.</p>
 </div>
 <div class="listingblock primary">
 <div class="title">dumping symbols configuration</div>
@@ -1869,14 +1873,14 @@ with the found symbol, more <code>jextract</code> indicates were this file was f
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>By editing the <code>sodium.conf</code> file and removing everything non related to
+<p>By editing the <code>sodium.conf</code> file and removing everything non-related to
 <em>libsodium</em>, it was possible to cut down the generated bindings by more than a
 half. Depending on the required API usage it is of course possible to remove
 even more by selecting more aggressively the symbols.</p>
 </div>
 <div class="paragraph">
 <p>One could even go further and move the other options (<code>-d</code>, <code>-l</code>, <code>--source</code>,
-<code>--target-package</code>, etc), in this option file. Making the command even simpler</p>
+<code>--target-package</code>, etc.), in this option file. Making the command even simpler</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1986,7 +1990,7 @@ it isn’t you need to alter the java library path.</p>
 </dl>
 </div>
 <div class="paragraph">
-<p>Otherwise the code will fail with the following stacktrace</p>
+<p>Otherwise, the code will fail with the following stacktrace</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2006,10 +2010,10 @@ before the stacktrace was a bit less obvious and the code harder to change,
 because the loading mechanism was nested deep in the generated code.</p>
 </div>
 <div class="paragraph">
-<p>But if one need to load the library from a custom path, eg jar that pack
+<p>But if one need to load the library from a custom path, e.g. jar that pack
 native libraries (and extract them in some temporary folder), it’s possible to
 drop the <code>-l sodium</code> option, in this case the generated code just won’t emit
-the <code>System::loadLibrary</code> in the static initialization of <code>sodium_h</code>. Instead
+the <code>System::loadLibrary</code> in the static initialization of <code>sodium_h</code>. Instead,
 it becomes necessary to manually load the library to your need.</p>
 </div>
 <div class="listingblock">
@@ -2132,7 +2136,7 @@ handcrafted handle in the section above, is the signature of the method declared
 as a <code>String</code>.</p>
 </div>
 <div class="ulist">
-<div class="title"><code>(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I</code> breakdown</div>
+<div class="title"><code>(Ljdk/incubator/foreign/MemoryAddress;Ljdk/incubator/foreign/MemoryAddress;)I</code> &#39;s breakdown</div>
 <ul>
 <li>
 <p><code>Ljdk/incubator/foreign/MemoryAddress</code> ⇒ arg0</p>
@@ -2151,7 +2155,7 @@ are similar and don’t require to do the tedious handle declaration.</p>
 </div>
 <div class="paragraph">
 <p>This type raised a few questions about how to map them in Java in the first section
-where I used manually <code>jdk.incubator.foreign</code>. Also there’s statement at this time
+where I used manually <code>jdk.incubator.foreign</code>. Also, there’s statement at this time
 about <code>jextract</code> not supporting some wide types.</p>
 </div>
 <div class="quoteblock">
@@ -2244,7 +2248,7 @@ respective memory layout whether they are supported of not.</p>
     /**
      * {@code wchar} type.
      */
-    WChar(&#34;wchar_t&#34;, UnsupportedLayouts.WCHAR_T);
+    WChar(&#34;wchar_t&#34;, UnsupportedLayouts.WCHAR_T)
 
     // ...
 }</code></pre>
@@ -2280,7 +2284,7 @@ case UChar: {
 </div>
 <div class="paragraph">
 <p>Going further we can see that signed and unsigned integers use the same
-memory layout, eg. <code>long long</code> and <code>unsigned long long</code> use the same layout
+memory layout, e.g. <code>long long</code> and <code>unsigned long long</code> use the same layout
 <code>C_LONG_LONG</code>.</p>
 </div>
 <div class="listingblock">
@@ -2417,11 +2421,11 @@ This is still being <a href="https://mail.openjdk.java.net/pipermail/panama-dev/
 <div class="paragraph">
 <p>But the main motivation is the substantial weight of <code>jextract</code>, indeed <code>jextract</code>
 is based on <strong><code>libclang</code></strong> which is about <strong><code>81 MiB</code></strong> on macOs, <strong><code>92 MiB</code></strong> on Linux.
-Panama developers don’t want to put this much weight on the JDK. Moreover this
+Panama developers don’t want to put this much weight on the JDK. Moreover, this
 tool is likely to be <em>confined</em> to a small audience of Java developers.</p>
 </div>
 <div class="paragraph">
-<p>Instead <code>jextract</code> could be delivered via other means like JMH (Java Microbenchmark Harness),
+<p>Instead, <code>jextract</code> could be delivered via other means like JMH (Java Microbenchmark Harness),
 or JDK Mission Control.</p>
 </div>
 </div>
@@ -2465,15 +2469,15 @@ depending on the GC.</p>
 <div class="paragraph">
 <div class="title">Sad part</div>
 <p>This is yet another incubator with slight API change. It’s not unlikely the API
-get refined again, eg to prevent unsafe usage. Some of this
+get refined again, e.g. to prevent unsafe usage. Some of this
 blog post content will eventually become incorrect when the next JDK comes out.
-Also <code>jextract</code> solidify its position as a very practical tool, too sad it isn’t
+Also, <code>jextract</code> solidify its position as a very practical tool, too sad it isn’t
 included in the JDK yet, but the safer approach wins here.</p>
 </div>
 <div class="paragraph">
 <div class="title">Overall</div>
 <p>JEP-412 is yet another solid step-stone toward what looks like
-the replacement (in term of usage) of JNI or JNA. As before I can only applaud
+the replacement (in terms of usage) of JNI or JNA. As before I can only applaud
 the work done! My only regret is it’s not yet <em>already</em> available. That said as
 a developer I support the idea to not ship until ready.</p>
 </div>
@@ -2519,6 +2523,9 @@ a developer I support the idea to not ship until ready.</p>
 </li>
 <li>
 <p><a href="https://foojay.io/today/project-panama-for-newbies-part-2/" class="bare">https://foojay.io/today/project-panama-for-newbies-part-2/</a></p>
+</li>
+<li>
+<p><a href="https://foojay.io/today/project-panama-for-newbies-part-3/" class="bare">https://foojay.io/today/project-panama-for-newbies-part-3/</a></p>
 </li>
 </ul>
 </div>
