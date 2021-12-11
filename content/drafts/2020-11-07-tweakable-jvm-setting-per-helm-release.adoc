@@ -3,90 +3,99 @@ authors: ["brice.dutheil"]
 date: "2020-11-07T00:40:00+02:00"
 language: en
 #tags: ["cgroup", "java", "kubernetes", "helm", "docker", "memory", "jcmd", "heap", "procfs", "pmap"]
-slug: "tweakble-jvm-setting-per-helm-release"
-title: "Tweakble JVM setting per helm release"
+slug: "tweakable-jvm-setting-per-helm-release"
+title: "Tweakable JVM setting per helm release"
 draft: true
 ---
 
-// TODO: v
-CAUTION: The example date back were I iterated on `*RAMPercentage`, now 
-I think this flag familly is a inpractical.
+Circa 2019 I had the chance to run many Java server applications, I wrote down
+out our best practices in order to iterate faster to find the right values for
+the JVM, but instead how to leverage Helm to try JVM settings.
 
+As a pre-requisite, the reader must know about
 
-== Choosing a better value for the RAM percentage
+ * https://docker.com[*Docker*] : It is an open-source project that helps to produce self-sufficient
+containers that can run on any platform supporting containers. In particular,
+it is useful for deployment automation. Moreover, it is practical tool to use
+for development.
+ * https://kubernetes.io[*Kubernetes*] : It is an open-source container orchestration system. In
+particular, it can be configured to automate certain task such as deployment,
+scaling, and management. It was originally created by Google, but is now part
+of the https://www.cncf.io/[CNCF]. It's usually abbreviated as `k8s`.
+ * https://helm.sh[*Helm*] : Helm is an open-source project destined to manage
+applications running on Kubernetes. In particular, Helm serves a way to version,
+configure and deploy applications. It's main document is known as a _Helm Chart_.
 
-From the above, it's now possible with NMT especially and with `pmap` to
-understand actual memory usage and to answer the question: "What is a sensible
-RAM percentage setting for this application ?"
+== Choosing a better value for the Java heap
 
-Really what drive the answer is the actual non-heap usage not accounted in
-`MaxRAMPercentage`, from the numbers above:
+This is usually the first concrete flag we have to do to configure a JVM.
 
-....
-(total) 5417017 - (heap) 4456448 = 960569 KiB
-....
+If you've followed the improvements of the JDK you know since JDK 11 it is
+_kinda_supporting containers via the addition of the `-XX:*RAMPercentage`
+flags. Or not.
 
+Circa 2019 I basically did try to set a magical fixed value for the heap size
+through `-XX:MaxRAMPercentage=xx` set in the `Dockerfile`.
 
-.In percentages
-[%autowidth.stretch,options="footer"]
-|===
-
-| Non heap | 5417017 - 4456448 = 960569 | ~17 %
-| Heap     | 4456448                    | ~83 %
-
-| Total    | 5417017                    | 100 %
-|===
-
-*This means, at that time the application needed around `960 MiB`, plus the heap to run.*
-
-The JVM was run this flag `-XX:MaxRAMPercentage=85.000000` which sets the heap maximum size
-to `4 563 402 752` Bytes or `4456448 KiB`, the value of this percentage is a lucky guess that
-worked for the `5 GiB` deployment memory limit, because the application never use the whole
-heap memory and as such it never used all the pages.
-
-This percentage is however *wrong*, if the JVM needed all the memory within the max
-heap plus higher thread usage be it more threads or deeper stack traces then the
-container/pod would have been _oom killed_. Also, it is necessary to give some free space
-in the container to be able to perform serviceability tasks, like profiling, etc.
-
-For a `5 GiB` memory limit it may be good to give a minimum of 20% space, my experience in this
-scenario is that 20% is too tight to handle surges. Supposing we'd like an additional `400 MiB`
-over `960 569 KiB` will give a percentage of 26%.
-
-Of course this number has to be adapted to the workload, e.g. if the application allocate a
-lot more ``DirectByteBuffer``s or if it requires heavy filesystem usage, then it would be a
-different number to account the room needed for the filesystem cache.
-
-In our case the starting point for a `5 GiB` memory limit is 26% :
-
-[source]
+[source, Dockerfile]
 ----
--XX:InitialRAMPercentage=74.0 <1>
--XX:MaxRAMPercentage=74.0 <1>
+CMD [ "/usr/bin/java", \
+      "-Dfile.encoding=UTF-8", \
+      "-Duser.timezone=UTC", \
+      "-Djava.security.egd=file:/dev/./urandom", \
+      "-XX:InitialRAMPercentage=85.0", \ <1>
+      "-XX:MaxRAMPercentage=85.0", \ <1>
+      "-XX:NativeMemoryTracking=summary", \
+      "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
+      "-javaagent:/agent-1.jar", \
+      "-javaagent:/agent-2.jar", \
+      "-jar", \
+      "/java-app-boot.jar", \
+      "--spring.config.additional-location=/etc/java-app/config.yaml", \
+      "--server.port=8080" ]
 ----
+<1> Sets the heap size to 85% of the total RAM (equivalent to setting
+`Xms` and `Xmx` at the same value).
 
-But if the cgroup limit is decreased, for our application it meant the non heap usage will take
-a more significant part. For example on this same application we saw `1.3 GiB` of non-heap memory
-for a heap sized at `3 GiB`.
+Of course this didn't
+work really well for two reasons :
+
+1. The value didn't adapt well to actual trafic conditions. It is related to how
+`-XX:*RAMPercentage` is designed to work, in my opinion these flags should be
+avoided.
++
+CAUTION: I believe link:{{< ref "posts/2020-10-27-MaxRamPercentage-is-not-what-i-wished-for.adoc" >}}[now]
+this flag family is impractical at best if not an anti-pattern when
+used in production containers.
+
+2. Since the values was set in a Dockerfile as they were not supposed to be
+adjusted that much, it was long to actually publish and try new settings.
+Each change had to go through the whole build pipeline (even
+if some shortcuts were possible, thanks to Gradle in this regard).
+
+3. The container had to be deployed in different environments with different
+conditions, hence different resource requirement.
+
+_In the aftermath I still feel that I was dumb to even thought it could work._
 
 
+Since Helm was used it was time to leverage it.
 
+== Make the Docker image memory settings tweakable per environment
 
-For a quick win let's adapt the application image.
+As seen at the above, RAM settings are part of the command declaration.
+First these arguments turned out to be incorrect, but they are more difficult
+to change or tweak. In addition, the deployment requirements / limits are likely
+to differ depending on the cluster / environment ; this can happen when you need
+to reduce the money spent on the cloud provider for non-production clusters,
+like staging, pre-production, etc.
 
-== Make the docker image memory settings tweakable per environment
-
-As seen at the beginning of this post, RAM settings are part of the command declaration,
-first these arguments turned out to be incorrect but they are more difficult to change or tweak.
-In addition, the deployment requirements / limits are likely to
-differ depending on the cluster / environment ; this can happen when you need to decrease the money
-spending on your cloud provider for non-production clusters, like staging, pre-production, etc.
-
-Let's use https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
-environment variable for more flexibility and remove the RAM percentage in the `CMD` directive.
+The first tip is to use the https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
+environment variable for more flexibility and remove the RAM percentage in the
+`CMD` directive.
 
 .Application dockerfile
-[source,diff]
+[source, diff]
 ----
   ARG REGISTRY
   FROM $REGISTRY/corretto-java:11.0.6.10.1
@@ -103,10 +112,6 @@ environment variable for more flexibility and remove the RAM percentage in the `
   CMD [ "/usr/bin/java", \
         "-Dfile.encoding=UTF-8", \
         "-Duser.timezone=UTC", \
-        "-Dcom.sun.management.jmxremote.port=7199", \
-        "-Dcom.sun.management.jmxremote.rmi.port=7199", \
-        "-Dcom.sun.management.jmxremote.ssl=false", \
-        "-Dcom.sun.management.jmxremote.authenticate=false", \
         "-Djava.security.egd=file:/dev/./urandom", \
 -       "-XX:InitialRAMPercentage=85.0", \ <2>
 -       "-XX:MaxRAMPercentage=85.0", \
@@ -114,15 +119,10 @@ environment variable for more flexibility and remove the RAM percentage in the `
         "-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M", \
         "-javaagent:/agent-1.jar", \
         "-javaagent:/agent-2.jar", \
-        "-Dsqreen.config_file=/sqreen.properties", \
         "-jar", \
         "/java-app-boot.jar", \
         "--spring.config.additional-location=/etc/java-app/config.yaml", \
         "--server.port=8080" ]
-
-  LABEL name="java-app"
-  LABEL build_path="../"
-  LABEL version_auto_semver="true"
 ----
 <1> Defines a default empty https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE[`JDK_JAVA_OPTIONS`]
 <2> Removes the RAM percentage settings to get _default_ values.
@@ -130,9 +130,9 @@ environment variable for more flexibility and remove the RAM percentage in the `
 Now let's test this locally.
 
 .Build the container
-[source]
+[source, shell]
 ----
-❯ DOCKER_BUILDKIT=1 docker build \
+$ DOCKER_BUILDKIT=1 docker build \
   --tag test-java-app \ <1>
   --build-arg REGISTRY=eu.gcr.io/cd-registry \
   --file _infra/Dockerfile \
@@ -158,12 +158,13 @@ Now let's test this locally.
 
 === Run the container locally with the Java app
 
-In this local test series, I'm using `3 GiB` as a memory limit and I chose 70% for the heap percentage.
+In this local test series, I'm using `3 GiB` as a memory limit, and I chose 70%
+for the heap percentage.
 
 .*Without* `JDK_JAVA_OPTIONS`
-[source,role="primary"]
+[source, shell, role="primary"]
 ----
-❯ docker run --rm --memory="3gb" --name j-mem test-java-app
+$ docker run --rm --memory="3gb" --name j-mem test-java-app
 Picked up JDK_JAVA_OPTIONS:
 10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
 2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
@@ -171,9 +172,9 @@ Picked up JDK_JAVA_OPTIONS:
 ----
 
 .*With* `JDK_JAVA_OPTIONS`
-[source,role="secondary"]
+[source, shell, role="secondary"]
 ----
-❯ docker run --rm --memory="3gb" --env JDK_JAVA_OPTIONS="-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0" --name j-mem test-java-app
+$ docker run --rm --memory="3gb" --env JDK_JAVA_OPTIONS="-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0" --name j-mem test-java-app
 Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0
 10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won't be available.
 2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add "com.fasterxml.jackson.module:jackson-module-kotlin" to the classpath
@@ -184,9 +185,9 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 Then we can make sure we have the correct flags.
 
 .*Without* `JDK_JAVA_OPTIONS`
-[source, role="primary"]
+[source, shell, role="primary"]
 ----
-❯ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
+$ docker exec -it j-mem bash -c "jcmd \$(pgrep java) VM.flags | tr ' ' '\n'"
 6:
 ...
 -XX:MaxHeapSize=805306368 <1>
