@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    
+
+
+    <head>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://oss.maxcdn.com">
+    <link rel="dns-prefetch" href="https://www.gravatar.com">
+
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    
+    <link rel="canonical" href="https://blog.arkey.fr/drafts/2021/01/22/linux_memfd_secret_with_panama/">
+    
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.82.1" />
+
+    
+    
+    
+
+<title>Using Linux&#39;s memfd_secret() from the JVM with JEP-419 (Project Panama) • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="Using Linux&amp;rsquo;s memfd_secret() from the JVM with JEP-419 (Project Panama)">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/drafts/2021/01/22/linux_memfd_secret_with_panama/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+    
+
+<meta property="og:updated_time" content="2021-01-22T10:41:09&#43;0100">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Using Linux&amp;rsquo;s memfd_secret() from the JVM with JEP-419 (Project …">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/ascii-press.d6bafe0d39194a15e5deee39d0dad5d2118d57cf6ace33b94bb9dbfda6ab0415.css" integrity="sha256-1rr&#43;DTkZShXl3u450NrV0hGNV89qzjO5S7nb/aarBBU=">
+
+
+<link rel="stylesheet" href="/scss/ascii-press-dark.06869de8a04135a809635aeb8b272847be96c60ddaa9197e026e19efe21e6909.css" integrity="sha256-Boad6KBBNagJY1rriycoR76Wxg3aqRl&#43;Am4Z7&#43;IeaQk=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+
+<link rel="stylesheet" href="/scss/hugo-toc.d31afb68f96b4b4a16c6def81c6cfb18992a6924bd88766a480bb24a08ca5796.css" integrity="sha256-0xr7aPlrS0oWxt74HGz7GJkqaSS9iHZqSAuySgjKV5Y=">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- Icons from https://realfavicongenerator.net -->
+<link rel="icon" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="msapplication-TileColor" content="#b64f4f">
+<meta name="theme-color" content="#b64f4f">
+
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css" integrity="sha512-KNosrY5jkv7dI1q54vqk0N3x1xEmEn4sjzpU1lWL6bv5VVddcYKQVhHV08468FK6eBBSXTwGlMMZLPTXSpHYHA==" crossorigin="anonymous" />
+
+    
+    
+
+</head>
+
+
+    <body class="draft">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2022 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    <header>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2022-05-04-linux_memfd_secret_with_jep419.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+</header>
+
+            
+    
+
+<article>
+  <header>
+    <h1>Using Linux&#39;s memfd_secret() from the JVM with JEP-419 (Project Panama)</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2021-01-22
+    
+    
+    
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 25 min read
+
+    
+    
+    
+        <div class="page-series">
+            <div class="title">In the same series :</div>
+            <ul>
+                
+                    
+                    <li hugo-nav="/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/"><a href="https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/"> A practical look at JEP-412 in JDK17 with libsodium </a> </li>
+                    
+                    <li hugo-nav="/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/"><a href="https://blog.arkey.fr/2021/02/20/a-practical-look-at-jep-389-in-jdk16-with-libsodium/"> A practical look at JEP-389 in JDK16 with libsodium </a> </li>
+                    
+                    <li hugo-nav="/drafts/2021/01/22/linux_memfd_secret_with_panama/"><a href="https://blog.arkey.fr/drafts/2021/01/22/linux_memfd_secret_with_panama/"> Using Linux&#39;s memfd_secret() from the JVM with JEP-419 (Project Panama) </a> </li>
+                    
+                
+            </ul>
+        </div>
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+    <div class="toc-wrapper">
+      <input type="checkbox" id="tocToggle" checked>
+      <label for="tocToggle"><i class="fas fa-list-ul fa-lg"></i><span id="toc-title">On this page</span></label>
+      <div id="toc-toggle-cover"></div>
+
+      
+          <nav id="TableOfContents">
+  <ul>
+    <li><a href="#_what_is_a_system_call_syscall">What is a system call (<em>syscall</em>) ?</a>
+      <ul>
+        <li><a href="#_what_does_the_documentation_says_about_syscalls">What does the documentation says about syscalls ?</a></li>
+        <li><a href="#_my_first_syscall">My first syscall</a></li>
+      </ul>
+    </li>
+    <li><a href="#_making_syscalls_from_the_jvm">Making syscalls from the JVM</a></li>
+    <li><a href="#_memfd_secret"><code>memfd_secret</code></a>
+      <ul>
+        <li><a href="#_linux">Linux</a></li>
+        <li><a href="#_errno">errno</a></li>
+        <li><a href="#_memorysegment_map_and_file_descriptor"><code>MemorySegment.map</code> and file descriptor</a></li>
+        <li><a href="#_improving_our_syscall_api">Improving our syscall API.</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+      
+    </div>
+  
+  
+  
+  <div class="post adoc">
+    
+<div class="paragraph">
+<p>Linux 5.14 brought a new system call <code>memfd_secret</code> in order to mitigate
+speculative attack by preventing the kernel from being able to peek at memory
+segments created by this system call.</p>
+</div>
+<div class="paragraph">
+<p>In this article I will leverage the API introduced –- well, still incubating — of
+<a href="https://openjdk.java.net/jeps/419">JEP-419</a> (Project Panama). JEP-419 has been
+delivered as part of <a href="https://openjdk.java.net/projects/jdk/18/">JDK 18</a>.</p>
+</div>
+<div class="paragraph">
+<p>For those that don’t know, Project Panama is a project that aims to provide a
+easy, secure and efficient way to call <em>native methods</em> from Java. You can look
+at my previous articles on the earlier versions of the project, articles
+on <a href="https://foojay.io">foojay.io</a> by <a href="https://twitter.com/CarlDea">Carl Dea</a>,
+or those on <a href="https://inside.java">inside.java</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The project Panama APIs is the fruit of work started in 2014, from ideas
+even older. The project is still evolving which means the next iteration
+(<a href="https://openjdk.java.net/jeps/424">JEP-424</a>) likely (but not yet decided)
+in <a href="https://openjdk.java.net/projects/jdk/19/">JDK 19</a> is going to promote
+these APIs <strong>as preview</strong>, but API and behavior adjustments are still likely.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+The following examples are based on <strong>JDK 18 2022-03-22, build 18+37 from Red Hat</strong>.
+The Linux distribution is a <strong>Fedora release 35</strong> with the kernel <strong>5.16.20-200.fc35.x86_64</strong>.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p><em>While this article will focus on Linux, the same concepts apply to other OSes
+(and CPU as we’ll see).</em></p>
+</div>
+<div class="sect1">
+<h2 id="_what_is_a_system_call_syscall"><a class="anchor" href="#_what_is_a_system_call_syscall"></a><a class="link" href="#_what_is_a_system_call_syscall">What is a system call (<em>syscall</em>) ?</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Before jumping to <code>memfd_secret</code>, let’s first understand how to make a system call.
+And even before that, let’s see what is a system call.</p>
+</div>
+<div class="paragraph">
+<p>For those not interested in this part you can jump to <code>memfd_secret</code> section.</p>
+</div>
+<div class="paragraph">
+<p>In order to do something useful a program has to interact with some resources,
+memory, disk, network, terminal, etc. On a computer, these resources are
+handled by a very complex and critical software, the <strong>O</strong>perating <strong>S</strong>ystem.</p>
+</div>
+<div class="paragraph">
+<p>In order to use these resources, a program has to make <em>system calls</em> like
+<code>read</code>, <code>wait</code>, <code>write</code>, <code>exit</code>, etc. The standard <code>malloc</code>, the native allocator,
+has to actually place a request to the OS to get memory via a <code>mmap</code> syscall.</p>
+</div>
+<div class="paragraph">
+<p><span class="image"><img src="/assets/off-heap-recon/malloc-mmap.svg" alt="malloc mmap" title="glibc’s malloc overview"/></span></p>
+</div>
+<div class="paragraph">
+<p>As expected the JVM does plenty of syscalls too, e.g. when logging something
+on <code>stdout</code> or persisting a (unified) log file.</p>
+</div>
+<div class="paragraph">
+<p>Essentially,</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p><strong>a system call is a way of requesting the kernel to do something for the program.</strong></p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>Why system calls have to be in the kernel and not in the user space like in a
+standard library? As mentioned earlier the reasoning is that system calls are
+a way to interact or, involve, a resource like devices, file system, network,
+processes, etc. These resources are managed by a <strong>privileged</strong> software :
+the OS or kernel.</p>
+</div>
+<div class="paragraph">
+<p>When a system call happens, the program doesn’t simply invoke a method at some
+whose code resides at some address, <strong>a system call is actually making the CPU
+switching to <em>Kernel mode</em></strong> because the kernel is a <strong>privileged</strong> software.</p>
+</div>
+<div class="paragraph">
+<p>On most modern processors there is a security model, that allows to limit the
+scope of what a program can do. In particular on Intel based CPUs, the model
+is known as <a href="https://en.wikipedia.org/wiki/Protection_ring"><strong>processor protection ring</strong> (or <strong>hierarchical protection domains</strong>)</a>.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<svg preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision" version="1.0" viewBox="0 0 700 406" xmlns="http://www.w3.org/2000/svg" width="700" height="406"><defs><style type="text/css">@font-face {
+  font-family: sans-serif;
+}</style><filter height="200%" id="shadowBlur" width="200%" x="0" y="0"><feOffset dx="3.0003002" dy="3.0003002" in="SourceGraphic" result="offOut"></feOffset><feGaussianBlur in="offOut" stdDeviation="3"></feGaussianBlur></filter></defs><g stroke-linecap="square" stroke-linejoin="round" stroke-width="1"><rect height="406" style="fill: #ffffff" width="700" x="0" y="0"></rect><path d="M210.0 35.0 C312.17267 35.0 395.0 110.21617 395.0 203.0 C395.0 295.7838 312.17267 371.0 210.0 371.0 C107.827324 371.0 25.0 295.7838 25.0 203.0 C25.0 110.21617 107.827324 35.0 210.0 35.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M210.0 77.0 C284.55844 77.0 345.0 133.41212 345.0 203.0 C345.0 272.5879 284.55844 329.0 210.0 329.0 C135.44156 329.0 75.0 272.5879 75.0 203.0 C75.0 133.41212 135.44156 77.0 210.0 77.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M210.0 119.0 C256.9442 119.0 295.0 156.6081 295.0 203.0 C295.0 249.3919 256.9442 287.0 210.0 287.0 C163.0558 287.0 125.0 249.3919 125.0 203.0 C125.0 156.6081 163.0558 119.0 210.0 119.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M210.0 161.0 C234.85281 161.0 255.0 179.80405 255.0 203.0 C255.0 226.19595 234.85281 245.0 210.0 245.0 C185.14719 245.0 165.0 226.19595 165.0 203.0 C165.0 179.80405 185.14719 161.0 210.0 161.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M505.0 119.0 L565.0 119.0 L565.0 145.0 L505.0 145.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M505.0 205.0 L565.0 205.0 L565.0 231.0 L505.0 231.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M505.0 149.0 L565.0 149.0 L565.0 173.0 L505.0 173.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M505.0 177.0 L565.0 177.0 L565.0 201.0 L505.0 201.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M210.0 35.0 C312.17267 35.0 395.0 110.21617 395.0 203.0 C395.0 295.7838 312.17267 371.0 210.0 371.0 C107.827324 371.0 25.0 295.7838 25.0 203.0 C25.0 110.21617 107.827324 35.0 210.0 35.0 z" fill="#99ff99" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M210.0 77.0 C284.55844 77.0 345.0 133.41212 345.0 203.0 C345.0 272.5879 284.55844 329.0 210.0 329.0 C135.44156 329.0 75.0 272.5879 75.0 203.0 C75.0 133.41212 135.44156 77.0 210.0 77.0 z" fill="#ffee99" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M210.0 119.0 C256.9442 119.0 295.0 156.6081 295.0 203.0 C295.0 249.3919 256.9442 287.0 210.0 287.0 C163.0558 287.0 125.0 249.3919 125.0 203.0 C125.0 156.6081 163.0558 119.0 210.0 119.0 z" fill="#ffbb77" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M210.0 161.0 C234.85281 161.0 255.0 179.80405 255.0 203.0 C255.0 226.19595 234.85281 245.0 210.0 245.0 C185.14719 245.0 165.0 226.19595 165.0 203.0 C165.0 179.80405 185.14719 161.0 210.0 161.0 z" fill="#ff6666" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M505.0 119.0 L565.0 119.0 L565.0 145.0 L505.0 145.0 z" fill="#99ff99" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M505.0 205.0 L565.0 205.0 L565.0 231.0 L505.0 231.0 z" fill="#ff6666" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M505.0 149.0 L565.0 149.0 L565.0 173.0 L505.0 173.0 z" fill="#ffee99" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M505.0 177.0 L565.0 177.0 L565.0 201.0 L505.0 201.0 z" fill="#ffbb77" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="185" y="68">Ring 3</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="480" y="96">User space</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="480" y="110">(Lowest privileges)</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="185" y="110">Ring 2</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="185" y="152">Ring 1</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="185" y="194">Ring 0</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="184" y="222">Kernel</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="480" y="250">Kernel space</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="480" y="264">(Highest privileges)</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="153" y="264">Device drivers</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="153" y="306">Device drivers</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="161" y="348">Applications</text></g></svg>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>It seems that Ring 1 and 2 are rarely used because paging (the way that the OS
+handles memory, see my blog post on [off-heap memory]) only has the concept
+of privileged and unprivileged which minimize the actual benefit of those rings,
+according to <a href="https://stackoverflow.com/users/13430/evan-teran">Evan Teran</a>&#39;s
+<a href="https://stackoverflow.com/a/6710138/48136">answer on SO</a>.&#39;</p>
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>When a processor executes some code (in thread), the processor knows the current
+mode, this way the processor is able to gate memory accesses, e.g. a Ring 3
+(user-land program cannot access memory from Ring 0, the kernel). This is
+yet another <em>feature</em> of the <em>virtual memory</em> abstraction.
+The processor could also restrict some processor instructions and registers
+to the software running in Ring 0.</p>
+</div>
+<div class="paragraph">
+<p><em>Out of scope: there’s even negative rings on some CPU architectures for
+hypervisor, or CPU System management, up to <code>Ring -3</code>.</em></p>
+</div>
+<div class="paragraph">
+<p>Restrictions are enforced by the CPU, in order to perform its purpose a
+user-land program needs to place a request to the kernel. This mechanism
+is called <strong>syscall</strong>, it allows to transition between rings.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<svg preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision" version="1.0" viewBox="0 0 840 294" xmlns="http://www.w3.org/2000/svg" width="840" height="294"><defs><style type="text/css">@font-face {
+  font-family: sans-serif;
+}</style><filter height="200%" id="shadowBlur" width="200%" x="0" y="0"><feOffset dx="3.0003002" dy="3.0003002" in="SourceGraphic" result="offOut"></feOffset><feGaussianBlur in="offOut" stdDeviation="3"></feGaussianBlur></filter></defs><g stroke-linecap="square" stroke-linejoin="round" stroke-width="1"><rect height="294" style="fill: #ffffff" width="840" x="0" y="0"></rect><path d="M605.0 91.0 L605.0 147.0 L565.0 147.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 147.0 L265.0 147.0 L265.0 175.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M210.0 70.0 L220.0 77.0 L210.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M240.0 70.0 L230.0 77.0 L240.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M590.0 70.0 L600.0 77.0 L590.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M770.0 70.0 L780.0 77.0 L770.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M605.0 84.0 L600.0 98.0 L610.0 98.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M220.0 126.0 L225.0 140.0 L230.0 126.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M565.0 154.0 L560.0 168.0 L570.0 168.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M260.0 168.0 L265.0 182.0 L270.0 168.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M550.0 182.0 L560.0 189.0 L550.0 196.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M230.0 210.0 L220.0 217.0 L230.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M260.0 210.0 L270.0 217.0 L260.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M570.0 210.0 L560.0 217.0 L570.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M600.0 210.0 L610.0 217.0 L600.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 77.0 L225.0 133.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M85.0 77.0 L215.0 77.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M235.0 77.0 L375.0 77.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M445.0 77.0 L595.0 77.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M595.0 77.0 L775.0 77.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M25.0 147.0 L205.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M285.0 147.0 L545.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M625.0 147.0 L815.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M565.0 161.0 L565.0 189.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M265.0 189.0 L555.0 189.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 217.0 L265.0 217.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M565.0 217.0 L605.0 217.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M608.5 77.0 L608.38074 77.90587 L608.03107 78.75 L607.47485 79.47488 L606.75 80.03109 L605.9059 80.38074 L605.0 80.5 L604.0941 80.38074 L603.25 80.03109 L602.52515 79.47488 L601.96893 78.75 L601.61926 77.90587 L601.5 77.0 L601.61926 76.09413 L601.96893 75.25 L602.52515 74.52512 L603.25 73.96891 L604.0941 73.61926 L605.0 73.5 L605.9059 73.61926 L606.75 73.96891 L607.47485 74.52512 L608.03107 75.25 L608.38074 76.09413 L608.5 77.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M228.5 147.0 L228.38074 147.90587 L228.03108 148.75 L227.47487 149.47487 L226.75 150.03108 L225.90587 150.38074 L225.0 150.5 L224.09413 150.38074 L223.25 150.03108 L222.52513 149.47487 L221.96892 148.75 L221.61926 147.90587 L221.5 147.0 L221.61926 146.09413 L221.96892 145.25 L222.52513 144.52513 L223.25 143.96892 L224.09413 143.61926 L225.0 143.5 L225.90587 143.61926 L226.75 143.96892 L227.47487 144.52513 L228.03108 145.25 L228.38074 146.09413 L228.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M268.5 147.0 L268.38074 147.90587 L268.0311 148.75 L267.47488 149.47487 L266.75 150.03108 L265.90585 150.38074 L265.0 150.5 L264.09415 150.38074 L263.25 150.03108 L262.52512 149.47487 L261.9689 148.75 L261.61926 147.90587 L261.5 147.0 L261.61926 146.09413 L261.9689 145.25 L262.52512 144.52513 L263.25 143.96892 L264.09415 143.61926 L265.0 143.5 L265.90585 143.61926 L266.75 143.96892 L267.47488 144.52513 L268.0311 145.25 L268.38074 146.09413 L268.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M568.5 147.0 L568.38074 147.90587 L568.03107 148.75 L567.47485 149.47487 L566.75 150.03108 L565.9059 150.38074 L565.0 150.5 L564.0941 150.38074 L563.25 150.03108 L562.52515 149.47487 L561.96893 148.75 L561.61926 147.90587 L561.5 147.0 L561.61926 146.09413 L561.96893 145.25 L562.52515 144.52513 L563.25 143.96892 L564.0941 143.61926 L565.0 143.5 L565.9059 143.61926 L566.75 143.96892 L567.47485 144.52513 L568.03107 145.25 L568.38074 146.09413 L568.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M608.5 147.0 L608.38074 147.90587 L608.03107 148.75 L607.47485 149.47487 L606.75 150.03108 L605.9059 150.38074 L605.0 150.5 L604.0941 150.38074 L603.25 150.03108 L602.52515 149.47487 L601.96893 148.75 L601.61926 147.90587 L601.5 147.0 L601.61926 146.09413 L601.96893 145.25 L602.52515 144.52513 L603.25 143.96892 L604.0941 143.61926 L605.0 143.5 L605.9059 143.61926 L606.75 143.96892 L607.47485 144.52513 L608.03107 145.25 L608.38074 146.09413 L608.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M268.5 189.0 L268.38074 189.90587 L268.0311 190.75 L267.47488 191.47487 L266.75 192.03108 L265.90585 192.38074 L265.0 192.5 L264.09415 192.38074 L263.25 192.03108 L262.52512 191.47487 L261.9689 190.75 L261.61926 189.90587 L261.5 189.0 L261.61926 188.09413 L261.9689 187.25 L262.52512 186.52513 L263.25 185.96892 L264.09415 185.61926 L265.0 185.5 L265.90585 185.61926 L266.75 185.96892 L267.47488 186.52513 L268.0311 187.25 L268.38074 188.09413 L268.5 189.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M568.5 189.0 L568.38074 189.90587 L568.03107 190.75 L567.47485 191.47487 L566.75 192.03108 L565.9059 192.38074 L565.0 192.5 L564.0941 192.38074 L563.25 192.03108 L562.52515 191.47487 L561.96893 190.75 L561.61926 189.90587 L561.5 189.0 L561.61926 188.09413 L561.96893 187.25 L562.52515 186.52513 L563.25 185.96892 L564.0941 185.61926 L565.0 185.5 L565.9059 185.61926 L566.75 185.96892 L567.47485 186.52513 L568.03107 187.25 L568.38074 188.09413 L568.5 189.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="110" y="40">process thread</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="110" y="54">executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="630" y="40">process thread</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="630" y="54">executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="395" y="82">Idle</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="198" y="110">syscall</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="20" y="124">Ring 3</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="20" y="138">User land</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="24" y="166">Kernel</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="25" y="180">Ring 0</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="322" y="208">kernal syscall executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="220" y="250">Context</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="220" y="264">Switch</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="560" y="250">Context</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="560" y="264">Switch</text></g></svg>
+</div>
+<div class="title">Syscall ring transitions</div>
+</div>
+<div class="paragraph">
+<p>During context switches a lot is happening, saving and restoring registers,
+putting the CPU in specific mode (user vs kernel) etc. And of course doing the
+reverse once the request is handled either with  success or a failure</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Context switches are sufficiently costly that most libraries try to avoid context
+switches. One of the contributing factor is syscalls, avoiding too many system
+calls will consequently reduce context switches (like reading 8KiB instead of
+256 bytes).
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect2">
+<h3 id="_what_does_the_documentation_says_about_syscalls"><a class="anchor" href="#_what_does_the_documentation_says_about_syscalls"></a><a class="link" href="#_what_does_the_documentation_says_about_syscalls">What does the documentation says about syscalls ?</a></h3>
+<div class="paragraph">
+<p>Now let’s get practical.</p>
+</div>
+<div class="paragraph">
+<p>Looking at <a href="https://man7.org/linux/man-pages/man2/syscall.2.html"><code>man 2 syscall</code></a>,
+the manpage shed some details on how to make the call, specifically in the
+<em>Architecture calling conventions</em> section. Those details are in assembly, e.g.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>processor interrupt <code>0x80</code> for i386 processors (32 bits), then specific registers</p>
+</li>
+<li>
+<p><code>syscall</code> instruction for x86_64 processors (64 bits), then specific registers</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The <em>calling convention</em> of other architectures are also described e.g.
+on ARM processors, the system call is performed by a <code>swi 0x0</code> instruction,
+on <em>aarch64</em> by <code>svc #0</code>.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+For people not aware of what exactly is a <strong>calling convention</strong> should read at leas this
+<a href="http://en.wikipedia.org/wiki/X86_calling_conventions">wikipedia article on x86 calling convention</a>.
+But in a short a calling convention defines how and where parameters should be placed
+in order to call the code, how parameters are passed registers or/and stack,
+how values are returned etc.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>This manual page also gives an important difference with regular functions, while
+we look up system calls by their names: <code>write</code>, <code>read</code>, <code>execve</code>, <code>exit</code>, <code>mmap</code>,
+<code>memfd_create</code> etc. The programs and the kernel actually know them by <strong>numbers</strong>.</p>
+</div>
+<div class="paragraph">
+<p>Why numbers? The reason is that syscalls are like messages that are passed down,
+and these numbers somewhat like <em>enum ordinals</em> indicating the type of message.
+These numbers are part of the syscall ABI (Application Binary Interface) and as
+such they are stable for a CPU architecture although unbounded (new syscalls
+can be added).</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+The syscall numbers are different between architectures! On Linux
+one can look at their definition in the <code>/include/asm-<strong>/unistd-</strong>.h</code> files.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>From the syscall manpage the Intel CPUs syscall calling convention is:</p>
+</div>
+<div class="exampleblock primary">
+<div class="title">Example 1. 64-bit programs</div>
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Set the registers</dt>
+<dd>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>rax ← System Call number</p>
+</li>
+<li>
+<p>rdi ← First argument</p>
+</li>
+<li>
+<p>rsi ← Second argument</p>
+</li>
+<li>
+<p>rdx ← Third argument</p>
+</li>
+</ol>
+</div>
+</dd>
+<dt class="hdlist1">Make the syscall</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>execute <code>syscall</code> processor instruction</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The actual syscall numbers (for 32 bit programs) is usually defined in <code>/usr/include/asm/unistd_64.h</code></p>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">Example 2. 32-bit programs</div>
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Set the registers</dt>
+<dd>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>eax</code> ← System Call Number</p>
+</li>
+<li>
+<p><code>ebx</code> ← First Argument</p>
+</li>
+<li>
+<p><code>ecx</code> ← Second Argument</p>
+</li>
+<li>
+<p><code>edx</code> ← Third Argument</p>
+</li>
+</ol>
+</div>
+</dd>
+<dt class="hdlist1">Make the syscall</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>Place a processor interrupt <code>int 0x80</code></p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The actual syscall numbers (for 32 bit programs) is usually defined in <code>/usr/include/asm/unistd_32.h</code>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_my_first_syscall"><a class="anchor" href="#_my_first_syscall"></a><a class="link" href="#_my_first_syscall">My first syscall</a></h3>
+<div class="paragraph">
+<p>In order to quickly practice a <em>syscall,</em> let’s do a very simple
+<em>hello world</em>. The example will be in assembler, I promise this is the only
+source snippet in assembly and after that I’ll be back with Java and Panama.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>/usr/include/asm/unistd_64.h</code></p>
+</li>
+</ul>
+</div>
+<div class="exampleblock primary">
+<div class="title">Example 3. 64-bits (with <code>syscall</code> instruction)</div>
+<div class="content">
+<div class="listingblock">
+<div class="title">hello_syscall.asm (x86_64)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-asm hljs" data-lang="asm">global _start       ; define entrypoint
+section .text
+_start:
+    mov rax, 0x1    ; syscall number for write <i class="conum" data-value="1"></i><b>(1)</b>
+    mov rdi, 0x1    ; int fd                   <i class="conum" data-value="2"></i><b>(2)</b>
+    mov rsi, msg    ; const void* buf
+    mov rdx, mlen   ; size_t count
+    syscall         ; make the call            <i class="conum" data-value="3"></i><b>(3)</b>
+
+    mov rax, 0x3c   ; syscall number for exit  <i class="conum" data-value="1"></i><b>(1)</b>
+    mov rdi, 0x1    ; int status               <i class="conum" data-value="2"></i><b>(2)</b>
+    syscall         ; make the call            <i class="conum" data-value="3"></i><b>(3)</b>
+
+section .rodata
+    msg: db &#34;Hello Linux syscalls!&#34;,0x0a, 0x0d  ;
+    mlen: equ $-msg                             ;</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>At this place this register will hold the selected the syscall (a number).
+Note the number comes from <code>/usr/include/asm/unistd_64.h</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Syscall arguments are placed in next registers.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Make the syscall with interrupt <code>0x80</code>.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">nasm -w+all -f elf64 -o hello_syscall.o hello_syscall.asm <i class="conum" data-value="1"></i><b>(1)</b>
+ld -o hello_syscall hello_syscall.o
+./hello_syscall</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Note the <code>elf64</code> format for 64 bits.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">Example 4. 32-bits (with an interrupt)</div>
+<div class="content">
+<div class="listingblock">
+<div class="title">hello_syscall_via_int80.asm (x86, ie won’t work on ARM)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-asm hljs" data-lang="asm">section .rodata
+    str: db &#34;Hello Linux!&#34;, 0Ah  ; message string, terminated by a new line (0A)
+    str_len: equ $ - str         ; calculate the lenght of the message
+section .text
+global _start
+_start:
+    mov eax, 4               ; syscall number: write <i class="conum" data-value="1"></i><b>(1)</b>
+    mov ebx, 1               ; stdout <i class="conum" data-value="2"></i><b>(2)</b>
+    mov ecx, str             ; buffer address
+    mov edx, str_len         ; buffer length
+    int 0x80                 ; make the call <i class="conum" data-value="3"></i><b>(3)</b>
+
+    mov eax, 1               ; syscall number: exit <i class="conum" data-value="1"></i><b>(1)</b>
+    mov ebx, 0               ; exit status <i class="conum" data-value="2"></i><b>(2)</b>
+    int 0x80                 ; make the call <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>At this place this register will hold the selected the syscall (a number).
+Note the number comes from <code>/usr/include/asm/unistd_64.h</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Syscall arguments are placed in next registers.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Make the syscall with interrupt <code>0x80</code>.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title">compile and run</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">nasm -w+all -f elf32 -o hello_syscall_via_int80.o hello_syscall_via_int80.asm <i class="conum" data-value="1"></i><b>(1)</b>
+ld -m elf_i386 -o hello_syscall_via_int80 hello_syscall_via_int80.o <i class="conum" data-value="2"></i><b>(2)</b>
+./hello_syscall_via_int80</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Note the <code>elf32</code> format for 32 bits.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Note the linker <em>emulation</em> option for <code>i386</code></td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>When looking at this very simplistic code, something immediately stands out:
+From application point of view (user land), a syscall is just like an <strong>atomic</strong>
+<em>pseudo machine instruction</em>. I believe this example is more striking than the
+figure above on <em>syscall ring transitions</em>.</p>
+</div>
+<div class="paragraph">
+<p>We saw what is exactly a syscall and how to make one using assembly. In general
+though, it’s rare to invoke syscall directly as the standard library exposes
+wrappers that handle everything for most of the syscalls.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<svg preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision" version="1.0" viewBox="0 0 660 182" xmlns="http://www.w3.org/2000/svg" width="660" height="182"><defs><style type="text/css">@font-face {
+  font-family: sans-serif;
+}</style><filter height="200%" id="shadowBlur" width="200%" x="0" y="0"><feOffset dx="3.0003002" dy="3.0003002" in="SourceGraphic" result="offOut"></feOffset><feGaussianBlur in="offOut" stdDeviation="3"></feGaussianBlur></filter></defs><g stroke-linecap="square" stroke-linejoin="round" stroke-width="1"><rect height="182" style="fill: #ffffff" width="660" x="0" y="0"></rect><path d="M205.0 49.0 L435.0 49.0 L435.0 133.0 L205.0 133.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M505.0 49.0 L635.0 49.0 L635.0 133.0 L505.0 133.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M25.0 49.0 L135.0 49.0 L135.0 133.0 L25.0 133.0 z" fill="#969696" filter="url(#shadowBlur)" stroke="#969696"></path><path d="M205.0 49.0 L435.0 49.0 L435.0 133.0 L205.0 133.0 z" fill="white" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M505.0 49.0 L635.0 49.0 L635.0 133.0 L505.0 133.0 z" fill="white" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M25.0 49.0 L135.0 49.0 L135.0 133.0 L25.0 133.0 z" fill="white" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M190.0 98.0 L200.0 105.0 L190.0 112.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M490.0 98.0 L500.0 105.0 L490.0 112.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M465.0 35.0 L465.0 91.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M145.0 105.0 L195.0 105.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M445.0 105.0 L495.0 105.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M465.0 119.0 L465.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="40" y="68">program</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="217" y="68">libc</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="514" y="68">Kernel</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="223" y="96">printf() {</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="233" y="110">syscall(SYS_write,…)</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="61" y="110">printf()</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="523" y="110">SYS_write</text></g></svg>
+</div>
+<div class="title">syscall wrappers in the standard library</div>
+</div>
+<div class="paragraph">
+<p>Because <code>memfd_secret</code> syscall has been recently used there’s no wrapper functions
+in the standard library, hence we’ll need to make a system call ourselves.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_making_syscalls_from_the_jvm"><a class="anchor" href="#_making_syscalls_from_the_jvm"></a><a class="link" href="#_making_syscalls_from_the_jvm">Making syscalls from the JVM</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The work of the Panama project doesn’t allow us to directly write assembly code
+and execute it. Fortunately!</p>
+</div>
+<div class="paragraph">
+<p>And the libc already exposes a <em>syscall</em> function that takes care of
+the calling convention as mentioned in
+<a href="https://man7.org/linux/man-pages/man2/syscall.2.html"><code>man 2 syscall</code></a>, ie it
+will place the arguments in the right CPU registers.</p>
+</div>
+<div class="listingblock">
+<div class="title">syscall manual example (omitting headers)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int main(int argc, char *argv[])
+{
+   pid_t tid;
+
+   pid = syscall(SYS_getpid);
+   printf(&#34;pid: %ld\n&#34;, pid);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So, basically to make a syscall using JEP-419, I only have to perform a lookup
+for the <code>syscall</code> function, also since it’s part of the standard libc, this
+just need <code>CLinker.systemLinker()</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">syscall manual example with Panama</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/*
+  On linux (Intel x86_64) in
+  - /usr/include/asm/unistd_64.h
+
+  #define __NR_getpid 39
+
+  On macOs (Intel x86_64) in either :
+  - /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/syscall.h
+  - /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/syscall.h
+
+  #define	SYS_getpid         20
+*/
+final static in SYS_getpid = 20; <i class="conum" data-value="1"></i><b>(1)</b>
+
+var syscall = systemCLinker.downcallHandle(
+        systemCLinker.lookup(&#34;syscall&#34;).get(),
+        FunctionDescriptor.of(
+                ValueLayout.JAVA_INT, <i class="conum" data-value="2"></i><b>(2)</b>
+                ValueLayout.JAVA_INT  <i class="conum" data-value="3"></i><b>(3)</b>
+        )
+);
+
+int pid = (int) syscall.invoke(SYS_getpid); <i class="conum" data-value="4"></i><b>(4)</b>
+System.out.println(&#34;pid: &#34; + pid);</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The syscall number.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The return type of the syscall function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The first argument is the syscall number.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Making the syscall.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>That’s it, we’ve made out first direct syscall using panama (and the JEP-419).
+Simple right? Let’s try to use that knowledge for <code>memfd_secret</code> syscall.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_memfd_secret"><a class="anchor" href="#_memfd_secret"></a><a class="link" href="#_memfd_secret"><code>memfd_secret</code></a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>memfd_secret</code> syscall was introduced in this <a href="https://github.com/torvalds/linux/commit/1507f51255c9ff07d75909a84e7c0d7f3c4b2f49">commit</a>.
+Fortunately Linux has good commit message, so we can read and learn more about
+how to create &#34;secret&#34; memory areas.</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>The following example demonstrates creation of a secret mapping (error
+handling is omitted):</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>fd = memfd_secret(0);
+ftruncate(fd, MAP_SIZE);
+ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE,
+	   MAP_SHARED, fd, 0);</pre>
+</div>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>Basically we need to create the <em>secret</em> file descriptor, truncate it to the
+desired size, and then memory map it.</p>
+</div>
+<div class="listingblock">
+<div class="title">syscall manual example with Panama</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/*
+  On linux (Intel x86_64) in /usr/include/asm/unistd_64.h
+
+  #define __NR_memfd_secret 447
+*/
+final static in SYS_memfd_secret = 447; <i class="conum" data-value="1"></i><b>(1)</b>
+
+var syscall = systemCLinker.downcallHandle(
+        systemCLinker.lookup(&#34;syscall&#34;).get(),
+        FunctionDescriptor.of(
+                ValueLayout.JAVA_INT, <i class="conum" data-value="2"></i><b>(2)</b>
+                ValueLayout.JAVA_INT, <i class="conum" data-value="3"></i><b>(3)</b>
+                ValueLayout.JAVA_INT, <i class="conum" data-value="4"></i><b>(4)</b>
+        )
+);
+
+int secret_fd = (int) syscall.invoke(SYS_memfd_secret, 0); <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>memfd_secret</code> number.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The return type of the syscall function.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The first argument is the syscall number.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>The flags passed to <code>memfd_secret</code>, currently the only supported flag is
+<code>O_CLOEXEC</code> according to this <a href="https://lwn.net/Articles/865256/">LWN article by Jonathan Corbet</a>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Making the syscall, not using any flags, the returned value is a file descriptor.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect2">
+<h3 id="_linux"><a class="anchor" href="#_linux"></a><a class="link" href="#_linux">Linux</a></h3>
+
+</div>
+<div class="sect2">
+<h3 id="_errno"><a class="anchor" href="#_errno"></a><a class="link" href="#_errno">errno</a></h3>
+
+</div>
+<div class="sect2">
+<h3 id="_memorysegment_map_and_file_descriptor"><a class="anchor" href="#_memorysegment_map_and_file_descriptor"></a><a class="link" href="#_memorysegment_map_and_file_descriptor"><code>MemorySegment.map</code> and file descriptor</a></h3>
+
+</div>
+<div class="sect2">
+<h3 id="_improving_our_syscall_api"><a class="anchor" href="#_improving_our_syscall_api"></a><a class="link" href="#_improving_our_syscall_api">Improving our syscall API.</a></h3>
+<div class="paragraph">
+<p>In the snippet above, we’ve declared a <code>MethodHandle</code> to the <code>syscall</code> function,
+but we need to pass the syscall number as the first argument each time.
+<code>MethodHandle</code>s API allows to make <a href="https://codeblog.jonskeet.uk/2012/01/30/currying-vs-partial-function-application/">partial function</a>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var syscallAddress = systemCLinker.lookup(&#34;syscall&#34;).get();
+var syscall = systemCLinker.downcallHandle(
+        syscallAddress,
+        FunctionDescriptor.of(
+                ValueLayout.JAVA_INT,
+                ValueLayout.JAVA_INT  <i class="conum" data-value="1"></i><b>(1)</b>
+        )
+);
+
+var sys_getpid = MethodHandles.insertArguments(syscall, 0, SYS_getpid); <i class="conum" data-value="2"></i><b>(2)</b>
+sys_getpid.invoke(); <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The first argument is the syscall number.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Capture the <code>syscall</code> number and creates a &#34;partial function&#34;.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Invocation of the partial function don’t need argument 0.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="ulist">
+<div class="title">Resources</div>
+<ul>
+<li>
+<p><a href="https://lwn.net/Articles/604287/">Anatomy of a system call part 1</a></p>
+</li>
+<li>
+<p><a href="https://lwn.net/Articles/604515/">Anatomy of a system call part 2</a></p>
+</li>
+<li>
+<p><a href="https://dev.to/tomassirio/hello-world-in-asm-x8664-jg7">Hello World! in ASM x86_64</a></p>
+</li>
+<li>
+<p><a href="https://www.nekosecurity.com/x86-64-assembly/part-3-nasm-anatomy-syscall-passing-argument" class="bare">https://www.nekosecurity.com/x86-64-assembly/part-3-nasm-anatomy-syscall-passing-argument</a></p>
+</li>
+<li>
+<p><a href="https://en.wikipedia.org/wiki/X86_assembly_language#%22Hello_world!%22_program_for_Linux_in_NASM_style_assembly" class="bare">https://en.wikipedia.org/wiki/X86_assembly_language#%22Hello_world!%22_program_for_Linux_in_NASM_style_assembly</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/drafts/2020/11/03/rediscover-jvm-ergonomics-with-containers/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Rediscovering JVM ergonomics with containers</span>
+    </a>
+    
+    
+    <a href="/drafts/2021/01/22/native-memory-fragmentation-with-glibc/" class="navigation-next">
+      <span class="navigation-tittle">Handling native memory fragmentation of glibc</span>
+      <i aria-hidden="true" class="fa fa-chevron-right"></i>
+    </a>
+    
+</div>
+
+
+  
+
+  
+
+</article>
+
+
+            
+    
+<footer>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2022-05-04-linux_memfd_secret_with_jep419.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], ignoreClass: "nostem|nolatexmath" },
+  asciimath2jax: { delimiters: [["\\$", "\\$"]], ignoreClass: "nostem|noasciimath" },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js" integrity="sha512-M36RUChWzAh1veeenRZFql7HydLEnkYmoloiCvVrhz402UZgKI93qkV7SsaxtVKdN95Wzajh39ysrXCq34NTsg==" crossorigin="anonymous"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/config/TeX-MML-AM_HTMLorMML-full.min.js" integrity="sha512-SdNVJmCczXFqz3Iok8gP+cloe2CScrnHJczMBwL+aSrdZVllRNqRJ5A2p83S4fUM8I4endIZgM2ZIkwNqb3Eew==" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/highlight.min.js" integrity="sha512-DrpaExP2d7RJqNhXB41Q/zzzQrtb6J0zfnXD5XeVEWE8d9Hj54irCLj6dRS3eNepPja7DvKcV+9PnHC7A/g83A==" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+
+
+
+</footer>
+
+    
+
+
+
+        </div>
+    </body>
+</html>
+
