@@ -274,7 +274,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 25 min read
+    <i class="fas fa-clock"></i> 50 min read
 
     
     
@@ -319,12 +319,17 @@
     <li><a href="#_making_syscalls_from_the_jvm">Making syscalls from the JVM</a></li>
     <li><a href="#_memfd_secret"><code>memfd_secret</code></a>
       <ul>
-        <li><a href="#_linux">Linux</a></li>
-        <li><a href="#_errno">errno</a></li>
-        <li><a href="#_memorysegment_map_and_file_descriptor"><code>MemorySegment.map</code> and file descriptor</a></li>
+        <li><a href="#_errno"><code>errno</code></a></li>
+        <li><a href="#_linux_bootloader_flag">Linux bootloader flag</a></li>
+      </ul>
+    </li>
+    <li><a href="#_improvements">Improvements</a>
+      <ul>
+        <li><a href="#_trying_to_replace_most_panama_calls_by_jdk_types">Trying to replace most panama calls by JDK types</a></li>
         <li><a href="#_improving_our_syscall_api">Improving our syscall API.</a></li>
       </ul>
     </li>
+    <li><a href="#_closing_words">Closing words</a></li>
   </ul>
 </nav>
       
@@ -345,7 +350,7 @@ segments created by this system call.</p>
 delivered as part of <a href="https://openjdk.java.net/projects/jdk/18/">JDK 18</a>.</p>
 </div>
 <div class="paragraph">
-<p>For those that don’t know, Project Panama is a project that aims to provide a
+<p>For those that don’t know, Project Panama is a project that aims to provide an
 easy, secure and efficient way to call <em>native methods</em> from Java. You can look
 at my previous articles on the earlier versions of the project, articles
 on <a href="https://foojay.io">foojay.io</a> by <a href="https://twitter.com/CarlDea">Carl Dea</a>,
@@ -382,7 +387,9 @@ The Linux distribution is a <strong>Fedora release 35</strong> with the kernel <
 </div>
 <div class="paragraph">
 <p><em>While this article will focus on Linux, the same concepts apply to other OSes
-(and CPU as we’ll see).</em></p>
+(and CPU as we’ll see).</em> Also, this article is not abot introducing JEP-419,
+so usually this code assumes the right compilation and running flags, usually
+<code>--add-modules=jdk.incubator.foreign</code>, <code>--enable-native-access=ALL-UNNAMED</code>.</p>
 </div>
 <div class="sect1">
 <h2 id="_what_is_a_system_call_syscall"><a class="anchor" href="#_what_is_a_system_call_syscall"></a><a class="link" href="#_what_is_a_system_call_syscall">What is a system call (<em>syscall</em>) ?</a></h2>
@@ -867,7 +874,7 @@ just need <code>CLinker.systemLinker()</code>.</p>
 */
 final static in SYS_getpid = 20; <i class="conum" data-value="1"></i><b>(1)</b>
 
-var syscall = systemCLinker.downcallHandle(
+MethodHandle syscall = systemCLinker.downcallHandle(
         systemCLinker.lookup(&#34;syscall&#34;).get(),
         FunctionDescriptor.of(
                 ValueLayout.JAVA_INT, <i class="conum" data-value="2"></i><b>(2)</b>
@@ -933,8 +940,12 @@ ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE,
 <p>Basically we need to create the <em>secret</em> file descriptor, truncate it to the
 desired size, and then memory map it.</p>
 </div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>First get a file descriptor with <code>memfd_secret</code></p>
 <div class="listingblock">
-<div class="title">syscall manual example with Panama</div>
+<div class="title">memfd_secret syscall</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">/*
   On linux (Intel x86_64) in /usr/include/asm/unistd_64.h
@@ -943,7 +954,7 @@ desired size, and then memory map it.</p>
 */
 final static in SYS_memfd_secret = 447; <i class="conum" data-value="1"></i><b>(1)</b>
 
-var syscall = systemCLinker.downcallHandle(
+MethodHandle syscall = systemCLinker.downcallHandle(
         systemCLinker.lookup(&#34;syscall&#34;).get(),
         FunctionDescriptor.of(
                 ValueLayout.JAVA_INT, <i class="conum" data-value="2"></i><b>(2)</b>
@@ -980,26 +991,540 @@ int secret_fd = (int) syscall.invoke(SYS_memfd_secret, 0); <i class="conum" data
 </tr>
 </tbody></table>
 </div>
-<div class="sect2">
-<h3 id="_linux"><a class="anchor" href="#_linux"></a><a class="link" href="#_linux">Linux</a></h3>
+<div class="paragraph">
+<p>We can proceed with the rest of the process.</p>
+</div>
+</li>
+<li>
+<p>Then sets the desired size</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// int ftruncate(int fd, off_t length);
+MethodHandle ftruncate = systemCLinker.downcallHandle(
+        systemCLinker.lookup(&#34;ftruncate&#34;).get(),
+        FunctionDescriptor.of(
+                ValueLayout.JAVA_INT,
+                ValueLayout.JAVA_INT, // fd
+                ValueLayout.JAVA_LONG // length
+        )
+);
 
+var res = (int) ftruncate.invoke( <i class="conum" data-value="1"></i><b>(1)</b>
+        secret_fd,
+        secret.length()
+);</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Invoke the <code>ftruncate</code> from the <em>libc</em> on the file descriptor
+with the wanted size.</td>
+</tr>
+</tbody></table>
+</div>
+</li>
+<li>
+<p>Finally, memory map this file descriptor, this operation has the effect to
+<em>unmap</em> this memory segment from the Kernel pages (in Ring 0), so only the
+user process can read these memory pages.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// in /usr/include/bits/mman-linux.h
+// #define PROT_READ       0x1             /* Page can be read.  */
+// #define PROT_WRITE      0x2             /* Page can be written.  */
+final int PROT_READ = 1;
+final int PROT_WRITE = 2;
+// #define MAP_SHARED      0x01            /* Share changes.  */
+final int MAP_SHARED = 1;
+
+// in /usr/include/sys/mman.h
+// void *mmap(void *addr, size_t lengthint &#34; prot &#34;, int &#34; flags, int fd, off_t offset)
+MethodHandle mmap = systemCLinker.downcallHandle(
+        systemCLinker.lookup(&#34;mmap&#34;).get(),
+        FunctionDescriptor.of(
+                ValueLayout.ADDRESS, // addr
+                ValueLayout.ADDRESS, // addr
+                ValueLayout.JAVA_LONG, // size
+                ValueLayout.JAVA_INT, // protection modes
+                ValueLayout.JAVA_INT, // flags
+                ValueLayout.JAVA_INT, // fd
+                ValueLayout.JAVA_LONG // offset
+        )
+);
+
+var segmentAddress = (MemoryAddress) mmap.invoke( <i class="conum" data-value="1"></i><b>(1)</b>
+        NULL,
+        secret.length(),
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED,
+        secret_fd,
+        0
+);</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><em>Memory-map</em> the file descriptor, using the same wanted size,
+and use the right protection modes (read &amp; write), and flags.</td>
+</tr>
+</tbody></table>
+</div>
+</li>
+<li>
+<p>Once the memory segment is mapped, we can actually get access to it
+via the <code>MemorySegment</code> API.</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var secretSegment = MemorySegment.ofAddress(segmentAddress, length, scope); <i class="conum" data-value="1"></i><b>(1)</b>
+secretSegment.copyFrom(MemorySegment.ofArray(secretBytes)); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Create a <code>MemorySegment</code> from the memory segment address,
+also using the same size, and the current <code>ResourceScope</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Since <code>secretSegment</code> is actually a <code>MemorySegment</code> <strong>off heap</strong>, the
+secret array as to be transformed first into an <strong>on-heap</strong> <code>MemorySegment</code>
+before being copied to the <em>secret</em> memory mapping.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>And to read the secret, just extract the byte array from the memory segment.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var bytes = secretSegment.toArray(ValueLayout.JAVA_BYTE);</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>With this you have a complete working example of how to use the <code>memfd_secret</code>
+from Java using Panama (JEP-419).</p>
+</div>
+<div class="paragraph">
+<p>…or not!</p>
+</div>
+<div class="paragraph">
+<p>Indeed, running this will make the JVM <em>seg-fault</em>!</p>
+</div>
+<div class="listingblock">
+<div class="title">stdout</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGSEGV (0xb) at pc=0x00007f561919ffd7, pid=4798, tid=4799
+#
+# JRE version: OpenJDK Runtime Environment 22.3 (18.0+37) (build 18+37)
+# Java VM: OpenJDK 64-Bit Server VM 22.3 (18+37, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, linux-amd64)
+# Problematic frame:
+# v  ~StubRoutines::jbyte_disjoint_arraycopy
+#
+# Core dump will be written. Default location: Core dumps may be processed with &#34;/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h&#34; (or dumping to /home/bob/opensource/core.4798)
+#
+# An error report file with more information is saved as:
+# /home/bob/opensource/hs_err_pid4798.log
+#
+# If you would like to submit a bug report, please visit:
+#   https://bugzilla.redhat.com/enter_bug.cgi?product=Fedora&amp;component=java-latest-openjdk&amp;version=35
+#</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So, what did happen ? The problematic frame isn’t helpful if you’re not familiar with JVM internals.
+Opening <code>hs_err_pid4798.log</code> is more helpful.</p>
+</div>
+<div class="listingblock">
+<div class="title">filename</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">...
+
+Stack: [0x00007f734ae3d000,0x00007f734af3e000],  sp=0x00007f734af3c430,  free space=1021k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+v  ~StubRoutines::jbyte_disjoint_arraycopy
+V  [libjvm.so+0xe66d70]  Unsafe_CopyMemory0+0xd0
+j  jdk.internal.misc.Unsafe.copyMemory0(Ljava/lang/Object;JLjava/lang/Object;JJ)V+0 java.base@18.0.1
+j  jdk.internal.misc.Unsafe.copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V+29 java.base@18.0.1
+j  jdk.internal.misc.ScopedMemoryAccess.copyMemoryInternal(Ljdk/internal/misc/ScopedMemoryAccess$Scope;Ljdk/internal/misc/ScopedMemoryAccess$Scope;Ljava/lang/Object;JLjava/lang/Object;JJ)V+32 java.base@18.0.1
+j  jdk.internal.misc.ScopedMemoryAccess.copyMemory(Ljdk/internal/misc/ScopedMemoryAccess$Scope;Ljdk/internal/misc/ScopedMemoryAccess$Scope;Ljava/lang/Object;JLjava/lang/Object;JJ)V+12 java.base@18.0.1
+j  jdk.incubator.foreign.MemorySegment.copy(Ljdk/incubator/foreign/MemorySegment;Ljdk/incubator/foreign/ValueLayout;JLjdk/incubator/foreign/MemorySegment;Ljdk/incubator/foreign/ValueLayout;JJ)V+202 jdk.incubator.foreign@18.0.1
+j  jdk.incubator.foreign.MemorySegment.copy(Ljdk/incubator/foreign/MemorySegment;JLjdk/incubator/foreign/MemorySegment;JJ)V+13 jdk.incubator.foreign@18.0.1
+j  jdk.incubator.foreign.MemorySegment.copyFrom(Ljdk/incubator/foreign/MemorySegment;)Ljdk/incubator/foreign/MemorySegment;+10 jdk.incubator.foreign@18.0.1 <i class="conum" data-value="1"></i><b>(1)</b>
+j  io.github.bric3.panama.f.syscalls.LinuxSyscall.memfd_secret_external()V+48
+j  io.github.bric3.panama.f.syscalls.LinuxSyscall.main([Ljava/lang/String;)V+99
+v  ~StubRoutines::call_stub
+V  [libjvm.so+0x81420a]  JavaCalls::call_helper(JavaValue*, methodHandle const&amp;, JavaCallArguments*, JavaThread*)+0x30a
+V  [libjvm.so+0x8a2111]  jni_invoke_static(JNIEnv_*, JavaValue*, _jobject*, JNICallType, _jmethodID*, JNI_ArgumentPusher*, JavaThread*) [clone .isra.174] [clone .constprop.397]+0x351
+V  [libjvm.so+0x8a4a05]  jni_CallStaticVoidMethod+0x145
+C  [libjli.so+0x47a9]  JavaMain+0xd19
+C  [libjli.so+0x7d69]  ThreadJavaMain+0x9
+...
+
+siginfo: si_signo: 11 (SIGSEGV), si_code: 1 (SEGV_MAPERR), si_addr: 0xffffffffffffffff <i class="conum" data-value="2"></i><b>(2)</b>
+
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>This happened while doing the <code>MemorySegment::copyFrom</code> call.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Moreover, the segmentation fault appears to have been caused by a memory access
+to non mapped memory address <code>SEGV_MAPERR</code>. <em>The most common other reason for segfault
+is <code>SEGV_ACCERR</code>, which is caused by accessing a memory address with wrong permissions.</em></td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>So what happened ? Actually, the value of the file descriptor was <code>-1</code>. Which of course
+is not a valid file descriptor. Also, the call to <code>ftruncate</code> seems to handle well
+the case where the file descriptor is not valid.</p>
+</div>
+<div class="paragraph">
+<p>The call to <code>mmap</code> the file descriptor, also returns <code>-1</code>, which is supposed to
+be the memory segment address.</p>
+</div>
+<div class="paragraph">
+<p>So why did this happen? When invoking native methods, syscalls in particular, one
+need to be aware of the <em>convention</em> about error handling for these methods.</p>
 </div>
 <div class="sect2">
-<h3 id="_errno"><a class="anchor" href="#_errno"></a><a class="link" href="#_errno">errno</a></h3>
+<h3 id="_errno"><a class="anchor" href="#_errno"></a><a class="link" href="#_errno"><code>errno</code></a></h3>
+<div class="paragraph">
+<p>Indeed, when developing in C/C++, when something returns <code>-1</code>, it usually means
+that something went wrong, and that the result is invalid.</p>
+</div>
+<div class="paragraph">
+<p>Moreover, the <code>errno</code> variable is a global variable that is set by the system
+calls and some library functions, see the relevant
+<a href="https://www.man7.org/linux/man-pages/man3/errno.3.html"><code>man 3 errno</code></a>.</p>
+</div>
+<div class="paragraph">
+<p>Because it is a global variable its declaration depends on the system.</p>
+</div>
+<div class="exampleblock primary">
+<div class="title">Example 5. Linux’s <code>errno</code></div>
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><code>/usr/include/asm-generic/errno.h</code></p>
+</li>
+<li>
+<p><code>/usr/include/asm-generic/errno-base.h</code></p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">errno declaration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">extern int *__errno_location (void) __THROW __attribute_const__;
+# define errno (*__errno_location ())</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">errno codes</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">...
+#define ENOLCK          77              /* No locks available */
+#define ENOSYS          78              /* Function not implemented */
+...</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">Example 6. macOs’s <code>errno</code></div>
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p><code>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/errno.h</code></p>
+</li>
+<li>
+<p><code>/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h</code></p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">errno declaration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">extern int * __error(void);
+#define errno (*__error())</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">errno codes</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">...
+/*
+ * This error code is special: arch syscall entry code will return
+ * -ENOSYS if users try to call a syscall that doesn&#39;t exist.  To keep
+ * failures of syscalls that really do exist distinguishable from
+ * failures due to attempts to use a nonexistent syscall, syscall
+ * implementations should refrain from returning -ENOSYS.
+ */
+#define ENOSYS          38      /* Invalid system call number */
+...</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>So we’ll need to check the errors after each call in our case, as each of these
+calls are system calls underneath.</p>
+</div>
+<div class="paragraph">
+<p>On Linux we can see that <code>errno</code> definition is actually a call to a function
+that return a pointer : <code>*__errno_location ()</code></p>
+</div>
+<div class="listingblock">
+<div class="title">checking <code>errno</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle __errnoLocationMH = systemCLinker.downcallHandle(
+        systemCLinker.lookup(&#34;__errno_location&#34;),
+        FunctionDescriptor.of(ValueLayout.ADDRESS)
+);
 
+int errno = ((MemoryAddress) __errnoLocationMH.invoke()) <i class="conum" data-value="1"></i><b>(1)</b>
+        .get(ValueLayout.JAVA_INT, 0); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Get <code>errno</code> address</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Read <code>errno</code> value</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>On Linux the package <code>more-utils</code> has a tool called <code>errno</code> that can be used
+to list all the error codes <code>errno -l</code>.</p>
+</div>
+<div class="paragraph">
+<p>Additionally, there is a function <code>stderror</code> that returns a string from an error
+code.</p>
+</div>
+<div class="listingblock">
+<div class="title">getting the error message</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle stderror = systemCLinker.downcallHandle(
+      systemCLinker.lookup(&#34;strerror&#34;).get(),
+      FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_INT)
+);
+
+String errmsg = ((MemoryAddress) stderror.invoke(errno)).getUtf8String(0);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So, placing this check after the <code>memfd_secret</code> syscall, looked like a good bet.
+Eventually doing something similar after each call is a good idea as well, it
+kinda looks like the Go <em>lang</em> way of checking errors.</p>
+</div>
+<div class="listingblock">
+<div class="title">memfd_secret error checking</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">fd = (int) sys_memfd_secret.invoke(0);
+if (fd == -1) {
+  var errno = errno();
+  System.err.println(errno == ENOSYS ?
+                     &#34;tried to call a syscall that doesn&#39;t exist (errno=ENOSYS), may need to set the &#39;secretmem.enable=1&#39; kernel boot option&#34; :
+                     &#34;syscall memfd_secret failed, errno: &#34; + errno + &#34;, &#34; + stderror(errno));
+  return Optional.empty();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>While reviewing the <code>memfd_secret</code> commit, we can see there’s a check that
+returns <code>ENOSYS</code> when a
+<a href="https://github.com/torvalds/linux/commit/1507f51255c9ff07d75909a84e7c0d7f3c4b2f49#diff-659f2a8bad777301f059a00056336b415c41e024f88280a2131e0eabd7507b91R186-R187">condition is not met</a>.</p>
+</div>
+<div class="paragraph">
+<p>So in order to make the whole thing work, we need to tackle what’s preventing
+<code>memfd_secret</code> to happen.</p>
+</div>
 </div>
 <div class="sect2">
-<h3 id="_memorysegment_map_and_file_descriptor"><a class="anchor" href="#_memorysegment_map_and_file_descriptor"></a><a class="link" href="#_memorysegment_map_and_file_descriptor"><code>MemorySegment.map</code> and file descriptor</a></h3>
-
+<h3 id="_linux_bootloader_flag"><a class="anchor" href="#_linux_bootloader_flag"></a><a class="link" href="#_linux_bootloader_flag">Linux bootloader flag</a></h3>
+<div class="paragraph">
+<p>So actually, Linux is gating the <code>memfd_secret</code> syscall by a flag named
+<code>secretmem_enable</code>. That maybe why <code>memfd_secret</code> is not listed whe looking at
+<a href="https://man7.org/linux/man-pages/man2/syscalls.2.html"><code>man 2 syscalls</code></a>.</p>
+</div>
+<div class="paragraph">
+<p>It’s not quite clear from the <a href="https://github.com/torvalds/linux/commit/1507f51255c9ff07d75909a84e7c0d7f3c4b2f49">commit</a>
+that introduced <code>memfd_secret</code> but in order to work, the <em>machine boot</em> has to
+be configured with the flag <code>secretmem.enable=1</code>.</p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+DISCLAIMER: I am not responsible if something happens wrong on your
+machines / OS. The following actually changes the Linux bootloader configuration,
+and as such, any misconfiguration could make this system non-bootable!
+Please read and understand the documentation of your system before proceeding.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+Enabling this prevents hibernation whenever there are active secret memory users.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>My test machine is a Fedora 35, let’s read their <a href="https://docs.fedoraproject.org/en-US/fedora/latest/system-administrators-guide/kernel-module-driver-configuration/Working_with_the_GRUB_2_Boot_Loader/">page on the GRUB2 bootloader</a>.</p>
+</div>
+<div class="paragraph">
+<p>From this page, it seems there’s a fairly simple way to change the bootloader
+configuration.</p>
+</div>
+<div class="listingblock">
+<div class="title">add <code>secretmem.enable=1</code> flag</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">sudo grubby --update-kernel=ALL --args=&#34;secretmem.enable=1&#34;</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">check the configuration</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">sudo grubby --info=ALL</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">remove <code>secretmem.enable=1</code> flag</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">sudo grubby --update-kernel=ALL --remove-args=&#34;secretmem.enable=1&#34;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Notice the actual flag name is <code>secretmem.enable</code>, not <code>secretmem_enable</code> !</p>
+</div>
+<div class="paragraph">
+<p>The reboot the OS. Now if the configuration was properly applied,
+<code>memfd_secret</code> should return a valid file descriptor.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ java --add-modules=jdk.incubator.foreign --enable-native-access=ALL-UNNAMED MemfdSecret.java
+WARNING: Using incubator modules: jdk.incubator.foreign
+warning: using incubating module(s): jdk.incubator.foreign
+1 warning
+Secret mem fd: 4 <i class="conum" data-value="1"></i><b>(1)</b>
+Secret: my passphrase</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>memfd_secret</code> here returned the file descriptor <code>4</code></td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_improvements"><a class="anchor" href="#_improvements"></a><a class="link" href="#_improvements">Improvements</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_trying_to_replace_most_panama_calls_by_jdk_types"><a class="anchor" href="#_trying_to_replace_most_panama_calls_by_jdk_types"></a><a class="link" href="#_trying_to_replace_most_panama_calls_by_jdk_types">Trying to replace most panama calls by JDK types</a></h3>
+<div class="paragraph">
+<p>So appart from the <code>memfd_secret</code> syscall, the other calls, looks to be
+replaceable ?</p>
+</div>
+<div class="paragraph">
+<p><code>MemorySegment.mapFile</code> looks like a good bet to replace <code>mmap</code>.</p>
+</div>
+<div class="paragraph">
+<p>However, upon first use, things start to look problematic. The signature
+requires a <code>Path</code> and the mapping is limited to a single <code>MapMode</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">.
+----
+static MemorySegment mapFile(
+        Path path,
+        long bytesOffset,
+        long bytesSize,
+        FileChannel.MapMode mapMode,
+        ResourceScope scope
+) throws IOException {
+----</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Supposing the file descriptor value is <code>4</code>, if it was possible to pass
+<code>/dev/fd/4</code> or <code>/proc/self/fd/4</code> as a <code>Path</code>, we could not map this segment
+as read and write via this API.
+And performing this operation twice, one in read-only mode and one in
+write-only mode, would not work as this special file descriptor is closed
+after the first memory mapping.</p>
+</div>
+<div class="paragraph">
+<p>There’s some interesting bits in <code>FileOutputStream</code> / <code>FileInputStream</code> as they
+can be built from a JDK’s <code>FileDescriptor</code>, and allow to actually get a <code>FileChannel</code>
+from it’s possible to call <code>map</code> to get a memory mapping. Although <code>FileDescriptor</code>
+class does not have a public constructor and even being able to hack <code>FileDescriptor</code>
+(with`--add-opens=java.base/java.io=ALL-UNNAMED`) is not enough as we get in the
+same situation as above because it’s only possible to have a mapping in read-only
+or write-only.</p>
+</div>
+<div class="paragraph">
+<p>Basically, we’re stuck with using the <code>mmap</code> native call to do what’s necessary.
+I don’t know if it is out of scope for the JEP-419, or the next JEP-425, but
+I think this would be a good thing to support <code>MemorySegment</code> of arbitrary file
+descriptor, in particular when writing programs that run on the command line,
+this could enable things like <code>java Main.java &lt;(cat neko | grep meow)</code>.</p>
+</div>
+<div class="paragraph">
+<p>Finally, I don’t believe there’s something equivalent available in JDK for the
+<code>ftruncate</code> function.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_improving_our_syscall_api"><a class="anchor" href="#_improving_our_syscall_api"></a><a class="link" href="#_improving_our_syscall_api">Improving our syscall API.</a></h3>
 <div class="paragraph">
 <p>In the snippet above, we’ve declared a <code>MethodHandle</code> to the <code>syscall</code> function,
-but we need to pass the syscall number as the first argument each time.
-<code>MethodHandle</code>s API allows to make <a href="https://codeblog.jonskeet.uk/2012/01/30/currying-vs-partial-function-application/">partial function</a>.</p>
+if there’s multiple syscalls, we’ll need to pass the syscall number as the
+first argument each time. <code>MethodHandle</code>s API allows to make <a href="https://codeblog.jonskeet.uk/2012/01/30/currying-vs-partial-function-application/">partial function</a>.</p>
 </div>
 <div class="listingblock">
+<div class="title">syscall partial function</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var syscallAddress = systemCLinker.lookup(&#34;syscall&#34;).get();
 var syscall = systemCLinker.downcallHandle(
@@ -1030,6 +1555,82 @@ sys_getpid.invoke(); <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </tr>
 </tbody></table>
 </div>
+<div class="paragraph">
+<p>Now if the syscall has different arity, <code>MethodHandle::appendArgumentLayouts</code>
+has us covered, so that we can use the basic <em>template</em> of a syscall, sort of,
+and build on top of this to have specific identifiers for each syscall.</p>
+</div>
+<div class="listingblock">
+<div class="title">syscall partial function, with added arguments</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var sys_memfd_secret = MethodHandles.insertArguments(systemCLinker.downcallHandle(
+        systemCLinker.lookup(&#34;syscall&#34;).get(),
+        FunctionDescriptor.of(
+                ValueLayout.JAVA_INT,
+                ValueLayout.JAVA_INT
+        ).appendArgumentLayouts(ValueLayout.JAVA_INT) <i class="conum" data-value="1"></i><b>(1)</b>
+), 0, SYS_memfd_secret); <i class="conum" data-value="2"></i><b>(2)</b>
+
+int fd = (int) sys_memfd_secret.invoke(0); <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Append arguments to the function descriptor.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Capture the <code>syscall</code> number and creates a &#34;partial function&#34;.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Simply invoke the call passing only required arguments on call site.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Other things are possible with <code>MethodHandle</code>s that can be handy with Panama,
+yet out of scope for this blog post. Just check the API.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_closing_words"><a class="anchor" href="#_closing_words"></a><a class="link" href="#_closing_words">Closing words</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<div class="title">memfd_secret</div>
+<p>Since I heard about this feature in Linux 5.14 I was hoping to test it after the
+spectre style attacks, at least
+form a developer perspective. The first thing is that you’ll need a Linux
+with that version, so forget Docker Desktop for now as even the latest 4.8 is still
+using a Linux 5.10 kernel (at least on macOs). Also, deployment wise, there’s
+a flag to enable at boot time, which makes it difficult to deploy, in particular
+in a cloud provider unless you have the hands on the bootloader.
+On you regular laptop, the fact that this feature disables hibernation is almost
+a deal-breaker for this kind of hardware.</p>
+</div>
+<div class="paragraph">
+<p>Personally, If an application is not having a very tight control at how secrets
+are actually used, I fail to see the value of such feature.</p>
+</div>
+<div class="paragraph">
+<div class="title">JEP-419</div>
+<p>Yet again project Panama embodied by JEP-419 in the JDK 18 delivers, it’s possible
+to interact with the system. And doing so with some ease. And without having to
+deal with different build systems. I have almost nothing relevant to mention here.
+I missed the possibility of creating a <code>MemorySegment</code> from a file descriptor,
+but this might be a rare case, especially with the topic at hand.
+I still find the mandatory use of <code>--enable-native-access=ALL-UNNAMED</code> unpractical especially
+for an API that is arriving late after alternatives that do not have this enforcement,
+yet I understand the motive.</p>
+</div>
+<div class="paragraph">
+<p>Yet again, I’m happy to see this part of project Panama landing in JDK to bridge
+the gap to native world without third party.</p>
+</div>
 <div class="ulist">
 <div class="title">Resources</div>
 <ul>
@@ -1049,7 +1650,6 @@ sys_getpid.invoke(); <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 <p><a href="https://en.wikipedia.org/wiki/X86_assembly_language#%22Hello_world!%22_program_for_Linux_in_NASM_style_assembly" class="bare">https://en.wikipedia.org/wiki/X86_assembly_language#%22Hello_world!%22_program_for_Linux_in_NASM_style_assembly</a></p>
 </li>
 </ul>
-</div>
 </div>
 </div>
 </div>
