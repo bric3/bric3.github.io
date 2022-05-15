@@ -11,7 +11,7 @@
 
     <link href="https://gmpg.org/xfn/11" rel="profile">
     
-    <link rel="canonical" href="https://blog.arkey.fr/drafts/2020/11/07/tweakble-jvm-setting-per-helm-release/">
+    <link rel="canonical" href="https://blog.arkey.fr/tomb/tweakable-jvm-setting-per-helm-release/">
     
 
     <meta charset="utf-8">
@@ -25,7 +25,7 @@
     
     
 
-<title>Tweakble JVM setting per helm release • Brice Dutheil</title>
+<title>Tweakable JVM setting per helm release • Brice Dutheil</title>
 
 
 
@@ -42,9 +42,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="Tweakble JVM setting per helm release">
+<meta property="og:title" content="Tweakable JVM setting per helm release">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2020/11/07/tweakble-jvm-setting-per-helm-release/" />
+<meta property="og:url" content="https://blog.arkey.fr/tomb/tweakable-jvm-setting-per-helm-release/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -61,7 +61,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Tweakble JVM setting per helm release">
+<meta name="twitter:title" content="Tweakable JVM setting per helm release">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -229,7 +229,7 @@
   <div class="container fixed-container">
     
 <div class="copyright">
-  &copy; 2010 - 2021 Brice Dutheil
+  &copy; 2010 - 2022 Brice Dutheil
   
     <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
   
@@ -247,7 +247,7 @@
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2020-11-07-tweakble-jvm-setting-per-helm-release.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/tomb/2020-11-07-tweakable-jvm-setting-per-helm-release.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
@@ -261,7 +261,7 @@
 
 <article>
   <header>
-    <h1>Tweakble JVM setting per helm release</h1>
+    <h1>Tweakable JVM setting per helm release</h1>
     
     
 <div class="post__meta">
@@ -295,8 +295,8 @@
       
           <nav id="TableOfContents">
   <ul>
-    <li><a href="#_choosing_a_better_value_for_the_ram_percentage">Choosing a better value for the RAM percentage</a></li>
-    <li><a href="#_make_the_docker_image_memory_settings_tweakable_per_environment">Make the docker image memory settings tweakable per environment</a>
+    <li><a href="#_choosing_a_better_value_for_the_java_heap">Choosing a better value for the Java heap</a></li>
+    <li><a href="#_make_the_docker_image_memory_settings_tweakable_per_environment">Make the Docker image memory settings tweakable per environment</a>
       <ul>
         <li><a href="#_run_the_container_locally_with_the_java_app">Run the container locally with the Java app</a></li>
       </ul>
@@ -310,6 +310,87 @@
   
   <div class="post adoc">
     
+<div class="paragraph">
+<p>Circa 2019 I had the chance to run many Java server applications, I wrote down
+out our best practices in order to iterate faster to find the right values for
+the JVM, but instead how to leverage Helm to try JVM settings.</p>
+</div>
+<div class="paragraph">
+<p>As a pre-requisite, the reader must know about</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://docker.com"><strong>Docker</strong></a> : It is an open-source project that helps to produce self-sufficient
+containers that can run on any platform supporting containers. In particular,
+it is useful for deployment automation. Moreover, it is practical tool to use
+for development.</p>
+</li>
+<li>
+<p><a href="https://kubernetes.io"><strong>Kubernetes</strong></a> : It is an open-source container orchestration system. In
+particular, it can be configured to automate certain task such as deployment,
+scaling, and management. It was originally created by Google, but is now part
+of the <a href="https://www.cncf.io/">CNCF</a>. It’s usually abbreviated as <code>k8s</code>.</p>
+</li>
+<li>
+<p><a href="https://helm.sh"><strong>Helm</strong></a> : Helm is an open-source project destined to manage
+applications running on Kubernetes. In particular, Helm serves a way to version,
+configure and deploy applications. It’s main document is known as a <em>Helm Chart</em>.</p>
+</li>
+</ul>
+</div>
+<div class="sect1">
+<h2 id="_choosing_a_better_value_for_the_java_heap"><a class="anchor" href="#_choosing_a_better_value_for_the_java_heap"></a><a class="link" href="#_choosing_a_better_value_for_the_java_heap">Choosing a better value for the Java heap</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This is usually the first concrete flag we have to do to configure a JVM.</p>
+</div>
+<div class="paragraph">
+<p>If you’ve followed the improvements of the JDK you know since JDK 11 it is
+_kinda_supporting containers via the addition of the <code>-XX:*RAMPercentage</code>
+flags. Or not.</p>
+</div>
+<div class="paragraph">
+<p>Circa 2019 I basically did try to set a magical fixed value for the heap size
+through <code>-XX:MaxRAMPercentage=xx</code> set in the <code>Dockerfile</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-Dockerfile hljs" data-lang="Dockerfile">CMD [ &#34;/usr/bin/java&#34;, \
+      &#34;-Dfile.encoding=UTF-8&#34;, \
+      &#34;-Duser.timezone=UTC&#34;, \
+      &#34;-Djava.security.egd=file:/dev/./urandom&#34;, \
+      &#34;-XX:InitialRAMPercentage=85.0&#34;, \ <i class="conum" data-value="1"></i><b>(1)</b>
+      &#34;-XX:MaxRAMPercentage=85.0&#34;, \ <i class="conum" data-value="1"></i><b>(1)</b>
+      &#34;-XX:NativeMemoryTracking=summary&#34;, \
+      &#34;-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M&#34;, \
+      &#34;-javaagent:/agent-1.jar&#34;, \
+      &#34;-javaagent:/agent-2.jar&#34;, \
+      &#34;-jar&#34;, \
+      &#34;/java-app-boot.jar&#34;, \
+      &#34;--spring.config.additional-location=/etc/java-app/config.yaml&#34;, \
+      &#34;--server.port=8080&#34; ]</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Sets the heap size to 85% of the total RAM (equivalent to setting
+<code>Xms</code> and <code>Xmx</code> at the same value).</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Of course this didn’t
+work really well for two reasons :</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The value didn’t adapt well to actual trafic conditions. It is related to how
+<code>-XX:*RAMPercentage</code> is designed to work, in my opinion these flags should be
+avoided.</p>
 <div class="admonitionblock caution">
 <table>
 <tbody><tr>
@@ -317,113 +398,49 @@
 <i class="fa icon-caution" title="Caution"></i>
 </td>
 <td class="content">
-The example date back were I iterated on <code>*RAMPercentage</code>, now
-I think this flag familly is a inpractical.
+I believe <a href="https://blog.arkey.fr/2020/10/27/maxrampercentage-is-not-what-i-wished-for/">now</a>
+this flag family is impractical at best if not an anti-pattern when
+used in production containers.
 </td>
 </tr>
 </tbody></table>
 </div>
-<div class="sect1">
-<h2 id="_choosing_a_better_value_for_the_ram_percentage"><a class="anchor" href="#_choosing_a_better_value_for_the_ram_percentage"></a><a class="link" href="#_choosing_a_better_value_for_the_ram_percentage">Choosing a better value for the RAM percentage</a></h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>From the above, it’s now possible with NMT especially and with <code>pmap</code> to
-understand actual memory usage and to answer the question: &#34;What is a sensible
-RAM percentage setting for this application ?&#34;</p>
+</li>
+<li>
+<p>Since the values was set in a Dockerfile as they were not supposed to be
+adjusted that much, it was long to actually publish and try new settings.
+Each change had to go through the whole build pipeline (even
+if some shortcuts were possible, thanks to Gradle in this regard).</p>
+</li>
+<li>
+<p>The container had to be deployed in different environments with different
+conditions, hence different resource requirement.</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p>Really what drive the answer is the actual non-heap usage not accounted in
-<code>MaxRAMPercentage</code>, from the numbers above:</p>
-</div>
-<div class="literalblock">
-<div class="content">
-<pre>(total) 5417017 - (heap) 4456448 = 960569 KiB</pre>
-</div>
-</div>
-<table class="tableblock frame-all grid-all fit-content stretch">
-<caption class="title">Table 1. In percentages</caption>
-<colgroup>
-<col/>
-<col/>
-<col/>
-</colgroup>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Non heap</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5417017 - 4456448 = 960569</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">~17 %</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Heap</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">4456448</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">~83 %</p></td>
-</tr>
-</tbody>
-<tfoot>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Total</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">5417017</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">100 %</p></td>
-</tr>
-</tfoot>
-</table>
-<div class="paragraph">
-<p><strong>This means, at that time the application needed around <code>960 MiB</code>, plus the heap to run.</strong></p>
+<p><em>In the aftermath I still feel that I was dumb to even thought it could work.</em></p>
 </div>
 <div class="paragraph">
-<p>The JVM was run this flag <code>-XX:MaxRAMPercentage=85.000000</code> which sets the heap maximum size
-to <code>4 563 402 752</code> Bytes or <code>4456448 KiB</code>, the value of this percentage is a lucky guess that
-worked for the <code>5 GiB</code> deployment memory limit, because the application never use the whole
-heap memory and as such it never used all the pages.</p>
-</div>
-<div class="paragraph">
-<p>This percentage is however <strong>wrong</strong>, if the JVM needed all the memory within the max
-heap plus higher thread usage be it more threads or deeper stack traces then the
-container/pod would have been <em>oom killed</em>. Also, it is necessary to give some free space
-in the container to be able to perform serviceability tasks, like profiling, etc.</p>
-</div>
-<div class="paragraph">
-<p>For a <code>5 GiB</code> memory limit it may be good to give a minimum of 20% space, my experience in this
-scenario is that 20% is too tight to handle surges. Supposing we’d like an additional <code>400 MiB</code>
-over <code>960 569 KiB</code> will give a percentage of 26%.</p>
-</div>
-<div class="paragraph">
-<p>Of course this number has to be adapted to the workload, e.g. if the application allocate a
-lot more <code>DirectByteBuffer</code>s or if it requires heavy filesystem usage, then it would be a
-different number to account the room needed for the filesystem cache.</p>
-</div>
-<div class="paragraph">
-<p>In our case the starting point for a <code>5 GiB</code> memory limit is 26% :</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">-XX:InitialRAMPercentage=74.0 <i class="conum" data-value="1"></i><b>(1)</b>
--XX:MaxRAMPercentage=74.0 <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>But if the cgroup limit is decreased, for our application it meant the non heap usage will take
-a more significant part. For example on this same application we saw <code>1.3 GiB</code> of non-heap memory
-for a heap sized at <code>3 GiB</code>.</p>
-</div>
-<div class="paragraph">
-<p>For a quick win let’s adapt the application image.</p>
+<p>Since Helm was used it was time to leverage it.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_make_the_docker_image_memory_settings_tweakable_per_environment"><a class="anchor" href="#_make_the_docker_image_memory_settings_tweakable_per_environment"></a><a class="link" href="#_make_the_docker_image_memory_settings_tweakable_per_environment">Make the docker image memory settings tweakable per environment</a></h2>
+<h2 id="_make_the_docker_image_memory_settings_tweakable_per_environment"><a class="anchor" href="#_make_the_docker_image_memory_settings_tweakable_per_environment"></a><a class="link" href="#_make_the_docker_image_memory_settings_tweakable_per_environment">Make the Docker image memory settings tweakable per environment</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>As seen at the beginning of this post, RAM settings are part of the command declaration,
-first these arguments turned out to be incorrect but they are more difficult to change or tweak.
-In addition, the deployment requirements / limits are likely to
-differ depending on the cluster / environment ; this can happen when you need to decrease the money
-spending on your cloud provider for non-production clusters, like staging, pre-production, etc.</p>
+<p>As seen at the above, RAM settings are part of the command declaration.
+First these arguments turned out to be incorrect, but they are more difficult
+to change or tweak. In addition, the deployment requirements / limits are likely
+to differ depending on the cluster / environment ; this can happen when you need
+to reduce the money spent on the cloud provider for non-production clusters,
+like staging, pre-production, etc.</p>
 </div>
 <div class="paragraph">
-<p>Let’s use <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
-environment variable for more flexibility and remove the RAM percentage in the <code>CMD</code> directive.</p>
+<p>The first tip is to use the <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE"><code>JDK_JAVA_OPTIONS</code></a>
+environment variable for more flexibility and remove the RAM percentage in the
+<code>CMD</code> directive.</p>
 </div>
 <div class="listingblock">
 <div class="title">Application dockerfile</div>
@@ -443,10 +460,6 @@ environment variable for more flexibility and remove the RAM percentage in the <
   CMD [ &#34;/usr/bin/java&#34;, \
         &#34;-Dfile.encoding=UTF-8&#34;, \
         &#34;-Duser.timezone=UTC&#34;, \
-        &#34;-Dcom.sun.management.jmxremote.port=7199&#34;, \
-        &#34;-Dcom.sun.management.jmxremote.rmi.port=7199&#34;, \
-        &#34;-Dcom.sun.management.jmxremote.ssl=false&#34;, \
-        &#34;-Dcom.sun.management.jmxremote.authenticate=false&#34;, \
         &#34;-Djava.security.egd=file:/dev/./urandom&#34;, \
 -       &#34;-XX:InitialRAMPercentage=85.0&#34;, \ <i class="conum" data-value="2"></i><b>(2)</b>
 -       &#34;-XX:MaxRAMPercentage=85.0&#34;, \
@@ -454,15 +467,10 @@ environment variable for more flexibility and remove the RAM percentage in the <
         &#34;-Xlog:os,safepoint*,gc*,gc+ref=debug,gc+ergo*=debug,gc+age*=debug,gc+phases*:file=/gclogs/%t-gc.log:time,uptime,tags:filecount=5,filesize=10M&#34;, \
         &#34;-javaagent:/agent-1.jar&#34;, \
         &#34;-javaagent:/agent-2.jar&#34;, \
-        &#34;-Dsqreen.config_file=/sqreen.properties&#34;, \
         &#34;-jar&#34;, \
         &#34;/java-app-boot.jar&#34;, \
         &#34;--spring.config.additional-location=/etc/java-app/config.yaml&#34;, \
-        &#34;--server.port=8080&#34; ]
-
-  LABEL name=&#34;java-app&#34;
-  LABEL build_path=&#34;../&#34;
-  LABEL version_auto_semver=&#34;true&#34;</code></pre>
+        &#34;--server.port=8080&#34; ]</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -483,7 +491,7 @@ environment variable for more flexibility and remove the RAM percentage in the <
 <div class="listingblock">
 <div class="title">Build the container</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ DOCKER_BUILDKIT=1 docker build \
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ DOCKER_BUILDKIT=1 docker build \
   --tag test-java-app \ <i class="conum" data-value="1"></i><b>(1)</b>
   --build-arg REGISTRY=eu.gcr.io/cd-registry \
   --file _infra/Dockerfile \
@@ -517,12 +525,13 @@ environment variable for more flexibility and remove the RAM percentage in the <
 <div class="sect2">
 <h3 id="_run_the_container_locally_with_the_java_app"><a class="anchor" href="#_run_the_container_locally_with_the_java_app"></a><a class="link" href="#_run_the_container_locally_with_the_java_app">Run the container locally with the Java app</a></h3>
 <div class="paragraph">
-<p>In this local test series, I’m using <code>3 GiB</code> as a memory limit and I chose 70% for the heap percentage.</p>
+<p>In this local test series, I’m using <code>3 GiB</code> as a memory limit, and I chose 70%
+for the heap percentage.</p>
 </div>
 <div class="listingblock primary">
 <div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory=&#34;3gb&#34; --name j-mem test-java-app
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ docker run --rm --memory=&#34;3gb&#34; --name j-mem test-java-app
 Picked up JDK_JAVA_OPTIONS:
 10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won&#39;t be available.
 2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add &#34;com.fasterxml.jackson.module:jackson-module-kotlin&#34; to the classpath
@@ -532,7 +541,7 @@ Picked up JDK_JAVA_OPTIONS:
 <div class="listingblock secondary">
 <div class="title"><strong>With</strong> <code>JDK_JAVA_OPTIONS</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker run --rm --memory=&#34;3gb&#34; --env JDK_JAVA_OPTIONS=&#34;-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0&#34; --name j-mem test-java-app
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ docker run --rm --memory=&#34;3gb&#34; --env JDK_JAVA_OPTIONS=&#34;-XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0&#34; --name j-mem test-java-app
 Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=70.0
 10:14:53.566 [main] INFO org.springframework.core.KotlinDetector - Kotlin reflection implementation not found at runtime, related features won&#39;t be available.
 2020-03-20 10:14:55.616 [] WARN  --- [kground-preinit] o.s.h.c.j.Jackson2ObjectMapperBuilder    : For Jackson Kotlin classes support please add &#34;com.fasterxml.jackson.module:jackson-module-kotlin&#34; to the classpath
@@ -545,7 +554,7 @@ Picked up JDK_JAVA_OPTIONS: -XX:InitialRAMPercentage=70.0 -XX:MaxRAMPercentage=7
 <div class="listingblock primary">
 <div class="title"><strong>Without</strong> <code>JDK_JAVA_OPTIONS</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-none hljs">❯ docker exec -it j-mem bash -c &#34;jcmd \$(pgrep java) VM.flags | tr &#39; &#39; &#39;\n&#39;&#34;
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ docker exec -it j-mem bash -c &#34;jcmd \$(pgrep java) VM.flags | tr &#39; &#39; &#39;\n&#39;&#34;
 6:
 ...
 -XX:MaxHeapSize=805306368 <i class="conum" data-value="1"></i><b>(1)</b>
@@ -599,16 +608,11 @@ are the only one affected.</p>
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/2020/11/03/rediscover-jvm-ergonomics-with-containers/" class="navigation-prev">
+    <a href="/tomb/immutable-jackson-pojo-with-lombok/" class="navigation-prev">
       <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Rediscovering JVM ergonomics with containers</span>
+      <span class="navigation-tittle">Immutable jackson pojo with Lombok</span>
     </a>
     
-    
-    <a href="/drafts/2021/01/22/native-memory-fragmentation-with-glibc/" class="navigation-next">
-      <span class="navigation-tittle">Handling native memory fragmentation of glibc</span>
-      <i aria-hidden="true" class="fa fa-chevron-right"></i>
-    </a>
     
 </div>
 
@@ -627,7 +631,7 @@ are the only one affected.</p>
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2020-11-07-tweakble-jvm-setting-per-helm-release.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/tomb/2020-11-07-tweakable-jvm-setting-per-helm-release.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
