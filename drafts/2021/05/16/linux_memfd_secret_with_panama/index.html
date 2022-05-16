@@ -1317,8 +1317,14 @@ calls and some library functions, see the relevant
 <div class="title">errno codes</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">...
-#define ENOLCK          77              /* No locks available */
-#define ENOSYS          78              /* Function not implemented */
+/*
+ * This error code is special: arch syscall entry code will return
+ * -ENOSYS if users try to call a syscall that doesn&#39;t exist.  To keep
+ * failures of syscalls that really do exist distinguishable from
+ * failures due to attempts to use a nonexistent syscall, syscall
+ * implementations should refrain from returning -ENOSYS.
+ */
+#define ENOSYS          38      /* Invalid system call number */
 ...</code></pre>
 </div>
 </div>
@@ -1348,14 +1354,8 @@ calls and some library functions, see the relevant
 <div class="title">errno codes</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">...
-/*
- * This error code is special: arch syscall entry code will return
- * -ENOSYS if users try to call a syscall that doesn&#39;t exist.  To keep
- * failures of syscalls that really do exist distinguishable from
- * failures due to attempts to use a nonexistent syscall, syscall
- * implementations should refrain from returning -ENOSYS.
- */
-#define ENOSYS          38      /* Invalid system call number */
+#define ENOLCK          77              /* No locks available */
+#define ENOSYS          78              /* Function not implemented */
 ...</code></pre>
 </div>
 </div>
