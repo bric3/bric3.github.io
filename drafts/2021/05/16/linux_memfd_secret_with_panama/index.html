@@ -668,16 +668,16 @@ one can look at their definition in the <code>/include/asm-<strong>/unistd-</str
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>rax ← System Call number</p>
+<p><code>rax</code> ← System Call number</p>
 </li>
 <li>
-<p>rdi ← First argument</p>
+<p><code>rdi</code> ← First argument</p>
 </li>
 <li>
-<p>rsi ← Second argument</p>
+<p><code>rsi</code> ← Second argument</p>
 </li>
 <li>
-<p>rdx ← Third argument</p>
+<p><code>rdx</code> ← Third argument</p>
 </li>
 </ol>
 </div>
@@ -775,8 +775,8 @@ _start:
     syscall         ; make the call            <i class="conum" data-value="3"></i><b>(3)</b>
 
 section .rodata
-    msg: db &#34;Hello Linux syscalls!&#34;,0x0a, 0x0d  ;
-    mlen: equ $-msg                             ;</code></pre>
+    msg: db &#34;Hello Linux syscalls!&#34;,0x0a, 0x0d  ; message string, terminated by a new line (0A, 0D)
+    mlen: equ $-msg                             ; calculate the lenght of the message</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -819,11 +819,8 @@ ld -o hello_syscall hello_syscall.o
 <div class="listingblock">
 <div class="title">hello_syscall_via_int80.asm (x86, ie won’t work on ARM)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-asm hljs" data-lang="asm">section .rodata
-    str: db &#34;Hello Linux!&#34;, 0Ah  ; message string, terminated by a new line (0A)
-    str_len: equ $ - str         ; calculate the lenght of the message
+<pre class="highlightjs highlight"><code class="language-asm hljs" data-lang="asm">global _start                ; define entrypoint
 section .text
-global _start
 _start:
     mov eax, 4               ; syscall number: write <i class="conum" data-value="1"></i><b>(1)</b>
     mov ebx, 1               ; stdout <i class="conum" data-value="2"></i><b>(2)</b>
@@ -833,7 +830,11 @@ _start:
 
     mov eax, 1               ; syscall number: exit <i class="conum" data-value="1"></i><b>(1)</b>
     mov ebx, 0               ; exit status <i class="conum" data-value="2"></i><b>(2)</b>
-    int 0x80                 ; make the call <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+    int 0x80                 ; make the call <i class="conum" data-value="3"></i><b>(3)</b>
+
+section .rodata
+    str: db &#34;Hello Linux!&#34;, 0Ah  ; message string, terminated by a new line (0A)
+    str_len: equ $ - str         ; calculate the lenght of the message</code></pre>
 </div>
 </div>
 <div class="colist arabic">
