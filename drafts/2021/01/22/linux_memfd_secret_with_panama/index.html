@@ -274,7 +274,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 50 min read
+    <i class="fas fa-clock"></i> 53 min read
 
     
     
@@ -567,6 +567,55 @@ and these numbers somewhat like <em>enum ordinals</em> indicating the type of me
 These numbers are part of the syscall ABI (Application Binary Interface) and as
 such they are stable for a CPU architecture although unbounded (new syscalls
 can be added).</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Outside, of this scope not all syscalls are made equal nowadays, some syscalls,
+usually the most used ones are exported in the user space memory, to avoid
+the cost of switching to kernel mode. In practice, vDSO (<strong>V</strong>irtual <strong>D</strong>escriptor
+<strong>S</strong>hared <strong>O</strong>bject) is like a library, it is loaded in memory so that it can
+be accessed from the program memory (glibc knows about this memory region and
+will use it).</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>pmap -X {pid}</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs"># pmap -X 1
+1:   java ...
+         Address Perm   Offset Device   Inode Size  Rss  Pss Referenced Anonymous LazyFree ShmemPmdMapped FilePmdMapped Shared_Hugetlb Private_Hugetlb Swap SwapPss Locked THPeligible ProtectionKey Mapping
+...
+    7ffe78f4c000 rw-p 00000000  00:00       0  132  112  112        112       112        0              0             0              0               0    0       0      0           0             0 [stack]
+    7ffe78fad000 r--p 00000000  00:00       0   16    0    0          0         0        0              0             0              0               0    0       0      0           0             0 [vvar]
+    7ffe78fb1000 r-xp 00000000  00:00       0    8    4    0          4         0        0              0             0              0               0    0       0      0           0             0 [vdso]  <i class="conum" data-value="1"></i><b>(1)</b>
+ffffffffff600000 r-xp 00000000  00:00       0    4    0    0          0         0        0              0             0              0               0    0       0      0           0             0 [vsyscall]
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The vDSO 8 KiB segment</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>To read more about it, one should read the relevant manual page (<a href="https://man7.org/linux/man-pages/man7/vdso.7.html"><code>man 7 vdso</code></a>).
+Typically, this page lists the exported syscalls.</p>
+</div>
+<div class="paragraph">
+<p>E.g ` __vdso_clock_gettime`, which is called by <code>clock_gettime</code> defined in the
+standard libc (<a href="https://man7.org/linux/man-pages/man3/clock_gettime.3.html"><code>man 3 clock_gettime</code></a>).</p>
+</div>
+</td>
+</tr>
+</tbody></table>
 </div>
 <div class="admonitionblock caution">
 <table>
