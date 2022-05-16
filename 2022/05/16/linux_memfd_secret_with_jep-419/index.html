@@ -11,7 +11,7 @@
 
     <link href="https://gmpg.org/xfn/11" rel="profile">
     
-    <link rel="canonical" href="https://blog.arkey.fr/drafts/2022/05/16/linux_memfd_secret_with_panama/">
+    <link rel="canonical" href="https://blog.arkey.fr/2022/05/16/linux_memfd_secret_with_jep-419/">
     
 
     <meta charset="utf-8">
@@ -25,7 +25,7 @@
     
     
 
-<title>Using Linux&#39;s memfd_secret() from the JVM with JEP-419 (Project Panama) • Brice Dutheil</title>
+<title>Using Linux&#39;s memfd_secret syscall from the JVM with JEP-419 • Brice Dutheil</title>
 
 
 
@@ -42,9 +42,9 @@
     
 <meta property="og:locale" content="en">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="Using Linux&amp;rsquo;s memfd_secret() from the JVM with JEP-419 (Project Panama)">
+<meta property="og:title" content="Using Linux&amp;rsquo;s memfd_secret syscall from the JVM with JEP-419">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://blog.arkey.fr/drafts/2022/05/16/linux_memfd_secret_with_panama/" />
+<meta property="og:url" content="https://blog.arkey.fr/2022/05/16/linux_memfd_secret_with_jep-419/" />
 <meta property="og:description" content="Java mostly, and general tech">
 <meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
 <meta property="og:image:type" content="image/png">
@@ -61,7 +61,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="Using Linux&amp;rsquo;s memfd_secret() from the JVM with JEP-419 (Project …">
+<meta name="twitter:title" content="Using Linux&amp;rsquo;s memfd_secret syscall from the JVM with JEP-419">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -114,7 +114,7 @@
 </head>
 
 
-    <body class="draft">
+    <body class="">
     
 <div class="sidebar">
   <div class="container ">
@@ -247,7 +247,7 @@
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2022-05-04-linux_memfd_secret_with_jep419.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2022-05-04-linux_memfd_secret_with_jep419.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
@@ -261,7 +261,7 @@
 
 <article>
   <header>
-    <h1>Using Linux&#39;s memfd_secret() from the JVM with JEP-419 (Project Panama)</h1>
+    <h1>Using Linux&#39;s memfd_secret syscall from the JVM with JEP-419</h1>
     
     
 <div class="post__meta">
@@ -271,6 +271,46 @@
     
     
     
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/jep-419">jep-419</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/java">java</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jvm">jvm</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/memory">memory</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/linker">linker</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/foreign">foreign</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jdk18">jdk18</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/panama">panama</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/linux">linux</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/syscall">syscall</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/memfd_secret">memfd_secret</a>
+          
+      
     
     
     <br/>
@@ -284,7 +324,7 @@
             <ul>
                 
                     
-                    <li hugo-nav="/drafts/2022/05/16/linux_memfd_secret_with_panama/"><a href="https://blog.arkey.fr/drafts/2022/05/16/linux_memfd_secret_with_panama/"> Using Linux&#39;s memfd_secret() from the JVM with JEP-419 (Project Panama) </a> </li>
+                    <li hugo-nav="/2022/05/16/linux_memfd_secret_with_jep-419/"><a href="https://blog.arkey.fr/2022/05/16/linux_memfd_secret_with_jep-419/"> Using Linux&#39;s memfd_secret syscall from the JVM with JEP-419 </a> </li>
                     
                     <li hugo-nav="/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/"><a href="https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/"> A practical look at JEP-412 in JDK17 with libsodium </a> </li>
                     
@@ -397,7 +437,7 @@ so usually this code assumes the right compilation and running flags, usually
 <p>Here’s how one can make a syscall using JEP-419.</p>
 </div>
 <div class="listingblock">
-<div class="title">tl;dr <code>memfd_secret</code> syscall</div>
+<div class="title"><code>memfd_secret</code> syscall</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var sys_memfd_secret = CLinker.systemCLinker().downcallHandle(
         systemCLinker.lookup(&#34;syscall&#34;).get(),
@@ -589,11 +629,16 @@ we look up system calls by their names: <code>write</code>, <code>read</code>, <
 <div class="paragraph">
 <p>Why numbers? The reason is that syscalls are like messages that are passed down,
 and these numbers somewhat like <em>enum ordinals</em> indicating the type of message.
-These numbers are part of the syscall ABI (Application Binary Interface) and as
-such they are stable for a CPU architecture although unbounded (new syscalls
+These numbers are part of the syscall ABI (<strong>A</strong>pplication <strong>B</strong>inary <strong>I</strong>nterface)
+and as such they are stable for a CPU architecture although unbounded (new syscalls
 can be added).</p>
 </div>
-<div class="admonitionblock note">
+<div class="paragraph">
+
+
+
+<div class="table-wrapper">
+    <div class="admonitionblock note">
 <table>
 <tbody><tr>
 <td class="icon">
@@ -641,6 +686,10 @@ standard libc (<a href="https://man7.org/linux/man-pages/man3/clock_gettime.3.ht
 </td>
 </tr>
 </tbody></table>
+</div>
+
+</div>
+
 </div>
 <div class="admonitionblock caution">
 <table>
@@ -995,7 +1044,12 @@ Simple right?Let’s try to use that knowledge for <code>memfd_secret</code> sys
 Fortunately Linux has good commit message, so we can read and learn more about
 how to create &#34;secret&#34; memory areas.</p>
 </div>
-<div class="quoteblock">
+<div class="paragraph">
+
+
+
+<div class="table-wrapper">
+    <div class="quoteblock">
 <blockquote>
 <div class="paragraph">
 <p>The following example demonstrates creation of a secret mapping (error
@@ -1009,6 +1063,10 @@ ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);</code></p
 </div>
 </div>
 </blockquote>
+</div>
+
+</div>
+
 </div>
 <div class="paragraph">
 <p>Basically we need to create the <em>secret</em> file descriptor, truncate it to the
@@ -1748,9 +1806,9 @@ the gap to native world without third party.</p>
 
 <div class="navigation navigation-single">
     
-    <a href="/drafts/2021/01/22/native-memory-fragmentation-with-glibc/" class="navigation-prev">
+    <a href="/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/" class="navigation-prev">
       <i aria-hidden="true" class="fa fa-chevron-left"></i>
-      <span class="navigation-tittle">Handling native memory fragmentation of glibc</span>
+      <span class="navigation-tittle">A practical look at JEP-412 in JDK17 with libsodium</span>
     </a>
     
     
@@ -1759,7 +1817,29 @@ the gap to native world without third party.</p>
 
   
 
-  
+  <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+        
+        
+        
+        this.page.identifier = 'https://blog.arkey.fr/2022/05/16/linux_memfd_secret_with_jep-419/';
+        this.page.title = 'Using Linux\u0027s memfd_secret syscall from the JVM with JEP-419';
+        this.page.url = 'https://blog.arkey.fr/2022/05/16/linux_memfd_secret_with_jep-419/';
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "thecoffeeworkshop" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 
 </article>
 
@@ -1771,7 +1851,7 @@ the gap to native world without third party.</p>
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/drafts/2022-05-04-linux_memfd_secret_with_jep419.adoc">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2022-05-04-linux_memfd_secret_with_jep419.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
