@@ -391,6 +391,32 @@ The Linux distribution is a <strong>Fedora release 35</strong> with the kernel <
 so usually this code assumes the right compilation and running flags, usually
 <code>--add-modules=jdk.incubator.foreign</code>, <code>--enable-native-access=ALL-UNNAMED</code>.</p>
 </div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">tl;dr</div>
+<div class="paragraph">
+<p>Here’s how one can make a syscall using JEP-419.</p>
+</div>
+<div class="listingblock">
+<div class="title">tl;dr <code>memfd_secret</code> syscall</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var sys_memfd_secret = CLinker.systemCLinker().downcallHandle(
+        systemCLinker.lookup(&#34;syscall&#34;).get(),
+        FunctionDescriptor.of(
+                ValueLayout.JAVA_INT,
+                ValueLayout.JAVA_INT,
+                ValueLayout.JAVA_INT
+        )
+);
+
+int secret_fd = (int) sys_memfd_secret.invoke(447, 0)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Now to know more about the whole deal, read on.</p>
+</div>
 <div class="sect1">
 <h2 id="_what_is_a_system_call_syscall"><a class="anchor" href="#_what_is_a_system_call_syscall"></a><a class="link" href="#_what_is_a_system_call_syscall">What is a system call (<em>syscall</em>) ?</a></h2>
 <div class="sectionbody">
@@ -399,7 +425,7 @@ so usually this code assumes the right compilation and running flags, usually
 And even before that, let’s see what is a system call.</p>
 </div>
 <div class="paragraph">
-<p>For those not interested in this part you can jump to <code>memfd_secret</code> section.</p>
+<p>For those not interested in this part you can jump to <a href="#_memfd_secret"><code>memfd_secret</code> section</a>.</p>
 </div>
 <div class="paragraph">
 <p>In order to do something useful a program has to interact with some resources,
@@ -957,7 +983,7 @@ System.out.println(&#34;pid: &#34; + pid);</code></pre>
 </div>
 <div class="paragraph">
 <p>That’s it, we’ve made out first direct syscall using panama (and the JEP-419).
-Simple right? Let’s try to use that knowledge for <code>memfd_secret</code> syscall.</p>
+Simple right?Let’s try to use that knowledge for <code>memfd_secret</code> syscall.</p>
 </div>
 </div>
 </div>
@@ -975,13 +1001,11 @@ how to create &#34;secret&#34; memory areas.</p>
 <p>The following example demonstrates creation of a secret mapping (error
 handling is omitted):</p>
 </div>
-<div class="literalblock">
-<div class="content">
-<pre>fd = memfd_secret(0);
+<div class="paragraph">
+<p>fd = memfd_secret(0);
 ftruncate(fd, MAP_SIZE);
 ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE,
-	   MAP_SHARED, fd, 0);</pre>
-</div>
+MAP_SHARED, fd, 0);</p>
 </div>
 </blockquote>
 </div>
