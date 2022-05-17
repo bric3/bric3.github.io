@@ -314,7 +314,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 55 min read
+    <i class="fas fa-clock"></i> 63 min read
 
     
     
@@ -367,6 +367,7 @@
       <ul>
         <li><a href="#_trying_to_replace_most_panama_calls_by_jdk_types">Trying to replace most panama calls by JDK types</a></li>
         <li><a href="#_improving_our_syscall_api">Improving our syscall API.</a></li>
+        <li><a href="#_generating_the_methodhandles_with_jextract">Generating the <code>MethodHandle</code>s with <code>jextract</code></a></li>
       </ul>
     </li>
     <li><a href="#_closing_words">Closing words</a></li>
@@ -426,9 +427,10 @@ The Linux distribution is a <strong>Fedora release 35</strong> with the kernel <
 </div>
 <div class="paragraph">
 <p><em>While this article will focus on Linux, the same concepts apply to other OSes
-(and CPU as we’ll see).</em> Also, this article is not abot introducing JEP-419,
-so usually this code assumes the right compilation and running flags, usually
-<code>--add-modules=jdk.incubator.foreign</code>, <code>--enable-native-access=ALL-UNNAMED</code>.</p>
+(and CPU as we’ll see).</em> Also, this article is not about introducing JEP-419,
+this is done in other material, which means this blog assumes the right
+compilation and running flags for JEP-419, usually <code>--add-modules=jdk.incubator.foreign</code>,
+<code>--enable-native-access=ALL-UNNAMED</code>.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -554,14 +556,14 @@ is called <strong>syscall</strong>, it allows to transition between rings.</p>
 </div>
 <div class="imageblock">
 <div class="content">
-<svg preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision" version="1.0" viewBox="0 0 840 294" xmlns="http://www.w3.org/2000/svg" width="840" height="294"><defs><style type="text/css">@font-face {
+<svg preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision" version="1.0" viewBox="0 0 840 280" xmlns="http://www.w3.org/2000/svg" width="840" height="280"><defs><style type="text/css">@font-face {
   font-family: sans-serif;
-}</style><filter height="200%" id="shadowBlur" width="200%" x="0" y="0"><feOffset dx="3.0003002" dy="3.0003002" in="SourceGraphic" result="offOut"></feOffset><feGaussianBlur in="offOut" stdDeviation="3"></feGaussianBlur></filter></defs><g stroke-linecap="square" stroke-linejoin="round" stroke-width="1"><rect height="294" style="fill: #ffffff" width="840" x="0" y="0"></rect><path d="M605.0 91.0 L605.0 147.0 L565.0 147.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 147.0 L265.0 147.0 L265.0 175.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M210.0 70.0 L220.0 77.0 L210.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M240.0 70.0 L230.0 77.0 L240.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M590.0 70.0 L600.0 77.0 L590.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M770.0 70.0 L780.0 77.0 L770.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M605.0 84.0 L600.0 98.0 L610.0 98.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M220.0 126.0 L225.0 140.0 L230.0 126.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M565.0 154.0 L560.0 168.0 L570.0 168.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M260.0 168.0 L265.0 182.0 L270.0 168.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M550.0 182.0 L560.0 189.0 L550.0 196.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M230.0 210.0 L220.0 217.0 L230.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M260.0 210.0 L270.0 217.0 L260.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M570.0 210.0 L560.0 217.0 L570.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M600.0 210.0 L610.0 217.0 L600.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 77.0 L225.0 133.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M85.0 77.0 L215.0 77.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M235.0 77.0 L375.0 77.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M445.0 77.0 L595.0 77.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M595.0 77.0 L775.0 77.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M25.0 147.0 L205.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M285.0 147.0 L545.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M625.0 147.0 L815.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M565.0 161.0 L565.0 189.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M265.0 189.0 L555.0 189.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 217.0 L265.0 217.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M565.0 217.0 L605.0 217.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M608.5 77.0 L608.38074 77.90587 L608.03107 78.75 L607.47485 79.47488 L606.75 80.03109 L605.9059 80.38074 L605.0 80.5 L604.0941 80.38074 L603.25 80.03109 L602.52515 79.47488 L601.96893 78.75 L601.61926 77.90587 L601.5 77.0 L601.61926 76.09413 L601.96893 75.25 L602.52515 74.52512 L603.25 73.96891 L604.0941 73.61926 L605.0 73.5 L605.9059 73.61926 L606.75 73.96891 L607.47485 74.52512 L608.03107 75.25 L608.38074 76.09413 L608.5 77.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M228.5 147.0 L228.38074 147.90587 L228.03108 148.75 L227.47487 149.47487 L226.75 150.03108 L225.90587 150.38074 L225.0 150.5 L224.09413 150.38074 L223.25 150.03108 L222.52513 149.47487 L221.96892 148.75 L221.61926 147.90587 L221.5 147.0 L221.61926 146.09413 L221.96892 145.25 L222.52513 144.52513 L223.25 143.96892 L224.09413 143.61926 L225.0 143.5 L225.90587 143.61926 L226.75 143.96892 L227.47487 144.52513 L228.03108 145.25 L228.38074 146.09413 L228.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M268.5 147.0 L268.38074 147.90587 L268.0311 148.75 L267.47488 149.47487 L266.75 150.03108 L265.90585 150.38074 L265.0 150.5 L264.09415 150.38074 L263.25 150.03108 L262.52512 149.47487 L261.9689 148.75 L261.61926 147.90587 L261.5 147.0 L261.61926 146.09413 L261.9689 145.25 L262.52512 144.52513 L263.25 143.96892 L264.09415 143.61926 L265.0 143.5 L265.90585 143.61926 L266.75 143.96892 L267.47488 144.52513 L268.0311 145.25 L268.38074 146.09413 L268.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M568.5 147.0 L568.38074 147.90587 L568.03107 148.75 L567.47485 149.47487 L566.75 150.03108 L565.9059 150.38074 L565.0 150.5 L564.0941 150.38074 L563.25 150.03108 L562.52515 149.47487 L561.96893 148.75 L561.61926 147.90587 L561.5 147.0 L561.61926 146.09413 L561.96893 145.25 L562.52515 144.52513 L563.25 143.96892 L564.0941 143.61926 L565.0 143.5 L565.9059 143.61926 L566.75 143.96892 L567.47485 144.52513 L568.03107 145.25 L568.38074 146.09413 L568.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M608.5 147.0 L608.38074 147.90587 L608.03107 148.75 L607.47485 149.47487 L606.75 150.03108 L605.9059 150.38074 L605.0 150.5 L604.0941 150.38074 L603.25 150.03108 L602.52515 149.47487 L601.96893 148.75 L601.61926 147.90587 L601.5 147.0 L601.61926 146.09413 L601.96893 145.25 L602.52515 144.52513 L603.25 143.96892 L604.0941 143.61926 L605.0 143.5 L605.9059 143.61926 L606.75 143.96892 L607.47485 144.52513 L608.03107 145.25 L608.38074 146.09413 L608.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M268.5 189.0 L268.38074 189.90587 L268.0311 190.75 L267.47488 191.47487 L266.75 192.03108 L265.90585 192.38074 L265.0 192.5 L264.09415 192.38074 L263.25 192.03108 L262.52512 191.47487 L261.9689 190.75 L261.61926 189.90587 L261.5 189.0 L261.61926 188.09413 L261.9689 187.25 L262.52512 186.52513 L263.25 185.96892 L264.09415 185.61926 L265.0 185.5 L265.90585 185.61926 L266.75 185.96892 L267.47488 186.52513 L268.0311 187.25 L268.38074 188.09413 L268.5 189.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M568.5 189.0 L568.38074 189.90587 L568.03107 190.75 L567.47485 191.47487 L566.75 192.03108 L565.9059 192.38074 L565.0 192.5 L564.0941 192.38074 L563.25 192.03108 L562.52515 191.47487 L561.96893 190.75 L561.61926 189.90587 L561.5 189.0 L561.61926 188.09413 L561.96893 187.25 L562.52515 186.52513 L563.25 185.96892 L564.0941 185.61926 L565.0 185.5 L565.9059 185.61926 L566.75 185.96892 L567.47485 186.52513 L568.03107 187.25 L568.38074 188.09413 L568.5 189.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="110" y="40">process thread</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="110" y="54">executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="630" y="40">process thread</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="630" y="54">executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="395" y="82">Idle</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="198" y="110">syscall</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="20" y="124">Ring 3</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="20" y="138">User land</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="24" y="166">Kernel</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="25" y="180">Ring 0</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="322" y="208">kernal syscall executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="220" y="250">Context</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="220" y="264">Switch</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="560" y="250">Context</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="560" y="264">Switch</text></g></svg>
+}</style><filter height="200%" id="shadowBlur" width="200%" x="0" y="0"><feOffset dx="3.0003002" dy="3.0003002" in="SourceGraphic" result="offOut"></feOffset><feGaussianBlur in="offOut" stdDeviation="3"></feGaussianBlur></filter></defs><g stroke-linecap="square" stroke-linejoin="round" stroke-width="1"><rect height="280" style="fill: #ffffff" width="840" x="0" y="0"></rect><path d="M605.0 91.0 L605.0 147.0 L565.0 147.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 147.0 L265.0 147.0 L265.0 175.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M210.0 70.0 L220.0 77.0 L210.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M240.0 70.0 L230.0 77.0 L240.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M590.0 70.0 L600.0 77.0 L590.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M770.0 70.0 L780.0 77.0 L770.0 84.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M605.0 84.0 L600.0 98.0 L610.0 98.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M220.0 126.0 L225.0 140.0 L230.0 126.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M565.0 154.0 L560.0 168.0 L570.0 168.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M260.0 168.0 L265.0 182.0 L270.0 168.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M550.0 182.0 L560.0 189.0 L550.0 196.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M230.0 210.0 L220.0 217.0 L230.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M260.0 210.0 L270.0 217.0 L260.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M570.0 210.0 L560.0 217.0 L570.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M600.0 210.0 L610.0 217.0 L600.0 224.0 z" fill="#000000" stroke="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 77.0 L225.0 133.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M85.0 77.0 L215.0 77.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M235.0 77.0 L375.0 77.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M445.0 77.0 L595.0 77.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M595.0 77.0 L775.0 77.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M25.0 147.0 L205.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M285.0 147.0 L545.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M625.0 147.0 L815.0 147.0 " fill="none" stroke="#000000" stroke-dasharray="5.0,5.0" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="0" stroke-width="1.0"></path><path d="M565.0 161.0 L565.0 189.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M265.0 189.0 L555.0 189.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M225.0 217.0 L265.0 217.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M565.0 217.0 L605.0 217.0 " fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M608.5 77.0 L608.38074 77.90587 L608.03107 78.75 L607.47485 79.47488 L606.75 80.03109 L605.9059 80.38074 L605.0 80.5 L604.0941 80.38074 L603.25 80.03109 L602.52515 79.47488 L601.96893 78.75 L601.61926 77.90587 L601.5 77.0 L601.61926 76.09413 L601.96893 75.25 L602.52515 74.52512 L603.25 73.96891 L604.0941 73.61926 L605.0 73.5 L605.9059 73.61926 L606.75 73.96891 L607.47485 74.52512 L608.03107 75.25 L608.38074 76.09413 L608.5 77.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M228.5 147.0 L228.38074 147.90587 L228.03108 148.75 L227.47487 149.47487 L226.75 150.03108 L225.90587 150.38074 L225.0 150.5 L224.09413 150.38074 L223.25 150.03108 L222.52513 149.47487 L221.96892 148.75 L221.61926 147.90587 L221.5 147.0 L221.61926 146.09413 L221.96892 145.25 L222.52513 144.52513 L223.25 143.96892 L224.09413 143.61926 L225.0 143.5 L225.90587 143.61926 L226.75 143.96892 L227.47487 144.52513 L228.03108 145.25 L228.38074 146.09413 L228.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M268.5 147.0 L268.38074 147.90587 L268.0311 148.75 L267.47488 149.47487 L266.75 150.03108 L265.90585 150.38074 L265.0 150.5 L264.09415 150.38074 L263.25 150.03108 L262.52512 149.47487 L261.9689 148.75 L261.61926 147.90587 L261.5 147.0 L261.61926 146.09413 L261.9689 145.25 L262.52512 144.52513 L263.25 143.96892 L264.09415 143.61926 L265.0 143.5 L265.90585 143.61926 L266.75 143.96892 L267.47488 144.52513 L268.0311 145.25 L268.38074 146.09413 L268.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M568.5 147.0 L568.38074 147.90587 L568.03107 148.75 L567.47485 149.47487 L566.75 150.03108 L565.9059 150.38074 L565.0 150.5 L564.0941 150.38074 L563.25 150.03108 L562.52515 149.47487 L561.96893 148.75 L561.61926 147.90587 L561.5 147.0 L561.61926 146.09413 L561.96893 145.25 L562.52515 144.52513 L563.25 143.96892 L564.0941 143.61926 L565.0 143.5 L565.9059 143.61926 L566.75 143.96892 L567.47485 144.52513 L568.03107 145.25 L568.38074 146.09413 L568.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M608.5 147.0 L608.38074 147.90587 L608.03107 148.75 L607.47485 149.47487 L606.75 150.03108 L605.9059 150.38074 L605.0 150.5 L604.0941 150.38074 L603.25 150.03108 L602.52515 149.47487 L601.96893 148.75 L601.61926 147.90587 L601.5 147.0 L601.61926 146.09413 L601.96893 145.25 L602.52515 144.52513 L603.25 143.96892 L604.0941 143.61926 L605.0 143.5 L605.9059 143.61926 L606.75 143.96892 L607.47485 144.52513 L608.03107 145.25 L608.38074 146.09413 L608.5 147.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M268.5 189.0 L268.38074 189.90587 L268.0311 190.75 L267.47488 191.47487 L266.75 192.03108 L265.90585 192.38074 L265.0 192.5 L264.09415 192.38074 L263.25 192.03108 L262.52512 191.47487 L261.9689 190.75 L261.61926 189.90587 L261.5 189.0 L261.61926 188.09413 L261.9689 187.25 L262.52512 186.52513 L263.25 185.96892 L264.09415 185.61926 L265.0 185.5 L265.90585 185.61926 L266.75 185.96892 L267.47488 186.52513 L268.0311 187.25 L268.38074 188.09413 L268.5 189.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><path d="M568.5 189.0 L568.38074 189.90587 L568.03107 190.75 L567.47485 191.47487 L566.75 192.03108 L565.9059 192.38074 L565.0 192.5 L564.0941 192.38074 L563.25 192.03108 L562.52515 191.47487 L561.96893 190.75 L561.61926 189.90587 L561.5 189.0 L561.61926 188.09413 L561.96893 187.25 L562.52515 186.52513 L563.25 185.96892 L564.0941 185.61926 L565.0 185.5 L565.9059 185.61926 L566.75 185.96892 L567.47485 186.52513 L568.03107 187.25 L568.38074 188.09413 L568.5 189.0 z" fill="#ffffff" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0"></path><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="110" y="40">process thread</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="110" y="54">executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="630" y="40">process thread</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="630" y="54">executing</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="395" y="82">Idle</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="198" y="110">syscall</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="20" y="124">Ring 3</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="20" y="138">User land</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="24" y="166">Kernel</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="25" y="180">Ring 0</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="322" y="208">kernal syscall executing</text><text fill="#ffffff" font-family="sans-serif" font-size="12" stroke="none" x="220" y="235">Mode</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="220" y="250">Switch</text><text fill="#ffffff" font-family="sans-serif" font-size="12" stroke="none" x="560" y="235">Mode</text><text fill="#000000" font-family="sans-serif" font-size="15" stroke="none" x="560" y="250">Switch</text></g></svg>
 </div>
 <div class="title">Syscall ring transitions</div>
 </div>
 <div class="paragraph">
-<p>During context switches a lot is happening, saving and restoring registers,
+<p>During mode switches a lot is happening, saving and restoring registers,
 putting the CPU in specific mode (user vs kernel) etc. And of course doing the
 reverse once the request is handled either with  success or a failure</p>
 </div>
@@ -572,10 +574,9 @@ reverse once the request is handled either with  success or a failure</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Context switches are sufficiently costly that most libraries try to avoid context
-switches. One of the contributing factor is syscalls, avoiding too many system
-calls will consequently reduce context switches (like reading 8KiB instead of
-256 bytes).
+<em>Privilege context switches</em> are sufficiently costly that most libraries
+try to avoid those. For example, reading <code>8 KiB</code> instead of <code>256 bytes</code> is a good
+idea as it drastically reduces the number of syscall and as such mode switches.
 </td>
 </tr>
 </tbody></table>
@@ -1213,7 +1214,8 @@ via the <code>MemorySegment</code> API.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var secretSegment = MemorySegment.ofAddress(segmentAddress, length, scope); <i class="conum" data-value="1"></i><b>(1)</b>
-secretSegment.copyFrom(MemorySegment.ofArray(secretBytes)); <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+secretSegment.copyFrom(MemorySegment.ofArray(secretBytes)); <i class="conum" data-value="2"></i><b>(2)</b>
+var roSecretSegement = secretSegment.asReadOnly(); <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1228,6 +1230,10 @@ also using the same size, and the current <code>ResourceScope</code>.</td>
 <td>Since <code>secretSegment</code> is actually a <code>MemorySegment</code> <strong>off heap</strong>, the
 secret array as to be transformed first into an <strong>on-heap</strong> <code>MemorySegment</code>
 before being copied to the <em>secret</em> memory mapping.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Eventually make the segment read-only.</td>
 </tr>
 </tbody></table>
 </div>
@@ -1456,18 +1462,18 @@ int errno = ((MemoryAddress) __errnoLocationMH.invoke()) <i class="conum" data-v
 to list all the error codes <code>errno -l</code>.</p>
 </div>
 <div class="paragraph">
-<p>Additionally, there is a function <code>stderror</code> that returns a string from an error
+<p>Additionally, there is a function <code>strerror</code> that returns a string from an error
 code.</p>
 </div>
 <div class="listingblock">
 <div class="title">getting the error message</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle stderror = systemCLinker.downcallHandle(
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">MethodHandle strerror = systemCLinker.downcallHandle(
       systemCLinker.lookup(&#34;strerror&#34;).get(),
       FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_INT)
 );
 
-String errmsg = ((MemoryAddress) stderror.invoke(errno)).getUtf8String(0);</code></pre>
+String errmsg = ((MemoryAddress) strerror.invoke(errno)).getUtf8String(0);</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1483,7 +1489,7 @@ if (fd == -1) {
   var errno = errno();
   System.err.println(errno == ENOSYS ?
                      &#34;tried to call a syscall that doesn&#39;t exist (errno=ENOSYS), may need to set the &#39;secretmem.enable=1&#39; kernel boot option&#34; :
-                     &#34;syscall memfd_secret failed, errno: &#34; + errno + &#34;, &#34; + stderror(errno));
+                     &#34;syscall memfd_secret failed, errno: &#34; + errno + &#34;, &#34; + strerror(errno));
   return Optional.empty();
 }</code></pre>
 </div>
@@ -1576,7 +1582,7 @@ WARNING: Using incubator modules: jdk.incubator.foreign
 warning: using incubating module(s): jdk.incubator.foreign
 1 warning
 Secret mem fd: 4 <i class="conum" data-value="1"></i><b>(1)</b>
-Secret: my passphrase</code></pre>
+Secret: super secret decryption key</code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -1586,6 +1592,14 @@ Secret: my passphrase</code></pre>
 <td><code>memfd_secret</code> here returned the file descriptor <code>4</code></td>
 </tr>
 </tbody></table>
+</div>
+<div class="paragraph">
+<p>Typically, this secret storage could be used to store a decryption key
+during startup, and it’ll be used to decrypt encrypted payload.
+Of course, care must be taken to prevent this data from leaving
+this memory. Which might not be possible under many circumstances.
+E.g. a library that takes a Java String, in which case the secret
+buffer is copied in elsewhere in the heap.</p>
 </div>
 </div>
 </div>
@@ -1727,6 +1741,237 @@ int fd = (int) sys_memfd_secret.invoke(0); <i class="conum" data-value="3"></i><
 yet out of scope for this blog post. Just check the API.</p>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_generating_the_methodhandles_with_jextract"><a class="anchor" href="#_generating_the_methodhandles_with_jextract"></a><a class="link" href="#_generating_the_methodhandles_with_jextract">Generating the <code>MethodHandle</code>s with <code>jextract</code></a></h3>
+<div class="paragraph">
+<p>The JDK Panama team, also created a tool known as <code>jextract</code> whose job is to
+lift most of the work to generate the <code>MethodHandle</code>s.</p>
+</div>
+<div class="paragraph">
+<p>So mentioned in other blog post or conference talks I gave, <code>jextract</code> is now
+a separate tool, at this point there’s no binary release which means it has
+to be built. The <a href="https://github.com/openjdk/jextract"><code>jextract</code> project page</a>
+explains how to do this. My test machine is a Fedora, so adapt the command
+and the JDK distribution to your needs.</p>
+</div>
+<div class="listingblock">
+<div class="title">Build jextract</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">sudo dnf install java-latest-openjdk-jmods.x86_64 <i class="conum" data-value="1"></i><b>(1)</b>
+curl -LO https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.0/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz <i class="conum" data-value="2"></i><b>(2)</b>
+tar xf clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+git clone --depth 1 https://github.com/openjdk/jextract.git
+cd jextract
+sh ./gradlew \
+  -Pjdk18_home=/etc/alternatives/java_sdk_18_openjdk \
+  -Pllvm_home=/home/bric3/clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04/ \
+  clean verify <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>At this time <em>latest</em> this is an OpenJDK 18</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>LLVM 14 for x86_64</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Run the documented build command with the required home directories.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>If everything is alright you can use <code>jextract</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>jextract</code> Version</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ build/jextract/bin/jextract --version
+WARNING: Using incubator modules: jdk.incubator.foreign
+jextract 18.0.1
+JDK version 18.0.1+10
+clang version 14.0.0</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The basic usage is <code>jextract &lt;options&gt; &lt;header file&gt;</code>. Since there is
+multiple headers, the trick is to specify a handcrafted header with
+every needed header.</p>
+</div>
+<div class="listingblock">
+<div class="title">memfd_secret_header.h</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">#include &lt;errno.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;sys/syscall.h&gt;</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>This would be really neat if <code>jextract</code> or even <code>java</code> could handle any
+file descriptors, this could come handy with
+<a href="https://en.wikipedia.org/wiki/Here_document#Unix_shells">heredocs</a>.</p>
+</div>
+<div class="listingblock">
+<div class="title">jextract with here-doc, for multiple headers</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ jextract ... &lt;(cat &lt;&lt;-EOF <i class="conum" data-value="1"></i><b>(1)</b>
+#include &lt;errno.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/syscall.h&gt;
+#include &lt;sys/mman.h&gt;
+EOF
+)</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>&lt;()</code> returns a file descriptor that is not a file on disk,
+something like <code>/proc/self/fd/13</code>, whose content is the string between
+the <code>&lt;←EOF</code> and <code>EOF</code> markers.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Of course nowadays, <code>jextract</code> bails out when something like <code>/proc/self/fd/13</code>
+is passed, reporting that it is <em>not a file</em>.</p>
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Also note that <code>jextract</code> support passing the options as <em>option file</em>.
+So we can pass output options, like the target package and class name,
+but also the symbols we’d like.</p>
+</div>
+<div class="listingblock">
+<div class="title">memfd_secret_header.jextract.options</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">--source <i class="conum" data-value="1"></i><b>(1)</b>
+--output build/generated/sources/jextract-syscall/java <i class="conum" data-value="2"></i><b>(2)</b>
+--target-package linux <i class="conum" data-value="3"></i><b>(3)</b>
+--header-class-name syscall_h <i class="conum" data-value="4"></i><b>(4)</b>
+
+--include-function syscall
+--include-macro SYS_memfd_secret
+
+--include-function close
+--include-function ftruncate
+
+--include-function mmap
+--include-function munmap
+--include-macro PROT_READ
+--include-macro PROT_WRITE
+--include-macro MAP_SHARED
+
+--include-function strerror
+
+#### Since errno macro is not supported at this time, it is necessary
+#### to manually resolve errno, and include OS specific declarations.
+#### e.g. __errno_location is Linux specific
+--include-function __errno_location <i class="conum" data-value="5"></i><b>(5)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Tells <code>jextract</code> to generate the source code, instead of classes.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Specifies the output directory.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Specifies the package name.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Specifies the class name.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Specifies the function used to resolve <code>errno</code> <strong>on Linux</strong>.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title">Running <code>jextract</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jextract @memfd_secret.jextract.options tmp.h <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Assuming <code>jextract</code> is in the PATH, or there’s an alias.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>So once done, we’ll have a file with all the symbols we need.</p>
+</div>
+<div class="listingblock">
+<div class="title">syscall_h.java</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// ...
+public class syscall_h  {
+    public static MemoryAddress __errno_location () {
+        // ...
+    }
+
+    public static long syscall ( long __sysno, Object... x1) {
+        // ...
+    }
+
+    public static MemoryAddress mmap ( Addressable __addr,  long __len,  int __prot,  int __flags,  int __fd,  long __offset) {
+        // ...
+    }
+
+    // ...
+
+    public static int SYS_memfd_secret() {
+        return (int)447L;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What’s nice is that the arguments are named, eg. <code><em>sysno</em></code><em>, <code></code></em><code>addr</code>, <code>__fd</code>, etc.</p>
+</div>
+<div class="paragraph">
+<p>Once you have made your research on which symbols you need, it’s really nice to
+let <code>jextract</code> generate the code for you, which is likely to be up-to date, with
+the best practice backed in.</p>
+</div>
+<div class="paragraph">
+<p>There’s one thing where this a bit suboptimal, the <code>__errno_location</code> function
+is actually an OS specific function, that is used to revolve the <code>errno</code> value.
+I’m unsure if jextract should resolve macros in general, yet <code>errno</code> seems
+like something very common, so could it make sense if <code>jextract</code> could handle
+this one? But then it’s opening the door to macro resolution which is
+a different level of complexity.</p>
+</div>
+<div class="paragraph">
+<p>That being said, it’s not a deal-breaker, just something to be aware of.</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1755,13 +2000,30 @@ to interact with the system. And doing so with some ease. And without having to
 deal with different build systems. I have almost nothing relevant to mention here.
 I missed the possibility of creating a <code>MemorySegment</code> from a file descriptor,
 but this might be a rare case, especially with the topic at hand.
-I still find the mandatory use of <code>--enable-native-access=ALL-UNNAMED</code> unpractical especially
-for an API that is arriving late after alternatives that do not have this enforcement,
-yet I understand the motive.</p>
+While I still find the mandatory use of <code>--enable-native-access=ALL-UNNAMED</code>
+unpractical especially for an API that is arriving late after alternatives
+that do not have this enforcement, this restriction will be relaxed in JEP-425
+in JDK19 (<a href="https://github.com/openjdk/jdk/blob/743c779712184ae41e7be4078b0d485ebc51c845/src/java.base/share/classes/java/lang/foreign/package-info.java#L228-L232">java/lang/foreign/package-info.java</a>):
+if this flag is not specified, users will get a warning for the first call to
+a <em>restricted</em> method (one warning per module).</p>
 </div>
 <div class="paragraph">
 <p>Yet again, I’m happy to see this part of project Panama landing in JDK to bridge
 the gap to native world without third party.</p>
+</div>
+<div class="ulist">
+<div class="title">Thanks</div>
+<ul>
+<li>
+<p><a href="https://twitter.com/CarlDea">Carl Dea</a></p>
+</li>
+<li>
+<p><a href="https://twitter.com/jpbempel">Jean-Philippe Bempel</a></p>
+</li>
+<li>
+<p><a href="https://twitter.com/delabassee">David Delabassée</a></p>
+</li>
+</ul>
 </div>
 <div class="ulist">
 <div class="title">Resources</div>
