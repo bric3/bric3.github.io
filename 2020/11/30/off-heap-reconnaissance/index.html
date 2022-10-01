@@ -308,7 +308,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 130 min read
+    <i class="fas fa-clock"></i> 138 min read
 
     
     
@@ -609,9 +609,10 @@ VmRSS:	 4701120 kB</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The RSS is <code>4.6 GiB</code>, and it’s Java heap size is <code>4.25 GiB</code>, indicating
-this process uses around <code>0.35 GiB</code> of non-Java heap memory, I’ll refer
-to this memory as <em>native memory</em>.</p>
+<p>The reported RSS of the process is <code>4.6 GiB</code>, and its configured Java heap size
+is <code>4.25 GiB</code>, this lead to think this process uses around <code>0.35 GiB</code> of
+non-Java heap memory, I’ll refer to this part of the memory as <em>native memory</em>.
+Note the rest of article will dig into how to understand these numbers.</p>
 </div>
 <div class="paragraph">
 <p>I’d like to dig a bit to understand the reported number <code>4701120 KiB</code>,
@@ -632,9 +633,177 @@ a pretty good picture of the &#34;cost&#34; of having a JVM.</p>
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10%
+<div class="paragraph">
+<p>Enabling <em>detailed</em> native memory tracking (NMT) causes a 5% to 10%
 performance overhead. The <em>summary</em> mode merely has an impact in memory usage
-as shown below and is usually enough.
+as shown below and is usually enough.</p>
+</div>
+<div class="paragraph">
+<p>Thanks to a question from <a href="https://twitter.com/martinkajuraj">Juraj Martinka</a> for
+his comments, and his
+<a href="https://stackoverflow.com/questions/73126185/what-is-overhead-of-java-native-memory-tracking-in-summary-mode/73167790#73167790">Stackoverflow question about overhead of Java NativeMemoryTracking</a>.
+Having an idea of the overhead of the different mode is nice, but I found the
+answer of <a href="https://twitter.com/tstuefe">Thomas Stuefe</a>, very satisfying:</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p><strong>Disclaimer: I base my answer on JDK 18. Most of what I write should be valid for older releases. When in doubt, you need to measure for yourself.</strong></p>
+</div>
+<div class="paragraph">
+<p><strong>Background:</strong></p>
+</div>
+<div class="paragraph">
+<p>NMT tracks hotspot VM memory usage and memory usage done via Direct Byte Buffers.
+Basically, it hooks into <code>malloc</code>/<code>free</code> and <code>mmap</code>/<code>munmap</code> calls and does accounting.</p>
+</div>
+<div class="paragraph">
+<p>It does <strong>not</strong> track other JDK memory usage (outside hotspot VM) or usage by
+third-party libraries. That matters here, since it makes NMT behavior somewhat
+predictable. Hotspot tries to avoid fine-grained allocations via malloc.
+Instead, it relies on custom memory managers like Arenas, code heap or Metaspace.</p>
+</div>
+<div class="paragraph">
+<p>Therefore, for most applications, <code>malloc</code>s/<code>mmap</code> from hotspot are not that
+&#34;hot&#34; and the number of <code>malloc</code>s is not that large.</p>
+</div>
+<div class="paragraph">
+<p>I’ll focus on <code>malloc</code>/<code>free</code> for the rest of this writeup since they outnumber
+the number of <code>mmap</code>s/<code>munmap</code>s by far:</p>
+</div>
+<div class="paragraph">
+<p><strong>Memory cost:</strong></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>(detail+summary): 	2 words per <code>malloc()</code></p>
+</li>
+<li>
+<p>(detail only):     Malloc site table</p>
+</li>
+<li>
+<p>(detail+summary):  mapping lists for vm mappings and thread stacks</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Here, (1) completely dwarfs (2) and (3). Therefore, the memory overhead
+between summary and detail mode is not significant.</p>
+</div>
+<div class="paragraph">
+<p>Note that even (1) may not matter that much, since the underlying libc allocator
+already dictates a minimal allocation size that may be larger than (pure
+<code>allocation size + 16 byte</code> malloc header). So, how much of the NMT memory
+overhead actually translates into RSS increase needs to be measured.</p>
+</div>
+<div class="paragraph">
+<p>How much memory overhead in total this means cannot be answered since JVM
+memory costs are usually dominated by heap size. So, comparing RSS with NMT
+cost is almost meaningless. But just to give an example, for Spring Petclinic
+with <code>1 GiB</code> pre-touched heap NMT memory overhead is about <code>0.5%</code>.</p>
+</div>
+<div class="paragraph">
+<p>In my experience, NMT memory overhead only matters in pathological situations
+or in corner cases that cause the JVM to do tons of fine-grained allocations.
+E.g. if one does insane amount of class loading. But often these are the
+cases where you want NMT enabled, to see what’s going on.</p>
+</div>
+<div class="paragraph">
+<p><strong>Performance cost:</strong></p>
+</div>
+<div class="paragraph">
+<p>NMT does need some synchronization. It atomically increases counters on each
+<code>malloc</code>/<code>free</code> in summary mode.</p>
+</div>
+<div class="paragraph">
+<p>In detail mode, it does a lot more:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>capture call stack on <code>malloc</code> site</p>
+</li>
+<li>
+<p>look for call stack in hash map</p>
+</li>
+<li>
+<p>increase hash map entry counters</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This requires more cycles. Hash map is lock free, but still modified with
+atomic operations. It looks expensive, especially if hotspot does many
+<code>malloc</code>s from different threads. How bad is it really?</p>
+</div>
+<div class="paragraph">
+<p><strong>Worst case example</strong></p>
+</div>
+<div class="paragraph">
+<p>Micro-benchmark, 64 mio malloc allocations (via <code>Unsafe.allocateMemory()</code>) done
+by 100 concurrent threads, on a 24 core machine:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">NMT off:       6  secs
+NMT summary:  34  secs
+NMT detail:   46  secs</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That looks insane. However, it may not matter in practice, since this is no real-life example.</p>
+</div>
+<div class="paragraph">
+<p><strong>Spring Petclinic bootup, average of ten runs:</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">NMT off:               3.79 secs
+NMT summary:           3.79 secs  (+0%)
+NMT detail:            3.91 secs  (+3%)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So, here, not so bad. Cost of summary mode actually disappeared in test noise.</p>
+</div>
+<div class="paragraph">
+<p><strong>Renaissance, philosophers benchmark</strong></p>
+</div>
+<div class="paragraph">
+<p>Interesting example, since this does a lot of synchronization, leads to many
+object monitors being inflated, and those are malloced:</p>
+</div>
+<div class="paragraph">
+<p>Average benchmark scores:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">NMT off:               4697
+NMT summary:           4599  (-2%)
+NMT detail:            4190  (-11%)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Somewhat in the middle between the two other examples.</p>
+</div>
+<div class="paragraph">
+<p><strong>Conclusion</strong></p>
+</div>
+<div class="paragraph">
+<p>There is no clear answer.</p>
+</div>
+<div class="paragraph">
+<p>Both memory- and performance cost depend on how many allocations the JVM does.</p>
+</div>
+<div class="paragraph">
+<p>This number is small for normal well-behaved applications, but it may be large
+in pathological situations (e.g. JVM bugs) as well as in some corner case
+scenarios caused by user programs, e.g., lots of class loading or
+synchronization. To be really sure, you need to measure yourself.</p>
+</div>
+</blockquote>
+</div>
 </td>
 </tr>
 </tbody></table>
@@ -647,7 +816,7 @@ as shown below and is usually enough.
 </td>
 <td class="content">
 It is necessary to note that while the above command indicate a scale
-in <code>KB</code> for the JVM it really means <code>KiB</code>.
+in <code>KB</code> for the JVM it really means <code>KiB</code> (the power of 2 unit).
 </td>
 </tr>
 </tbody></table>
@@ -3098,8 +3267,7 @@ if I did or if I’m wrong please reach out.</p>
 <p>I’d like to thank <a href="https://twitter.com/pingtimeout">Pierre Laporte</a>,
 <a href="https://twitter.com/olivierbourgain">Olivier Bourgain</a>, <a href="https://twitter.com/blemale">Bastien Lemale</a>,
 and <a href="https://twitter.com/ylegat">Yohan Legat</a> for their early help in
-proof-reading and suggestions. And many thanks to <a href="https://twitter.com/jpbempel">Jean-Philippe Bempel</a>
-and <a href="https://sayr.us/">Mathis Raguin</a> for post-production reviews ;)</p>
+proof-reading and suggestions. And many thanks to <a href="https://twitter.com/jpbempel">Jean-Philippe Bempel</a>, <a href="https://sayr.us/">Mathis Raguin</a> and <a href="https://twitter.com/martinkajuraj">Juraj Martinka</a> for post-production reviews ;)</p>
 </div>
 </div>
 </div>
