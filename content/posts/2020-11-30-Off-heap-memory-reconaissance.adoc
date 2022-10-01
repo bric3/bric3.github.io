@@ -175,9 +175,10 @@ $ cat /proc/$(pgrep java)/status | grep VmRSS
 VmRSS:	 4701120 kB
 ----
 
-The RSS is `4.6 GiB`, and it's Java heap size is `4.25 GiB`, indicating
-this process uses around `0.35 GiB` of non-Java heap memory, I'll refer
-to this memory as _native memory_.
+The reported RSS of the process is `4.6 GiB`, and its configured Java heap size
+is `4.25 GiB`, this lead to think this process uses around `0.35 GiB` of
+non-Java heap memory, I'll refer to this part of the memory as _native memory_.
+Note the rest of article will dig into how to understand these numbers.
 
 I'd like to dig a bit to understand the reported number `4701120 KiB`,
 what it actually measures.
@@ -194,12 +195,132 @@ _Native Memory Tracking_ (`-XX:NativeMemoryTracking=summary`) which produces
 an overview of the memory usage by the _components of the JVM_. It actually gives
 a pretty good picture of the "cost" of having a JVM.
 
-NOTE: Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10%
+[NOTE]
+====
+Enabling _detailed_ native memory tracking (NMT) causes a 5% to 10%
 performance overhead. The _summary_ mode merely has an impact in memory usage
 as shown below and is usually enough.
 
+Thanks to a question from https://twitter.com/martinkajuraj[Juraj Martinka] for
+his comments, and his 
+https://stackoverflow.com/questions/73126185/what-is-overhead-of-java-native-memory-tracking-in-summary-mode/73167790#73167790[Stackoverflow question about overhead of Java NativeMemoryTracking].
+Having an idea of the overhead of the different mode is nice, but I found the
+answer of https://twitter.com/tstuefe[Thomas Stuefe], very satisfying:
+
+> *Disclaimer: I base my answer on JDK 18. Most of what I write should be valid for older releases. When in doubt, you need to measure for yourself.*
+>
+> **Background:**
+>
+> NMT tracks hotspot VM memory usage and memory usage done via Direct Byte Buffers.
+> Basically, it hooks into `malloc`/`free` and `mmap`/`munmap` calls and does accounting.
+>
+> It does *not* track other JDK memory usage (outside hotspot VM) or usage by
+> third-party libraries. That matters here, since it makes NMT behavior somewhat
+> predictable. Hotspot tries to avoid fine-grained allocations via malloc.
+> Instead, it relies on custom memory managers like Arenas, code heap or Metaspace.
+>
+> Therefore, for most applications, ``malloc``s/`mmap` from hotspot are not that
+> "hot" and the number of ``malloc``s is not that large.
+>
+> I'll focus on `malloc`/`free` for the rest of this writeup since they outnumber
+> the number of ``mmap``s/``munmap``s by far:
+>
+> **Memory cost:**
+>
+> 1. (detail+summary): 	2 words per `malloc()`
+> 2. (detail only):     Malloc site table
+> 3. (detail+summary):  mapping lists for vm mappings and thread stacks
+>
+> Here, (1) completely dwarfs (2) and (3). Therefore, the memory overhead
+> between summary and detail mode is not significant.
+>
+> Note that even (1) may not matter that much, since the underlying libc allocator
+> already dictates a minimal allocation size that may be larger than (pure
+> `allocation size + 16 byte` malloc header). So, how much of the NMT memory
+> overhead actually translates into RSS increase needs to be measured.
+>
+> How much memory overhead in total this means cannot be answered since JVM
+> memory costs are usually dominated by heap size. So, comparing RSS with NMT
+> cost is almost meaningless. But just to give an example, for Spring Petclinic
+> with `1 GiB` pre-touched heap NMT memory overhead is about `0.5%`.
+>
+> In my experience, NMT memory overhead only matters in pathological situations
+> or in corner cases that cause the JVM to do tons of fine-grained allocations.
+> E.g. if one does insane amount of class loading. But often these are the
+> cases where you want NMT enabled, to see what's going on.
+>
+> **Performance cost:**
+>
+> NMT does need some synchronization. It atomically increases counters on each
+> `malloc`/`free` in summary mode.
+>
+> In detail mode, it does a lot more:
+>
+> - capture call stack on `malloc` site
+> - look for call stack in hash map
+> - increase hash map entry counters
+>
+> This requires more cycles. Hash map is lock free, but still modified with
+> atomic operations. It looks expensive, especially if hotspot does many
+> ``malloc``s from different threads. How bad is it really?
+>
+> **Worst case example**
+>
+> Micro-benchmark, 64 mio malloc allocations (via `Unsafe.allocateMemory()`) done
+> by 100 concurrent threads, on a 24 core machine:
+>
+> [source]
+> ----
+> NMT off:       6  secs
+> NMT summary:  34  secs
+> NMT detail:   46  secs
+> ----
+>
+> That looks insane. However, it may not matter in practice, since this is no real-life example.
+>
+> **Spring Petclinic bootup, average of ten runs:**
+>
+> [source]
+> ----
+> NMT off:               3.79 secs
+> NMT summary:           3.79 secs  (+0%)
+> NMT detail:            3.91 secs  (+3%)
+> ----
+>
+> So, here, not so bad. Cost of summary mode actually disappeared in test noise.
+>
+> **Renaissance, philosophers benchmark**
+>
+> Interesting example, since this does a lot of synchronization, leads to many
+> object monitors being inflated, and those are malloced:
+> 
+> Average benchmark scores:
+>
+> [source]
+> ----
+> NMT off:               4697
+> NMT summary:           4599  (-2%)
+> NMT detail:            4190  (-11%)
+> ----
+>
+> Somewhat in the middle between the two other examples.
+>
+> **Conclusion**
+>
+> There is no clear answer.
+>
+> Both memory- and performance cost depend on how many allocations the JVM does.
+>
+> This number is small for normal well-behaved applications, but it may be large
+> in pathological situations (e.g. JVM bugs) as well as in some corner case
+> scenarios caused by user programs, e.g., lots of class loading or
+> synchronization. To be really sure, you need to measure yourself.
+
+====
+
+
 NOTE: It is necessary to note that while the above command indicate a scale
-in `KB` for the JVM it really means `KiB`.
+in `KB` for the JVM it really means `KiB` (the power of 2 unit).
 
 
 .JVM native memory tracking report
@@ -2300,5 +2421,4 @@ if I did or if I'm wrong please reach out.
 I'd like to thank https://twitter.com/pingtimeout[Pierre Laporte],
 https://twitter.com/olivierbourgain[Olivier Bourgain], https://twitter.com/blemale[Bastien Lemale],
 and https://twitter.com/ylegat[Yohan Legat] for their early help in
-proof-reading and suggestions. And many thanks to https://twitter.com/jpbempel[Jean-Philippe Bempel]
-and https://sayr.us/[Mathis Raguin] for post-production reviews ;)
+proof-reading and suggestions. And many thanks to https://twitter.com/jpbempel[Jean-Philippe Bempel], https://sayr.us/[Mathis Raguin] and https://twitter.com/martinkajuraj[Juraj Martinka] for post-production reviews ;)
