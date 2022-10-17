@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    
+    
+
+
+    <head>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://www.gravatar.com">
+    <link rel="dns-prefetch" href="https://giscus.app">
+
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    
+    <link rel="canonical" href="https://blog.arkey.fr/2022/10/16/moving-from-disqus-to-giscus/">
+    
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.82.1" />
+
+    
+    
+    
+
+<title>Switching from Disqus to Giscus (GitHub Discussions) • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="Switching from Disqus to Giscus (GitHub Discussions)">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/2022/10/16/moving-from-disqus-to-giscus/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+    
+
+<meta property="og:updated_time" content="2022-10-16T17:08:53&#43;0200">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="Switching from Disqus to Giscus (GitHub Discussions)">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/ascii-press.d6bafe0d39194a15e5deee39d0dad5d2118d57cf6ace33b94bb9dbfda6ab0415.css" integrity="sha256-1rr&#43;DTkZShXl3u450NrV0hGNV89qzjO5S7nb/aarBBU=">
+
+
+<link rel="stylesheet" href="/scss/ascii-press-dark.06869de8a04135a809635aeb8b272847be96c60ddaa9197e026e19efe21e6909.css" integrity="sha256-Boad6KBBNagJY1rriycoR76Wxg3aqRl&#43;Am4Z7&#43;IeaQk=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+
+<link rel="stylesheet" href="/scss/hugo-toc.d31afb68f96b4b4a16c6def81c6cfb18992a6924bd88766a480bb24a08ca5796.css" integrity="sha256-0xr7aPlrS0oWxt74HGz7GJkqaSS9iHZqSAuySgjKV5Y=">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js" integrity="sha512-UDJtJXfzfsiPPgnI5S1000FPLBHMhvzAMX15I+qG2E2OAzC9P1JzUwJOfnypXiOH7MRPaqzhPbBGDNNj7zBfoA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js" integrity="sha512-qWVvreMuH9i0DrugcOtifxdtZVBBL0X75r9YweXsdCHtXUidlctw7NXg5KVP3ITPtqZ2S575A0wFkvgS2anqSA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <![endif]-->
+
+    <!-- Icons from https://realfavicongenerator.net -->
+<link rel="icon" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="msapplication-TileColor" content="#b64f4f">
+<meta name="theme-color" content="#b64f4f">
+
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/v4-shims.min.css" integrity="sha512-fHavkBby/gcFEB2taaBfG0DLdHRGrnvkWQNXVZ5Yb/Fj6LkogecQUd6oyvBVsrWPaHSxs5tNza6LUW/Y6Az9lQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    
+    
+
+</head>
+
+
+    <body class="">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github fa-lg" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></i></a>
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow fa-lg" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2022 Brice Dutheil
+  
+    <a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    <header>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2022-10-16-moving-disqus-to-giscus/index.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+</header>
+
+            
+    
+
+<article>
+  <header>
+    <h1>Switching from Disqus to Giscus (GitHub Discussions)</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2022-10-16
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/hugo">hugo</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/github-pages">github pages</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/github-discussions">github discussions</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/disqus">disqus</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/giscus">giscus</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 28 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+    <div class="toc-wrapper">
+      <input type="checkbox" id="tocToggle" checked>
+      <label for="tocToggle"><i class="fas fa-list-ul fa-lg"></i><span id="toc-title">On this page</span></label>
+      <div id="toc-toggle-cover"></div>
+
+      
+          <nav id="TableOfContents">
+  <ul>
+    <li><a href="#_preparing_the_migration">Preparing the migration</a></li>
+    <li><a href="#_configuration">Configuration</a>
+      <ul>
+        <li><a href="#_github_repository_and_giscus">GitHub repository and Giscus</a></li>
+        <li><a href="#_discussion_mappings">Discussion mappings</a></li>
+        <li><a href="#_features_and_appearance">Features and appearance</a></li>
+      </ul>
+    </li>
+    <li><a href="#_hugo_theme_integration">Hugo theme integration</a></li>
+    <li><a href="#_migration">Migration</a></li>
+  </ul>
+</nav>
+      
+    </div>
+  
+  
+  
+  <div class="post adoc">
+    
+<div class="paragraph">
+<p>In the story of this blog I used WordPress, and using the WordPress comments
+then moved to Discus as it was better at handling spam. Then I switched this
+blog to GitHub with first Jekyll with markdown then finally to Hugo, this worked
+well enough. Then lately I’ve been a bit more displeased by the Disqus editing
+capability (no markdown (or asciidoc) support, no preview). More people
+tend to have a GitHub account than a Disqus account (for tech blogs).
+Also, GitHub introduced GitHub Discussions which was appealing to use with blogs.</p>
+</div>
+<div class="paragraph">
+<p>This led me to finally do the migration from Disqus to GitHub Discussions.
+The actual blog must use <a href="https://giscus.app/">Giscus</a>
+a comment system that leverage the GitHub Discussions (<a href="https://github.com/giscus/giscus" class="bare">https://github.com/giscus/giscus</a>[giscus/giscus).</p>
+</div>
+<div class="sect1">
+<h2 id="_preparing_the_migration"><a class="anchor" href="#_preparing_the_migration"></a><a class="link" href="#_preparing_the_migration">Preparing the migration</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Before doing anything, I read some article from people who did the migration</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://robjhyndman.com/hyndsight/disqus2giscus.html">2022-09 Rob J Hyndman - Migrating from Disqus to giscus</a></p>
+</li>
+<li>
+<p><a href="https://andrewlock.net/replacing-disqus-with-github-discussions-using-giscus/">2022-08 Replacing Disqus with GitHub discussions using giscus</a></p>
+</li>
+<li>
+<p><a href="https://www.freecodecamp.org/news/github-discussions-as-chat-system/">2022-05 How to use GitHub Discussions as Your Blog’s Chat System</a></p>
+</li>
+<li>
+<p><a href="https://www.brycewray.com/posts/2022/05/tips-using-giscus/">2022-05 Tips for using giscus | BryceWray.com</a></p>
+</li>
+<li>
+<p><a href="https://jbold569.github.io/profile/blog/2021-11-02-hello-github-discussions-goodbye-disqus.html">2021-11 Hello, GitHub Discussions! Goodbye, Disqus… - Jason Bolden</a></p>
+</li>
+<li>
+<p><a href="https://zhauniarovich.com/post/2021/2021-06-giscus/">2021-06 Giscus: The New Commenting Engine for My Website | Yury Zhauniarovich</a></p>
+</li>
+<li>
+<p><a href="https://masalmon.eu/2019/10/02/disqus/">2019-10 Goodbye, Disqus! Hello, Utterances! · Maëlle’s R Blog</a></p>
+</li>
+<li>
+<p><a href="https://lazywinadmin.com/2019/04/moving_blog_comments.html">2019-04 Moving my blog comments from Disqus to Github issues using PowerShell - LazyWinAdmin</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>At the first glance the good thing is that the configuration of Giscus
+is quite simple, you just need to follow the steps on the <a href="https://giscus.app/">Giscus</a> website.</p>
+</div>
+<div class="paragraph">
+<p>This page will produce a script that needs to be placed at the bottom of the
+blog post. That means that it’s possible to adapt the script per page, typically
+for some options that may be relevant like the comment interface language.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_configuration"><a class="anchor" href="#_configuration"></a><a class="link" href="#_configuration">Configuration</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_github_repository_and_giscus"><a class="anchor" href="#_github_repository_and_giscus"></a><a class="link" href="#_github_repository_and_giscus">GitHub repository and Giscus</a></h3>
+<div class="paragraph">
+<p>The main thing to configure is the repository where the comments will be stored.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Make sure the blog public</p>
+</li>
+<li>
+<p>Enable the GitHub Discussions in the repository settings</p>
+</li>
+<li>
+<p>Install the giscus app in the repository</p>
+</li>
+</ol>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="giscus-app-after-install.png" alt="Giscus app after install" width="800"/>
+</div>
+</div>
+<div class="paragraph">
+<p>By default, when enabling the GitHub Discussions the repository will have
+default categories created, but you can create your own.
+That’s what I did. While any categories can be used with Giscus, I wanted
+to restrain the ability to comment via the blog website, when creating the
+blog category, I chose the <em>Announcement</em> discussion format.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="new-discussion-category.png" alt="New discussion category" width="500"/>
+</div>
+</div>
+<div class="paragraph">
+<p>One could create a category for several language, and configure the Giscus script
+according to the page’s language.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_discussion_mappings"><a class="anchor" href="#_discussion_mappings"></a><a class="link" href="#_discussion_mappings">Discussion mappings</a></h3>
+<div class="paragraph">
+<p>But then what to do with the other options, in particular the <em>mapping</em> of the
+discussions, while this is not really an issue for a new blog, when migrating
+the choice is important has it is how Giscus will perform the query to find
+the relevant discussion.</p>
+</div>
+<div class="paragraph">
+<p>So there are multiple options for mapping, at this time:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>pathname</code>, the <em>GitHub Discussion title</em> will be the
+path of the blog post from the host root, this is the default option and likely
+the most suitable choice for migration.</p>
+</li>
+<li>
+<p><code>URL</code>, the <em>GitHub Discussion title</em> will be the page’s URL
+this option works, but requires to have the same host.</p>
+</li>
+<li>
+<p><code>title</code>, this means that the GitHub Discussion title will be the text contained
+in the <code>&lt;title&gt;</code> HTML element.</p>
+</li>
+<li>
+<p><code>og:title</code>, the <em>GitHub Discussion title</em> will be the text contained in the
+page’s <code>&lt;meta property=&#34;og:title&#34;&gt;</code> HTML tag.</p>
+</li>
+<li>
+<p><code>specific</code>, Giscus will find a specific term that has to appear in the <em>GitHub
+Discussion title</em>. This is not useful when migrating existing blog comments, but
+can be useful for specific pages.</p>
+</li>
+<li>
+<p><code>number</code>, Giscus will use an existing discussion number. This is also not useful
+when migrating existing blog comments, but can be useful for specific pages and
+when the discussion already exists.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Along these Giscus has <strong>strict</strong> toggle. When this flag is activated, it will
+hash (currently with SHA-1) the value of the selected mapping (the pathname,
+the <code>&lt;title&gt;</code> value, the <code>&lt;meta property=&#34;og:title&#34;&gt;</code> value, etc.).
+Giscus will use this value to retrieve the discussion, that means discussions
+body must have this hash value somewhere.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">&lt;!-- sha1: cad60a29d1b50cbeb42ec2ff630fc508afb1d2e3 --&gt;</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_features_and_appearance"><a class="anchor" href="#_features_and_appearance"></a><a class="link" href="#_features_and_appearance">Features and appearance</a></h3>
+<div class="paragraph">
+<p>Then there are other options that affect appearance or features.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>theme</code>, there are some predefined theme, I’m using the <code>preferred-color-scheme</code> since my blog also support this CSS media query (i.e it switches CSS according to light/dark mode). But this can be configured with a custom CSS file too.</p>
+</li>
+<li>
+<p>Reactions for the main blog post</p>
+</li>
+<li>
+<p>Discussion metadata</p>
+</li>
+<li>
+<p>Comment input location</p>
+</li>
+<li>
+<p>Lazy behavior</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Other feature are possible in the <a href="https://github.com/giscus/giscus/blob/main/ADVANCED-USAGE.md">advanced usage guide</a>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_hugo_theme_integration"><a class="anchor" href="#_hugo_theme_integration"></a><a class="link" href="#_hugo_theme_integration">Hugo theme integration</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Depending on <span class="line-through">the technology</span> there are different ways to integrate Giscus ;
+check the doc. I’m using <a href="https://gohugo.io/">Hugo</a> with a custom HTML tailored
+for asciidoc content theme <a href="https://github.com/bric3/ascii-press">ascii-press</a>.</p>
+</div>
+<div class="paragraph">
+<p>So in the theme I just add to replace the previous Disqus script with
+the Giscus one. Since I own the theme I directly replaced the template,
+but other theme may require to override the partials (check Hugo documentation).</p>
+</div>
+<div class="paragraph">
+<p>Since I wanted some flexibility in the configuration, I crafted the following
+Hugo partial.</p>
+</div>
+<div class="listingblock">
+<div class="title">giscus.html</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">{{- with .Site.Params.giscus }}
+  {{- if or (not .repo) (not .repoId) (not .category) (not .categoryId) }}
+    {{- errorf &#34;[giscus] repo, repoId, category and categoryId are required.&#34; }}
+  {{- end }}
+  {{- $lang := default $.Site.Language.Lang }}
+  &lt;script
+    src=&#34;https://giscus.app/client.js&#34;
+    data-repo=&#34;{{ .repo }}&#34;
+    data-repo-id=&#34;{{ .repoId }}&#34;
+    data-category=&#34;{{ .category }}&#34;
+    data-category-id=&#34;{{ .categoryId }}&#34;
+    data-mapping=&#34;{{ .mapping }}&#34;
+    data-reactions-enabled=&#34;{{ cond .reactions &#34;1&#34; &#34;0&#34; }}&#34;
+    data-input-position=&#34;{{ .inputPosition }}&#34;
+    data-theme=&#34;{{ .theme }}&#34;
+    data-lang=&#34;{{ $lang }}&#34;
+    {{ with default true .lazyLoading }}data-loading=&#34;lazy&#34;{{ end }}
+    {{ with default true .strictMatching }}data-strict=&#34;1&#34;{{ end }}
+    {{ with default false .emitMetadata }}data-emit-metadata=&#34;1&#34;{{ end }}
+    data-theme=&#34;{{ with default &#34;preferred_color_scheme&#34; .theme }}{{ . }}{{ end }}&#34;
+    crossorigin=&#34;anonymous&#34;
+    async
+  &gt;&lt;/script&gt;
+{{- end }}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And ended with the following configuration in the <code>config.toml</code> file.</p>
+</div>
+<div class="listingblock">
+<div class="title">config.toml</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-toml hljs" data-lang="toml">[params.giscus]
+    repo = &#34;bric3/bric3.github.io&#34;
+    repoId = &#34;....&#34;
+    category = &#34;Blog Comments&#34;
+    categoryID = &#34;....&#34;
+    mapping = &#34;pathname&#34;
+    reactions = true
+    inputPosition = &#34;top&#34;
+    theme = &#34;preferred-color-scheme&#34;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That should be enough to get Giscus working, but what about the existing comments?</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_migration"><a class="anchor" href="#_migration"></a><a class="link" href="#_migration">Migration</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The bad news is there’s no official way to migrate/import comments from Disqus to Giscus
+(<a href="https://github.com/giscus/giscus/issues/330">giscus/giscus#330</a>). And clearly
+this was the most difficult part of this comment system chance task.
+The only preliminary work that seems related on is about migrating Disqus to
+GitHub issues (which is likely used by the <a href="https://utteranc.es">utteranc.es</a> comment system).</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://github.com/JuergenGutsch/disqus-to-github-issues">JuergenGutsch/disqus-to-github-issues</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>While some inspiration can be made from this project, it doesn’t fit what can be
+done with discussions.</p>
+</div>
+<div class="paragraph">
+<p>So the first thing to do getting an extract of the Disqus comments, using the web interface
+it’s almost impossible to find the export menu.</p>
+</div>
+<div class="paragraph">
+<p>E.g. the <a href="https://help.disqus.com/en/articles/1717199-importing-exporting#exporting-from-disqus">Importing &amp; Exporting | Disqus</a>
+documentation indicates to go there <span class="menuseq"><b class="menu">Disqus Admin</b> <i class="fa fa-angle-right caret"></i> <b class="submenu">Community</b> <i class="fa fa-angle-right caret"></i> <b class="menuitem">Export</b></span> then click btn:Export.
+But I couldn’t find this in their UI, instead I found this nifty link to access
+the export page directly: <a href="http://disqus.com/admin/discussions/export/">Export</a>.</p>
+</div>
+<div class="paragraph">
+<p>The export is actually an XML document whose format is explained
+<a href="https://docs.disqus.com/developers/export/">here</a>.</p>
+</div>
+<div class="paragraph">
+<p>The next step was to read that document, and create GitHub discussions from it
+using the <a href="https://docs.github.com/en/graphql/guides/using-the-graphql-api-for-discussions">graphql API for discussions</a>.</p>
+</div>
+<div class="paragraph">
+<p>I wrote a small program in Java that can be run either with <code>java</code> (JDK 19) or
+via <code>jbang</code> (<a href="https://jbang.dev/">jbang</a>). The latter is easier to use and will fetch
+the necessary dependency to convert HTML to Markdown.</p>
+</div>
+<div class="paragraph">
+<p>This program is available on this <a href="https://gist.github.com/bric3/af915687717d9aa06b0f9b06d600c127">gist</a>.
+Beware that it’s not a polished program, there’s some failsafe, but not every corner
+case is handled.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jbang https://gist.github.com/bric3/af915687717d9aa06b0f9b06d600c127 -h
+Tool to migrate as best effort Disqus comment to GitHub Discussions.
+Works best with &#39;jbang&#39; (https://www.jbang.dev), but can be run with regular &#39;java&#39; as well.
+Note GitHub as undocumented resource rate limiting, on issues, discussions, which means the only option is to wait as long as necessary on large batch.
+
+Usage:
+  env GITHUB_TOKEN=... jbang Disqus2Giscus.java -f my-forum -e export.xml -r ghUser/repo -c &#34;Discussion Category&#34; -m pathname --host https://example.com -u author-mapping.csv -o &#34;@bric3&#34;
+  env GITHUB_TOKEN=... java Disqus2Giscus.java -f my-forum -e export.xml -r ghUser/repo -c &#34;Discussion Category&#34; -m pathname --host https://example.com -u author-mapping.csv -o &#34;@bric3&#34;
+
+Author extraction
+  java Disqus2Giscus.java -f my-forum -e export.xml -a
+
+Make sure the blog is ready and that https://giscus.app/ is installed.
+
+HTML to Markdown available.
+
+Options:
+    -f, --forum-name &lt;forum&gt;             Disqus forum name
+    -e, --export-file &lt;file&gt;             Disqus export file (From https://disqus.com/admin/discussions/export/)
+    -r, --repo &lt;repo&gt;                    GitHub repository (owner/repo)
+    -c, --target-category &lt;category&gt;     GitHub discussion category
+    -m, --mapping &lt;mapping&gt;              Giscus discussion mapping mode
+        --host &lt;host&gt;                    Site host, used for mapping mode &#39;pathname&#39;,
+                                         removes the host from the link in exported
+                                         comments.
+    -a, --extract-authors                Extract author names from Disqus export file
+    -u, --user-mapping-file &lt;file&gt;       [Optional] Author mapping file, CSV format:
+                                         Disqus author name,GitHub user
+    -o, --owner-account &lt;owner&gt;          [Optional] Discus or GitHub identifier
+                                         for migrating owner&#39;s comments
+        --[no-]convert-to-markdown       [Optional] Toggle markdown conversion of comments
+                                         (Requires running with &#39;jbang&#39; or having &#39;flexmark-all&#39;
+                                         dependency on the class path)
+                                         (default: true)
+    -s, --[no-]strict                    [Optional] Toggle giscus strict matching mode, this computes
+                                         a hash of the blog title to match the discussion.
+                                         (default: false)
+    -t, --token &lt;token&gt;                  Alternative way to pass the GitHub token
+    -n, --dry-run                        Dry run, do not create discussions on Github
+    -h, --help                           Show this help</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There are multiple option because I tried multiple approaches
+to migrate the comments. In order to test what the result will be use the
+<em>dry-mode</em> <code>-n</code>.</p>
+</div>
+<div class="paragraph">
+<p>In order to perform the migration I wanted to have the opportunity to map Disqus authors
+to GitHub users. So the program has an option to export the users.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ jbang https://gist.github.com/bric3/af915687717d9aa06b0f9b06d600c127 \ <i class="conum" data-value="1"></i><b>(1)</b>
+  -f thecoffeeworkshop \ <i class="conum" data-value="2"></i><b>(2)</b>
+  -e disqus-export.xml \ <i class="conum" data-value="3"></i><b>(3)</b>
+  -a <i class="conum" data-value="4"></i><b>(4)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Run the program with <code>jbang</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The Disqus forum name, this is important if the export has multiple forums</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The Disqus export file</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Tell the program to extract the authors from the Disqus export file</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The output is returning on the stand output authors in a single column. The content can then
+be placed in a CSV file, where you can add the GitHub username, and delete the
+lines where there’s no known GitHub username.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+I had to edit/fix some author name entries in the export in particular for
+me as I entered some comment as anonymous on Disqus in the past.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title">author-mapping.csv</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-diff hljs" data-lang="diff">- Brice Dutheil
++ Brice Dutheil,@bric3 <i class="conum" data-value="1"></i><b>(1)</b>
+- Anonymous <i class="conum" data-value="2"></i><b>(2)</b>
+- Carlos
++ Carlos, @carlos <i class="conum" data-value="1"></i><b>(1)</b>
+- Bob <i class="conum" data-value="2"></i><b>(2)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Disqus author name, GitHub user</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Users without GitHub username, which means the line has to be deleted</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Then the program can be run again for the actual migration, for that more options
+are required to control the migration, and in particular this requires a
+<a href="https://github.com/settings/tokens">GitHub token</a> to access the GraphQL API.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-shell hljs" data-lang="shell">$ env GITHUB_TOKEN=$(op item get &#34;Github&#34; --fields &#34;gh-cli&#34;) \ <i class="conum" data-value="1"></i><b>(1)</b>
+  jbang https://gist.github.com/bric3/af915687717d9aa06b0f9b06d600c127 \
+ -f thecoffeeworkshop \ <i class="conum" data-value="2"></i><b>(2)</b>
+ -e disqus-export.xml \ <i class="conum" data-value="3"></i><b>(3)</b>
+ -r bric3/bric3.github.io \ <i class="conum" data-value="4"></i><b>(4)</b>
+ -c &#34;Blog Comments&#34; \ <i class="conum" data-value="5"></i><b>(5)</b>
+ -m pathname \ <i class="conum" data-value="6"></i><b>(6)</b>
+ --host https://blog.arkey.fr \ <i class="conum" data-value="7"></i><b>(7)</b>
+ -u author-mapping.csv \ <i class="conum" data-value="8"></i><b>(8)</b>
+ -o &#34;@bric3&#34; \ <i class="conum" data-value="9"></i><b>(9)</b>
+ -s <i class="conum" data-value="10"></i><b>(10)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Pas the GitHub token to the program. Here as an example I’m using the
+1Password cli <code>op</code> to retrieve the GitHub token.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The Disqus forum name, this is important if the export has multiple forums</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The Disqus export file</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>The GitHub repository where the discussions will be created</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>The GitHub discussion category</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>The mapping mode, here <code>pathname</code> will use the blog post path as the discussion title</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>The blog host, this is used to remove the host from the link in the exported comments</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="8"></i><b>8</b></td>
+<td>The author mapping file created above</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="9"></i><b>9</b></td>
+<td>The owner account, this is used to tweak how to migrate the owner’s comments</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="10"></i><b>10</b></td>
+<td>The strict mode, this is used generate the hash of the value of the current
+mapping mode, here the path will be hashed and inserted in the main discussion body.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+The other mapping mode are supported, but I noticed that Disqus may
+have encoded some characters a bit differently, so for example title values
+in the blog and the value in the Disqus export may not match which means the
+discussion won’t be found. Additionally even the strict mode this will produce
+different hashes. <strong>So I would recommend to use the <code>pathname</code> mode.</strong>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+Try the export on a dummy repository first.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div id="implementation-notes" class="sidebarblock">
+<div class="content">
+<div class="title">Implementation notes</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Requires a Java 19 install, possibly jbang for markdown conversion</p>
+</li>
+<li>
+<p>The Disqus threads are exported as a flat list, but they are in fact modeled
+as a tree, with multiple child comments.</p>
+</li>
+<li>
+<p>The export contains deleted comments, and comments identified as spam.
+They are filtered out.</p>
+</li>
+<li>
+<p>Some threads may have no comment, they are filtered out.</p>
+</li>
+<li>
+<p>GitHub Discussions are not like tress, there’s one main discussion comment,
+then a sub-level of comments, then a final second-level for replies. So
+Disqus comments have to be re-ordered to match what GitHub Discussions
+expect/accept.</p>
+</li>
+<li>
+<p>The Disqus export contains the comment body in HTML, this should work in
+GitHub, but ideally these should be converted to Markdown.</p>
+</li>
+<li>
+<p>GitHub has different level of rate limiting.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>The HTTP API has a limit of 5000 requests per hour, HTTP statues, or header applies there.</p>
+</li>
+<li>
+<p>The GraphQL API has a different limit of 5000 requests per hour, because
+a query may have a higher cost depending on the complexity of the query.</p>
+<div class="paragraph">
+<p>This can be queried, e.g. as part of another query (yet this is not possible when doing a <code>mutation</code>) :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-graphql hljs" data-lang="graphql">query {
+  // ...
+  rateLimit { cost limit used remaining resetAt }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>More details <a href="https://docs.github.com/en/graphql/overview/resource-limitations#rate-limit">here</a>.</p>
+</div>
+</li>
+<li>
+<p>There’s also an undocumented limit during the creation of some resources, like
+issues, PRs, or discussions. The goal is to combat abuse, however this is not practical
+for migration. The limit manifests itself as an error in the response body (but
+with an HTTP 200 OK status).</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json hljs" data-lang="json">{
+  &#34;errors&#34;: [
+    {
+      &#34;type&#34;: &#34;UNPROCESSABLE&#34;,
+      &#34;message&#34;: &#34;was submitted too quickly&#34;,
+      &#34;path&#34;: [ &#34;createDiscussion&#34; ]
+    }
+  ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There’s nothing else to be done than intercepting this error and <em>sleep</em>
+for a moment before retrying, I chose a value of 60 seconds before retrying.
+With the size my migration each pauses was more like 2 minutes, but <abbr title="Your Mileage May Vary">YMMV</abbr>.</p>
+</div>
+<div class="paragraph">
+<p>See <a href="https://github.com/cli/cli/issues/4801">cli/cli#4801</a> for more details.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Creates new discussions only, in other words it won’t merge existing ones.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2022/05/16/linux_memfd_secret_with_jep-419/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Using Linux&#39;s memfd_secret syscall from the JVM with JEP-419</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  
+
+  <script
+    src="https://giscus.app/client.js"
+    data-repo="bric3/bric3.github.io"
+    data-repo-id="MDEwOlJlcG9zaXRvcnk2MDc3NjczMQ=="
+    data-category="Blog Comments"
+    data-category-id="DIC_kwDOA59hG84CR_S_"
+    data-mapping="pathname"
+    data-reactions-enabled="1"
+    data-input-position="top"
+    data-theme="preferred-color-scheme"
+    data-lang="en"
+    data-loading="lazy"
+    data-strict="1"
+    
+    data-theme="preferred-color-scheme"
+    crossorigin="anonymous"
+    async
+  ></script>
+
+
+</article>
+
+
+            
+    
+<footer>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2022-10-16-moving-disqus-to-giscus/index.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], ignoreClass: "nostem|nolatexmath" },
+  asciimath2jax: { delimiters: [["\\$", "\\$"]], ignoreClass: "nostem|noasciimath" },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js" integrity="sha512-M36RUChWzAh1veeenRZFql7HydLEnkYmoloiCvVrhz402UZgKI93qkV7SsaxtVKdN95Wzajh39ysrXCq34NTsg==" crossorigin="anonymous"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/config/TeX-MML-AM_HTMLorMML-full.min.js" integrity="sha512-SdNVJmCczXFqz3Iok8gP+cloe2CScrnHJczMBwL+aSrdZVllRNqRJ5A2p83S4fUM8I4endIZgM2ZIkwNqb3Eew==" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js" integrity="sha512-gU7kztaQEl7SHJyraPfZLQCNnrKdaQi5ndOyt4L4UPL/FHDd/uB9Je6KDARIqwnNNE27hnqoWLBq+Kpe4iHfeQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript">
+        
+        hljs.initHighlightingOnLoad();
+    </script>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+
+
+
+
+</footer>
+
+    
+
+
+
+        </div>
+    </body>
+</html>
+
