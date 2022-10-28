@@ -1,10 +1,10 @@
 ---
 authors: ["brice.dutheil"]
 date: "2020-04-20T23:42:10+02:00"
-tags: ["webpages", "jekyll", "staticsite", "hugo", "github pages"]
+tags: ["webpages", "jekyll", "staticsite", "hugo", "github pages", "github"]
 slug: "migrating-from-jekyll-to-hugo-deploying-with-github-pages"
 title: "Migrating From Jekyll to Hugo, deploying with Github Pages"
-series: ["Jekyll to Hugo with Asciidoctor"]
+series: ["Jekyll to Hugo with Asciidoctor and GitHub"]
 language: en
 ---
 
@@ -28,7 +28,7 @@ Now would like to write using **Asciidoc**.
 
 So what's wrong with Jekyll with Github Pages.
 
- * Github Pages for good reasons limit what can be executed on their 
+ * GitHub Pages for good reasons limit what can be executed on their
    server, that means limited jekyll plugins, and with limited plugins 
    comes limited theme choice.
  * Generating the files locally is hazardous, because you need to keep the same
@@ -946,9 +946,19 @@ cat gh-pages | pbcopy
 
 Don't commit these files. But it may be useful to store them securely.
 
-It's necessary configure the publication branch to `master`, apparently using `master` 
-is indeed necessary for a repository like `<username>/<username>.github.io`, 
-see https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-repository-type---user-and-organization[this section].
+At the time I performed this migration
+
+* GitHub was building and deploying (the publication) from jekyll files on `master` branch
+* GitHub could deploy (publish) HTMLs only from `master` branch
+
+This was a requirement for user and organization page sites (`<username>/<username>.github.io`)
+to set the `master` branch as the publishing branch as mentioned in the
+https://github.com/peaceiris/actions-gh-pages/tree/v2.10.1#%EF%B8%8F-repository-type---user-and-organization[actions-gh-pages@v2 _Repository type - User and Organization_ section].
+Meaning I kept the Hugo sources in another branch i.e. `hugo-sources` and configured
+accordingly le the publication branch.
+
+TIP: This requirement does seem to be necessary anymore. Currently, I'm using
+what I just described, but in the future I may change the branch configuration.
 
 > Note that the deployment actions seems to remove all files, but we 
 > need the `CNAME` file fortunately it's possible to configure the `cname` option.  
