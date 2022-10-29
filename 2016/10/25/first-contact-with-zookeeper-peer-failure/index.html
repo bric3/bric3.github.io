@@ -68,7 +68,7 @@
 <meta name="twitter:description" content="Java mostly, and general tech">
 <meta name="twitter:creator" content="@BriceDutheil">
     
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/gruvbox-dark.min.css" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/base16/gruvbox-dark-medium.min.css" media="(prefers-color-scheme: dark)">
 
 
 
@@ -84,7 +84,7 @@
 
 
 
-<link rel="stylesheet" href="/scss/hugo-toc.d31afb68f96b4b4a16c6def81c6cfb18992a6924bd88766a480bb24a08ca5796.css" integrity="sha256-0xr7aPlrS0oWxt74HGz7GJkqaSS9iHZqSAuySgjKV5Y=">
+<link rel="stylesheet" href="/scss/hugo-toc.f44dcd620647796a2cf99d68a804ad4b52dacfcf98383c8344d085949175d65e.css" integrity="sha256-9E3NYgZHeWos&#43;Z1oqAStS1Laz8&#43;YODyDRNCFlJF11l4=">
 
 
 
@@ -97,6 +97,7 @@
     <!-- Icons from https://realfavicongenerator.net -->
 <link rel="icon" href="/favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="196x196" href="/favicon-196x196.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="manifest" href="/manifest.json">
@@ -726,7 +727,7 @@ MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
 
 
         
-        hljs.initHighlightingOnLoad();
+        hljs.highlightAll();
     </script>
     
 
@@ -811,6 +812,63 @@ function select(selected) {
 $(addBlockSwitches);
 $(globalSwitch);
 </script>
+
+<script type="text/javascript">
+  
+  
+  window.addEventListener("load", () => {
+    if (!'IntersectionObserver' in window) {
+      return;
+    }
+
+    
+    const sections = Array.from(document.querySelectorAll("section[id], h2[id], h3[id], h4[id], h5[id]"));
+    const visibleSectionClass = "visible-section";
+
+    
+    
+    const scrollHandler = entries =>
+            entries.forEach(entry => {
+              const section = entry.target;
+              const sectionId = section.id;
+              const sectionLink = document.querySelector(`a[href="#${sectionId}"]`);
+
+              console.log(sectionId, sectionLink);
+              console.log(entry)
+              console.log(entry.intersectionRect.height / entry.rootBounds.height)
+
+              if (entry.intersectionRatio > 0) {
+                section.classList.add(visibleSectionClass);
+                sectionLink.classList.add(visibleSectionClass);
+              } else {
+                section.classList.remove(visibleSectionClass);
+                sectionLink.classList.remove(visibleSectionClass);
+              }
+            });
+
+    
+    const observer = new IntersectionObserver(scrollHandler);
+    sections.map(section => {
+      if (section.tagName === "SECTION") {
+        return section;
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        
+        let actualSectionContainer = section.parentElement;
+        actualSectionContainer.id = section.id;
+        return actualSectionContainer;
+      }
+    }).forEach(section => observer.observe(section));
+  });
+
+</script>
+
 
 
 
