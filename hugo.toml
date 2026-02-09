@@ -2,6 +2,10 @@
 
 baseURL = "https://blog.arkey.fr"
 
+# Ignore front matter date parsing errors for old posts with 'published: true'
+ignoreErrors = ["error-date-parsing"]
+ignoreLogs = ["warning-goldmark-raw-html"]
+
 title = "Brice Dutheil"
 # copyright = "Brice Dutheil — All rights reserved."
 
@@ -31,8 +35,9 @@ preserveTaxonomyNames = true
 removePathAccents = true
 
 # Configure pagination
-paginate = 22
-paginatePath = "page"
+[pagination]
+  pagerSize = 22
+  path = "page"
 
 
 
@@ -107,6 +112,7 @@ timeout = 60000
 ## Site Settings
 [params]
     author = "Brice Dutheil"
+    authorEmail = "brice.dutheil@gmail.com"
     title = "Arkey"
     authorimage = "/social-sharing.png"
     # Site description
@@ -198,6 +204,10 @@ timeout = 60000
 [services.rss]
     # limit the length of the rss feed (default: unlimited)
     limit = 0
+
+[security]
+  [security.exec]
+    allow = ['^(dart-)?sass(-embedded)?$', '^go$', '^git$', '^npx$', '^postcss$', '^tailwindcss$', '^asciidoctor$']
 
 
 [menu]
