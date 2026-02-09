@@ -9,7 +9,6 @@ meta:
   amazon-product-excerpt-hook-override: "3"
   amazon-product-newwindow: "3"
   suf_pseudo_template: default
-published: true
 status: publish
 tags:
 - code

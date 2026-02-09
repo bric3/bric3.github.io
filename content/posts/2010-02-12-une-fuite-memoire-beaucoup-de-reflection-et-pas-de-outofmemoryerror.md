@@ -7,7 +7,6 @@ meta:
   _su_rich_snippet_type: none
   _syntaxhighlighter_encoded: "1"
   suf_pseudo_template: default
-published: true
 status: publish
 tags:
 - code

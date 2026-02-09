@@ -1,7 +1,6 @@
 ---
 authors: ["brice.dutheil"]
 date: "2016-10-25T00:00:00Z"
-published: true
 tags:
 - zookeeper
 - cluster

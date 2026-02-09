@@ -1,7 +1,6 @@
 ---
 authors: ["brice.dutheil"]
 date: "2010-08-09T16:16:43Z"
-published: true
 status: publish
 tags:
 - code

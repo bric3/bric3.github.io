@@ -2,7 +2,6 @@
 authors: ["brice.dutheil"]
 date: "2018-06-18T00:00:00Z"
 language: en
-published: true
 tags:
 - kubernetes
 - minikube

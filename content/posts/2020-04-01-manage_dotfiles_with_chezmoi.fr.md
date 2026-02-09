@@ -2,7 +2,6 @@
 authors: ["brice.dutheil"]
 date: "2020-04-01T00:00:00Z"
 language: fr
-published: true
 tags:
 - dotfiles
 - chezmoi

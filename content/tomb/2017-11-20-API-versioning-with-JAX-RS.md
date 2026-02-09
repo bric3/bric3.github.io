@@ -2,7 +2,6 @@
 authors: ["brice.dutheil"]
 date: "2017-11-20T00:00:00Z"
 language: en
-published: false
 # tags:
 # - java
 # - jaxrs

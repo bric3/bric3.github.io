@@ -2,7 +2,6 @@
 authors: ["brice.dutheil"]
 date: "2012-07-30T00:00:00Z"
 disqus_identifier: 274 http://blog.arkey.fr/?p=274
-published: true
 status: publish
 tags:
 - code

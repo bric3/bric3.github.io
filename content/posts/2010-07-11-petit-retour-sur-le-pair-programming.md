@@ -1,7 +1,6 @@
 ---
 authors: ["brice.dutheil"]
 date: "2010-07-11T21:44:41Z"
-published: true
 status: publish
 tags:
 - agile

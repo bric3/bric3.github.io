@@ -5,7 +5,6 @@ date: "2012-10-10T12:25:57Z"
 meta:
   _edit_last: "1"
   _su_rich_snippet_type: none
-published: true
 status: publish
 tags:
 - tips

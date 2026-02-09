@@ -15,7 +15,6 @@ language: en
 #- opinion
 slug: URI_paths_with_trailing_or_leading_slashes
 title: Opinion, should we prefix JAX-RS Path value with a slash ?
-published: false
 ---
 
 In the past months I have been using extensively the infamous HTTP client 

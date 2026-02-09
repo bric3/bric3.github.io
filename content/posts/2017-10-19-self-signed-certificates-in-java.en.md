@@ -2,7 +2,6 @@
 authors: ["brice.dutheil"]
 date: "2017-10-19T00:00:00Z"
 language: en
-published: true
 tags:
 - ssl
 - tls
@@ -1476,7 +1475,7 @@ Notice the use of the JKS key store instead of the P12 file, while I just
 wrote that 
 [all JVM implementations are supposed to support PKCS12 type key store](https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#impl), 
 what happened ? Unfortunately wiremock uses Jetty under the hood and 
-[Jetty doesn't allow to be configured with a PKCS12 file]((https://wiki.eclipse.org/Jetty/Howto/Configure_SSL#Loading_Keys_and_Certificates_via_PKCS12)).
+[Jetty doesn't allow to be configured with a PKCS12 file](https://wiki.eclipse.org/Jetty/Howto/Configure_SSL#Loading_Keys_and_Certificates_via_PKCS12).
 Meaning that our P12 file have to be converted in a **J**ava **K**ey **S**tore.
 
 ## Wrap up

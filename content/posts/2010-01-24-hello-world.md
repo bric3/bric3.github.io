@@ -2,7 +2,6 @@
 authors: ["brice.dutheil"]
 date: "2010-01-24T19:48:05Z"
 meta: {}
-published: true
 status: publish
 tags:
 - miscellanées

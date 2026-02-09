@@ -8,7 +8,6 @@ meta:
   amazon-product-content-hook-override: "2"
   amazon-product-excerpt-hook-override: "3"
   amazon-product-newwindow: "3"
-published: true
 status: publish
 tags:
 - code

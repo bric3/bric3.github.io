@@ -5,7 +5,6 @@ meta:
   _edit_last: "1"
   _su_rich_snippet_type: none
   _syntaxhighlighter_encoded: "1"
-published: true
 status: publish
 tags:
 - ant

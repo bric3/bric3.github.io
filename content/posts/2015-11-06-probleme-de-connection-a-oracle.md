@@ -7,7 +7,6 @@ meta:
   _oembed_88a7b9e5fa58f4ba4da51144dbc06c2c: '{{unknown}}'
   _oembed_634d9c27589adc20bd27321e026a3b4f: '{{unknown}}'
   _su_rich_snippet_type: none
-published: true
 status: publish
 tags:
 - prod

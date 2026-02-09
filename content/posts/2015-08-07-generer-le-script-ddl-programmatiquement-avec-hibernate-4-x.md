@@ -5,7 +5,6 @@ meta:
   _edit_last: "1"
   _oembed_c2a410587a6c92fa5dbab70707099e19: '{{unknown}}'
   _su_rich_snippet_type: none
-published: true
 status: publish
 tags:
 - architecture

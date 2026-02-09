@@ -1,7 +1,6 @@
 ---
 authors: ["brice.dutheil"]
 date: "2017-04-29T00:00:00Z"
-published: true
 tags:
 - kafka
 - zookeeper
