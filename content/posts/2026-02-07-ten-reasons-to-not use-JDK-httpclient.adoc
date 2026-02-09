@@ -1,0 +1,774 @@
+---
+authors: ["brice.dutheil"]
+date: "2026-02-08T18:53:00+02:00"
+language: en
+tags: [ "jep-321", "java", "jvm", "httpclient", "okhttp" ]
+slug: "ten-reasons-to-not-use-jdk-httpclient"
+title: "10+ reasons to NOT use JDK's HttpClient"
+summary: This article explains 10+ reasons why after 14 JDK releases the JDK's `HttpClient` introduced with Java 11 is unlikely to be the best option in your app.
+---
+
+The https://openjdk.org/jeps/321[JEP-321] has been delivered with JDK 11. It has been
+https://openjdk.org/jeps/110[incubating since Java 9], it delivers a general purpose, standard HTTP client to be
+used by everyone.
+
+[CAUTION]
+====
+When reading these lines, keep in mind the following is based on facts, but keep in mind the whole article represents my opinion only.
+====
+
+.tl;dr
+**************
+The Java `HttpClient` is a great addition to the JDK, but its API limitations and issues significantly diminish its value.
+It looks like a general purpose HTTP client, but its one-size-fits-all approach is just not gonna cut it.
+
+Outside the basic use cases, the exposed API is uncomfortable, even awkward to use
+* Need payload compression, multipart, authentication or cache support => manual handling
+* Need to work TLS certificate pinning, hostname verification => Work with the JVM's SSL/TLS abstractions, no finer customization points
+* Need finer metrics (e.g. to diagnose) passing a custom socket => it's not possible!
+* Many of the finer controls are JVM-wide via system properties.
+
+The gist is that some API issues can be worked around by using some wrapper code (or a library like
+https://github.com/mizosoft/methanol/[methanol]), but the underlying mechanic is still
+there: any `HttpClient` is affected by JVM-wide customization via _system properties_, and HttpClient bugs are still
+there and cannot be worked around by bumping a dependency.
+**************
+
+The reasons below may appeal to you or not depending on one's use case. The order is mine. Your opinion is most welcome.
+
+Before going further, I want to make clear that I congratulate the JDK team for delivering this client and improving
+it over the years, but after a look over the API and the issues, I don't believe anymore it's the best option for most
+use cases.
+
+[TIP]
+====
+It's funny that an `sun.net.www.http.HttpClient` that used very specific purpose within
+the JDK pre-existed JDK 11's `java.net.http.HttpClient`, and this old one is still there, even in JDK 25.
+====
+
+== 10PLUS reasons
+
+. It's not possible to use a _named pipe_ or a _Unix Domain Socket_ (the `HttpClient` doesn't support passing a
+`SocketFactory`), even while UDS support landed in JDK 16.
+
+** https://bugs.openjdk.org/browse/JDK-8275838[JDK-8275838 java.net.http client does not work over unix domain sockets]
+** https://bugs.openjdk.org/browse/JDK-8371218[JDK-8371218 Add Unix Domain Socket Support to jdk.httpserver]
+
+. `close`, `shutdown`, … methods were introduced in JDK 21
+
+** https://bugs.openjdk.org/browse/JDK-8267140[JDK-8267140 Support closing the HttpClient by making it auto-closable]
+** https://inside.java/2023/12/10/sip092/[`AutoCloseable` HttpClient – Sip of Java]
+
+. No `URIBuilder`, relies on throwable URI class only, however, there are third party builders if needed
+
+. Single timeout for a “full call” i.e., both request and response. Also, the timeout timer is never checked after
+response headers are received (HTTP/1.1 or HTTP/2), possibly leaving the call hanging (https://bugs.openjdk.org/browse/JDK-8258397[JDK-8258397]), that means
+
+** one cannot differentiate which of upload or download was slow.
+** that a stalling download may go way beyond the timeout.
+
+. Use existing JDK's “abstractions” regarding SSL / TLS, with fewer customization points.
+
+.. The lack of passing a custom `SocketFactory` is also true for SSL / TLS connections, preventing other customizations.
+
+.. Certificate pinning involves hardcoding a specific public key or certificate into your application to ensure it only
+communicates with trusted servers, preventing _man-in-the-middle_ attacks. JDK HttpClient requires creating full
+`TrustManager`, that perform the check, extracting keys from certificate, hash them, etc. It’s possible to use
+third party libs like https://github.com/Flowdalic/java-pinning[Flowdalic/java-pinning], but they may not cover other needs.
+
+.. The JDK’s HttpClient do not allow customizing the hostname verification, It only allows to disable hostname
+verification JVM wide (`jdk.internal.httpclient.disableHostnameVerification`).
+
+.. No connection fallback mechanism. In particular, it can be useful to program how the client should handle degradation.
+This is simply not possible.
+
+. No request/response interceptors https://stackoverflow.com/questions/53707502/is-it-possible-to-intercept-java-11-httpclient-requests[Is it possible to intercept Java 11 HttpClient requests?]
+Some behavior of a request just can't be observed, like redirect, retries, authentication, etc.
++
+Work around, wrap the client, https://github.com/mizosoft/methanol/[methanol] do it.
+
+. No event listener to dive explore the behavior of HTTP calls from begging to end. This can be done by wrapping
+the HttpClient to measure a few things, but internal connection events are not available. Users of HttpClient are
+blind to DNS timing, connection timing, header and body timing.
+
+. The automatic retry mechanism is limited and hardly customizable. Indeed, HttpClient automatically retries to connect;
+it can be disabled by a system property `jdk.httpclient.disableRetryConnect`. It’s also limited to one retry. And, if
+it’s not a connection issue, `GET` and `HEAD` are retried by default, the only customization is adding additional methods
+via the `jdk.httpclient.enableAllMethodRetry` system property.
+
+. No API to control on the connection pool, (which is mostly used for connection reuse). There’s a system property
+`jdk.httpclient.connectionPoolSize`, but no way to control parameters like _how long_ to keep it there until JDK 20,
+again with system properties. Also, the client is not closeable until JDK 21’s via `close` method.
+
+. Keep alive for idle connections added in JDK 20; in particular, this allows closing idle connections
+after this timeout expires. Before, idle connections were not closed. This can be tweaked via a system property
+(`jdk.httpclient.keepalive.timeout` and `jdk.httpclient.keepalive.timeout.h2`), which is JVM wide.
+
+** https://bugs.openjdk.org/browse/JDK-8295649[JDK-8295649 Add a means to close idle connections in the HTTP/2 connection pool]
+
+. No concept of request "dispatch", these controls are internal to the http client. For async request it’s possible
+to pass a custom `Executor`, it’s up to you to write an executor that matches what you need.
+
+. Request logging is done via a system property `jdk.httpclient.HttpClient.log`. It's always possible to make your own
+logging by wrapping the HttpClient, but it may lack the details one wants. Also, HttpClient wrappers usually provide this.
+
+. If you have to handle multipart requests, then you're just out of luck, it's something to handle on your own.
+Third party libraries, however, to bring that support by wrapping the HttpClient.
+
+. Payload compression also needs to be handled manually.
+
+. Limited authentication support. While HttpClient provides an `Authenticator` API, it has limitations, and uneven API concepts.
+The `Authenticator` can be used to pass a password auth, but when a bearer is needed then you're on your own by adding
+headers manually to the request. Also, the same authenticator handles both proxy and server authentication.
+
+. No cache support, think of http://tools.ietf.org/html/rfc7234[RFC 7234] `Cache-Control`, `Last-Modified`, `ETag`, etc.
+Again, manual code or third party libraries can be used to add this support.
+
+
+=== Performance, bugs
+
+I handpicked a few issues there that I think are relevant for me. Granted, many of these below have a fix; however,
+some are sometimes fixed very late in a patch release, for me, it is not an option for a library to wish for
+the actual consumer to have the latest version.
+
+. https://github.com/spring-projects/spring-framework/issues/22333[WebFlux with Java 11 HttpClient unexpected slow performance compared with WebClient · Issue \#22333 · spring-projects/spring-framework]
+
+. Connection Leak with HTTP/2 `GOAWAY` frame, which is used by a server to initiate a graceful shutdown of a connection
+
+** https://bugs.openjdk.org/browse/JDK-8335181[JDK-8335181 Incorrect handling of HTTP/2 GOAWAY frames in HttpClient] (backported to 17.0.17, 21.0.8)
+
+. HTTP/2 Stream count was not decreasing on 204 response codes
+
+** https://bugs.openjdk.org/browse/JDK-8238270[JDK-8238270 java.net HTTP/2 client does not decrease stream count when it receives 204 responses] (backported to 11.0.9)
+
+. Request and response timeout disarms when response headers are received and didn't account for the full response body. Only Response timeout is fixed from JDK 26.
+
+** https://bugs.openjdk.org/browse/JDK-8208693[JDK-8208693 HttpClient: Extend the request timeout's scope to cover the response body]
+** https://bugs.openjdk.org/browse/JDK-8258397[JDK-8258397 HttpClient: Investigate supporting timeout for reading body bytes]
+
+. HttpClient fails to close its side of the socket, leaving the connection in CLOSE_WAIT when it receives _EOF_ during response read
+https://bugs.openjdk.org/browse/JDK-8221395[JDK-8221395 HttpClient leaving connections in CLOSE_WAIT state until the Java process ends], fixed in 11.0.6
+
+. The logic to retry on connection was inverted until 11.0.6, which made it disabled by default
+
+** https://bugs.openjdk.org/browse/JDK-8216561[JDK-8216561 HttpClient: The logic of retry on connect exception is inverted]
+
+. When using a custom executor that rejects a task with `RejectedExecutionException`, it may shut down the internal
+`SelectorManager`, this affect both synchronous and asynchronous API (synchronous uses the async API under the hood),
+fixed in Java 19, backported to 17.0.17.
+
+** https://bugs.openjdk.org/browse/JDK-8277969[JDK-8277969 HttpClient SelectorManager shuts down when custom Executor rejects a task]
+
+
+== Conclusion
+
+This HTTP client is certainly most welcome when bootstrapping new code, basic use cases. Yet when it's time for more
+control, "customization", robustness, the issues of the JDK HttpClient start showing.
+
+* API Concepts are for basic usage but do not express well or even not at all more advanced ones, leaving the user
+to fill in the gaps if that's possible
+
+* It's not well battle tested; some issues fixed very late, some even in JDK 26, leave me worried compared
+to other libraries.
+
+* Some customization affects the whole JVM, which is not ideal for libraries and may be a problem for whenever it is
+necessary to use different settings for different clients.
+
+Some wrapper libraries can help, though, but the underlying issues remain and can't be worked around.
+
+**Comparatively, a library like OkHttp API covers everything that HttpClient misses; also, its API has better concepts
+aligning well with HTTP Lingo, it is more battle tested and more customizable.**
+OkHttp has its issues as well, starting with its size, 3.x is ~640 KiB with its okio dependency, but starting 4.x OkHttp
+is written in Kotlin which makes it ~3 MiB (okio and kotlin-stdlib included)!
+
+
+'''
+
+You can stop reading here, the rest is just a summary of my notes.
+
+== Appendix
+
+=== API comparison with OkHttp
+
+NOTE: I'm comparing with OkHttp 3.x which is the latest version before the switch to Kotlin.
+
+==== Size concerns
+
+The JDK's HttpClient is part of the JDK, so it doesn't add any dependency to your project, but it's something you
+cannot upgrade, only your consumer can.
+
+Personally, I have nothing against Kotlin or using it in prod on a server; it's a great language. However, I do
+understand that as a library, it's not something you want to force on your users, and something it's not even something
+possible for the end users.
+
+[cols="1,1,2"]
+|===
+|Version |Total Size |Dependencies Included
+
+|OkHttp 3.14.9
+|~510 KiB
+|okhttp (420 KiB) + okio (90 KiB)
+
+|OkHttp 4.12.0
+|~2.73 MiB
+|okhttp (771 KiB) + okio-jvm (351 KiB) + kotlin-stdlib (1.63 MiB)
+|===
+
+
+
+==== TLS Customization
+
+Separating a trust manager and the way to connect is not possible with the JDK's HttpClient.
+
+[source,java,role="primary"]
+.httpclient
+----
+SSLContext sslContext = SSLContext.getInstance("TLS");
+sslContext.init(null, new TrustManager[] { trustManager }, null);
+
+HttpClient client = HttpClient.newBuilder()
+    .sslContext(sslContext)  // <1>
+    .build();
+----
+<1> Only an SSLContext, the socket will be created internally.
+
+[source,java,role="secondary"]
+.okhttp
+----
+X509TrustManager trustManager = // ...
+SSLContext sslContext = SSLContext.getInstance("TLS");
+sslContext.init(null, new TrustManager[] { trustManager }, null);
+
+OkHttpClient client = new OkHttpClient.Builder()
+    .sslSocketFactory(sslContext.getSocketFactory(), trustManager)  // <1>
+    .build();
+----
+<1> Choose the SSL socket factory
+
+*Hostname verification*
+
+[role="primary"]
+.httpclient
+--
+The only tweak is disabling hostname verification via `jdk.internal.httpclient.disableHostnameVerification`.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+OkHttpClient devClient = new OkHttpClient.Builder()
+    .hostnameVerifier((hostname, session) -> {
+        return hostname.endsWith(".internal.mycompany.com"); // <1>
+    })
+    .build();
+----
+<1> Customize as needed by the client
+
+*Certificate pinning*
+
+[role="primary"]
+.httpclient
+--
+Certificate pinning is not supported out of the box; you need to implement a `TrustManager` that performs the check,
+extracting keys from certificate, hash them, etc. Then create an SSLContext with that `TrustManager` and pass it to the
+HttpClient builder.
+--
+
+[source,java,role="secondary"]
+----
+OkHttpClient client = new OkHttpClient.Builder()
+    .certificatePinner(
+        new CertificatePinner.Builder()
+            .add("api.mycompany.com", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+            .add("*.cdn.mycompany.com", "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=")
+            .add("api.mycompany.com", "sha256/CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=")
+            .build())
+    .build();
+----
+
+**TLS Version, cipher suites**
+
+[source,java,role="primary"]
+.httpclient
+----
+SSLParameters params = new SSLParameters();
+params.setProtocols(new String[] { "TLSv1.3", "TLSv1.2" }); // <1>
+params.setCipherSuites(new String[] { // <2>
+    "TLS_AES_256_GCM_SHA384",
+    "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+});
+params.setApplicationProtocols(new String[] { "h2", "http/1.1" }); // <3>
+
+HttpClient client = HttpClient.newBuilder()
+    .sslContext(sslContext)
+    .sslParameters(params) // <4>
+    .build();
+----
+<1> TLS versions
+<2> Cipher suites
+<3> ALPN protocols
+<4> Requires setting all parameters at once, no finer control.
+
+[source,java,role="secondary"]
+.okhttp
+----
+// Configuration split into TWO places:
+
+// 1 & 2. TLS versions + Cipher suites → ConnectionSpec
+ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS) // <1>
+    .tlsVersions(TlsVersion.TLS_1_3, TlsVersion.TLS_1_2)
+    .cipherSuites(
+        CipherSuite.TLS_AES_256_GCM_SHA384,
+        CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    )
+    .build();
+
+OkHttpClient client = new OkHttpClient.Builder()
+    .connectionSpecs(Collections.singletonList(spec))
+    .protocols(Arrays.asList(Protocol.HTTP_2, Protocol.HTTP_1_1)) // <2>
+    .build();
+----
+<1> Connection builder, organized around concepts, not just a bag of parameters. (Also, OkHttp provides pre-defined ConnectionSpec for common use cases, like `MODERN_TLS` or `CLEARTEXT`).
+<2> ALPN protocols are set separately, not as part of the TLS configuration.
+
+**Connection fallback mechanism**
+
+[role="primary"]
+.httpclient
+--
+The JDK's HttpClient does not have a connection fallback mechanism, it will just fail if the connection cannot be established.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+OkHttpClient client = new OkHttpClient.Builder()
+    .connectionSpecs(Arrays.asList( // <1>
+        ConnectionSpec.MODERN_TLS,
+        ConnectionSpec.COMPATIBLE_TLS,
+        ConnectionSpec.CLEARTEXT
+    ))
+    .build();
+----
+<1> OkHttp will try the connection specs in order, if the first one fails, it will try the next one, and so on.
+
+==== Custom socket
+
+[role="primary"]
+.httpclient
+--
+The JDK's HttpClient does not allow to use a custom socket factory, which means that using a custom socket is not possible.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+OkHttpClient client = new OkHttpClient.Builder()
+    .socketFactory(new NamedPipeSocketFactory(namedPipe)) // <1>
+    .build();
+----
+<1> OkHttp allows using a custom socket factory, which means that _Unix Domain Socket_ or Windows _Named Pipe_, or another custom socket is possible.
+
+==== Connection pool control
+
+[role="primary"]
+.httpclient
+--
+The JDK's HttpClient does not have an API to control the connection pool, which is mostly used for connection reuse.
+There’s a system property `jdk.httpclient.connectionPoolSize` which affects all clients, until JDK 20 there's no way to
+define criteria for eviction like _how long_ to keep idle connections, again with system properties.
+The pool cannot be shutdown in a controlled manner, that is until JDK 21.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+OkHttpClient client = new OkHttpClient.Builder()
+    .connectionPool(new ConnectionPool(5, 5, TimeUnit.MINUTES)) // <1>
+    .build();
+----
+<1> Custom connection pool, including the number of idle connections and the keep-alive duration.
+
+==== DNS control
+
+[role="primary"]
+.httpclient
+--
+The JDK's HttpClient does not have an API to control the DNS resolution, which means it's using the JVM default DNS resolver.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+Dns customDnsResolver = hostname -> {
+    return Arrays.asList(...);
+};
+OkHttpClient client = new OkHttpClient.Builder()
+    .dns(customDnsResolver) // <1>
+    .build();
+----
+<1> Custom DNS resolver, allowing to control how hostnames are resolved.
+
+
+==== Proxy authentication
+
+NOTE: This only covers basic auth, other authentication schemes need more analysis.
+
+[source,java,role="primary"]
+.httpclient
+----
+Authenticator authenticator = new Authenticator() { // <1>
+    @Override
+    protected PasswordAuthentication getPasswordAuthentication() {
+        if (getRequestorType() == RequestorType.PROXY) {
+            // Proxy authentication (407)
+            return new PasswordAuthentication(
+                proxyUsername,
+                proxyPassword.toCharArray()
+            );
+        } else if (getRequestorType() == RequestorType.SERVER) {
+            // Server authentication (401)
+            return new PasswordAuthentication(
+                serverUsername,
+                serverPassword.toCharArray()
+            );
+        }
+        return null;
+    }
+};
+
+HttpClient client = HttpClient.newBuilder()
+    .proxy(proxySelector)
+    .authenticator(authenticator)  // <2>
+    .build();
+----
+<1> The `Authenticator` is called for both proxy and server authentication, the `RequestorType` can be used to differentiate between the two.
+<2> The same `Authenticator` is used for both proxy and server authentication.
+
+[source,java,role="secondary"]
+.okhttp
+----
+Authenticator proxyAuthenticator = (route, response) -> {
+    String credential = Credentials.basic(proxyUsername, proxyPassword);
+    return response.request().newBuilder()
+        .header("Proxy-Authorization", credential)
+        .build();
+};
+
+Authenticator serverAuthenticator = (route, response) -> {
+    String credential = Credentials.basic(serverUsername, serverPassword);
+    return response.request().newBuilder()
+        .header("Authorization", credential)
+        .build();
+};
+
+OkHttpClient client = new OkHttpClient.Builder()
+    .proxy(proxy)
+    .proxyAuthenticator(proxyAuthenticator)  // <1>
+    .authenticator(serverAuthenticator) // <2>
+    .build();
+----
+<1> Only called for proxy authentication.
+<2> Only called for server authentication.
+
+==== Request/response interceptors
+
+[role="primary"]
+.httpclient
+--
+The JDK's HttpClient does not have request/response interceptors, which means that you cannot easily modify or
+understand lifecycle requests or responses.
+
+Achievable by wrapping the HttpClient, but it may lack the details one wants (e.g. it is not possible to observe redirects,
+authentication, retries).
+
+Libraries like https://github.com/mizosoft/methanol/[methanol] provide it out of the box, but it may not cover all use
+cases due to the underlying HttpClient.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+OkHttpClient client = new OkHttpClient.Builder()
+    .addInterceptor(chain -> { // <1>
+        Request request = chain.request();
+        // Modify or read the request as needed
+        Response response = chain.proceed(request);
+        // Modify the response as needed
+        return response;
+    })
+    .build();
+----
+<1> Interceptor that can modify both the request and the response, and is applied to all requests made by the client.
+
+==== Metrics and event listeners
+
+[role="primary"]
+.httpclient
+--
+The JDK's HttpClient does not have an API to listen to events during the lifecycle of a request, which means that you
+cannot collect metrics or understand the behavior of HTTP calls from beginning to end.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+OkHttpClient client = new OkHttpClient.Builder()
+    .eventListener(new EventListener() { // <1>
+        @Override
+        public void dnsStart(Call call, String domainName) { // <2>
+        }
+
+        @Override
+        public void callStart(Call call) { // <3>
+        }
+    })
+    .build();
+----
+<1> Event listener that can listen to various events during the lifecycle of a call.
+<2> DNS resolution starts.
+<3> Call is started.
+
+
+==== Terminating a client
+
+[role="primary"]
+.httpclient
+--
+The JDK's HttpClient does not have a way to be closed or shutdown until JDK 21, which means that you cannot easily
+release resources associated with the client, such as idle connections in the connection pool.
+
+After JDK 21, the `HttpClient` implements `AutoCloseable` (allowing use within a try-with-resources block), and
+calling `close()` will close idle connections in the connection pool.
+--
+
+[source,java,role="secondary"]
+.okhttp
+----
+OkHttpClient client = new OkHttpClient.Builder().build();
+
+client.connectionPool().evictAll(); // <1>
+client.dispatcher().executorService().shutdown(); // <2>
+client.dispatcher().executorService().shutdownNow(); // <3>
+if (client.cache() != null) {
+    client.cache().close(); // <4>
+}
+----
+<1> Closes all idle connections in the connection pool.
+<2> Shuts down the executor service used for dispatching calls.
+<3> Shuts down the executor service immediately, interrupting running calls.
+<4> Closes the cache if configured.
+
+OkHttpClient does not have a single method to close the client but provides methods to close the various
+resources it uses, allowing controlled shutdown if necessary.
+
+
+=== How request timeout is handled between JDK 11 and JDK 25 by the JDK's HttpClient
+
+From a user perspective, here's how one could define an HTTP request with a timeout:
+
+[source,java]
+----
+val request = HttpRequest.newBuilder()
+    .uri(URI.create("https://example.com"))
+    .timeout(Duration.ofSeconds(5))
+    .build();
+----
+
+The javadoc says:
+
+> Sets a timeout for this request. If the response is not received within the
+> specified timeout then an `HttpTimeoutException` is thrown from
+> `HttpClient::send` or `HttpClient::sendAsync` completes exceptionally with
+> an `HttpTimeoutException`. The effect of not setting a timeout is the same
+> as setting an infinite Duration, i.e. block forever.
+
+So it applies to the whole request. One cannot bias the timeout to upload or to download. Now when it comes to
+https://bugs.openjdk.org/browse/JDK-8208693[JDK-8208693], the request timeout is disarmed when response headers
+are received,
+and only response timeout is applied to the rest of the call, which means that if the server is slow to send back
+the response body, it may take way longer than the request timeout, which is not what users expect.
+
+When the request above is _sent_ (`client.send(request)`), the `HttpClientImpl` create a new exchange (`MultiExchange`)
+and calls `mex.responseAsync(executor)`. This will create a "flow" made of `CompletableFuture`
+
+[source,java]
+.`MultiExchange::responseAsync0`
+----
+private CompletableFuture<HttpResponse<T>>
+responseAsync0(CompletableFuture<Void> start) {
+    return start.thenCompose( v -> responseAsyncImpl()) //<1>
+                .thenCompose((Response r) -> {
+                    // ...
+                    return exch.readBodyAsync(responseHandler) //<2>
+                        // ...
+}
+----
+<1> The timer is started within this method and cancelled there once response headers have been received.
+<2> The timer is cancelled at that point.
+
+[source,java]
+.`MultiExchange::responseAsyncImpl`
+----
+private CompletableFuture<Response> responseAsyncImpl() {
+    //...
+        if (currentreq.timeout().isPresent()) {
+            responseTimerEvent = ResponseTimerEvent.of(this);
+            client.registerTimer(responseTimerEvent); // <1>
+        }
+        // ...
+
+        // 2. get response
+        cf = exch.responseAsync() // <2>
+                 .thenCompose((Response response) -> {
+                    HttpRequestImpl newrequest;
+                    try {
+                        // 3. apply response filters
+                        newrequest = responseFilters(response);
+                    } catch (Throwable t) {
+                        IOException e = t instanceof IOException io ? io : new IOException(t);
+                        exch.exchImpl.cancel(e);
+                        return failedFuture(e);
+                    }
+                    // 4. check filter result and repeat or continue
+                    if (newrequest == null) {
+                        if (attempts.get() > 1) {
+                            Log.logError("Succeeded on attempt: " + attempts);
+                        }
+                        return completedFuture(response);
+                    } else {
+                        cancelTimer();
+                        this.response =
+                            new HttpResponseImpl<>(currentreq, response, this.response, null, exch);
+                        Exchange<T> oldExch = exch;
+                        if (currentreq.isWebSocket()) {
+                            // need to close the connection and open a new one.
+                            exch.exchImpl.connection().close();
+                        }
+                        return exch.ignoreBody().handle((r,t) -> {
+                            previousreq = currentreq;
+                            currentreq = newrequest;
+                            retriedOnce = false;
+                            setExchange(new Exchange<>(currentreq, this));
+                            return responseAsyncImpl();
+                        }).thenCompose(Function.identity());
+                    } })
+                 .handle((response, ex) -> {
+                    // 5. handle errors and cancel any timer set
+                    cancelTimer(); // <3>
+                    if (ex == null) {
+                        assert response != null;
+                        return completedFuture(response);
+                    }
+                    // all exceptions thrown are handled here
+                    CompletableFuture<Response> errorCF = getExceptionalCF(ex, exch.exchImpl);
+                    if (errorCF == null) {
+                        return responseAsyncImpl();
+                    } else {
+                        return errorCF;
+                    } })
+                 .thenCompose(Function.identity());
+    // ...
+}
+----
+<1> The timer starts here.
+<2> `exch.responseAsync()` returns **after** reading the headers only, see next code snippet.
+<3> The timer is cancelled here, ignoring what happens after.
+
+The HttpClient communication works around the internal concept of _exchanges_, handling protocol change if necessary.
+From `MultiExchange::responseAsyncImpl`, this will call `Echange.responseAsync()` to handle HTTP code 100 / 101 to switch protocol if necessary.
+Then, if it's HTTP/1.1 it'll be an `Http1Exchange`, if it's HTTP/2, it'll be an `Stream` implementation:
+
+[role="primary"]
+.HTTP/1.1
+=============
+
+[source,java]
+.`Http1Exchange::getResponseAsync`
+----
+@Override
+CompletableFuture<Response> getResponseAsync(Executor executor) {
+    if (debug.on()) debug.log("reading headers");
+    CompletableFuture<Response> cf = response.readHeadersAsync(executor);
+    // ...
+    return cf; // <1>
+}
+----
+<1> Returns after reading headers only.
+
+=============
+
+
+[role="secondary"]
+.HTTP/2
+=============
+
+[source,java]
+.`Stream::getResponseAsync`
+----
+@Override
+CompletableFuture<Response> getResponseAsync(Executor executor) {
+    CompletableFuture<Response> cf;
+    // ...
+            // getResponseAsync() is called first. Create a CompletableFuture
+            // that will be completed by completeResponse() when
+            // completeResponse() is called.
+            cf = new MinimalFuture<>(); // <1>
+            response_cfs.add(cf);
+    // ...
+    return cf;
+}
+----
+<1> A `CompletableFuture` returned to mark the point where headers are read.
+
+[source]
+.`Stream::incoming`
+----
+void incoming(Http2Frame frame) throws IOException {
+    // ...
+    if ((frame instanceof HeaderFrame hf)) {
+        if (hf.endHeaders()) {
+            Log.logTrace("handling response (streamid={0})", streamid);
+            handleResponse(hf); // <1>
+        }
+    // ...
+}
+----
+<1> Process the header frame, which will invoke `completeResponse` completing the `CompletableFuture` returned by `getResponseAsync` above.
+
+=============
+
+
+If the timer expires before, the request will fail with a `HttpTimeoutException`.
+When a timeout is set the timer (with _deadline_ actually) is registered in the `HttpClientImpl` as shown above.
+The `HttpClientImpl` has `SelectorManager` thread checking timeouts on each selector loop.
+In `HttpClientImpl::purgeTimeoutsAndReturnNextDeadline` when the timer is past its deadline,
+the `TimeoutEvent::handle` method is called.
+
+[source,java]
+.`ResponseTimerEvent::handle`
+----
+@Override
+public void handle() {
+    //...
+    // more specific, "request timed out", message when connected
+    Exchange<?> exchange = multiExchange.getExchange();
+    if (exchange != null) {
+        ExchangeImpl<?> exchangeImpl = exchange.exchImpl;
+        if (exchangeImpl != null) { // <1>
+            if (exchangeImpl.connection().connected()) {
+                t = new HttpTimeoutException("request timed out");
+            }
+        }
+    }
+    if (t == null) { // <2>
+        t = new HttpConnectTimeoutException("HTTP connect timed out");
+        t.initCause(new ConnectException("HTTP connect timed out"));
+    }
+    multiExchange.cancel(t); // <3>
+}
+----
+<1> If a connection is established, the timeout is considered a request timeout
+<2> Otherwise it’s a connection timeout.
+<3> Completes the associated `multiExchange.responseAsyncImpl` exceptionally (actually the underlying exchange).
+
