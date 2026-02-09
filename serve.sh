@@ -6,7 +6,8 @@ if ! grep -E "127.0.0.1.*blog.local" /etc/hosts 2>&1 >/dev/null; then
   exit 1
 fi
 
-if ! curl -s --unix-socket /var/run/docker.sock http/_ping 2>&1 >/dev/null; then
+if ! curl -s --unix-socket /var/run/docker.sock http/_ping 2>&1 >/dev/null && \
+   ! curl -s --unix-socket "$HOME/.orbstack/run/docker.sock" http/_ping 2>&1 >/dev/null; then
   >&2 echo "Docker not running"
   exit 1
 fi
