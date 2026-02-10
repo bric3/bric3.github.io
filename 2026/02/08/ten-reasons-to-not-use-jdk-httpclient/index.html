@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    
+    
+
+
+    <head>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://www.gravatar.com">
+    <link rel="dns-prefetch" href="https://giscus.app">
+
+    <link href="https://gmpg.org/xfn/11" rel="profile">
+    
+    <link rel="canonical" href="https://blog.arkey.fr/2026/02/08/ten-reasons-to-not-use-jdk-httpclient/">
+    
+
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="Cache-Control" content="public" />
+<meta name="color-scheme" content="light dark">
+<!-- Enable responsiveness on mobile devices -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="generator" content="Hugo 0.155.3">
+
+    
+    
+    
+
+<title>10&#43; reasons to NOT use JDK&#39;s HttpClient • Brice Dutheil</title>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Brice Dutheil">
+<meta property="og:title" content="10&#43; reasons to NOT use JDK&rsquo;s HttpClient">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.arkey.fr/2026/02/08/ten-reasons-to-not-use-jdk-httpclient/" />
+<meta property="og:description" content="Java mostly, and general tech">
+<meta property="og:image" content="https://blog.arkey.fr/social-sharing.png">
+<meta property="og:image:type" content="image/png">
+    
+    
+    
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+    
+
+<meta property="og:updated_time" content="2026-02-08T18:53:00&#43;0200">
+
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@BriceDutheil">
+<meta name="twitter:title" content="10&#43; reasons to NOT use JDK&rsquo;s HttpClient">
+
+<meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
+
+<meta name="twitter:description" content="Java mostly, and general tech">
+<meta name="twitter:creator" content="@BriceDutheil">
+    
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/a11y-light.min.css" media="(prefers-color-scheme: light)"><link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/base16/gruvbox-dark-medium.min.css" media="(prefers-color-scheme: dark)">
+
+
+
+
+<link rel="stylesheet" href="/scss/ascii-press.1a0c3f16d3c8acc868bad13d7401767e717ed6b2794c65593d3d949a56e5670d.css" integrity="sha256-Ggw/FtPIrMhoutE9dAF2fnF&#43;1rJ5TGVZPT2UmlblZw0=">
+
+
+<link rel="stylesheet" href="/scss/ascii-press-dark.5bfae05eb1a79c8955f3e75e0620469b1f0c758ec0a03ecd87fc276b20d8e365.css" integrity="sha256-W/rgXrGnnIlV8&#43;deBiBGmx8MdY7AoD7Nh/wnayDY42U=" media="(prefers-color-scheme: dark)">
+
+
+<link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
+
+
+
+
+<link rel="stylesheet" href="/scss/hugo-toc.f44dcd620647796a2cf99d68a804ad4b52dacfcf98383c8344d085949175d65e.css" integrity="sha256-9E3NYgZHeWos&#43;Z1oqAStS1Laz8&#43;YODyDRNCFlJF11l4=">
+
+
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js" integrity="sha512-UDJtJXfzfsiPPgnI5S1000FPLBHMhvzAMX15I+qG2E2OAzC9P1JzUwJOfnypXiOH7MRPaqzhPbBGDNNj7zBfoA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js" integrity="sha512-qWVvreMuH9i0DrugcOtifxdtZVBBL0X75r9YweXsdCHtXUidlctw7NXg5KVP3ITPtqZ2S575A0wFkvgS2anqSA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <![endif]-->
+
+    <!-- Icons from https://realfavicongenerator.net -->
+<link rel="icon" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="196x196" href="/favicon-196x196.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="msapplication-TileColor" content="#b64f4f">
+<meta name="theme-color" content="#b64f4f">
+
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/v4-shims.min.css" integrity="sha512-fHavkBby/gcFEB2taaBfG0DLdHRGrnvkWQNXVZ5Yb/Fj6LkogecQUd6oyvBVsrWPaHSxs5tNza6LUW/Y6Az9lQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    
+    
+
+</head>
+
+
+    <body class="">
+    
+<div class="sidebar">
+  <div class="container ">
+    <div class="sidebar-about">
+      <span class="site__title">
+        <a href="https://blog.arkey.fr/">Brice Dutheil</a>
+      </span>
+      
+      
+        <div class="author-image">
+          <img src="https://www.gravatar.com/avatar/f31c7fbcbb0766d0632d96fd7e74b649?s=240&d=mp" class="img--circle img--headshot element--center" alt="gravatar">
+        </div>
+      
+      <p class="site__description">
+         Java mostly, and general tech 
+      </p>
+    </div>
+    <div class="collapsible-menu">
+      <input type="checkbox" id="menuToggle">
+      <label for="menuToggle">Brice Dutheil</label>
+      <div class="menu-content">
+        <div>
+	<ul class="sidebar-nav">
+		 
+		 
+			 
+				<li>
+					<a href="/"><span class='fa-icon'><i class='fas fa-home'></i></span><code>cd <em>~</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/posts/"><span class='fa-icon'><i class='fas fa-stream'></i></span><code>ls <em>posts/*</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/series/"><span class='fa-icon'><i class='fas fa-list-alt'></i></span><code>grep -o <em>series</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/tags/"><span class='fa-icon'><i class='fas fa-tags'></i></span><code>grep -o <em>tags</em> posts/* | sort -u</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/cool-stuff/"><span class='fa-icon'><i class='fas fa-thumbtack'></i></span><code>cd <em>cool-stuff</em></code>
+						<span></span>
+					</a>
+				</li>
+			 
+		 
+			 
+				<li>
+					<a href="/whoami/"><span class='fa-icon'><i class='fas fa-id-card'></i></span><code>whoami</code>
+						<span></span>
+					</a>
+				</li>
+			 
+		
+	</ul>
+</div>
+
+        <section class="social">
+	
+	<a href="https://bsky.app/profile/bricedutheil.bsky.social" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bluesky" class="svg-inline--fa fa-bluesky fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free v7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc. --><path fill="currentColor" d="M351.8 287C349.2 286.6 346.5 286.3 343.8 285.9C346.6 286.2 349.2 286.6 351.8 287zM256 232.9C236.7 192.3 178.3 116.7 125.5 79.4C74.9 43.7 55.6 50 43.1 55.6C28.2 62.2 25.6 84.7 25.6 98C25.6 111.1 32.9 206.4 37.6 222.3C53.2 274.9 108.9 292.6 160.2 286.9C162.8 286.5 165.4 286.2 168.2 285.8C165.5 286.2 162.9 286.6 160.2 286.9C85 297.8 18.3 325.4 105.8 422.8C202.1 522.5 237.7 401.4 256 340.1C274.3 401.4 295.4 518 404.5 422.8C486.4 340.1 427.0 298 351.8 286.9C349.2 286.5 346.5 286.2 343.8 285.8C346.6 286.1 349.2 286.6 351.8 286.9C403.1 292.6 458.7 274.9 474.4 222.3C479.1 206.4 486.4 111.2 486.4 98C486.4 84.6 483.8 62.2 468.9 55.6C457.5 50 438.1 43.7 386.6 79.4C333.7 116.7 275.3 192.3 256 232.9z"/></svg></i></a>
+	
+	
+	<a href="https://mastodon.xyz/@BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="jumbo" class="svg-inline--fa fa-jumbo fa-w-18" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path fill="currentColor" d="M433 179.11c0-97.2-63.71-125.7-63.71-125.7-62.52-28.7-228.56-28.4-290.48 0 0 0-63.72 28.5-63.72 125.7 0 115.7-6.6 259.4 105.63 289.1 40.51 10.7 75.32 13 103.33 11.4 50.81-2.8 79.32-18.1 79.32-18.1l-1.7-36.9s-36.31 11.4-77.12 10.1c-40.41-1.4-83-4.4-89.63-54a102.54 102.54 0 0 1-.9-13.9c85.63 20.9 158.65 9.1 178.75 6.7 56.12-6.7 105-41.3 111.23-72.9 9.8-49.8 9-121.5 9-121.5zm-75.12 125.2h-46.63v-114.2c0-49.7-64-51.6-64 6.9v62.5h-46.33V197c0-58.5-64-56.6-64-6.9v114.2H90.19c0-122.1-5.2-147.9 18.41-175 25.9-28.9 79.82-30.8 103.83 6.1l11.6 19.5 11.6-19.5c24.11-37.1 78.12-34.8 103.83-6.1 23.71 27.3 18.4 53 18.4 175z"/></svg></i></a>
+	
+	
+	<a href="https://github.com/bric3" rel="me"><i class="fab fa-github" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://speakerdeck.com/bric3" rel="me"><i class="fab fa-speaker-deck" aria-hidden="true"></i></a>
+	
+	
+	<a href="https://twitter.com/BriceDutheil" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="bird" class="svg-inline--fa fa-bird fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+	<a href="https://linkedin.com/in/dutheilbrice" rel="me"><i class="fa-w-16" aria-hidden="true"><svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="pro-network" class="svg-inline--fa fa-pro-network fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2022 Fonticons, Inc. --><path fill="currentColor" d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3zM135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5zm282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9V416z"></path></svg></i></a>
+	
+	
+	<a href="https://stackoverflow.com/users/48136/brice" rel="me"><i class="fab fa-stack-overflow" aria-hidden="true"></i></a>
+	
+	
+	
+	
+	
+	
+	
+	
+</section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="container fixed-container">
+    
+<div class="copyright">
+  &copy; 2010 - 2026 Brice Dutheil
+  
+    <span style="white-space: nowrap;"><a href="https://creativecommons.org/licenses/by-sa/4.0">CC BY-SA 4.0</a></span>
+  
+</div>
+
+
+
+  </div>
+</div>
+
+        <div class="content container">
+            
+    <header>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2026-02-08-ten-reasons-to-not%20use-JDK-httpclient.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+</header>
+
+            
+    
+
+<article>
+  <header>
+    <h1>10&#43; reasons to NOT use JDK&#39;s HttpClient</h1>
+    
+    
+<div class="post__meta">
+    
+    
+      <i class="fas fa-calendar-alt"></i> 2026-02-08
+    
+    
+    
+    
+    
+      
+      
+          <br/>
+           <i class="fas fa-tags"></i>
+          
+          <a class="badge badge-tag" href="/tags/jep-321">jep-321</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/java">java</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/jvm">jvm</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/httpclient">httpclient</a>
+           
+      
+          <a class="badge badge-tag" href="/tags/okhttp">okhttp</a>
+          
+      
+    
+    
+    <br/>
+    <i class="fas fa-clock"></i> 43 min read
+
+    
+    
+    
+
+</div>
+
+
+  </header>
+  
+  
+  
+    <div class="toc-wrapper">
+      <input type="checkbox" id="tocToggle" checked>
+      <label for="tocToggle"><i class="fas fa-list-ul fa-lg"></i><span id="toc-title">On this page</span></label>
+      <div id="toc-toggle-cover"></div>
+
+      
+          <nav id="TableOfContents">
+  <ul>
+    <li><a href="#_10plus_reasons">10PLUS reasons</a>
+      <ul>
+        <li><a href="#_performance_bugs">Performance, bugs</a></li>
+      </ul>
+    </li>
+    <li><a href="#_conclusion">Conclusion</a></li>
+    <li><a href="#_appendix">Appendix</a>
+      <ul>
+        <li><a href="#_api_comparison_with_okhttp">API comparison with OkHttp</a></li>
+        <li><a href="#_how_request_timeout_is_handled_between_jdk_11_and_jdk_25_by_the_jdks_httpclient">How request timeout is handled between JDK 11 and JDK 25 by the JDK’s HttpClient</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+      
+    </div>
+  
+  
+  
+  <div class="post adoc">
+    
+<div class="paragraph">
+<p>The <a href="https://openjdk.org/jeps/321">JEP-321</a> has been delivered with JDK 11. It has been
+<a href="https://openjdk.org/jeps/110">incubating since Java 9</a>, it delivers a general purpose, standard HTTP client to be
+used by everyone.</p>
+</div>
+<div class="admonitionblock caution">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-caution" title="Caution"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>When reading these lines, keep in mind the following is based on facts, but keep in mind the whole article represents my opinion only.</p>
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">tl;dr</div>
+<div class="paragraph">
+<p>The Java <code>HttpClient</code> is a great addition to the JDK, but its API limitations and issues significantly diminish its value.
+It looks like a general purpose HTTP client, but its one-size-fits-all approach is just not gonna cut it.</p>
+</div>
+<div class="paragraph">
+<p>Outside the basic use cases, the exposed API is uncomfortable, even awkward to use
+* Need payload compression, multipart, authentication or cache support ⇒ manual handling
+* Need to work TLS certificate pinning, hostname verification ⇒ Work with the JVM’s SSL/TLS abstractions, no finer customization points
+* Need finer metrics (e.g. to diagnose) passing a custom socket ⇒ it’s not possible!
+* Many of the finer controls are JVM-wide via system properties.</p>
+</div>
+<div class="paragraph">
+<p>The gist is that some API issues can be worked around by using some wrapper code (or a library like
+<a href="https://github.com/mizosoft/methanol/">methanol</a>), but the underlying mechanic is still
+there: any <code>HttpClient</code> is affected by JVM-wide customization via <em>system properties</em>, and HttpClient bugs are still
+there and cannot be worked around by bumping a dependency.</p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The reasons below may appeal to you or not depending on one’s use case. The order is mine. Your opinion is most welcome.</p>
+</div>
+<div class="paragraph">
+<p>Before going further, I want to make clear that I congratulate the JDK team for delivering this client and improving
+it over the years, but after a look over the API and the issues, I don’t believe anymore it’s the best option for most
+use cases.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>It’s funny that an <code>sun.net.www.http.HttpClient</code> that used very specific purpose within
+the JDK pre-existed JDK 11’s <code>java.net.http.HttpClient</code>, and this old one is still there, even in JDK 25.</p>
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect1">
+<h2 id="_10plus_reasons"><a class="anchor" href="#_10plus_reasons"></a><a class="link" href="#_10plus_reasons">10PLUS reasons</a></h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>It’s not possible to use a <em>named pipe</em> or a <em>Unix Domain Socket</em> (the <code>HttpClient</code> doesn’t support passing a
+<code>SocketFactory</code>), even while UDS support landed in JDK 16.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8275838">JDK-8275838 java.net.http client does not work over unix domain sockets</a></p>
+</li>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8371218">JDK-8371218 Add Unix Domain Socket Support to jdk.httpserver</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>close</code>, <code>shutdown</code>, … methods were introduced in JDK 21</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8267140">JDK-8267140 Support closing the HttpClient by making it auto-closable</a></p>
+</li>
+<li>
+<p><a href="https://inside.java/2023/12/10/sip092/"><code>AutoCloseable</code> HttpClient – Sip of Java</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>No <code>URIBuilder</code>, relies on throwable URI class only, however, there are third party builders if needed</p>
+</li>
+<li>
+<p>Single timeout for a “full call” i.e., both request and response. Also, the timeout timer is never checked after
+response headers are received (HTTP/1.1 or HTTP/2), possibly leaving the call hanging (<a href="https://bugs.openjdk.org/browse/JDK-8258397">JDK-8258397</a>), that means</p>
+<div class="ulist">
+<ul>
+<li>
+<p>one cannot differentiate which of upload or download was slow.</p>
+</li>
+<li>
+<p>that a stalling download may go way beyond the timeout.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Use existing JDK’s “abstractions” regarding SSL / TLS, with fewer customization points.</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>The lack of passing a custom <code>SocketFactory</code> is also true for SSL / TLS connections, preventing other customizations.</p>
+</li>
+<li>
+<p>Certificate pinning involves hardcoding a specific public key or certificate into your application to ensure it only
+communicates with trusted servers, preventing <em>man-in-the-middle</em> attacks. JDK HttpClient requires creating full
+<code>TrustManager</code>, that perform the check, extracting keys from certificate, hash them, etc. It’s possible to use
+third party libs like <a href="https://github.com/Flowdalic/java-pinning">Flowdalic/java-pinning</a>, but they may not cover other needs.</p>
+</li>
+<li>
+<p>The JDK’s HttpClient do not allow customizing the hostname verification, It only allows to disable hostname
+verification JVM wide (<code>jdk.internal.httpclient.disableHostnameVerification</code>).</p>
+</li>
+<li>
+<p>No connection fallback mechanism. In particular, it can be useful to program how the client should handle degradation.
+This is simply not possible.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>No request/response interceptors <a href="https://stackoverflow.com/questions/53707502/is-it-possible-to-intercept-java-11-httpclient-requests">Is it possible to intercept Java 11 HttpClient requests?</a>
+Some behavior of a request just can’t be observed, like redirect, retries, authentication, etc.</p>
+<div class="paragraph">
+<p>Work around, wrap the client, <a href="https://github.com/mizosoft/methanol/">methanol</a> do it.</p>
+</div>
+</li>
+<li>
+<p>No event listener to dive explore the behavior of HTTP calls from begging to end. This can be done by wrapping
+the HttpClient to measure a few things, but internal connection events are not available. Users of HttpClient are
+blind to DNS timing, connection timing, header and body timing.</p>
+</li>
+<li>
+<p>The automatic retry mechanism is limited and hardly customizable. Indeed, HttpClient automatically retries to connect;
+it can be disabled by a system property <code>jdk.httpclient.disableRetryConnect</code>. It’s also limited to one retry. And, if
+it’s not a connection issue, <code>GET</code> and <code>HEAD</code> are retried by default, the only customization is adding additional methods
+via the <code>jdk.httpclient.enableAllMethodRetry</code> system property.</p>
+</li>
+<li>
+<p>No API to control on the connection pool, (which is mostly used for connection reuse). There’s a system property
+<code>jdk.httpclient.connectionPoolSize</code>, but no way to control parameters like <em>how long</em> to keep it there until JDK 20,
+again with system properties. Also, the client is not closeable until JDK 21’s via <code>close</code> method.</p>
+</li>
+<li>
+<p>Keep alive for idle connections added in JDK 20; in particular, this allows closing idle connections
+after this timeout expires. Before, idle connections were not closed. This can be tweaked via a system property
+(<code>jdk.httpclient.keepalive.timeout</code> and <code>jdk.httpclient.keepalive.timeout.h2</code>), which is JVM wide.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8295649">JDK-8295649 Add a means to close idle connections in the HTTP/2 connection pool</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>No concept of request &#34;dispatch&#34;, these controls are internal to the http client. For async request it’s possible
+to pass a custom <code>Executor</code>, it’s up to you to write an executor that matches what you need.</p>
+</li>
+<li>
+<p>Request logging is done via a system property <code>jdk.httpclient.HttpClient.log</code>. It’s always possible to make your own
+logging by wrapping the HttpClient, but it may lack the details one wants. Also, HttpClient wrappers usually provide this.</p>
+</li>
+<li>
+<p>If you have to handle multipart requests, then you’re just out of luck, it’s something to handle on your own.
+Third party libraries, however, to bring that support by wrapping the HttpClient.</p>
+</li>
+<li>
+<p>Payload compression also needs to be handled manually.</p>
+</li>
+<li>
+<p>Limited authentication support. While HttpClient provides an <code>Authenticator</code> API, it has limitations, and uneven API concepts.
+The <code>Authenticator</code> can be used to pass a password auth, but when a bearer is needed then you’re on your own by adding
+headers manually to the request. Also, the same authenticator handles both proxy and server authentication.</p>
+</li>
+<li>
+<p>No cache support, think of <a href="http://tools.ietf.org/html/rfc7234">RFC 7234</a> <code>Cache-Control</code>, <code>Last-Modified</code>, <code>ETag</code>, etc.
+Again, manual code or third party libraries can be used to add this support.</p>
+</li>
+</ol>
+</div>
+<div class="sect2">
+<h3 id="_performance_bugs"><a class="anchor" href="#_performance_bugs"></a><a class="link" href="#_performance_bugs">Performance, bugs</a></h3>
+<div class="paragraph">
+<p>I handpicked a few issues there that I think are relevant for me. Granted, many of these below have a fix; however,
+some are sometimes fixed very late in a patch release, for me, it is not an option for a library to wish for
+the actual consumer to have the latest version.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="https://github.com/spring-projects/spring-framework/issues/22333">WebFlux with Java 11 HttpClient unexpected slow performance compared with WebClient · Issue \#22333 · spring-projects/spring-framework</a></p>
+</li>
+<li>
+<p>Connection Leak with HTTP/2 <code>GOAWAY</code> frame, which is used by a server to initiate a graceful shutdown of a connection</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8335181">JDK-8335181 Incorrect handling of HTTP/2 GOAWAY frames in HttpClient</a> (backported to 17.0.17, 21.0.8)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>HTTP/2 Stream count was not decreasing on 204 response codes</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8238270">JDK-8238270 java.net HTTP/2 client does not decrease stream count when it receives 204 responses</a> (backported to 11.0.9)</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Request and response timeout disarms when response headers are received and didn’t account for the full response body. Only Response timeout is fixed from JDK 26.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8208693">JDK-8208693 HttpClient: Extend the request timeout’s scope to cover the response body</a></p>
+</li>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8258397">JDK-8258397 HttpClient: Investigate supporting timeout for reading body bytes</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>HttpClient fails to close its side of the socket, leaving the connection in CLOSE_WAIT when it receives <em>EOF</em> during response read
+<a href="https://bugs.openjdk.org/browse/JDK-8221395">JDK-8221395 HttpClient leaving connections in CLOSE_WAIT state until the Java process ends</a>, fixed in 11.0.6</p>
+</li>
+<li>
+<p>The logic to retry on connection was inverted until 11.0.6, which made it disabled by default</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8216561">JDK-8216561 HttpClient: The logic of retry on connect exception is inverted</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>When using a custom executor that rejects a task with <code>RejectedExecutionException</code>, it may shut down the internal
+<code>SelectorManager</code>, this affect both synchronous and asynchronous API (synchronous uses the async API under the hood),
+fixed in Java 19, backported to 17.0.17.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8277969">JDK-8277969 HttpClient SelectorManager shuts down when custom Executor rejects a task</a></p>
+</li>
+</ul>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_conclusion"><a class="anchor" href="#_conclusion"></a><a class="link" href="#_conclusion">Conclusion</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This HTTP client is certainly most welcome when bootstrapping new code, basic use cases. Yet when it’s time for more
+control, &#34;customization&#34;, robustness, the issues of the JDK HttpClient start showing.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>API Concepts are for basic usage but do not express well or even not at all more advanced ones, leaving the user
+to fill in the gaps if that’s possible</p>
+</li>
+<li>
+<p>It’s not well battle tested; some issues fixed very late, some even in JDK 26, leave me worried compared
+to other libraries.</p>
+</li>
+<li>
+<p>Some customization affects the whole JVM, which is not ideal for libraries and may be a problem for whenever it is
+necessary to use different settings for different clients.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Some wrapper libraries can help, though, but the underlying issues remain and can’t be worked around.</p>
+</div>
+<div class="paragraph">
+<p><strong>Comparatively, a library like OkHttp API covers everything that HttpClient misses; also, its API has better concepts
+aligning well with HTTP Lingo, it is more battle tested and more customizable.</strong>
+OkHttp has its issues as well, starting with its size, 3.x is ~640 KiB with its okio dependency, but starting 4.x OkHttp
+is written in Kotlin which makes it ~3 MiB (okio and kotlin-stdlib included)!</p>
+</div>
+<hr/>
+<div class="paragraph">
+<p>You can stop reading here, the rest is just a summary of my notes.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_appendix"><a class="anchor" href="#_appendix"></a><a class="link" href="#_appendix">Appendix</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_api_comparison_with_okhttp"><a class="anchor" href="#_api_comparison_with_okhttp"></a><a class="link" href="#_api_comparison_with_okhttp">API comparison with OkHttp</a></h3>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+I’m comparing with OkHttp 3.x which is the latest version before the switch to Kotlin.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="sect3">
+<h4 id="_size_concerns"><a class="anchor" href="#_size_concerns"></a><a class="link" href="#_size_concerns">Size concerns</a></h4>
+<div class="paragraph">
+<p>The JDK’s HttpClient is part of the JDK, so it doesn’t add any dependency to your project, but it’s something you
+cannot upgrade, only your consumer can.</p>
+</div>
+<div class="paragraph">
+<p>Personally, I have nothing against Kotlin or using it in prod on a server; it’s a great language. However, I do
+understand that as a library, it’s not something you want to force on your users, and something it’s not even something
+possible for the end users.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 50%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Total Size</th>
+<th class="tableblock halign-left valign-top">Dependencies Included</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OkHttp 3.14.9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~510 KiB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">okhttp (420 KiB) + okio (90 KiB)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OkHttp 4.12.0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">~2.73 MiB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">okhttp (771 KiB) + okio-jvm (351 KiB) + kotlin-stdlib (1.63 MiB)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_tls_customization"><a class="anchor" href="#_tls_customization"></a><a class="link" href="#_tls_customization">TLS Customization</a></h4>
+<div class="paragraph">
+<p>Separating a trust manager and the way to connect is not possible with the JDK’s HttpClient.</p>
+</div>
+<div class="listingblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">SSLContext sslContext = SSLContext.getInstance(&#34;TLS&#34;);
+sslContext.init(null, new TrustManager[] { trustManager }, null);
+
+HttpClient client = HttpClient.newBuilder()
+    .sslContext(sslContext)  <i class="conum" data-value="1"></i><b>(1)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Only an SSLContext, the socket will be created internally.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">X509TrustManager trustManager = // ...
+SSLContext sslContext = SSLContext.getInstance(&#34;TLS&#34;);
+sslContext.init(null, new TrustManager[] { trustManager }, null);
+
+OkHttpClient client = new OkHttpClient.Builder()
+    .sslSocketFactory(sslContext.getSocketFactory(), trustManager)  <i class="conum" data-value="1"></i><b>(1)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Choose the SSL socket factory</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p><strong>Hostname verification</strong></p>
+</div>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The only tweak is disabling hostname verification via <code>jdk.internal.httpclient.disableHostnameVerification</code>.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient devClient = new OkHttpClient.Builder()
+    .hostnameVerifier((hostname, session) -&gt; {
+        return hostname.endsWith(&#34;.internal.mycompany.com&#34;); <i class="conum" data-value="1"></i><b>(1)</b>
+    })
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Customize as needed by the client</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p><strong>Certificate pinning</strong></p>
+</div>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>Certificate pinning is not supported out of the box; you need to implement a <code>TrustManager</code> that performs the check,
+extracting keys from certificate, hash them, etc. Then create an SSLContext with that <code>TrustManager</code> and pass it to the
+HttpClient builder.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder()
+    .certificatePinner(
+        new CertificatePinner.Builder()
+            .add(&#34;api.mycompany.com&#34;, &#34;sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=&#34;)
+            .add(&#34;*.cdn.mycompany.com&#34;, &#34;sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=&#34;)
+            .add(&#34;api.mycompany.com&#34;, &#34;sha256/CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=&#34;)
+            .build())
+    .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>TLS Version, cipher suites</strong></p>
+</div>
+<div class="listingblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">SSLParameters params = new SSLParameters();
+params.setProtocols(new String[] { &#34;TLSv1.3&#34;, &#34;TLSv1.2&#34; }); <i class="conum" data-value="1"></i><b>(1)</b>
+params.setCipherSuites(new String[] { <i class="conum" data-value="2"></i><b>(2)</b>
+    &#34;TLS_AES_256_GCM_SHA384&#34;,
+    &#34;TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384&#34;
+});
+params.setApplicationProtocols(new String[] { &#34;h2&#34;, &#34;http/1.1&#34; }); <i class="conum" data-value="3"></i><b>(3)</b>
+
+HttpClient client = HttpClient.newBuilder()
+    .sslContext(sslContext)
+    .sslParameters(params) <i class="conum" data-value="4"></i><b>(4)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>TLS versions</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Cipher suites</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>ALPN protocols</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Requires setting all parameters at once, no finer control.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Configuration split into TWO places:
+
+// 1 &amp; 2. TLS versions + Cipher suites → ConnectionSpec
+ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS) <i class="conum" data-value="1"></i><b>(1)</b>
+    .tlsVersions(TlsVersion.TLS_1_3, TlsVersion.TLS_1_2)
+    .cipherSuites(
+        CipherSuite.TLS_AES_256_GCM_SHA384,
+        CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    )
+    .build();
+
+OkHttpClient client = new OkHttpClient.Builder()
+    .connectionSpecs(Collections.singletonList(spec))
+    .protocols(Arrays.asList(Protocol.HTTP_2, Protocol.HTTP_1_1)) <i class="conum" data-value="2"></i><b>(2)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Connection builder, organized around concepts, not just a bag of parameters. (Also, OkHttp provides pre-defined ConnectionSpec for common use cases, like <code>MODERN_TLS</code> or <code>CLEARTEXT</code>).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>ALPN protocols are set separately, not as part of the TLS configuration.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p><strong>Connection fallback mechanism</strong></p>
+</div>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The JDK’s HttpClient does not have a connection fallback mechanism, it will just fail if the connection cannot be established.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder()
+    .connectionSpecs(Arrays.asList( <i class="conum" data-value="1"></i><b>(1)</b>
+        ConnectionSpec.MODERN_TLS,
+        ConnectionSpec.COMPATIBLE_TLS,
+        ConnectionSpec.CLEARTEXT
+    ))
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>OkHttp will try the connection specs in order, if the first one fails, it will try the next one, and so on.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_custom_socket"><a class="anchor" href="#_custom_socket"></a><a class="link" href="#_custom_socket">Custom socket</a></h4>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The JDK’s HttpClient does not allow to use a custom socket factory, which means that using a custom socket is not possible.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder()
+    .socketFactory(new NamedPipeSocketFactory(namedPipe)) <i class="conum" data-value="1"></i><b>(1)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>OkHttp allows using a custom socket factory, which means that <em>Unix Domain Socket</em> or Windows <em>Named Pipe</em>, or another custom socket is possible.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_connection_pool_control"><a class="anchor" href="#_connection_pool_control"></a><a class="link" href="#_connection_pool_control">Connection pool control</a></h4>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The JDK’s HttpClient does not have an API to control the connection pool, which is mostly used for connection reuse.
+There’s a system property <code>jdk.httpclient.connectionPoolSize</code> which affects all clients, until JDK 20 there’s no way to
+define criteria for eviction like <em>how long</em> to keep idle connections, again with system properties.
+The pool cannot be shutdown in a controlled manner, that is until JDK 21.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder()
+    .connectionPool(new ConnectionPool(5, 5, TimeUnit.MINUTES)) <i class="conum" data-value="1"></i><b>(1)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Custom connection pool, including the number of idle connections and the keep-alive duration.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_dns_control"><a class="anchor" href="#_dns_control"></a><a class="link" href="#_dns_control">DNS control</a></h4>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The JDK’s HttpClient does not have an API to control the DNS resolution, which means it’s using the JVM default DNS resolver.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">Dns customDnsResolver = hostname -&gt; {
+    return Arrays.asList(...);
+};
+OkHttpClient client = new OkHttpClient.Builder()
+    .dns(customDnsResolver) <i class="conum" data-value="1"></i><b>(1)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Custom DNS resolver, allowing to control how hostnames are resolved.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_proxy_authentication"><a class="anchor" href="#_proxy_authentication"></a><a class="link" href="#_proxy_authentication">Proxy authentication</a></h4>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This only covers basic auth, other authentication schemes need more analysis.
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">Authenticator authenticator = new Authenticator() { <i class="conum" data-value="1"></i><b>(1)</b>
+    @Override
+    protected PasswordAuthentication getPasswordAuthentication() {
+        if (getRequestorType() == RequestorType.PROXY) {
+            // Proxy authentication (407)
+            return new PasswordAuthentication(
+                proxyUsername,
+                proxyPassword.toCharArray()
+            );
+        } else if (getRequestorType() == RequestorType.SERVER) {
+            // Server authentication (401)
+            return new PasswordAuthentication(
+                serverUsername,
+                serverPassword.toCharArray()
+            );
+        }
+        return null;
+    }
+};
+
+HttpClient client = HttpClient.newBuilder()
+    .proxy(proxySelector)
+    .authenticator(authenticator)  <i class="conum" data-value="2"></i><b>(2)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>Authenticator</code> is called for both proxy and server authentication, the <code>RequestorType</code> can be used to differentiate between the two.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The same <code>Authenticator</code> is used for both proxy and server authentication.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">Authenticator proxyAuthenticator = (route, response) -&gt; {
+    String credential = Credentials.basic(proxyUsername, proxyPassword);
+    return response.request().newBuilder()
+        .header(&#34;Proxy-Authorization&#34;, credential)
+        .build();
+};
+
+Authenticator serverAuthenticator = (route, response) -&gt; {
+    String credential = Credentials.basic(serverUsername, serverPassword);
+    return response.request().newBuilder()
+        .header(&#34;Authorization&#34;, credential)
+        .build();
+};
+
+OkHttpClient client = new OkHttpClient.Builder()
+    .proxy(proxy)
+    .proxyAuthenticator(proxyAuthenticator)  <i class="conum" data-value="1"></i><b>(1)</b>
+    .authenticator(serverAuthenticator) <i class="conum" data-value="2"></i><b>(2)</b>
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Only called for proxy authentication.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Only called for server authentication.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_requestresponse_interceptors"><a class="anchor" href="#_requestresponse_interceptors"></a><a class="link" href="#_requestresponse_interceptors">Request/response interceptors</a></h4>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The JDK’s HttpClient does not have request/response interceptors, which means that you cannot easily modify or
+understand lifecycle requests or responses.</p>
+</div>
+<div class="paragraph">
+<p>Achievable by wrapping the HttpClient, but it may lack the details one wants (e.g. it is not possible to observe redirects,
+authentication, retries).</p>
+</div>
+<div class="paragraph">
+<p>Libraries like <a href="https://github.com/mizosoft/methanol/">methanol</a> provide it out of the box, but it may not cover all use
+cases due to the underlying HttpClient.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder()
+    .addInterceptor(chain -&gt; { <i class="conum" data-value="1"></i><b>(1)</b>
+        Request request = chain.request();
+        // Modify or read the request as needed
+        Response response = chain.proceed(request);
+        // Modify the response as needed
+        return response;
+    })
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Interceptor that can modify both the request and the response, and is applied to all requests made by the client.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_metrics_and_event_listeners"><a class="anchor" href="#_metrics_and_event_listeners"></a><a class="link" href="#_metrics_and_event_listeners">Metrics and event listeners</a></h4>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The JDK’s HttpClient does not have an API to listen to events during the lifecycle of a request, which means that you
+cannot collect metrics or understand the behavior of HTTP calls from beginning to end.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder()
+    .eventListener(new EventListener() { <i class="conum" data-value="1"></i><b>(1)</b>
+        @Override
+        public void dnsStart(Call call, String domainName) { <i class="conum" data-value="2"></i><b>(2)</b>
+        }
+
+        @Override
+        public void callStart(Call call) { <i class="conum" data-value="3"></i><b>(3)</b>
+        }
+    })
+    .build();</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Event listener that can listen to various events during the lifecycle of a call.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>DNS resolution starts.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Call is started.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_terminating_a_client"><a class="anchor" href="#_terminating_a_client"></a><a class="link" href="#_terminating_a_client">Terminating a client</a></h4>
+<div class="openblock primary">
+<div class="title">httpclient</div>
+<div class="content">
+<div class="paragraph">
+<p>The JDK’s HttpClient does not have a way to be closed or shutdown until JDK 21, which means that you cannot easily
+release resources associated with the client, such as idle connections in the connection pool.</p>
+</div>
+<div class="paragraph">
+<p>After JDK 21, the <code>HttpClient</code> implements <code>AutoCloseable</code> (allowing use within a try-with-resources block), and
+calling <code>close()</code> will close idle connections in the connection pool.</p>
+</div>
+</div>
+</div>
+<div class="listingblock secondary">
+<div class="title">okhttp</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder().build();
+
+client.connectionPool().evictAll(); <i class="conum" data-value="1"></i><b>(1)</b>
+client.dispatcher().executorService().shutdown(); <i class="conum" data-value="2"></i><b>(2)</b>
+client.dispatcher().executorService().shutdownNow(); <i class="conum" data-value="3"></i><b>(3)</b>
+if (client.cache() != null) {
+    client.cache().close(); <i class="conum" data-value="4"></i><b>(4)</b>
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Closes all idle connections in the connection pool.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Shuts down the executor service used for dispatching calls.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Shuts down the executor service immediately, interrupting running calls.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Closes the cache if configured.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>OkHttpClient does not have a single method to close the client but provides methods to close the various
+resources it uses, allowing controlled shutdown if necessary.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_how_request_timeout_is_handled_between_jdk_11_and_jdk_25_by_the_jdks_httpclient"><a class="anchor" href="#_how_request_timeout_is_handled_between_jdk_11_and_jdk_25_by_the_jdks_httpclient"></a><a class="link" href="#_how_request_timeout_is_handled_between_jdk_11_and_jdk_25_by_the_jdks_httpclient">How request timeout is handled between JDK 11 and JDK 25 by the JDK’s HttpClient</a></h3>
+<div class="paragraph">
+<p>From a user perspective, here’s how one could define an HTTP request with a timeout:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">val request = HttpRequest.newBuilder()
+    .uri(URI.create(&#34;https://example.com&#34;))
+    .timeout(Duration.ofSeconds(5))
+    .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The javadoc says:</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Sets a timeout for this request. If the response is not received within the
+specified timeout then an <code>HttpTimeoutException</code> is thrown from
+<code>HttpClient::send</code> or <code>HttpClient::sendAsync</code> completes exceptionally with
+an <code>HttpTimeoutException</code>. The effect of not setting a timeout is the same
+as setting an infinite Duration, i.e. block forever.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>So it applies to the whole request. One cannot bias the timeout to upload or to download. Now when it comes to
+<a href="https://bugs.openjdk.org/browse/JDK-8208693">JDK-8208693</a>, the request timeout is disarmed when response headers
+are received,
+and only response timeout is applied to the rest of the call, which means that if the server is slow to send back
+the response body, it may take way longer than the request timeout, which is not what users expect.</p>
+</div>
+<div class="paragraph">
+<p>When the request above is <em>sent</em> (<code>client.send(request)</code>), the <code>HttpClientImpl</code> create a new exchange (<code>MultiExchange</code>)
+and calls <code>mex.responseAsync(executor)</code>. This will create a &#34;flow&#34; made of <code>CompletableFuture</code></p>
+</div>
+<div class="listingblock">
+<div class="title"><code>MultiExchange::responseAsync0</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">private CompletableFuture&lt;HttpResponse&lt;T&gt;&gt;
+responseAsync0(CompletableFuture&lt;Void&gt; start) {
+    return start.thenCompose( v -&gt; responseAsyncImpl()) <i class="conum" data-value="1"></i><b>(1)</b>
+                .thenCompose((Response r) -&gt; {
+                    // ...
+                    return exch.readBodyAsync(responseHandler) <i class="conum" data-value="2"></i><b>(2)</b>
+                        // ...
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The timer is started within this method and cancelled there once response headers have been received.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The timer is cancelled at that point.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title"><code>MultiExchange::responseAsyncImpl</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">private CompletableFuture&lt;Response&gt; responseAsyncImpl() {
+    //...
+        if (currentreq.timeout().isPresent()) {
+            responseTimerEvent = ResponseTimerEvent.of(this);
+            client.registerTimer(responseTimerEvent); <i class="conum" data-value="1"></i><b>(1)</b>
+        }
+        // ...
+
+        // 2. get response
+        cf = exch.responseAsync() <i class="conum" data-value="2"></i><b>(2)</b>
+                 .thenCompose((Response response) -&gt; {
+                    HttpRequestImpl newrequest;
+                    try {
+                        // 3. apply response filters
+                        newrequest = responseFilters(response);
+                    } catch (Throwable t) {
+                        IOException e = t instanceof IOException io ? io : new IOException(t);
+                        exch.exchImpl.cancel(e);
+                        return failedFuture(e);
+                    }
+                    // 4. check filter result and repeat or continue
+                    if (newrequest == null) {
+                        if (attempts.get() &gt; 1) {
+                            Log.logError(&#34;Succeeded on attempt: &#34; + attempts);
+                        }
+                        return completedFuture(response);
+                    } else {
+                        cancelTimer();
+                        this.response =
+                            new HttpResponseImpl&lt;&gt;(currentreq, response, this.response, null, exch);
+                        Exchange&lt;T&gt; oldExch = exch;
+                        if (currentreq.isWebSocket()) {
+                            // need to close the connection and open a new one.
+                            exch.exchImpl.connection().close();
+                        }
+                        return exch.ignoreBody().handle((r,t) -&gt; {
+                            previousreq = currentreq;
+                            currentreq = newrequest;
+                            retriedOnce = false;
+                            setExchange(new Exchange&lt;&gt;(currentreq, this));
+                            return responseAsyncImpl();
+                        }).thenCompose(Function.identity());
+                    } })
+                 .handle((response, ex) -&gt; {
+                    // 5. handle errors and cancel any timer set
+                    cancelTimer(); <i class="conum" data-value="3"></i><b>(3)</b>
+                    if (ex == null) {
+                        assert response != null;
+                        return completedFuture(response);
+                    }
+                    // all exceptions thrown are handled here
+                    CompletableFuture&lt;Response&gt; errorCF = getExceptionalCF(ex, exch.exchImpl);
+                    if (errorCF == null) {
+                        return responseAsyncImpl();
+                    } else {
+                        return errorCF;
+                    } })
+                 .thenCompose(Function.identity());
+    // ...
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The timer starts here.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td><code>exch.responseAsync()</code> returns <strong>after</strong> reading the headers only, see next code snippet.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The timer is cancelled here, ignoring what happens after.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The HttpClient communication works around the internal concept of <em>exchanges</em>, handling protocol change if necessary.
+From <code>MultiExchange::responseAsyncImpl</code>, this will call <code>Echange.responseAsync()</code> to handle HTTP code 100 / 101 to switch protocol if necessary.
+Then, if it’s HTTP/1.1 it’ll be an <code>Http1Exchange</code>, if it’s HTTP/2, it’ll be an <code>Stream</code> implementation:</p>
+</div>
+<div class="exampleblock primary">
+<div class="title">Example 1. HTTP/1.1</div>
+<div class="content">
+<div class="listingblock">
+<div class="title"><code>Http1Exchange::getResponseAsync</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Override
+CompletableFuture&lt;Response&gt; getResponseAsync(Executor executor) {
+    if (debug.on()) debug.log(&#34;reading headers&#34;);
+    CompletableFuture&lt;Response&gt; cf = response.readHeadersAsync(executor);
+    // ...
+    return cf; <i class="conum" data-value="1"></i><b>(1)</b>
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Returns after reading headers only.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">Example 2. HTTP/2</div>
+<div class="content">
+<div class="listingblock">
+<div class="title"><code>Stream::getResponseAsync</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Override
+CompletableFuture&lt;Response&gt; getResponseAsync(Executor executor) {
+    CompletableFuture&lt;Response&gt; cf;
+    // ...
+            // getResponseAsync() is called first. Create a CompletableFuture
+            // that will be completed by completeResponse() when
+            // completeResponse() is called.
+            cf = new MinimalFuture&lt;&gt;(); <i class="conum" data-value="1"></i><b>(1)</b>
+            response_cfs.add(cf);
+    // ...
+    return cf;
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>A <code>CompletableFuture</code> returned to mark the point where headers are read.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title"><code>Stream::incoming</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">void incoming(Http2Frame frame) throws IOException {
+    // ...
+    if ((frame instanceof HeaderFrame hf)) {
+        if (hf.endHeaders()) {
+            Log.logTrace(&#34;handling response (streamid={0})&#34;, streamid);
+            handleResponse(hf); <i class="conum" data-value="1"></i><b>(1)</b>
+        }
+    // ...
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Process the header frame, which will invoke <code>completeResponse</code> completing the <code>CompletableFuture</code> returned by <code>getResponseAsync</code> above.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>If the timer expires before, the request will fail with a <code>HttpTimeoutException</code>.
+When a timeout is set the timer (with <em>deadline</em> actually) is registered in the <code>HttpClientImpl</code> as shown above.
+The <code>HttpClientImpl</code> has <code>SelectorManager</code> thread checking timeouts on each selector loop.
+In <code>HttpClientImpl::purgeTimeoutsAndReturnNextDeadline</code> when the timer is past its deadline,
+the <code>TimeoutEvent::handle</code> method is called.</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>ResponseTimerEvent::handle</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Override
+public void handle() {
+    //...
+    // more specific, &#34;request timed out&#34;, message when connected
+    Exchange&lt;?&gt; exchange = multiExchange.getExchange();
+    if (exchange != null) {
+        ExchangeImpl&lt;?&gt; exchangeImpl = exchange.exchImpl;
+        if (exchangeImpl != null) { <i class="conum" data-value="1"></i><b>(1)</b>
+            if (exchangeImpl.connection().connected()) {
+                t = new HttpTimeoutException(&#34;request timed out&#34;);
+            }
+        }
+    }
+    if (t == null) { <i class="conum" data-value="2"></i><b>(2)</b>
+        t = new HttpConnectTimeoutException(&#34;HTTP connect timed out&#34;);
+        t.initCause(new ConnectException(&#34;HTTP connect timed out&#34;));
+    }
+    multiExchange.cancel(t); <i class="conum" data-value="3"></i><b>(3)</b>
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>If a connection is established, the timeout is considered a request timeout</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Otherwise it’s a connection timeout.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Completes the associated <code>multiExchange.responseAsyncImpl</code> exceptionally (actually the underlying exchange).</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+
+  </div>
+  
+
+<div class="navigation navigation-single">
+    
+    <a href="/2022/10/16/moving-from-disqus-to-giscus/" class="navigation-prev">
+      <i aria-hidden="true" class="fa fa-chevron-left"></i>
+      <span class="navigation-tittle">Switching from Disqus to Giscus (GitHub Discussions)</span>
+    </a>
+    
+    
+</div>
+
+
+  
+
+  
+
+  <script
+    src="https://giscus.app/client.js"
+    data-repo="bric3/bric3.github.io"
+    data-repo-id="MDEwOlJlcG9zaXRvcnk2MDc3NjczMQ=="
+    data-category="Blog Comments"
+    data-category-id="DIC_kwDOA59hG84CR_S_"
+    data-mapping="pathname"
+    data-reactions-enabled="1"
+    data-input-position="top"
+    data-theme="preferred-color-scheme"
+    data-lang="en"
+    data-loading="lazy"
+    data-strict="1"
+    
+    data-theme="preferred-color-scheme"
+    crossorigin="anonymous"
+    async
+  ></script>
+
+
+</article>
+
+
+            
+    
+<footer>
+
+ 
+ 
+ <div class="github-edit">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2026-02-08-ten-reasons-to-not%20use-JDK-httpclient.adoc">
+     <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
+     </a>
+ </div>
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], ignoreClass: "nostem|nolatexmath" },
+  asciimath2jax: { delimiters: [["\\$", "\\$"]], ignoreClass: "nostem|noasciimath" },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js" integrity="sha512-M36RUChWzAh1veeenRZFql7HydLEnkYmoloiCvVrhz402UZgKI93qkV7SsaxtVKdN95Wzajh39ysrXCq34NTsg==" crossorigin="anonymous"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/config/TeX-MML-AM_HTMLorMML-full.min.js" integrity="sha512-SdNVJmCczXFqz3Iok8gP+cloe2CScrnHJczMBwL+aSrdZVllRNqRJ5A2p83S4fUM8I4endIZgM2ZIkwNqb3Eew==" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js" integrity="sha512-gU7kztaQEl7SHJyraPfZLQCNnrKdaQi5ndOyt4L4UPL/FHDd/uB9Je6KDARIqwnNNE27hnqoWLBq+Kpe4iHfeQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="text/javascript">
+        
+        
+        
+        
+        
+        var mergeHTMLPlugin = (function () {
+            'use strict';
+
+            var originalStream;
+
+            
+
+            function escapeHTML(value) {
+                return value
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;');
+            }
+
+             
+
+             
+            const mergeHTMLPlugin = {
+                
+                "before:highlightElement": ({ el }) => {
+                    originalStream = nodeStream(el);
+                },
+                
+                "after:highlightElement": ({ el, result, text }) => {
+                    if (!originalStream.length) return;
+
+                    const resultNode = document.createElement('div');
+                    resultNode.innerHTML = result.value;
+                    result.value = mergeStreams(originalStream, nodeStream(resultNode), text);
+                    el.innerHTML = result.value;
+                }
+            };
+
+             
+
+            
+
+
+            
+
+            function tag(node) {
+                return node.nodeName.toLowerCase();
+            }
+
+            
+
+            function nodeStream(node) {
+                 
+                const result = [];
+                (function _nodeStream(node, offset) {
+                    for (let child = node.firstChild; child; child = child.nextSibling) {
+                        if (child.nodeType === 3) {
+                            offset += child.nodeValue.length;
+                        } else if (child.nodeType === 1) {
+                            result.push({
+                                event: 'start',
+                                offset: offset,
+                                node: child
+                            });
+                            offset = _nodeStream(child, offset);
+                            
+                            
+                            
+                            if (!tag(child).match(/br|hr|img|input/)) {
+                                result.push({
+                                    event: 'stop',
+                                    offset: offset,
+                                    node: child
+                                });
+                            }
+                        }
+                    }
+                    return offset;
+                })(node, 0);
+                return result;
+            }
+
+            
+
+            function mergeStreams(original, highlighted, value) {
+                let processed = 0;
+                let result = '';
+                const nodeStack = [];
+
+                function selectStream() {
+                    if (!original.length || !highlighted.length) {
+                        return original.length ? original : highlighted;
+                    }
+                    if (original[0].offset !== highlighted[0].offset) {
+                        return (original[0].offset < highlighted[0].offset) ? original : highlighted;
+                    }
+
+                    
+
+                    return highlighted[0].event === 'start' ? original : highlighted;
+                }
+
+                
+
+                function open(node) {
+                     
+                    function attributeString(attr) {
+                        return ' ' + attr.nodeName + '="' + escapeHTML(attr.value) + '"';
+                    }
+                    
+                    result += '<' + tag(node) + [].map.call(node.attributes, attributeString).join('') + '>';
+                }
+
+                
+
+                function close(node) {
+                    result += '</' + tag(node) + '>';
+                }
+
+                
+
+                function render(event) {
+                    (event.event === 'start' ? open : close)(event.node);
+                }
+
+                while (original.length || highlighted.length) {
+                    let stream = selectStream();
+                    result += escapeHTML(value.substring(processed, stream[0].offset));
+                    processed = stream[0].offset;
+                    if (stream === original) {
+                        
+
+                        nodeStack.reverse().forEach(close);
+                        do {
+                            render(stream.splice(0, 1)[0]);
+                            stream = selectStream();
+                        } while (stream === original && stream.length && stream[0].offset === processed);
+                        nodeStack.reverse().forEach(open);
+                    } else {
+                        if (stream[0].event === 'start') {
+                            nodeStack.push(stream[0].node);
+                        } else {
+                            nodeStack.pop();
+                        }
+                        render(stream.splice(0, 1)[0]);
+                    }
+                }
+                return result + escapeHTML(value.substr(processed));
+            }
+
+            return mergeHTMLPlugin;
+
+        }());
+        hljs.addPlugin(mergeHTMLPlugin);
+        
+
+
+        
+        hljs.highlightAll();
+    </script>
+    
+
+<script src="/js/scroll-shadows.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.min.js" integrity="sha256-vrn14y7WH7zgEElyQqm2uCGSQrX/xjYDjniRUQx3NyU=" crossorigin="anonymous"></script>
+<script type="text/javascript">
+function addBlockSwitches() {
+	$('.primary').each(function() {
+		primary = $(this);
+		createSwitchItem(primary, createBlockSwitch(primary)).item.addClass("selected");
+		primary.children('.title').remove();
+	});
+	$('.secondary').each(function(idx, node) {
+		secondary = $(node);
+		primary = findPrimary(secondary);
+		switchItem = createSwitchItem(secondary, primary.children('.switch'));
+		switchItem.content.addClass('hidden');
+		findPrimary(secondary).append(switchItem.content);
+		secondary.remove();
+	});
+}
+
+function createBlockSwitch(primary) {
+	blockSwitch = $('<div class="switch"></div>');
+	primary.prepend(blockSwitch);
+	return blockSwitch;
+}
+
+function findPrimary(secondary) {
+	candidate = secondary.prev();
+	while (!candidate.is('.primary')) {
+		candidate = candidate.prev();
+	}
+	return candidate;
+}
+
+function createSwitchItem(block, blockSwitch) {
+	blockName = block.children('.title').text();
+	content = block.children('.content').first().append(block.next('.colist'));
+	item = $('<div class="switch--item">' + blockName + '</div>');
+	blockSwitch.append(item);
+	return {'item': item, 'content': content};
+}
+
+function globalSwitch() {
+	$('.switch--item').each(function() {
+		var blockId = blockIdForSwitchItem($(this));
+		$(this).off('click');
+		$(this).on('click', function() {
+			selectedText = $(this).text()
+			window.localStorage.setItem(blockId, selectedText);
+			$(".switch--item").filter(function() {
+				return blockIdForSwitchItem($(this)) === blockId;
+			}).filter(function() {
+				return $(this).text() === selectedText;
+			}).each(function() {
+				select($(this))
+			});
+		});
+		if ($(this).text() === window.localStorage.getItem(blockId)) {
+			select($(this))
+		}
+	});
+}
+
+function blockIdForSwitchItem(item) {
+	idComponents = []
+	idComponents.push(item.text().toLowerCase());
+	item.siblings(".switch--item").each(function(index, sibling) {
+		idComponents.push($(sibling).text().toLowerCase());
+	});
+	return idComponents.sort().join("-")
+}
+
+function select(selected) {
+	selected.addClass('selected');
+	selected.siblings().removeClass('selected');
+	selectedContent = selected.parent().siblings(".content").eq(selected.index())
+	selectedContent.removeClass('hidden');
+	selectedContent.siblings().addClass('hidden');
+}
+
+$(addBlockSwitches);
+$(globalSwitch);
+</script>
+
+<script type="text/javascript">
+  
+  
+  window.addEventListener("load", () => {
+    if (!'IntersectionObserver' in window) {
+      return;
+    }
+
+    
+    const sections = Array.from(document.querySelectorAll("section[id], h2[id], h3[id], h4[id], h5[id]"));
+    const visibleSectionClass = "visible-section";
+
+    
+    
+    const scrollHandler = entries =>
+            entries.forEach(entry => {
+              const section = entry.target;
+              const sectionId = section.id;
+              const sectionLink = document.querySelector(`a[href="#${sectionId}"]`);
+
+              console.log(sectionId, sectionLink);
+              console.log(entry)
+              console.log(entry.intersectionRect.height / entry.rootBounds.height)
+
+              if (entry.intersectionRatio > 0) {
+                section.classList.add(visibleSectionClass);
+                sectionLink.classList.add(visibleSectionClass);
+              } else {
+                section.classList.remove(visibleSectionClass);
+                sectionLink.classList.remove(visibleSectionClass);
+              }
+            });
+
+    
+    const observer = new IntersectionObserver(scrollHandler);
+    sections.map(section => {
+      if (section.tagName === "SECTION") {
+        return section;
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        
+        let actualSectionContainer = section.parentElement;
+        actualSectionContainer.id = section.id;
+        return actualSectionContainer;
+      }
+    }).forEach(section => observer.observe(section));
+  });
+
+</script>
+
+
+
+
+
+
+</footer>
+
+    
+
+
+
+        </div>
+    </body>
+</html>
+
