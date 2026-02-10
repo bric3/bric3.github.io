@@ -20,8 +20,9 @@ fi
 
 # Build local image if requested
 if [ "$USE_LOCAL" = true ]; then
-  echo "Building local Docker image from builder/Dockerfile..."
-  docker build --platform linux/amd64 -t bric3/hugo-builder:local builder/ || exit 1
+  ARCH=$(uname -m)
+  echo "Building local Docker image from builder/Dockerfile for architecture: $ARCH..."
+  docker build -t bric3/hugo-builder:local builder/ || exit 1
   echo "Local Docker image built successfully."
   IMAGE_TAG="bric3/hugo-builder:local"
 else
@@ -30,7 +31,7 @@ fi
 
 rm -rf .asciidoctor/ public/
 # slow but use the same build as used on Github Actions
-exec docker run --rm --volume $PWD:/src --publish "0.0.0.0:1313:1313" "$IMAGE_TAG" hugo serve --bind=0.0.0.0 --baseUrl=blog.local --buildDrafts --destination ./public
+exec docker run --rm --volume $PWD:/src --publish "0.0.0.0:1313:1313" "$IMAGE_TAG" hugo serve --bind=0.0.0.0 --baseURL=blog.local --buildDrafts --destination ./public
 
-#exec hugo serve --verbose --baseUrl=blog.local --bind=0.0.0.0 --buildDrafts --buildFuture --destination ./resources/_gen/diagram
-#exec hugo serve --verbose --baseUrl=blog.local --bind=0.0.0.0 --buildDrafts --buildFuture --destination ./public
+#exec hugo serve --verbose --baseURL=blog.local --bind=0.0.0.0 --buildDrafts --buildFuture --destination ./resources/_gen/diagram
+#exec hugo serve --verbose --baseURL=blog.local --bind=0.0.0.0 --buildDrafts --buildFuture --destination ./public
