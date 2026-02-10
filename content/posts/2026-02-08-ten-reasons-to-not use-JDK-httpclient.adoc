@@ -564,6 +564,98 @@ if (client.cache() != null) {
 OkHttpClient does not have a single method to close the client but provides methods to close the various
 resources it uses, allowing controlled shutdown if necessary.
 
+=== Protocol limitations
+
+[source,java]
+.`HttpRequestImpl::new`
+----
+public HttpRequestImpl(HttpRequestBuilderImpl builder) {
+    // ...
+    this.secure = uri.getScheme().toLowerCase(Locale.US).equals("https"); // <1>
+    // ...
+}
+----
+<1> Just indicates if HttpClient should use TLS or not.
+
+Then in `HttpConnection`, happens the real connection mechanism.
+
+[source,java]
+.`HttpConnection.getConnection`
+----
+public static HttpConnection getConnection(InetSocketAddress addr,
+                                           HttpClientImpl client,
+                                           HttpRequestImpl request,
+                                           Version version) {
+    // The default proxy selector may select a proxy whose  address is
+    // unresolved. We must resolve the address before connecting to it.
+    InetSocketAddress proxy = Utils.resolveAddress(request.proxy());
+    HttpConnection c = null;
+    boolean secure = request.secure();
+    // ...
+
+    if (!secure) {
+        c = pool.getConnection(false, addr, proxy); // <3>
+        if (c != null && c.checkOpen() /* may have been eof/closed when in the pool */) {
+            // ...
+            return c;
+        } else {
+            return getPlainConnection(addr, proxy, request, client); // <1>
+        }
+    } else {  // secure
+        if (version != HTTP_2) { // only HTTP/1.1 connections are in the pool
+            c = pool.getConnection(true, addr, proxy); // <3>
+        }
+        if (c != null && c.isOpen()) {
+            final HttpConnection conn = c;
+            // ...
+            return c;
+        } else {
+            // ...
+            return getSSLConnection(addr, proxy, alpn, request, client); // <2>
+        }
+    }
+}
+----
+<1> Create or get an HTTP connection.
+<2> Create or get an HTTPS connection.
+<3> Already created connections in the pool are reused.
+
+* `HttpConnection::getPlainConnection` returns either :
+** a `PlainHttpConnection`, which actually opens the socket via `SocketChannel.open()`
+** a `PlainTunnelingConnection`, which is actually delegating to a `PlainHttpConnection`
+** or a `PlainProxyConnection`, which is just "dumb" subclass of `PlainHttpConnection`.
+
+* `HttpConnection::getSSLConnection` returns either :
+** a `AsyncSSLTunnelConnection`, which wraps a `PlainTunnelingConnection` and performs the TLS handshake on top of it (via the client's `SSLContext`)
+** or a `AsyncSSLConnection`, which wraps a `PlainHttpConnection` and performs the TLS handshake on top of it (via the client's `SSLContext`).
+
+[source,java]
+.`PlainHttpConnection::new`
+----
+PlainHttpConnection(InetSocketAddress addr, HttpClientImpl client, String label) {
+    super(addr, client, label);
+    try {
+        this.chan = SocketChannel.open(); // <1>
+        chan.configureBlocking(false);
+        // ...
+        chan.setOption(StandardSocketOptions.TCP_NODELAY, true);
+        // wrap the channel in a Tube for async reading and writing
+        tube = new SocketTube(client(), chan, Utils::getBuffer, label);
+    } catch (IOException e) {
+        throw new InternalError(e);
+    }
+}
+----
+<1> Use the JDK's `SocketChannel` to open a socket using _internet_ protocols. Under the hood
+`SelectorProvider.provider().openSocketChannel()`, which is only supporting IPv4 and IPv6.
+
+The Unix Domain Socket support landed in JDK 16, but the HttpClient is still using
+`SocketChannel.open` to open sockets, as of JDK 25 it still uses it. To support UDS,
+The HttpClient would need to use `SocketChannel.open(StandardProtocolFamily.UNIX)`.
+
+The way the HttpClient is designed, it is not possible to use different kind of sockets,
+for example, _Named Pipes_ on Windows.
+
 
 === How request timeout is handled between JDK 11 and JDK 25 by the JDK's HttpClient
 
