@@ -74,10 +74,10 @@
 
 
 
-<link rel="stylesheet" href="/scss/ascii-press.1a0c3f16d3c8acc868bad13d7401767e717ed6b2794c65593d3d949a56e5670d.css" integrity="sha256-Ggw/FtPIrMhoutE9dAF2fnF&#43;1rJ5TGVZPT2UmlblZw0=">
+<link rel="stylesheet" href="/scss/ascii-press.b7ed20f520c7245e0035f7eaf7efc1794ff2e0cfec4df74d9600fd94b3f4ed0e.css" integrity="sha256-t&#43;0g9SDHJF4ANffq9&#43;/BeU/y4M/sTfdNlgD9lLP07Q4=">
 
 
-<link rel="stylesheet" href="/scss/ascii-press-dark.5bfae05eb1a79c8955f3e75e0620469b1f0c758ec0a03ecd87fc276b20d8e365.css" integrity="sha256-W/rgXrGnnIlV8&#43;deBiBGmx8MdY7AoD7Nh/wnayDY42U=" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/scss/ascii-press-dark.528eb3b63dcd126b56546a61fa3855b2ab58526f312daca74feb1c533f109d65.css" integrity="sha256-Uo6ztj3NEmtWVGph&#43;jhVsqtYUm8xLaynT&#43;scUz8QnWU=" media="(prefers-color-scheme: dark)">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -255,7 +255,7 @@
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2011-10-21-quelques-live-template-intellij-pour-mockito.md">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2011-10-21-quelques-live-template-intellij-pour-mockito.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
@@ -329,358 +329,474 @@
       <div id="toc-toggle-cover"></div>
 
       
-          <nav id="TableOfContents"></nav>
+          <nav id="TableOfContents">
+  <ul>
+    <li><a href="#_les_live_template_pour_mockito">Les Live Template pour Mockito</a></li>
+    <li><a href="#_références">Références</a></li>
+  </ul>
+</nav>
       
     </div>
   
   
   
-  <div class="post md">
-    <p>Hello, j&rsquo;en avais un peu marre d&rsquo;écrire régulièrement voire répétitivement dans mes tests les constructions mockito.</p>
-<p>Pour ça je me suis créé dans mon IDE favori, <a href="http://www.jetbrains.com/idea/">IntelliJ</a>, ce qu&rsquo;on appelle des Live Template. Ces templates permettent à partir d&rsquo;une abréviation d&rsquo;insérer des fragments de code. Ainsi par exemple :</p>
-<p>Taper <code>iter</code> dans votre éditeur puis de faire <!-- raw HTML omitted -->Ctrl+J<!-- raw HTML omitted --> (sous OSX) va développer cette abréviation dans le bout de code ci-dessous (suivant le contexte bien entendu)</p>
-<pre><code class="language-java">for (TypeInIterable type : someIterable) {
-
-}
-</code></pre>
-<p>Taper sur <!-- raw HTML omitted -->Ctrl+J<!-- raw HTML omitted --> (sous OSX) vous permet de lister les abréviations disponible dans le contexte courant.</p>
-<h1 id="les-live-template-pour-mockito">Les Live Template pour Mockito</h1>
-<p>Bien qu&rsquo;imparafaite pour des raisons de limite technique d&rsquo;IntelliJ, elles sauvent un minimum de temps, multiplié par le nombre de test. Malheureusement il n&rsquo;y a pas non plus d&rsquo;import export uniquement pour les live template, il faut donc se taper la configuration de intellij à la main. Cela dit il est possible de contourner partiellement ce problème avec la sauvegarde de la configuration personnelle sur les serveurs intellij, ou encore d&rsquo;exporter la configuration pour les live templates, les file templates, et encore autre chose.</p>
-<p>J&rsquo;ai défini toutes ces annotations dans un nouveau groupe <strong>test</strong>, et j&rsquo;ai activé pour toutes le contexte Java, avec reformatage et simplification du nom qualifié.</p>
-<hr>
-<ul>
-<li>Description : Creates a field with the <code>@Mock</code> annotation</li>
-<li>Abbréviation : <code>am</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">@org.mockito.Mock private $TYPE$ $MOCK_FIELD$
-</code></pre>
-<ul>
-<li>Les variables du templates sont :</li>
-</ul>
-
-
-
-<div class="table-wrapper">
-    <table>
-  <thead>
-      <tr>
-          <th style="text-align: left">Name</th>
-          <th style="text-align: left">Expression</th>
-          <th>Default value</th>
-          <th>Skip if defined</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left">TYPE</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">MOCK_FIELD</td>
-          <td style="text-align: left">suggestVariableName()</td>
-          <td></td>
-          <td></td>
-      </tr>
-  </tbody>
-</table>
-
+  <div class="post adoc">
+    
+<div class="paragraph">
+<p>Hello, j’en avais un peu marre d’écrire régulièrement voire répétitivement dans mes tests les constructions mockito.</p>
 </div>
-
-<hr>
-<ul>
-<li>Description : Creates a field with the <code>@Spy</code> annotation</li>
-<li>Abbréviation : <code>as</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">@org.mockito.Spy private $TYPE$ $MOCK_FIELD$
-</code></pre>
-<ul>
-<li>Les variables du templates sont :</li>
-</ul>
-
-
-
-<div class="table-wrapper">
-    <table>
-  <thead>
-      <tr>
-          <th style="text-align: left">Name</th>
-          <th style="text-align: left">Expression</th>
-          <th>Default value</th>
-          <th>Skip if defined</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left">TYPE</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">MOCK_FIELD</td>
-          <td style="text-align: left">suggestVariableName()</td>
-          <td></td>
-          <td></td>
-      </tr>
-  </tbody>
-</table>
-
+<div class="paragraph">
+<p>Pour ça je me suis créé dans mon IDE favori, <a href="http://www.jetbrains.com/idea/">IntelliJ</a>, ce qu’on appelle des Live Template. Ces templates permettent à partir d’une abréviation d’insérer des fragments de code. Ainsi par exemple :</p>
 </div>
-
-<hr>
-<ul>
-<li>Description : Creates a field with the <code>@InjectMocks</code> annotation</li>
-<li>Abbréviation : <code>aim</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">@org.mockito.InjectMocks private $TYPE$ $MOCK_FIELD$
-</code></pre>
-<ul>
-<li>Les variables du templates sont :</li>
-</ul>
-
-
-
-<div class="table-wrapper">
-    <table>
-  <thead>
-      <tr>
-          <th style="text-align: left">Name</th>
-          <th style="text-align: left">Expression</th>
-          <th>Default value</th>
-          <th>Skip if defined</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left">TYPE</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">MOCK_FIELD</td>
-          <td style="text-align: left">suggestVariableName()</td>
-          <td></td>
-          <td></td>
-      </tr>
-  </tbody>
-</table>
-
+<div class="paragraph">
+<p>Taper <code>iter</code> dans votre éditeur puis de faire <span class="keyseq"><kbd>Ctrl</kbd>+<kbd>J</kbd></span> (sous OSX) va développer cette abréviation dans le bout de code ci-dessous (suivant le contexte bien entendu)</p>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">for (TypeInIterable type : someIterable) {
 
-<hr>
-<ul>
-<li>Description : Add <code>@RunWith(MockitoJUnitRunner.class)</code></li>
-<li>Abbréviation : <code>rwm</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)
-</code></pre>
-<hr>
-<ul>
-<li>Description : BDD Stub mock with <code>given(...).willReturn(...)</code> style</li>
-<li>Abbréviation : <code>gw</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">given($MOCK$).willReturn($ARGS$)$END$
-</code></pre>
-<ul>
-<li>Les variables du templates sont :</li>
-</ul>
-
-
-
-<div class="table-wrapper">
-    <table>
-  <thead>
-      <tr>
-          <th style="text-align: left">Name</th>
-          <th style="text-align: left">Expression</th>
-          <th>Default value</th>
-          <th>Skip if defined</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left">TYPE</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">ARGS</td>
-          <td style="text-align: left"></td>
-          <td></td>
-          <td></td>
-      </tr>
-  </tbody>
-</table>
-
+}</code></pre>
 </div>
-
-<hr>
-<ul>
-<li>Description : BDD Stub spy/mock with <code>willReturn(...).given(...)</code> style</li>
-<li>Abbréviation : <code>wg</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">org.mockito.BDDMockito.willReturn($RETURNED$).given($MOCK$).$CALL$ $END$
-</code></pre>
-<ul>
-<li>Les variables du templates sont :</li>
-</ul>
-
-
-
-<div class="table-wrapper">
-    <table>
-  <thead>
-      <tr>
-          <th style="text-align: left">Name</th>
-          <th style="text-align: left">Expression</th>
-          <th>Default value</th>
-          <th>Skip if defined</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left">RETURNED</td>
-          <td style="text-align: left">complete()</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">MOCK</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">CALL</td>
-          <td style="text-align: left">complete()</td>
-          <td></td>
-          <td></td>
-      </tr>
-  </tbody>
-</table>
-
 </div>
-
-<hr>
-<ul>
-<li>Description : Inserts a <code>verify(...)</code> statement</li>
-<li>Abbréviation : <code>verif</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">org.mockito.Mockito.verify($MOCK$).$CALL$
-</code></pre>
-<ul>
-<li>Les variables du templates sont :</li>
-</ul>
-
-
-
-<div class="table-wrapper">
-    <table>
-  <thead>
-      <tr>
-          <th style="text-align: left">Name</th>
-          <th style="text-align: left">Expression</th>
-          <th>Default value</th>
-          <th>Skip if defined</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left">RETURNED</td>
-          <td style="text-align: left">complete()</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">MOCK</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">CALL</td>
-          <td style="text-align: left">complete()</td>
-          <td></td>
-          <td></td>
-      </tr>
-  </tbody>
-</table>
-
+<div class="paragraph">
+<p>Taper sur <span class="keyseq"><kbd>Ctrl</kbd>+<kbd>J</kbd></span> (sous OSX) vous permet de lister les abréviations disponible dans le contexte courant.</p>
 </div>
-
-<hr>
-<ul>
-<li>Description : Inserts <code>Mockito.inOrder(mocks)</code> followed by <code>inOrder.verify(...)</code> statements</li>
-<li>Abbréviation : <code>ioverif</code></li>
-<li>Template text :</li>
-</ul>
-<pre><code class="language-java">org.mockito.InOrder $inOrderVar$ = org.mockito.Mockito.inOrder($MOCKS$);
-
-$IN_ORDER_VAR$.verify($MOCK$).$CALL$;
-</code></pre>
-<ul>
-<li>Les variables du templates sont :</li>
-</ul>
-
-
-
-<div class="table-wrapper">
-    <table>
-  <thead>
-      <tr>
-          <th style="text-align: left">Name</th>
-          <th style="text-align: left">Expression</th>
-          <th>Default value</th>
-          <th>Skip if defined</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left">IN_ORDER_VAR</td>
-          <td style="text-align: left">suggestVariableName()</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">MOCKS</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">MOCK</td>
-          <td style="text-align: left">variableOfType(&ldquo;Object&rdquo;)</td>
-          <td></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td style="text-align: left">CALL</td>
-          <td style="text-align: left">complete()</td>
-          <td></td>
-          <td></td>
-      </tr>
-  </tbody>
-</table>
-
+<div class="sect1">
+<h2 id="_les_live_template_pour_mockito"><a class="anchor" href="#_les_live_template_pour_mockito"></a><a class="link" href="#_les_live_template_pour_mockito">Les Live Template pour Mockito</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Bien qu’imparfaite pour des raisons de limite technique d’IntelliJ, elles sauvent un minimum de temps, multiplié par le nombre de tests. Malheureusement, il n’y a pas non plus d’import export uniquement pour les live template, il faut donc se taper la configuration d’IntelliJ à la main. Cela dit, il est possible de contourner partiellement ce problème avec la sauvegarde de la configuration personnelle sur les serveurs intellij, ou encore d’exporter la configuration pour les live templates, les file templates, et encore autre chose.</p>
 </div>
-
-<hr>
-<p>Voilà donc les templates que je me suis créé pour IntelliJ, il manque certainement des cas d&rsquo;utilisation, mais je trouvais plus judicieux de mettre ces cas là au moins. Pour nos amis Eclipse oou Netbeans, il y a des fonctionnalités comparables plus ou moins évoluées (de mémoire le système d&rsquo;Eclipse est plutôt pas mal).</p>
-<h1 id="références">Références</h1>
+<div class="paragraph">
+<p>J’ai défini toutes ces annotations dans un nouveau groupe <strong>test</strong>, et j’ai activé pour tout le contexte Java, avec reformatage et simplification du nom qualifié.</p>
+</div>
+<hr/>
+<div class="ulist">
 <ul>
-<li><a href="http://www.jetbrains.com/idea/webhelp/live-templates-2.html">Live Templates</a></li>
+<li>
+<p>Description : Creates a field with the <code>@Mock</code> annotation</p>
+</li>
+<li>
+<p>Abbréviation : <code>am</code></p>
+</li>
+<li>
+<p>Template text :</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@org.mockito.Mock private $TYPE$ $MOCK_FIELD$</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Les variables du templates sont :</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Expression</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Skip if defined</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TYPE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MOCK_FIELD</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">suggestVariableName()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</li>
 </ul>
+</div>
+<hr/>
+<div class="ulist">
+<ul>
+<li>
+<p>Description : Creates a field with the <code>@Spy</code> annotation</p>
+</li>
+<li>
+<p>Abbréviation : <code>as</code></p>
+</li>
+<li>
+<p>Template text :</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@org.mockito.Spy private $TYPE$ $MOCK_FIELD$</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Les variables du templates sont :</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Expression</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Skip if defined</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TYPE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MOCK_FIELD</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">suggestVariableName()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+<hr/>
+<div class="ulist">
+<ul>
+<li>
+<p>Description : Creates a field with the <code>@InjectMocks</code> annotation</p>
+</li>
+<li>
+<p>Abbréviation : <code>aim</code></p>
+</li>
+<li>
+<p>Template text:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@org.mockito.InjectMocks private $TYPE$ $MOCK_FIELD$</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Les variables du templates sont :</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Expression</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Skip if defined</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TYPE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MOCK_FIELD</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">suggestVariableName()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+<hr/>
+<div class="ulist">
+<ul>
+<li>
+<p>Description : Add <code>@RunWith(MockitoJUnitRunner.class)</code></p>
+</li>
+<li>
+<p>Abbréviation : <code>rwm</code></p>
+</li>
+<li>
+<p>Template text :</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@org.junit.runner.RunWith(org.mockito.runners.MockitoJUnitRunner.class)</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<hr/>
+<div class="ulist">
+<ul>
+<li>
+<p>Description : BDD Stub mock with <code>given(…​).willReturn(…​)</code> style</p>
+</li>
+<li>
+<p>Abbréviation : <code>gw</code></p>
+</li>
+<li>
+<p>Template text :</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">given($MOCK$).willReturn($ARGS$)$END$</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Les variables du templates sont :</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Expression</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Skip if defined</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TYPE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ARGS</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+<hr/>
+<div class="ulist">
+<ul>
+<li>
+<p>Description : BDD Stub spy/mock with <code>willReturn(…​).given(…​)</code> style</p>
+</li>
+<li>
+<p>Abbréviation : <code>wg</code></p>
+</li>
+<li>
+<p>Template text :</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">org.mockito.BDDMockito.willReturn($RETURNED$).given($MOCK$).$CALL$ $END$</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Les variables du templates sont :</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Expression</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Skip if defined</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RETURNED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">complete()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MOCK</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CALL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">complete()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+<hr/>
+<div class="ulist">
+<ul>
+<li>
+<p>Description : Inserts a <code>verify(…​)</code> statement</p>
+</li>
+<li>
+<p>Abbréviation : <code>verif</code></p>
+</li>
+<li>
+<p>Template text :</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">org.mockito.Mockito.verify($MOCK$).$CALL$</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Les variables du templates sont :</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Expression</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Skip if defined</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RETURNED</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">complete()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MOCK</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CALL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">complete()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+<hr/>
+<div class="ulist">
+<ul>
+<li>
+<p>Description : Inserts <code>Mockito.inOrder(mocks)</code> followed by <code>inOrder.verify(…​)</code> statements</p>
+</li>
+<li>
+<p>Abbréviation : <code>ioverif</code></p>
+</li>
+<li>
+<p>Template text :</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">org.mockito.InOrder $inOrderVar$ = org.mockito.Mockito.inOrder($MOCKS$);
+
+$IN_ORDER_VAR$.verify($MOCK$).$CALL$;</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Les variables du templates sont :</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+<col style="width: 25%;"/>
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Expression</th>
+<th class="tableblock halign-left valign-top">Default value</th>
+<th class="tableblock halign-left valign-top">Skip if defined</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">IN_ORDER_VAR</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">suggestVariableName()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MOCKS</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MOCK</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">variableOfType(&#34;Object&#34;)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CALL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">complete()</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+<hr/>
+<div class="paragraph">
+<p>Voilà donc les templates que je me suis créé pour IntelliJ, il manque certainement des cas d’utilisation, mais je trouvais plus judicieux de mettre ces cas là au moins. Pour nos amis Eclipse oou Netbeans, il y a des fonctionnalités comparables plus ou moins évoluées (de mémoire le système d’Eclipse est plutôt pas mal).</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_références"><a class="anchor" href="#_références"></a><a class="link" href="#_références">Références</a></h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="http://www.jetbrains.com/idea/webhelp/live-templates-2.html">Live Templates</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
 
   </div>
   
@@ -735,7 +851,7 @@ $IN_ORDER_VAR$.verify($MOCK$).$CALL$;
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2011-10-21-quelques-live-template-intellij-pour-mockito.md">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2011-10-21-quelques-live-template-intellij-pour-mockito.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>

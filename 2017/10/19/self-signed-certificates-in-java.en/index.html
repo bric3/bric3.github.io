@@ -74,10 +74,10 @@
 
 
 
-<link rel="stylesheet" href="/scss/ascii-press.1a0c3f16d3c8acc868bad13d7401767e717ed6b2794c65593d3d949a56e5670d.css" integrity="sha256-Ggw/FtPIrMhoutE9dAF2fnF&#43;1rJ5TGVZPT2UmlblZw0=">
+<link rel="stylesheet" href="/scss/ascii-press.b7ed20f520c7245e0035f7eaf7efc1794ff2e0cfec4df74d9600fd94b3f4ed0e.css" integrity="sha256-t&#43;0g9SDHJF4ANffq9&#43;/BeU/y4M/sTfdNlgD9lLP07Q4=">
 
 
-<link rel="stylesheet" href="/scss/ascii-press-dark.5bfae05eb1a79c8955f3e75e0620469b1f0c758ec0a03ecd87fc276b20d8e365.css" integrity="sha256-W/rgXrGnnIlV8&#43;deBiBGmx8MdY7AoD7Nh/wnayDY42U=" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/scss/ascii-press-dark.528eb3b63dcd126b56546a61fa3855b2ab58526f312daca74feb1c533f109d65.css" integrity="sha256-Uo6ztj3NEmtWVGph&#43;jhVsqtYUm8xLaynT&#43;scUz8QnWU=" media="(prefers-color-scheme: dark)">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -255,7 +255,7 @@
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2017-10-19-self-signed-certificates-in-java.en.md">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2017-10-19-self-signed-certificates-in-java.en.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
@@ -337,31 +337,31 @@
       
           <nav id="TableOfContents">
   <ul>
-    <li><a href="#first-a-brief-reminder-on-ssl-i-mean-tls-">First a brief reminder on <del>SSL</del>, I mean TLS ?</a></li>
-    <li><a href="#fixing-the-test-code">Fixing the test code</a>
+    <li><a href="#_first_a_brief_reminder_on_ssl_i_mean_tls">First a brief reminder on <sub>~SSL</sub>~, I mean TLS?</a></li>
+    <li><a href="#_fixing_the_test_code">Fixing the test code</a>
       <ul>
-        <li><a href="#trusting-every-peer">Trusting every peer</a></li>
-        <li><a href="#extending-trust-to-self-signed-certificate">Extending trust to self-signed certificate</a></li>
+        <li><a href="#_trusting_every_peer">Trusting every peer</a></li>
+        <li><a href="#_extending_trust_to_self_signed_certificate">Extending trust to self-signed certificate</a></li>
       </ul>
     </li>
-    <li><a href="#how-to-properly-validate-a-self-signed-certificate-">How to properly validate a self-signed certificate ?</a>
+    <li><a href="#_how_to_properly_validate_a_self_signed_certificate">How to properly validate a self-signed certificate?</a>
       <ul>
-        <li><a href="#get-the-self-signed-certificate">Get the self-signed certificate</a></li>
-        <li><a href="#using-the-self-signed-certificate-on-the-jvm">Using the self-signed certificate on the JVM</a></li>
-        <li><a href="#programmatically-use-both-the-system-trust-chain-and-the-self-signed-certificate">Programmatically use both the system trust chain, and the self signed certificate</a></li>
+        <li><a href="#_get_the_self_signed_certificate">Get the self-signed certificate</a></li>
+        <li><a href="#_using_the_self_signed_certificate_on_the_jvm">Using the self-signed certificate on the JVM</a></li>
+        <li><a href="#_programmatically_use_both_the_system_trust_chain_and_the_self_signed_certificate">Programmatically use both the system trust chain and the self-signed certificate</a></li>
       </ul>
     </li>
-    <li><a href="#server-side">Server side</a>
+    <li><a href="#_server_side">Server side</a>
       <ul>
-        <li><a href="#generate-a-self-signed-certificate-with-keytool">Generate a self-signed certificate with <code>keytool</code></a></li>
-        <li><a href="#generate-a-self-signed-certificate-with-openssl">Generate a self-signed certificate with <code>openssl</code></a></li>
-        <li><a href="#loading-the-generated-certificate">Loading the generated certificate</a></li>
+        <li><a href="#_generate_a_self_signed_certificate_with_keytool">Generate a self-signed certificate with <code>keytool</code></a></li>
+        <li><a href="#_generate_a_self_signed_certificate_with_openssl">Generate a self-signed certificate with <code>openssl</code></a></li>
+        <li><a href="#_loading_the_generated_certificate">Loading the generated certificate</a></li>
       </ul>
     </li>
-    <li><a href="#wrap-up">Wrap up</a>
+    <li><a href="#_wrap_up">Wrap up</a>
       <ul>
-        <li><a href="#versions">Versions</a></li>
-        <li><a href="#some-references">Some references</a></li>
+        <li><a href="#_versions">Versions</a></li>
+        <li><a href="#_some_references">Some references</a></li>
       </ul>
     </li>
   </ul>
@@ -371,13 +371,20 @@
   
   
   
-  <div class="post md">
-    <p>Your application should connect to an HTTPS server, usually that&rsquo;s a no brainer,
+  <div class="post adoc">
+    
+<div class="paragraph">
+<p>Your application should connect to an HTTPS server, usually that’s a no brainer,
 however as good software craft-man, you may think how do I test this code to make
 nothing has been forgotten.</p>
+</div>
+<div class="paragraph">
 <p>The following code is using <strong>wiremock</strong>, the test assert that the client can
 connect to the HTTPS port of the wiremock server.</p>
-<pre><code class="language-java">public class WireMockSSLTest {
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class WireMockSSLTest {
     @Rule
     public WireMockRule wireMock = new WireMockRule(wireMockConfig().dynamicPort()
                                                                     .dynamicHttpsPort());
@@ -386,82 +393,144 @@ connect to the HTTPS port of the wiremock server.</p>
     public void ssl_poke() throws IOException {
         new OkHttpClient.Builder().build()
                                   .newCall(new Request.Builder().get()
-                                                                .url(&quot;https://localhost:&quot; 
+                                                                .url(&#34;https://localhost:&#34;
                                                                      + wireMock.httpsPort())
                                                                 .build())
                                   .execute();
     }
-}
-</code></pre>
-<p>When executed the test will raise an exception with the following stacktrace :</p>
-<pre><code>javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When executed the test will raise an exception with the following stacktrace:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
 	at ...
 Caused by: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
 	at ...
 	... 10 more
 Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
 	at ...
-	... 16 more
-</code></pre>
-<p>Wow that might look overwhelming at the first sight, there&rsquo;s scary acronyms
-(like <code>PKIX</code>), <code>sun</code> packages. So what does say this stack trace :</p>
+	... 16 more</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Wow that might look overwhelming at the first sight, there’s scary acronyms
+(like <code>PKIX</code>), <code>sun</code> packages. So what does say this stack trace:</p>
+</div>
+<div class="ulist">
 <ul>
-<li><code>SSLHandshakeException</code> : An error happened while establishing the SSL layer</li>
-<li><code>ValidatorException: PKIX path building failed</code> : the client can&rsquo;t build
-the certificate chain by following the <strong>PKIX</strong> standard</li>
+<li>
+<p><code>SSLHandshakeException</code>: An error happened while establishing the SSL layer</p>
+</li>
+<li>
+<p><code>ValidatorException: PKIX path building failed</code>: the client can’t build
+the certificate chain by following the <strong>PKIX</strong> standard</p>
+</li>
 </ul>
+</div>
+<div class="paragraph">
 <p>In plain english, this server (wiremock) exposes a certificate, but the client
-can&rsquo;t trust this certificate because it cannot rebuild a <em>path</em> to a known
+can’t trust this certificate because it cannot rebuild a <em>path</em> to a known
 <strong>authority</strong> that signed the wiremock certificate.
 Why does this exception happen in this case, the very same code connecting
-to <code>https://google.com</code> will succeed ; the issue in this case is that wiremock
+to <code><a href="https://google.com" class="bare">https://google.com</a></code> will succeed; the issue in this case is that wiremock
 is using a <strong>self-signed certificate</strong>, this certificate is not trusted
-because it hasn&rsquo;t been signed by any of the CAs or public certificates
+because it hasn’t been signed by any of the CAs or public certificates
 available in the JVM standard installation.</p>
+</div>
+<div class="paragraph">
 <p>In this article, we will look at various ways to generate a <strong>self-signed certificate</strong>
-and explore how to control the certificate used in test environment.</p>
-<h2 id="first-a-brief-reminder-on-ssl-i-mean-tls-">First a brief reminder on <del>SSL</del>, I mean TLS ?</h2>
-<p>Nowadays when people speak about <em>SSL</em> they conflate two protocols :
+and explore how to control the certificate used in the test environment.</p>
+</div>
+<div class="sect1">
+<h2 id="_first_a_brief_reminder_on_ssl_i_mean_tls"><a class="anchor" href="#_first_a_brief_reminder_on_ssl_i_mean_tls"></a><a class="link" href="#_first_a_brief_reminder_on_ssl_i_mean_tls">First a brief reminder on <sub>~SSL</sub>~, I mean TLS?</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Nowadays when people speak about <em>SSL</em> they conflate two protocols:
 <em>TLS</em> and his predecessor <em>SSL</em>.</p>
+</div>
+<div class="ulist">
 <ul>
-<li>SSL (<strong>S</strong>ecure <strong>S</strong>ockets <strong>L</strong>ayer) protocol was engineered and developed
+<li>
+<p>SSL (<strong>S</strong>ecure <strong>S</strong>ockets <strong>L</strong>ayer) protocol was engineered and developed
 by <strong>Netscape</strong> (Thought for those who remember this pioneer internet browser
 then Internet Explorer competitor).
-The last version SSLv3 is considered as deprecated since 2015.</li>
-<li>TLS (<strong>T</strong>ransport <strong>L</strong>ayer <strong>S</strong>ecurity) protocol is the direct successor
-of the SSLv3 protocol, however they are not compatible.</li>
+The last version SSLv3 is considered as deprecated since 2015.</p>
+</li>
+<li>
+<p>TLS (<strong>T</strong>ransport <strong>L</strong>ayer <strong>S</strong>ecurity) protocol is the direct successor
+of the SSLv3 protocol, however, they are not compatible.</p>
+</li>
 </ul>
+</div>
+<div class="paragraph">
 <p><a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">[source]</a></p>
+</div>
+<div class="paragraph">
 <p>The role of TLS is to ensure that communication between two peers is secured.
-In order to do so, TLS <a href="https://tools.ietf.org/html/rfc5246#section-7">rely among other things on <strong>PKIX</strong></a>
+To do so, TLS <a href="https://tools.ietf.org/html/rfc5246#section-7">rely among other things on <strong>PKIX</strong></a>
 (<a href="https://tools.ietf.org/html/rfc5280"><strong>P</strong>ublic <strong>K</strong>ey <strong>I</strong>nfrastructure <strong>X</strong>.509</a>),
-equipped with these certificate mechanism a client can verify the server identity
+equipped with these certificate mechanisms a client can verify the server identity
 is actually the one it pretends to be with the help of a trusted third party.</p>
-<p>For example :</p>
+</div>
+<div class="paragraph">
+<p>For example:</p>
+</div>
+<div class="quoteblock">
 <blockquote>
-<p>Upon connecting to <a href="https://github.com">https://github.com</a>, the client will first verify the GitHub
+<div class="paragraph">
+<p>Upon connecting to <a href="https://github.com" class="bare">https://github.com</a>, the client will first verify the GitHub
 certificate, then inspect who signed this certificate, then verify the
-signer&rsquo;s certificate and so on, until a trusted third party certificate is reached.
+signer’s certificate, and so on, until a trusted third party certificate is reached.
 Usually this root certificate comes from a certificate authority.</p>
+</div>
 </blockquote>
-<p>The certificates are called <strong>X.509</strong> they carry informations such as
+</div>
+<div class="paragraph">
+<p>The certificates are called <strong>X.509</strong> they carry information such as
 the server name, the signer name, the signature, etc. This certificate mechanism
 is one approach to implement a PKI (<strong>P</strong>ublic <strong>K</strong>ey <strong>I</strong>nfrastructure),
 hence the acronym <strong>PKIX</strong>.</p>
+</div>
+<div class="paragraph">
 <p>A certificate can be stored in a file, either encoded in its binary form
 known as <code>DER</code> (<strong>D</strong>istinguished <strong>E</strong>ncoding <strong>R</strong>ules), or in a US-ASCII
 text form which the Base 64 encoding of the binary form known as <code>PEM</code>
 (<strong>P</strong>rivacy-enhanced <strong>E</strong>lectronic <strong>M</strong>ail).</p>
-<blockquote>
-<p>Note that a file with the <code>CRT</code> extension is a certificate but allow
-the content to be either binary or plain text (i.e. either <code>DER</code> or <code>PEM</code>).
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>A file with the <code>CRT</code> extension is a certificate but allow
+the content to be either binary or plain text (i.e., either <code>DER</code> or <code>PEM</code>).
 This filename extension is an alternative naming form used by Microsoft.</p>
-</blockquote>
-<h2 id="fixing-the-test-code">Fixing the test code</h2>
-<h3 id="trusting-every-peer">Trusting every peer</h3>
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_fixing_the_test_code"><a class="anchor" href="#_fixing_the_test_code"></a><a class="link" href="#_fixing_the_test_code">Fixing the test code</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_trusting_every_peer"><a class="anchor" href="#_trusting_every_peer"></a><a class="link" href="#_trusting_every_peer">Trusting every peer</a></h3>
+<div class="paragraph">
 <p>So to accept the self-signed certificate, it is possible to configure the
 SSL socket to accept all certificates.</p>
-<pre><code class="language-java">@Rule
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Rule
 public WireMockRule wireMock = new WireMockRule(wireMockConfig().dynamicPort()
                                                                 .dynamicHttpsPort());
 
@@ -475,161 +544,256 @@ public void ssl_poke() throws IOException {
                     trustManager)
             .build();
     try (Response r = client.newCall(new Request.Builder().get()
-                                                          .url(&quot;https://localhost:&quot;
+                                                          .url(&#34;https://localhost:&#34;
                                                                + wireMock.httpsPort())
                                                           .build())
                             .execute()) {
         // noop / success
     }
-}
-</code></pre>
-<p>OkHttp client can be configured with a SSL socket factory that is itself configured
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>OkHttp client can be configured with an <em>SSL socket factory</em>, itself configured
 with a custom trust manager. This is the job of the trust manager to validate
-or not a certificate. This one is coed to accept all certificate.</p>
-<p>Since the security API is a bit tedious to read and use the code has been
+or not a certificate. This one is coed to accept all certificates.</p>
+</div>
+<div class="paragraph">
+<p>Since the security API is a bit tedious to read and use, the code has been
 abstracted away in methods that are easier to read and comment.</p>
-<pre><code class="language-java">public static SSLContext sslContext(KeyManager[] keyManagers, TrustManager[] trustManagers) {
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static SSLContext sslContext(KeyManager[] keyManagers, TrustManager[] trustManagers) {
     try {
-        SSLContext sslContext = SSLContext.getInstance(&quot;TLS&quot;);
+        SSLContext sslContext = SSLContext.getInstance(&#34;TLS&#34;);
         sslContext.init(keyManagers,
                         trustManagers,
                         null);
         return sslContext;
     } catch (NoSuchAlgorithmException | KeyManagementException e) {
-        throw new IllegalStateException(&quot;Couldn't init TLS context&quot;, e);
+        throw new IllegalStateException(&#34;Couldn&#39;t init TLS context&#34;, e);
     }
-}
-</code></pre>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The cryptography code architecture is very very generic and some design
 choices raise questions on its usage.</p>
-<p>For example why the method <code>SSLContext#init</code> require
-arrays ? While the javadoc of this method <a href="https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/SSLContext.html#init-javax.net.ssl.KeyManager:A-javax.net.ssl.TrustManager:A-java.security.SecureRandom-"><code>SSLContext#init</code></a> indicate that only the first element of the array will be used.
-This also explains why the code above initialize the context with a single
+</div>
+<div class="paragraph">
+<p>For example, why the method <code>SSLContext#init</code> require arrays? While the javadoc of this method
+<a href="https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/SSLContext.html#init-javax.net.ssl.KeyManager:A-javax.net.ssl.TrustManager:A-java.security.SecureRandom-"><code>SSLContext#init</code></a>
+indicates that only the first element of the array will be used.
+This also explains why the code above initializes the context with a single
 trust manager.</p>
+</div>
+<div class="paragraph">
 <p><em>Emphasizes in the javadoc are mine.</em></p>
+</div>
+<div class="quoteblock">
+<div class="title"><code>SSContext::init</code> javadoc</div>
 <blockquote>
-<pre><code>javax.net.ssl.SSLContext
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">javax.net.ssl.SSLContext
 public final void init(KeyManager[] km,
                       TrustManager[] tm,
                       SecureRandom random)
-               throws KeyManagementException
-
-Initializes this context. Either of the first two parameters may be null in which 
-case the installed security providers will be searched for the highest priority 
-implementation of the appropriate factory. Likewise, the secure random parameter 
-may be null in which case the default implementation will be used.
-
-**Only the first instance** of a particular key and/or trust manager implementation 
-type in the array is used. (For example, only the first javax.net.ssl.X509KeyManager 
-in the array will be used.)
-
-Parameters:
-    km - the sources of authentication keys or null
-    tm - the sources of peer authentication trust decisions or null
-    random - the source of randomness for this generator or null
-Throws:
-   KeyManagementException - if this operation fails
-</code></pre>
+               throws KeyManagementException</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Initializes this context. Either of the first two parameters may be null in which
+case the installed security providers will be searched for the highest priority
+implementation of the appropriate factory. Likewise, the secure random parameter
+may be null, in which case the default implementation will be used.</p>
+</div>
+<div class="paragraph">
+<p><strong>Only the first instance</strong> of a particular key and/or trust manager implementation
+type in the array is used. (For example, only the first javax.net.ssl.X509KeyManager
+in the array will be used.)</p>
+</div>
+<div class="paragraph">
+<p>Parameters:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>km</code> - the sources of authentication keys or null</p>
+</li>
+<li>
+<p><code>tm</code> - the sources of peer authentication trust decisions or null</p>
+</li>
+<li>
+<p><code>random</code> - the source of randomness for this generator or null</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Throws:
+   <code>KeyManagementException</code> - if this operation fails</p>
+</div>
 </blockquote>
-<p>Another thing is that the <code>TrustManager</code> interface is empty, that&rsquo;s right there is
-no methods, it&rsquo;s a marker interface. Given that it is about TLS and the only
+</div>
+<div class="paragraph">
+<p>Another thing is that the <code>TrustManager</code> interface is empty, that’s right there are
+no methods, it’s a marker interface. Given that it is about TLS and the only
 active specification is based on PKIX (X.509), the code will have to implement
 <code>X509TrustManager</code> interface (itself a subtype of <code>TrsutManager</code>). This interface
 declares the required method to implement certificate validation.</p>
+</div>
+<div class="paragraph">
 <p>In this section this trust manager will accept all certificates, in fact it will
 just do nothing.</p>
-<pre><code class="language-java">public static class TrustAllX509TrustManager implements X509TrustManager {
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static class TrustAllX509TrustManager implements X509TrustManager {
     public static final X509TrustManager INSTANCE = new TrustAllX509TrustManager();
 
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType) 
+    public void checkClientTrusted(X509Certificate[] chain, String authType)
     throws CertificateException { }
 
     @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType) 
+    public void checkServerTrusted(X509Certificate[] chain, String authType)
     throws CertificateException { }
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {
         return new X509Certificate[0];
     }
-}
-</code></pre>
-<p>So this code is supposedly working, however on first try there a new exception
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So this code is supposedly working, however, on first try there a new exception
 showing up upon connecting to wiremock.</p>
-<pre><code>javax.net.ssl.SSLPeerUnverifiedException: Hostname localhost not verified:
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">javax.net.ssl.SSLPeerUnverifiedException: Hostname localhost not verified:
     certificate: sha256//W3v5TDAEE3dl4peiEwpwDKa1OZAna1ITgokQDz0rkQ=
     DN: CN=Tom Akehurst, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
     subjectAltNames: []
 
 	at okhttp3.internal.connection.RealConnection.connectTls(RealConnection.java:308)
-	...
-</code></pre>
-<p>What is this <code>SSLPeerUnverifiedException</code> ? After inspection, the above code
-tackle the trust layer of the TLS, but according to the HTTPS
+	...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>What is this <code>SSLPeerUnverifiedException</code>? After inspection, the above code
+tackles the trust layer of the TLS, but according to the HTTPS
 <a href="https://tools.ietf.org/html/rfc2818#section-3.1">RFC 2818</a>, the client
-is required to check the identity of the hostname against the certificate,
-this help prevent <em>man-in-the-middle</em> attacks. That means that the TLS layer
+is required to check the identity of the hostname against the certificate;
+this helps prevent <em>man-in-the-middle</em> attacks. That means that the TLS layer
 is established, but this failure happens at the upper level.</p>
-<p>Indeed in the current setup, wiremock self-signed certificate doesn&rsquo;t provide enough
+</div>
+<div class="paragraph">
+<p>Indeed, in the current setup, wiremock self-signed certificate doesn’t provide enough
 data to perform this verification. The <code>subjectAltNames</code> field should contain
 server alternative names like <code>localhost</code> or the (local) IP address(es).</p>
-<p>So let&rsquo;s tell OkHttp to accept all hostnames :</p>
-<pre><code class="language-java">public static HostnameVerifier allowAllHostNames() {
+</div>
+<div class="paragraph">
+<p>So let’s tell OkHttp to accept all hostnames:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static HostnameVerifier allowAllHostNames() {
     return (hostname, sslSession) -&gt; true;
-}
-</code></pre>
-<pre><code class="language-java">new OkHttpClient.Builder()
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">new OkHttpClient.Builder()
             .sslSocketFactory(
-                    sslContext(null, 
+                    sslContext(null,
                                new TrustManager[] {TrustAllX509TrustManager.INSTANCE}).getSocketFactory(),
                     TrustAllX509TrustManager.INSTANCE)
             .hostnameVerifier(allowAllHostNames())
             .build()
             .newCall(new Request.Builder().get()
-                                          .url(&quot;https://localhost:&quot; + wireMock.httpsPort())
+                                          .url(&#34;https://localhost:&#34; + wireMock.httpsPort())
                                           .build())
-            .execute();
-</code></pre>
-<p>Finally this code works, we have an HTTPS connection to a wiremock server.</p>
-<p>However this way of setting up the code is not right and especially for
+            .execute();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Finally, this code works; we have an HTTPS connection to a wiremock server.</p>
+</div>
+<div class="paragraph">
+<p>However, this way of setting up the code is not right and especially for
 production code, because this code just deactivated security for every HTTPS
 connection passing by this http client.</p>
+</div>
+<div class="paragraph">
 <p>With this approach one should think of a configuration mechanism that will
 enforce sane settings in production code and relax settings for test code.</p>
-<p>On a side note this example has been written with backend application in mind,
-however this topic is concerning mobile application or IoT as well.
+</div>
+<div class="paragraph">
+<p>On a side note, this example has been written with a backend application in mind,
+however, this topic concerns mobile application or IoT as well.
 The <a href="https://developer.android.com/training/articles/security-ssl.html#CommonHostnameProbs">Android documentation</a>
 explains very well why hostname verification is important to consider.</p>
-<h4 id="vanilla-java">Vanilla Java</h4>
+</div>
+<div class="sect3">
+<h4 id="_vanilla_java"><a class="anchor" href="#_vanilla_java"></a><a class="link" href="#_vanilla_java">Vanilla Java</a></h4>
+<div class="paragraph">
 <p>For those interested the same issues happen with the JDK way to connect to
 HTTPS via <code>URL</code>, this can be configured via the <code>HttpsUrlConnection</code> class,
-here&rsquo;s how to configure it, <strong>before establishing the connection</strong> :</p>
-<pre><code class="language-java">// Allow all certificates
+here’s how to configure it, <strong>before establishing the connection</strong>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Allow all certificates
 HttpsURLConnection.setDefaultSSLSocketFactory(trustAllSslContext().getSocketFactory());
-new URL(&quot;https://localhost:&quot; + wireMock.httpsPort()).openConnection().connect();
-</code></pre>
+new URL(&#34;https://localhost:&#34; + wireMock.httpsPort()).openConnection().connect();</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>And just set a <a href="https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/HostnameVerifier.html"><code>HostnameVerifier</code></a>
 that does nothing.</p>
-<pre><code class="language-java">// Allow all hostnames
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">// Allow all hostnames
 HostnameVerifier allHostsValid = (hostname, session) -&gt; true;
 HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
 HttpsURLConnection.setDefaultSSLSocketFactory(trustAllSslContext().getSocketFactory());
-new URL(&quot;https://localhost:&quot; + wireMock.httpsPort()).openConnection().connect();
-</code></pre>
+new URL(&#34;https://localhost:&#34; + wireMock.httpsPort()).openConnection().connect();</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>Notice that <code>setDefaultHostnameVerifier</code> and <code>setDefaultSSLSocketFactory</code> are
 static methods, that means these changes affect all connections using the JDK.</p>
-<h3 id="extending-trust-to-self-signed-certificate">Extending trust to self-signed certificate</h3>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_extending_trust_to_self_signed_certificate"><a class="anchor" href="#_extending_trust_to_self_signed_certificate"></a><a class="link" href="#_extending_trust_to_self_signed_certificate">Extending trust to self-signed certificate</a></h3>
+<div class="paragraph">
 <p>So rather than turning off the whole security of HTTPS connections, a
 big improvement would be to ignore verification of self-signed certificate only.
-The first question is how to identify a self-signed certificate ?</p>
-<p>To answer that question, let&rsquo;s inspect certificates with a reference tool.
+The first question is how to identify a self-signed certificate?</p>
+</div>
+<div class="paragraph">
+<p>To answer that question, let’s inspect certificates with a reference tool.
 OpenSSL has an SSL/TLS client available with the <code>s_client</code> sub-command,
 we can then connect to the wiremock HTTPS server.</p>
-<pre><code class="language-sh">echo -n | openssl s_client -connect localhost:8443 2&gt;&amp;1
-</code></pre>
-<p>Upon connection, the terminal shows a bunch of interesting data&hellip;</p>
-<pre><code>CONNECTED(00000003)
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">echo -n | openssl s_client -connect localhost:8443 2&gt;&amp;1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Upon connection, the terminal shows a bunch of interesting data…​</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">CONNECTED(00000003)
 depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
 verify error:num=18:self signed certificate
 verify return:1
@@ -681,7 +845,7 @@ SSL-Session:
     Protocol  : TLSv1.2
     Cipher    : ECDHE-RSA-AES128-GCM-SHA256
     Session-ID: 59D642ED8CCB7F4219617B3739CB93E1C294F873854C2A284D28A77D674AC050
-    Session-ID-ctx: 
+    Session-ID-ctx:
     Master-Key: A43DF026E3FA620BC7CC5207D5BCB87828B7E3D673CFEEF12CAB425619B63610F443FB96FEC33CC50FBBAC73C152572B
     Key-Arg   : None
     PSK identity: None
@@ -691,38 +855,69 @@ SSL-Session:
     Timeout   : 300 (sec)
     Verify return code: 18 (self signed certificate)
 ---
-DONE
-</code></pre>
-<p>&hellip;typically the first lines :</p>
-<pre><code>depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
-verify error:num=18:self signed certificate
-</code></pre>
+DONE</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>…​typically the first lines:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>depth=0 C = Unknown, ST = Unknown, L = Unknown, O = Unknown, OU = Unknown, CN = Tom Akehurst
+verify error:num=18:self signed certificate</pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The client reports a verification error number <code>18</code>, and display the
-associated reason that it is a self-signed certificate. More specifically
-the <a href="https://wiki.openssl.org/index.php/Manual:Verify%281%29">openssl wiki</a>
-defines the error 18 as :</p>
+associated reason that it is a self-signed certificate. More specifically,
+the <a href="https://wiki.openssl.org/index.php/Manual:Verify(1)">openssl wiki</a>
+defines error <code>18</code> as:</p>
+</div>
+<div class="quoteblock">
 <blockquote>
+<div class="paragraph">
 <p><strong>18 X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT</strong>: self signed certificate</p>
+</div>
 </blockquote>
-<p>So openssl understand that a certificate chain with a depth of <code>0</code> is in
-fact a self-signed-certificate.</p>
-<p>Continuing on the output, there&rsquo;s the certificate chain section itself,
-it declares each certificate that are presented by the server.</p>
-<p>For the certificate with a <code>0</code> depth, there&rsquo;s two lines :</p>
+</div>
+<div class="paragraph">
+<p>So <code>openssl</code> understand that a certificate chain with a depth of <code>0</code> is in
+fact a <em>self-signed-certificate</em>.</p>
+</div>
+<div class="paragraph">
+<p>Continuing on the output, there’s the certificate chain section itself,
+it declares each certificate that is presented by the server.</p>
+</div>
+<div class="paragraph">
+<p>For the certificate with a <code>0</code> depth, there are two lines:</p>
+</div>
+<div class="ulist">
 <ul>
-<li>the first prefixed by <strong><code>s</code></strong> that print the <em>subject</em> of the certificate</li>
-<li>the second prefixed by <strong><code>i</code></strong> that print the <em>issuer</em> of the certificate</li>
+<li>
+<p>the first prefixed by <strong><code>s</code></strong> that print the <em>subject</em> of the certificate</p>
+</li>
+<li>
+<p>the second prefixed by <strong><code>i</code></strong> that print the <em>issuer</em> of the certificate</p>
+</li>
 </ul>
-<pre><code>Certificate chain
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">Certificate chain
  0 s:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
-   i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst
-</code></pre>
+   i:/C=Unknown/ST=Unknown/L=Unknown/O=Unknown/OU=Unknown/CN=Tom Akehurst</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>There is additional information, but the above information leads to think
 it is possible to write a trust manager that will skip verification for
 self-signed certificates only. The code below checks the number of
-certificate, if there&rsquo;s only one element in the array, it means the
+certificates, if there’s only one element in the array, it means the
 depth is zero.</p>
-<pre><code class="language-java">public static class TrustSelfSignedX509TrustManager implements X509TrustManager {
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static class TrustSelfSignedX509TrustManager implements X509TrustManager {
     private X509TrustManager delegate;
 
     private TrustSelfSignedX509TrustManager(X509TrustManager delegate) {
@@ -754,37 +949,49 @@ depth is zero.</p>
     public static X509TrustManager[] wrap(X509TrustManager delegate) {
         return new X509TrustManager[]{new TrustSelfSignedX509TrustManager(delegate)};
     }
-}
-</code></pre>
-<p>Notice how this code don&rsquo;t actually perform certificate verification but
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Notice how this code don’t actually perform certificate verification but
 delegates this task to an existing <code>TrustManager</code>.</p>
+</div>
+<div class="paragraph">
 <p>This decorator can wrap the JVM trust manager, which happens to be able
 to verify <em>normal</em> certificates.</p>
-<pre><code class="language-java">X509TrustManager trustManager = TrustSelfSignedX509TrustManager.wrap(systemTrustManager());
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">X509TrustManager trustManager = TrustSelfSignedX509TrustManager.wrap(systemTrustManager());
 new OkHttpClient.Builder()
             .sslSocketFactory(
-                    sslContext(null, 
+                    sslContext(null,
                                new TrustManager[] { trustManager }).getSocketFactory(),
                     trustManager)
             .hostnameVerifier(allowAllHostname())
             .build()
             .newCall(new Request.Builder().get()
-                                          .url(&quot;https://localhost:&quot; + wireMock.httpsPort())
+                                          .url(&#34;https://localhost:&#34; + wireMock.httpsPort())
                                           .build())
-            .execute();
-</code></pre>
-<p>Here&rsquo;s how to gain access to the default manager :</p>
-<pre><code class="language-java">public static X509TrustManager systemTrustManager() {
+            .execute();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here’s how to gain access to the default manager:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static X509TrustManager systemTrustManager() {
     TrustManager[] trustManagers = systemTrustManagerFactory().getTrustManagers();
     if (trustManagers.length != 1) {
-        throw new IllegalStateException(&quot;Unexpected default trust managers:&quot;
+        throw new IllegalStateException(&#34;Unexpected default trust managers:&#34;
                                         + Arrays.toString(trustManagers));
     }
     TrustManager trustManager = trustManagers[0];
     if (trustManager instanceof X509TrustManager) {
         return (X509TrustManager) trustManager;
     }
-    throw new IllegalStateException(&quot;'&quot; + trustManager + &quot;' is not a X509TrustManager&quot;);
+    throw new IllegalStateException(&#34;&#39;&#34; + trustManager + &#34;&#39; is not a X509TrustManager&#34;);
 }
 
 
@@ -794,217 +1001,365 @@ private static TrustManagerFactory systemTrustManagerFactory() {
         tmf.init((KeyStore) null);
         return tmf;
     } catch (NoSuchAlgorithmException | KeyStoreException e) {
-        throw new IllegalStateException(&quot;Can't load default trust manager&quot;, e);
+        throw new IllegalStateException(&#34;Can&#39;t load default trust manager&#34;, e);
     }
-}
-</code></pre>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p><code>TrustManagerFactory.getInstance(String)</code> is asking for the name of trust
 implementation <em>algorithm</em>. And at this time <code>TrustManagerFactory.getDefaultAlgorithm()</code>
-should only return <code>PKIX</code> because that&rsquo;s the only trust implementation
+should only return <code>PKIX</code> because that’s the only trust implementation
 of TLS at this time.</p>
-<p>However one should note that JVM implementers load their own algorithm
+</div>
+<div class="paragraph">
+<p>However, one should note that JVM implementers load their own algorithm
 implementation of PKIX, this implementation is available under the
 implementation name like Sun did with <code>SunX509</code>, of course this implementation
 is not available when using IBM J9 or when using Android, they have their own.
 All should implement <code>X509TrustManager</code>. Avoid using those names those
-implementation may change for various reason, could renamed to <code>OracleX509</code>
-one day, or be replace by some other thing.
+implementations may change for various reason, could be renamed to <code>OracleX509</code>
+one day, or be replaced by some other thing.
 So when looking at code on the internet that rely on implementation specific
 one should take this opportunity to use the most generic name unless something
 specific is needed, in this case we want the default <code>PKIX</code> algorithm.</p>
-<p>Notice again how this JDK security API is very generic, the trust interface
+</div>
+<div class="paragraph">
+<p>Notice again how this JDK security API is very generic; the trust interface
 just does not make any assumption about the trust implementation. It could be
-<em>public key infrastructure</em> based (<em>i.e X.509 or something else</em>) or
+<em>Public Key Infrastructure</em>-based (<em>i.e., X.509 or something else</em>) or
 something else entirely.</p>
+</div>
+<div class="paragraph">
 <p>Also <code>TrustManagerFactory.getTrustManagers()</code> returns an array for supposedly for
 each type of trust management.
-Here&rsquo;s the javadoc:</p>
+Here’s the javadoc:</p>
+</div>
+<div class="quoteblock">
 <blockquote>
-<pre><code>public final TrustManager[] getTrustManagers()
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">public final TrustManager[] getTrustManagers()
 
 Returns one trust manager for each type of trust material.
 
 Returns:
     the trust managers
 Throws:
-    IllegalStateException - if the factory is not initialized.
-</code></pre>
+    IllegalStateException - if the factory is not initialized.</code></pre>
+</div>
+</div>
 </blockquote>
-<p>Give the javadoc of <code>SSLContext#init</code> and that in practice today the only
+</div>
+<div class="paragraph">
+<p>Give the Javadoc of <code>SSLContext#init</code> and that in practice today the only
 available kind of way to connect over TLS is PKIX / X.509. So this
 factory only creates a single trust manager instance, of type
 <code>X509Trustmanager</code>.</p>
-<p>So the above described approach at least doesn&rsquo;t degrade the security for
+</div>
+<div class="paragraph">
+<p>So the above-described approach at least doesn’t degrade the security for
 the HTTPS calls to website properly relying on root certificate authorities.
 Yet the security for self-signed signed certificates is still not handled,
-just dismissed. In my opinion this is acceptable for test code, but barely,
+just dismissed. In my opinion, this is acceptable for test code, but barely,
 security is a major concern, if we cannot get it right in tests what about
-production code that must speak to self signed certificate.</p>
-<p>Just because it is self-signed, doesn&rsquo;t mean there&rsquo;s no way to verify this
+production code that must speak to a self-signed certificate.</p>
+</div>
+<div class="paragraph">
+<p>Just because it is self-signed doesn’t mean there’s no way to verify this
 certificate.</p>
-<h2 id="how-to-properly-validate-a-self-signed-certificate-">How to properly validate a self-signed certificate ?</h2>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_to_properly_validate_a_self_signed_certificate"><a class="anchor" href="#_how_to_properly_validate_a_self_signed_certificate"></a><a class="link" href="#_how_to_properly_validate_a_self_signed_certificate">How to properly validate a self-signed certificate?</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
 <p>What to do if the production code has to establish to a server whose
-certificate is self-signed ?</p>
-<p>We saw that the JVM doesn&rsquo;t grant trust to certificates whose no known
+certificate is self-signed?</p>
+</div>
+<div class="paragraph">
+<p>We saw that the JVM doesn’t grant trust to certificates who have no known
 certification authority (<em>CA</em>) signed the peer certificate. A simple
-workaround would be install the unknown certificate in question.</p>
-<p>But before installing anything, let&rsquo;s get a hold of it.</p>
-<h3 id="get-the-self-signed-certificate">Get the self-signed certificate</h3>
+workaround would be to install the unknown certificate in question.</p>
+</div>
+<div class="paragraph">
+<p>But before installing anything, let’s get a hold of it.</p>
+</div>
+<div class="sect2">
+<h3 id="_get_the_self_signed_certificate"><a class="anchor" href="#_get_the_self_signed_certificate"></a><a class="link" href="#_get_the_self_signed_certificate">Get the self-signed certificate</a></h3>
+<div class="paragraph">
 <p>Upon the TLS connection handshake, the server sends his certificate chain,
 as we saw earlier when using the <code>s_client</code> of <code>openssl</code>.</p>
-<p>It his possible to get the certificates in a <code>PEM</code> format using another
+</div>
+<div class="paragraph">
+<p>It is possible to get the certificates in a <code>PEM</code> format using another
 command of <code>openssl</code>.</p>
-<pre><code class="language-sh">echo -n | \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">echo -n | \
   openssl s_client -prexit -connect host:port 2&gt;&amp;1 | \
   openssl x509 -outform pem \
-  &gt; certificate-host.pem
-</code></pre>
+  &gt; certificate-host.pem</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The above command indicate to <code>openssl</code> to establish a connection to
 <code>host:port</code> then to pass the results to the <code>x509</code> command in order to
 decode the certificate and to encode it in a <code>PEM</code> format.</p>
+</div>
+<div class="paragraph">
 <p>It is also possible to print on the console a human readable representation
 (not PEM):</p>
-<pre><code class="language-sh">echo -n | \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">echo -n | \
   openssl s_client -connect host:port 2&gt;&amp;1 | \
-  openssl x509 -text
-</code></pre>
+  openssl x509 -text</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>To read the certificate file in the <code>PEM</code> format there either the standard
-tool <code>openssl</code> or with <code>keytool</code> coming with the base install of the JDK :</p>
-<pre><code class="language-sh">keytool -printcert -file certificate-host.pem
-openssl x509 -inform pem -in certificate-host.pem -text
-</code></pre>
-<h3 id="using-the-self-signed-certificate-on-the-jvm">Using the self-signed certificate on the JVM</h3>
-<h4 id="importing-the-certificate-in-the-jvms-own-cacerts"><em>Importing</em> the certificate in the JVM&rsquo;s own <em>cacerts</em></h4>
+tool <code>openssl</code> or with <code>keytool</code> coming with the base installation of the JDK:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -printcert -file certificate-host.pem
+openssl x509 -inform pem -in certificate-host.pem -text</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_using_the_self_signed_certificate_on_the_jvm"><a class="anchor" href="#_using_the_self_signed_certificate_on_the_jvm"></a><a class="link" href="#_using_the_self_signed_certificate_on_the_jvm">Using the self-signed certificate on the JVM</a></h3>
+<div class="sect3">
+<h4 id="_importing_the_certificate_in_the_jvms_own_cacerts"><a class="anchor" href="#_importing_the_certificate_in_the_jvms_own_cacerts"></a><a class="link" href="#_importing_the_certificate_in_the_jvms_own_cacerts"><em>Importing</em> the certificate in the JVM’s own <em>cacerts</em></a></h4>
+<div class="paragraph">
 <p>The default JVM install comes with <em>cacerts</em> file that stores the <em>certificates</em>
-of <em>certificate authorities</em>. A self-signed certificate wasn&rsquo;t signed (issued)
+of <em>certificate authorities</em>. A self-signed certificate wasn’t signed (issued)
 by any of these authority, but since this certificate is signing itself, it is
 possible to inject it in the <em>cacerts</em> key store.
-It is possible to achieve this with <code>keytool</code> ; prepended with <code>sudo</code>
+It is possible to achieve this with <code>keytool</code>; prepended with <code>sudo</code>
 if the actual file system permission requires it.
 At JVM installation time this key store is configured with password <code>changeit</code>,
 but a good practice in production is to change this password to prevent any
 tampering with the <em>cacerts</em> file.</p>
-<pre><code class="language-sh">keytool -import \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -import \
         -alias wiremock \
         -file wiremock.pem \
-        -keystore $JAVA_HOME/jre/lib/security/cacerts
-</code></pre>
+        -keystore $JAVA_HOME/jre/lib/security/cacerts</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The wiremock certificate has been extracted to file <code>wiremock.pem</code> in the
 <strong>PEM</strong> format. The following command will import this certificate with
 the alias <code>wiremock</code> in the <code>cacerts</code> key store.</p>
-<blockquote>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
 <p>Eventually check the import went well by querying the content of the
-<code>cacerts</code> key store :</p>
-<pre><code class="language-sh">keytool -list -keystore $JAVA_HOME/jre/lib/security/cacerts
-</code></pre>
+<code>cacerts</code> key store:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -list -keystore $JAVA_HOME/jre/lib/security/cacerts</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>After the injection of the certificate, a <code>wiremock</code> entry should appear
 next to Verisign, Digital Certs, Geo Trust, etc.</p>
-</blockquote>
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
 <p>Once done, when trying a simpler version of the HTTPS calling code without
-the whole SSL setup, there&rsquo;s no error, the standard security configuration
+the whole SSL setup, there’s no error; the standard security configuration
 can match the wiremock certificate because it now knows about it.</p>
-<pre><code class="language-java">new OkHttpClient.Builder()
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">new OkHttpClient.Builder()
             .hostnameVerifier(allowAllHostNames())
             .build()
             .newCall(new Request.Builder().get()
-                                          .url(&quot;https://localhost:8443&quot;)
+                                          .url(&#34;https://localhost:8443&#34;)
                                           .build())
-            .execute();
-</code></pre>
-<p>Note however there&rsquo;s still a need of a dedicated hostname verifier that
+            .execute();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note, however, there’s still a need of a dedicated hostname verifier that
 allows every host, because the TLS protocol handshake is different than
 host or IP verification that is part of HTTPS
 (<a href="https://tools.ietf.org/html/rfc2818#section-3.1">RFC 2818</a>).</p>
-<p>Regardless injecting certificates in the JDK installation requires a
+</div>
+<div class="paragraph">
+<p>Regardless, injecting certificates in the JDK installation requires a
 deployment, that is a pain for developers, that is a pain for CI, and
 that is a pain for OPS. We can do better.</p>
-<h4 id="using-an-alternate-key-store">Using an alternate key store</h4>
-<p><em>Sometime this specific <strong>key store</strong> is referred to as a <strong>trust store</strong>.</em></p>
-<p>In this part let&rsquo;s craft a key store from the ground using the same tool
+</div>
+</div>
+<div class="sect3">
+<h4 id="_using_an_alternate_key_store"><a class="anchor" href="#_using_an_alternate_key_store"></a><a class="link" href="#_using_an_alternate_key_store">Using an alternate key store</a></h4>
+<div class="paragraph">
+<p><em>Sometimes this specific <strong>key store</strong> is referred to as a <strong>trust store</strong>.</em></p>
+</div>
+<div class="paragraph">
+<p>In this part let’s craft a key store from the ground using the same tool
 as above <code>keytool</code>.</p>
+</div>
+<div class="paragraph">
 <p>THe first contact with the key store was when we were meddling with the
 <em>cacerts</em> file. To create our own the usual extension is <code>jks</code>, that acronym
-stands for Java <strong>key</strong> - <strong>store</strong> is a file, that&rsquo;s where the <code>PEM</code>
+stands for Java <strong>key</strong> - <strong>store</strong> is a file, that’s where the <code>PEM</code>
 certificate will be imported.</p>
-<pre><code class="language-sh">keytool -import \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -import \
         -alias wiremock \
         -file wiremock.pem \
-        -keystore ./wiremock-truststore.jks
-</code></pre>
+        -keystore ./wiremock-truststore.jks</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>This commands takes a certificate file stored in the <code>PEM</code> format and stores
 it in a newly created Java Key Store file named <code>wiremock-truststore.jks</code>.</p>
-<blockquote>
-<p>The above commands requires a user interaction, this can be avoided
+</div>
+<div class="admonitionblock tip">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>The above command requires a user interaction; this can be avoided
 by passing a few options, especially <code>-noprompt</code> and <code>-storepass &lt;password&gt;</code>.</p>
-</blockquote>
-<pre><code class="language-sh">keytool -import \
+</div>
+</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -import \
         -noprompt \
         -storepass changeit \
         -alias wiremock \
         -file wiremock.pem \
-        -keystore ./wiremock-truststore.jks
-</code></pre>
-<p>Then the <code>java</code> commands allow to change the runtime trust store, which
-is the by default the <em>cacerts</em> file, with the following options :</p>
+        -keystore ./wiremock-truststore.jks</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then the <code>java</code> commands allow changing the runtime trust store, which
+is by default the <em>cacerts</em> file, with the following options:</p>
+</div>
+<div class="ulist">
 <ul>
-<li><code>-Djavax.net.ssl.trustStore=./wiremock-truststore.jks</code></li>
-<li><code>-Djavax.net.ssl.trustStorePassword=changeit</code></li>
+<li>
+<p><code>-Djavax.net.ssl.trustStore=./wiremock-truststore.jks</code></p>
+</li>
+<li>
+<p><code>-Djavax.net.ssl.trustStorePassword=changeit</code></p>
+</li>
 </ul>
-<p>The full command :</p>
-<pre><code class="language-sh">java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks \
+</div>
+<div class="paragraph">
+<p>The full command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks \
      -Djavax.net.ssl.trustStorePassword=changeit \
-     OkSSLConnect localhost 8443
-</code></pre>
+     OkSSLConnect localhost 8443</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>In the above command <code>OkSSLConnect</code> is the program that will establish the
 TLS connection to the wiremock HTTPS server with the given host and port.
 The <code>main</code> function consists only of the simplest code above (no special
 TLS configuration, just the <em>hostname verifier</em>).
-If the program succeeds then the alternate trust store has been used.</p>
-<p>However using this alternate trust store won&rsquo;t work if the same program
-must connect to some <em>well known</em> website (i.e. like <code>github.com</code>) whose
-certificates are issued by well known certificate authorities. In this
+If the program succeeds, then the alternate trust store has been used.</p>
+</div>
+<div class="paragraph">
+<p>However, using this alternate trust store won’t work if the same program
+must connect to some <em>well-known</em> website (i.e. like <code>github.com</code>) whose
+certificates are issued by well-known certificate authorities. In this
 case the same <code>SSLHandshakeException</code> will be raised.</p>
-<pre><code class="language-sh">java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">java -Djavax.net.ssl.trustStore=./wiremock-truststore.jks \
      -Djavax.net.ssl.trustStorePassword=changeit \
-     OkSSLConnect google.com 443
-</code></pre>
+     OkSSLConnect google.com 443</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>Without setting the alternate trust store, this command
 <code>java OkSSLConnect google.com 443</code> succeeds.</p>
-<p>So this approach is also lacking in some areas, the simple fact these options
-change the JVM&rsquo;s trust store is wrong, unless there&rsquo;s specific use cases.
-Also this can become a deployment issue in local development environment
-or on servers. Moreover it restrict the servers the JVM can connect to
-servers that have the very specific certificates.
-Not an acceptable solution in my opinion.</p>
-<h4 id="importing-programmatically-the-self-signed-certificate">Importing programmatically the self-signed certificate</h4>
-<h5 id="from-jks-key-store">From JKS key store</h5>
-<p>Lets begin with the JKS file created in the section above with <code>keytool</code>.
-The code below is split in three different method with each their
-own concerns :</p>
+</div>
+<div class="paragraph">
+<p>So this approach is also lacking in some areas; the simple fact these options
+change the JVM’s trust store is wrong, unless there are specific use cases.
+Also, this can become a deployment issue in a local development environment
+or on servers. Moreover, it restricts the servers the JVM can connect to
+servers that have very specific certificates.
+Not an acceptable solution, in my opinion.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_importing_programmatically_the_self_signed_certificate"><a class="anchor" href="#_importing_programmatically_the_self_signed_certificate"></a><a class="link" href="#_importing_programmatically_the_self_signed_certificate">Importing programmatically the self-signed certificate</a></h4>
+<div class="sect4">
+<h5 id="_from_jks_key_store"><a class="anchor" href="#_from_jks_key_store"></a><a class="link" href="#_from_jks_key_store">From JKS key store</a></h5>
+<div class="paragraph">
+<p>Let’s begin with the JKS file created in the section above with <code>keytool</code>.
+The code below is split into three different methods with each their
+own concerns:</p>
+</div>
+<div class="ulist">
 <ul>
-<li>one to load <code>TrustManager</code> factory, using the default algorithm
-<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#TrustManagerFactory"><code>PKIX</code></a></li>
-<li>one to load the trust store itself, using the default type
-<code>KeyStore.getDefauktType()</code> returns <code>jks</code>
-<!-- raw HTML omitted -->
-<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore">[1]</a>
-<a href="https://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html#getDefaultType--">[2]</a>
-<!-- raw HTML omitted -->.</li>
-<li>one to build the trust manager instance from the trust store</li>
+<li>
+<p>one to load <code>TrustManager</code> factory, using the default algorithm
+<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#TrustManagerFactory"><code>PKIX</code></a></p>
+</li>
+<li>
+<p>one to load the trust store itself, using the default type
+<code>KeyStore.getDefauktType()</code> returns <code>jks</code> <sup><a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore">[1</a>]</sup> <sup><a href="https://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html#getDefaultType--">[2</a>]</sup></p>
+</li>
+<li>
+<p>one to build the trust manager instance from the trust store</p>
+</li>
 </ul>
-<pre><code class="language-java">public static X509TrustManager trustManagerFor(KeyStore keyStore) {
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static X509TrustManager trustManagerFor(KeyStore keyStore) {
     TrustManagerFactory tmf = trustManagerFactoryFor(keyStore);
 
     TrustManager[] trustManagers = tmf.getTrustManagers();
     if (trustManagers.length != 1) {
-        throw new IllegalStateException(&quot;Unexpected number of trust managers:&quot;
+        throw new IllegalStateException(&#34;Unexpected number of trust managers:&#34;
                                                 + Arrays.toString(trustManagers));
     }
     TrustManager trustManager = trustManagers[0];
     if (trustManager instanceof X509TrustManager) {
         return (X509TrustManager) trustManager;
     }
-    throw new IllegalStateException(&quot;'&quot; + trustManager + &quot;' is not a X509TrustManager&quot;);
+    throw new IllegalStateException(&#34;&#39;&#34; + trustManager + &#34;&#39; is not a X509TrustManager&#34;);
 }
 
 
@@ -1014,7 +1369,7 @@ public static TrustManagerFactory trustManagerFactoryFor(KeyStore keyStore) {
         tmf.init(keyStore);
         return tmf;
     } catch (KeyStoreException | NoSuchAlgorithmException e) {
-        throw new IllegalStateException(&quot;Can't load trust manager for keystore : &quot; + keyStore, e);
+        throw new IllegalStateException(&#34;Can&#39;t load trust manager for keystore : &#34; + keyStore, e);
     }
 }
 
@@ -1029,72 +1384,98 @@ public static KeyStore readJavaKeyStore(Path javaKeyStorePath, String password) 
     } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
         throw new IllegalStateException(e);
     }
-}
-</code></pre>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>Note in the code above the password parameter given to read the trust store.
-Usually it is advised to array for password because a program have a better
+Usually it is advised to use arrays for password because a program has a better
 control on their lifecycle (<code>String</code> are immutable and on the heap, while
-array are mutable thus allowing to erase the password, if not the array
+arrays are mutable thus allowing to erase the password, if not the array
 object).</p>
+</div>
+<div class="paragraph">
 <p>Then the OkHttp client builder can be configured with the custom SSL
-socket factory :</p>
-<pre><code class="language-java">X509TrustManager trustManager = trustManagerFor(readJavaKeyStore(Paths.get(&quot;./wiremock-truststore.jks&quot;), &quot;changeit&quot;));
+socket factory:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">X509TrustManager trustManager = trustManagerFor(readJavaKeyStore(Paths.get(&#34;./wiremock-truststore.jks&#34;), &#34;changeit&#34;));
 new OkHttpClient.Builder()
         .sslSocketFactory(sslContext(null, new TrustManager[]{trustManager}).getSocketFactory(),
                           trustManager)
         .hostnameVerifier(allowAllHostNames())
         .build()
         .newCall(new Request.Builder().get()
-                                        .url(&quot;https://localhost:8443&quot;)
+                                        .url(&#34;https://localhost:8443&#34;)
                                         .build())
-        .execute();
-</code></pre>
+        .execute();</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>This code is quite nice because it can server for the majority of HTTP usage
 in the application. The code allows a approach that is a bit more configurable
 and under control.</p>
-<h5 id="from-a-pem-certificate">From a <code>PEM</code> certificate</h5>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_from_a_pem_certificate"><a class="anchor" href="#_from_a_pem_certificate"></a><a class="link" href="#_from_a_pem_certificate">From a <code>PEM</code> certificate</a></h5>
+<div class="paragraph">
 <p>Since the trust manager factory can only be built with a key store, this
 approach will build a key store in memory. This key store
 will be injected with the <code>X.509</code> certificate that was extracted previously
 with the command <code>openssl x509 -outform pem</code>.</p>
+</div>
+<div class="paragraph">
 <p>Since the only type of <em>key store</em> available in the JVM is <code>jks</code>, and the
-scope of this article is limited to SSL/TLS mechanism of the JVM only,
+scope of this article is limited to an SSL/TLS mechanism of the JVM only,
 the following code will then build a JKS in memory. This key store
 will inject the <code>X.509</code> certificate that was extracted previously with
 the command <code>openssl x509 -outform pem</code>.</p>
-<pre><code class="language-java">public static KeyStore makeJavaKeyStore(Path certificatePath) {
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static KeyStore makeJavaKeyStore(Path certificatePath) {
     try (BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(certificatePath))) {
-        CertificateFactory cf = CertificateFactory.getInstance(&quot;X.509&quot;);
+        CertificateFactory cf = CertificateFactory.getInstance(&#34;X.509&#34;);
 
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         ks.load(null, null);
         int certificate_counter = 0;
         for (X509Certificate certificate : (Collection&lt;X509Certificate&gt;) cf.generateCertificates(bis)) {
-            ks.setCertificateEntry(&quot;cert_&quot; + certificate_counter++, certificate);
+            ks.setCertificateEntry(&#34;cert_&#34; + certificate_counter++, certificate);
         }
 
         return ks;
     } catch (IOException e) {
         throw new UncheckedIOException(e);
     } catch (CertificateException e) {
-        throw new IllegalStateException(&quot;Can't load certificate : &quot; + certificatePath, e);
+        throw new IllegalStateException(&#34;Can&#39;t load certificate : &#34; + certificatePath, e);
     } catch (KeyStoreException | NoSuchAlgorithmException e) {
-        throw new IllegalStateException(&quot;Can't create the internal keystore for certificate : &quot; + certificatePath, e);
+        throw new IllegalStateException(&#34;Can&#39;t create the internal keystore for certificate : &#34; + certificatePath, e);
     }
-}
-</code></pre>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>As a reminder notice this code use the key store default type, i.e. <code>jks</code>, yet
 the JVM also supports other types like <code>PKCS12</code>
 (<a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore">see more</a>)</p>
+</div>
+<div class="paragraph">
 <p>Also notice how the call <code>(Collection&lt;X509Certificate&gt;) cf.generateCertificates(bis)</code>
 is <strong>generic</strong> and that depending on the instance type the generated
-certificate object could have different type, here the type is <code>&quot;X.509&quot;</code>
+certificate object could have different type, here the type is <code>&#34;X.509&#34;</code>
 so according to the javadoc objects can be cast to <code>X509Certificate</code> type.</p>
+</div>
+<div class="paragraph">
 <p>One other thing to note is that <code>(Collection&lt;X509Certificate&gt;) cf.generateCertificates(bis)</code>
 returns actually a collection of certificates. That means the file
-represented by this input stream may contain multiple certificates. Indeed the
+represented by this input stream may contain multiple certificates. Indeed, the
 <a href="https://docs.oracle.com/javase/8/docs/api/java/security/cert/CertificateFactory.html#generateCertificate-java.io.InputStream-"><code>CertificateFactory.generateCertificate(InputStream)</code></a>
-javadoc specifies that for <strong>X.509</strong> type the input stream content must be</p>
+Javadoc specifies that for <strong>X.509</strong> type the input stream content must be</p>
+</div>
+<div class="ulist">
 <ul>
 <li>
 <p><code>PEM</code> formatted, which is means a payload encoded to ASCII base64 within
@@ -1107,37 +1488,63 @@ the following boundaries or markers
 <code>openssl x509 -in wiremock.pem -outform der &gt; wiremock.der</code>).</p>
 </li>
 </ul>
+</div>
+<div class="quoteblock">
 <blockquote>
+<div class="paragraph">
 <p>In the case of a certificate factory for X.509 certificates, the certificate
 provided in inStream must be DER-encoded and may be supplied in binary or
 printable (Base64) encoding. If the certificate is provided in Base64 encoding,
 it must be bounded at the beginning by <code>-----BEGIN CERTIFICATE-----</code>, and must be
 bounded at the end by <code>-----END CERTIFICATE-----</code>.</p>
+</div>
 </blockquote>
+</div>
+<div class="paragraph">
 <p><em>The certificate entry name is not important in the context of this blog.</em></p>
-<p>Finally this code can be integrated by instructing the code to create a
-trust manager using this key store :</p>
-<pre><code class="language-java">X509TrustManager trustManager = trustManagerFor(makeJavaKeyStore(Paths.get(&quot;./wiremock.pem&quot;)));
+</div>
+<div class="paragraph">
+<p>Finally, this code can be integrated by instructing the code to create a
+trust manager using this key store:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">X509TrustManager trustManager = trustManagerFor(makeJavaKeyStore(Paths.get(&#34;./wiremock.pem&#34;)));
 new OkHttpClient.Builder()
         .sslSocketFactory(sslContext(null, new TrustManager[]{trustManager}).getSocketFactory(),
                           trustManager)
         .hostnameVerifier(allowAllHostNames())
         .build()
         .newCall(new Request.Builder().get()
-                                        .url(&quot;https://localhost:8443&quot;)
+                                        .url(&#34;https://localhost:8443&#34;)
                                         .build())
-        .execute();
-</code></pre>
-<p>That&rsquo;s even nicer because there&rsquo;s once less step, no <code>keytool</code> action required.</p>
+        .execute();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>That’s even nicer because there’s once less step, no <code>keytool</code> action required.</p>
+</div>
+<div class="paragraph">
 <p>Yet there again once this client is configured it still cannot connect to HTTPS
 servers using other certificates, like <code>github.com</code>.</p>
-<h3 id="programmatically-use-both-the-system-trust-chain-and-the-self-signed-certificate">Programmatically use both the system trust chain, and the self signed certificate</h3>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_programmatically_use_both_the_system_trust_chain_and_the_self_signed_certificate"><a class="anchor" href="#_programmatically_use_both_the_system_trust_chain_and_the_self_signed_certificate"></a><a class="link" href="#_programmatically_use_both_the_system_trust_chain_and_the_self_signed_certificate">Programmatically use both the system trust chain and the self-signed certificate</a></h3>
+<div class="paragraph">
 <p>If the HTTPS client must connect to various third parties having either a
-certificate signed from a <em>known</em> certificate authority or a self signed
-certificate, then it is needed to tweak the custom trust manager.</p>
-<p>This approach simply craft a composite trust manager delegating certificate
-verification to the configured delegate trust managers :</p>
-<pre><code class="language-java">public class CompositeX509TrustManager implements X509TrustManager {
+certificate signed from a <em>known</em> certificate authority or a self-signed
+certificate, then it is necessary to tweak the custom trust manager.</p>
+</div>
+<div class="paragraph">
+<p>This approach simply crafts a composite trust manager delegating certificate
+verification to the configured delegate trust managers:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class CompositeX509TrustManager implements X509TrustManager {
     private final List&lt;X509TrustManager&gt; trustManagers;
 
     public CompositeX509TrustManager(X509TrustManager... trustManagers) {
@@ -1146,7 +1553,7 @@ verification to the configured delegate trust managers :</p>
 
     @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        new MultiException&lt;&gt;(new CertificateException(&quot;This certification chain couldn't be trusted&quot;))
+        new MultiException&lt;&gt;(new CertificateException(&#34;This certification chain couldn&#39;t be trusted&#34;))
                 .collectFrom(trustManagers.stream(),
                              trustManager -&gt; trustManager.checkClientTrusted(chain, authType))
                 .scream(UNLESS_ANY_SUCCESS);
@@ -1154,7 +1561,7 @@ verification to the configured delegate trust managers :</p>
 
     @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        new MultiException&lt;&gt;(new CertificateException(&quot;This certification chain couldn't be trusted&quot;))
+        new MultiException&lt;&gt;(new CertificateException(&#34;This certification chain couldn&#39;t be trusted&#34;))
                 .collectFrom(trustManagers.stream(),
                              trustManager -&gt; trustManager.checkServerTrusted(chain, authType))
                 .scream(UNLESS_ANY_SUCCESS);
@@ -1167,13 +1574,18 @@ verification to the configured delegate trust managers :</p>
                             .flatMap(Arrays::stream)
                             .toArray(X509Certificate[]::new);
     }
-}
-</code></pre>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p><code>MultiException</code> is small <em>helper</em> that allows to collect several exceptions
 that are raised by a collection of calls, while still raising a single
 parent exception, it relies on <code>Throwable.addSuppressed</code> that was added
 in Java 1.7 for <em>try-with-resources</em> statements.</p>
-<pre><code class="language-java">public class MultiException&lt;E extends Exception&gt; {
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public class MultiException&lt;E extends Exception&gt; {
     private final E parent;
     private boolean successMarker = false;
 
@@ -1216,82 +1628,159 @@ in Java 1.7 for <em>try-with-resources</em> statements.</p>
         UNLESS_ANY_SUCCESS,
         ANY_FAILURE
     }
-}
-</code></pre>
-<p>The composite manager can be used this way :</p>
-<pre><code class="language-java">X509TrustManager compositeTrustManager = new CompositeX509TrustManager(
-        trustManagerFor(makeJavaKeyStore(Paths.get(&quot;./wiremock.pem&quot;))),
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The composite manager can be used this way:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">X509TrustManager compositeTrustManager = new CompositeX509TrustManager(
+        trustManagerFor(makeJavaKeyStore(Paths.get(&#34;./wiremock.pem&#34;))),
         systemTrustManager());
 OkHttpClient okHttpClient = httpClient(sslContext(null,
                                                   new TrustManager[]{compositeTrustManager}),
                                         compositeTrustManager)
         .newBuilder()
         .hostnameVerifier(allowAllHostname())
-        .build();
-</code></pre>
+        .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>This client can now access both kind of HTTPS servers.</p>
-<h2 id="server-side">Server side</h2>
-<p>This blog post explored a bit the client side, but form the beginning the code
-dealt with wiremock&rsquo;s certificate. There&rsquo;s something to do on this side
-to allow a complete control in the tests. The first thing would be to generate
-one.</p>
-<h3 id="generate-a-self-signed-certificate-with-keytool">Generate a self-signed certificate with <code>keytool</code></h3>
-<p>The JDK&rsquo;s <code>keytool</code> offers various commands and one, especially useful in the
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_server_side"><a class="anchor" href="#_server_side"></a><a class="link" href="#_server_side">Server side</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>So far we’ve explored the client side, but relying on wiremock’s default
+certificate isn’t ideal from a testing perspective. To have full control
+over our tests, we should generate our own certificate.</p>
+</div>
+<div class="sect2">
+<h3 id="_generate_a_self_signed_certificate_with_keytool"><a class="anchor" href="#_generate_a_self_signed_certificate_with_keytool"></a><a class="link" href="#_generate_a_self_signed_certificate_with_keytool">Generate a self-signed certificate with <code>keytool</code></a></h3>
+<div class="paragraph">
+<p>The JDK’s <code>keytool</code> offers various commands and one, especially useful in the
 current case, that allows to generate a certificate.</p>
-<pre><code class="language-sh">keytool -genkey \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -genkey \
         -keyalg RSA \
         -alias bric3 \
         -keystore bric3.jks \
         -storepass the_password \
         -validity 360 \
-        -keysize 2048
-</code></pre>
+        -keysize 2048</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>With the above command <code>keytool</code> will generate a Java keystore file with
-the brand new certificate. It will interact with the user, asking for
-the following certificate&rsquo;s attributes :</p>
+the brand-new certificate. It will interact with the user, asking for
+the following certificate’s attributes:</p>
+</div>
+<div class="ulist">
 <ul>
-<li><code>CN</code> (<strong>C</strong>ommon <strong>N</strong>ame)</li>
-<li><code>OU</code> (<strong>O</strong>rganizational <strong>U</strong>nit)</li>
-<li><code>O</code> (<strong>O</strong>rganization)</li>
-<li><code>L</code> (<strong>L</strong>ocality)</li>
-<li><code>ST</code> (<strong>ST</strong>ate)</li>
-<li><code>C</code> (<strong>C</strong>ountry)</li>
+<li>
+<p><code>CN</code> (<strong>C</strong>ommon <strong>N</strong>ame)</p>
+</li>
+<li>
+<p><code>OU</code> (<strong>O</strong>rganizational <strong>U</strong>nit)</p>
+</li>
+<li>
+<p><code>O</code> (<strong>O</strong>rganization)</p>
+</li>
+<li>
+<p><code>L</code> (<strong>L</strong>ocality)</p>
+</li>
+<li>
+<p><code>ST</code> (<strong>ST</strong>ate)</p>
+</li>
+<li>
+<p><code>C</code> (<strong>C</strong>ountry)</p>
+</li>
 </ul>
-<p>then it will ask for the certificate password, not to be mixed with the
+</div>
+<div class="paragraph">
+<p>Then it will ask for the certificate password, not to be mixed with the
 keystore password (which is given in the above command with
 <code>-storepass the_password</code>). This can work in batch mode (non-interactive)
-if the command has the following options :</p>
+if the command has the following options:</p>
+</div>
+<div class="ulist">
 <ul>
-<li><code>-keypass password</code></li>
-<li><code>-dname 'CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR'</code></li>
+<li>
+<p><code>-keypass password</code></p>
+</li>
+<li>
+<p><code>-dname &#39;CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR&#39;</code></p>
+</li>
 </ul>
+</div>
+<div class="quoteblock">
 <blockquote>
+<div class="paragraph">
 <p><code>dname</code> means <strong>D</strong>istinguished <strong>N</strong>ames</p>
+</div>
 </blockquote>
-<p>However this new generated certificate and the one of wiremock have the
+</div>
+<div class="paragraph">
+<p>However, this new generated certificate and the one of wiremock have the
 same problems leading to the same obstacle that had to be dealt with in
-the first half of this blog :</p>
+the first half of this blog:</p>
+</div>
+<div class="ulist">
 <ul>
-<li>it is self-signed</li>
-<li>it will require a custom host name verifier (<a href="https://tools.ietf.org/html/rfc2818#section-3.1">RFC 2818</a>)</li>
+<li>
+<p>it is self-signed</p>
+</li>
+<li>
+<p>it will require a custom host name verifier (<a href="https://tools.ietf.org/html/rfc2818#section-3.1">RFC 2818</a>)</p>
+</li>
 </ul>
-<p>Let&rsquo;s first fix this last point first, what this certificate need is a
+</div>
+<div class="paragraph">
+<p>Let’s first fix this last point first; what this certificate needs is a
 <a href="https://tools.ietf.org/html/rfc5280#section-4.2.1.6"><code>SAN</code> (<strong>S</strong>ubject <strong>A</strong>lternative <strong>N</strong>ames)</a>
-section that can contain DNS names or IP addresses. <code>keytool</code> can be tell
+section that can contain DNS names or IP addresses. <code>keytool</code> can be told
 to add this information with the <code>-ext</code> option along with the <strong>SAN</strong>
 <em>extension</em> that needs to be formatted with almost any number of <code>dns</code> or
 <code>ip</code> elements.</p>
-<pre><code>-ext SAN=dns:domain.com,dns:localhost,ip:127.0.0.1
-</code></pre>
-<p>For example if the certificate needs to be valid for the following hostnames</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">-ext SAN=dns:domain.com,dns:localhost,ip:127.0.0.1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, if the certificate needs to be valid for the following hostnames</p>
+</div>
+<div class="ulist">
 <ul>
-<li><code>blog.arkey.fr</code></li>
-<li><code>blog</code></li>
-<li><code>127.0.0.1</code></li>
-<li><code>::1</code></li>
+<li>
+<p><code>blog.arkey.fr</code></p>
+</li>
+<li>
+<p><code>blog</code></p>
+</li>
+<li>
+<p><code>127.0.0.1</code></p>
+</li>
+<li>
+<p><code>::1</code></p>
+</li>
 </ul>
-<p><code>keytool</code> needs to be told to generate the certificate with the following options :</p>
-<pre><code class="language-sh">keytool -genkey \
+</div>
+<div class="paragraph">
+<p><code>keytool</code> needs to be told to generate the certificate with the following options:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -genkey \
         -keyalg RSA \
         -alias bric3 \
         -keystore bric3.jks \
@@ -1299,68 +1788,107 @@ to add this information with the <code>-ext</code> option along with the <strong
         -validity 360 \
         -keysize 2048 \
         -keypass the_password \
-        -dname 'CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR' \
-        -ext 'SAN=dns:blog.arkey.fr,dns:blog,dns:localhost,ip:127.0.0.1,ip:::1'
-</code></pre>
-<hr>
+        -dname &#39;CN=Brice Duhteil, OU=Arkey, O=Arkey, L=Paris, ST=France, C=FR&#39; \
+        -ext &#39;SAN=dns:blog.arkey.fr,dns:blog,dns:localhost,ip:127.0.0.1,ip:::1&#39;</code></pre>
+</div>
+</div>
+<hr/>
+<div class="paragraph">
 <p><strong>Note #1:</strong></p>
-<ol>
-<li><code>keytool</code> generate a certificate and stores it immediately in the <strong>J</strong>ava
-<strong>K</strong>ey <strong>S</strong>tore</li>
-<li>wiremock in this version only allow to configure a single password that
-will be used for both the certificate and the <strong>J</strong>ava <strong>K</strong>ey <strong>S</strong>tore ;
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>keytool</code> generate a certificate and stores it immediately in the <strong>J</strong>ava
+<strong>K</strong>ey <strong>S</strong>tore</p>
+</li>
+<li>
+<p>wiremock in this version only allow to configure a single password that
+will be used for both the certificate and the <strong>J</strong>ava <strong>K</strong>ey <strong>S</strong>tore;
 that means for our tests the command should specify the same password for
 both JKS and the certificate
-e.g. : <code>-storepass the_password</code> and <code>-keypass the_password</code>.</li>
+e.g.: <code>-storepass the_password</code> and <code>-keypass the_password</code>.</p>
+</li>
 </ol>
+</div>
+<div class="paragraph">
 <p><strong>Note #2:</strong></p>
-<p><code>keytool</code> do validate the DNS entry, but it doesn&rsquo;t understand all possible
+</div>
+<div class="paragraph">
+<p><code>keytool</code> do validate the DNS entry, but it doesn’t understand all possible
 allowed characters of a domain name for this reason it would be preferable
 to use <code>openssl</code> or similar tools to generate the certificates.
 An interesting part of the PKIX / X509 specification in version 3 is the
-<em>Subject Alt Names</em> ; this extension allows to list the <em>names</em> of the
-servers for for which this certificate has been issued, this completes
+<em>Subject Alt Names</em>; this extension allows to list the <em>names</em> of the
+servers for which this certificate has been issued, this completes
 the limited <em>Common Name</em>.
 One of the advantages of this extension is the ability to enter
 <a href="https://tools.ietf.org/html/rfc5280#section-4.2.1.6">wildcard</a> names,
 although the RFC does cover how a client should interpret and
-act on those wildcards :</p>
+act on those wildcards:</p>
+</div>
+<div class="quoteblock">
 <blockquote>
+<div class="paragraph">
 <p>Finally, the semantics of subject alternative names that include
 wildcard characters (e.g., as a placeholder for a set of names) are
 not addressed by this specification.  Applications with specific
 requirements MAY use such names, but they must define the semantics.</p>
+</div>
 </blockquote>
+</div>
+<div class="paragraph">
 <p>E.g. <strong><code>google.com</code></strong> certificate is configured with domain names with
 wildcard:</p>
-<pre><code class="language-sh">echo -n | openssl s_client -showcerts -connect google.com:443 2&gt;&amp;1 | openssl x509 -text
-</code></pre>
-<pre><code>X509v3 Subject Alternative Name: 
-    DNS:*.google.com, DNS:*.android.com, DNS:*.appengine.google.com, DNS:*.cloud.google.com, DNS:*.db833953.google.cn, DNS:*.g.co, DNS:*.gcp.gvt2.com, DNS:*.google-analytics.com, DNS:*.google.ca, DNS:*.google.cl, DNS:*.google.co.in, DNS:*.google.co.jp, DNS:*.google.co.uk, DNS:*.google.com.ar, DNS:*.google.com.au, DNS:*.google.com.br, DNS:*.google.com.co, DNS:*.google.com.mx, DNS:*.google.com.tr, DNS:*.google.com.vn, DNS:*.google.de, DNS:*.google.es, DNS:*.google.fr, DNS:*.google.hu, DNS:*.google.it, DNS:*.google.nl, DNS:*.google.pl, DNS:*.google.pt, DNS:*.googleadapis.com, DNS:*.googleapis.cn, DNS:*.googlecommerce.com, DNS:*.googlevideo.com, DNS:*.gstatic.cn, DNS:*.gstatic.com, DNS:*.gvt1.com, DNS:*.gvt2.com, DNS:*.metric.gstatic.com, DNS:*.urchin.com, DNS:*.url.google.com, DNS:*.youtube-nocookie.com, DNS:*.youtube.com, DNS:*.youtubeeducation.com, DNS:*.yt.be, DNS:*.ytimg.com, DNS:android.clients.google.com, DNS:android.com, DNS:developer.android.google.cn, DNS:developers.android.google.cn, DNS:g.co, DNS:goo.gl, DNS:google-analytics.com, DNS:google.com, DNS:googlecommerce.com, DNS:source.android.google.cn, DNS:urchin.com, DNS:www.goo.gl, DNS:youtu.be, DNS:youtube.com, DNS:youtubeeducation.com, DNS:yt.be
-</code></pre>
-<hr>
-<h3 id="generate-a-self-signed-certificate-with-openssl">Generate a self-signed certificate with <code>openssl</code></h3>
-<p><code>keytool</code> is nice, but it requires the JVM, and let&rsquo;s use the standard
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">echo -n | openssl s_client -showcerts -connect google.com:443 2&gt;&amp;1 | openssl x509 -text</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-none hljs">X509v3 Subject Alternative Name:
+    DNS:*.google.com, DNS:*.android.com, DNS:*.appengine.google.com, DNS:*.cloud.google.com, DNS:*.db833953.google.cn, DNS:*.g.co, DNS:*.gcp.gvt2.com, DNS:*.google-analytics.com, DNS:*.google.ca, DNS:*.google.cl, DNS:*.google.co.in, DNS:*.google.co.jp, DNS:*.google.co.uk, DNS:*.google.com.ar, DNS:*.google.com.au, DNS:*.google.com.br, DNS:*.google.com.co, DNS:*.google.com.mx, DNS:*.google.com.tr, DNS:*.google.com.vn, DNS:*.google.de, DNS:*.google.es, DNS:*.google.fr, DNS:*.google.hu, DNS:*.google.it, DNS:*.google.nl, DNS:*.google.pl, DNS:*.google.pt, DNS:*.googleadapis.com, DNS:*.googleapis.cn, DNS:*.googlecommerce.com, DNS:*.googlevideo.com, DNS:*.gstatic.cn, DNS:*.gstatic.com, DNS:*.gvt1.com, DNS:*.gvt2.com, DNS:*.metric.gstatic.com, DNS:*.urchin.com, DNS:*.url.google.com, DNS:*.youtube-nocookie.com, DNS:*.youtube.com, DNS:*.youtubeeducation.com, DNS:*.yt.be, DNS:*.ytimg.com, DNS:android.clients.google.com, DNS:android.com, DNS:developer.android.google.cn, DNS:developers.android.google.cn, DNS:g.co, DNS:goo.gl, DNS:google-analytics.com, DNS:google.com, DNS:googlecommerce.com, DNS:source.android.google.cn, DNS:urchin.com, DNS:www.goo.gl, DNS:youtu.be, DNS:youtube.com, DNS:youtubeeducation.com, DNS:yt.be</code></pre>
+</div>
+</div>
+<hr/>
+</div>
+<div class="sect2">
+<h3 id="_generate_a_self_signed_certificate_with_openssl"><a class="anchor" href="#_generate_a_self_signed_certificate_with_openssl"></a><a class="link" href="#_generate_a_self_signed_certificate_with_openssl">Generate a self-signed certificate with <code>openssl</code></a></h3>
+<div class="paragraph">
+<p><code>keytool</code> is nice, but it requires the JVM, and let’s use the standard
 tool, the <em>Swiss army knife</em> <code>openssl</code> (or the new forks <strong>BoringSSL</strong> or
 <strong>LibreSSL</strong>).</p>
+</div>
+<div class="paragraph">
 <p>The <code>keytool</code> command that was used was generating a self-signed certificate
-in one shot, it is also possible with <code>openssl</code> but let&rsquo;s understand the
+in one shot, it is also possible with <code>openssl</code> but let’s understand the
 different steps that are needed under the hood to generate a self-signed
 certificate.</p>
-<ol>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
 <li>
 <p>Generate a private key</p>
-<pre><code class="language-sh">openssl genrsa \
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">openssl genrsa \
     -out bric3-private.key \
-    2048
-</code></pre>
+    2048</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The above command creates a private key of 2048 bits using the RSA
 algorithm. This key is <strong>not</strong> protected by a password, so keep it
 safe (to do that use the <code>-des3</code> option).</p>
+</div>
 </li>
 <li>
 <p>Request a new certificate for the domain(s).</p>
-<pre><code class="language-sh">openssl req \
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">openssl req \
     -new \
     -outform pem \
     -out bric3-self.csr \
@@ -1396,39 +1924,62 @@ IP.1 = 127.0.0.1
 IP.2 = ::1
 
 EOF
-)
-</code></pre>
-<p>The above <code>req</code> command works in batch mode (i.e. non-interractive).
+)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The above <code>req</code> command works in batch mode (i.e. non-interactive).
 It will generate a <code>CSR</code> file (<strong>C</strong>ertificate <strong>S</strong>ign <strong>R</strong>equest)
 stored in the PEM format. This command needs the private key of the
-server&rsquo;s owner. In order to pass additional parameters to generate
+server’s owner. To pass additional parameters to generate
 the CSR are passed via a shell stream and <em><a href="http://tldp.org/LDP/abs/html/here-docs.html">here document</a></em>
 <code>&lt;(cat &lt;&lt;-MARKER ... MARKER)</code>.</p>
-<p>In the <em>document</em> there&rsquo;s a <code>[req]</code> section with</p>
+</div>
+<div class="paragraph">
+<p>In the <em>document</em> there’s a <code>[req]</code> section with</p>
+</div>
+<div class="ulist">
 <ul>
-<li>an option that instruct the program to run in non-interactive
-mode : <code>prompt = no</code>,</li>
-<li>a <em>link</em> to the <strong>D</strong>istinguished <strong>N</strong>ame section named <code>dn</code> :
-<code>distinguished_name = dn</code>,</li>
-<li>a <em>link</em> to the <strong>S</strong>ubject <strong>A</strong>lt <strong>N</strong>ame extension section :
+<li>
+<p>an option that instruct the program to run in non-interactive
+mode: <code>prompt = no</code>,</p>
+</li>
+<li>
+<p>a <em>link</em> to the <strong>D</strong>istinguished <strong>N</strong>ame section named <code>dn</code>:
+<code>distinguished_name = dn</code>,</p>
+</li>
+<li>
+<p>a <em>link</em> to the <strong>S</strong>ubject <strong>A</strong>lt <strong>N</strong>ame extension section:
 <code>req_extensions = bric3_req_ext</code>, without this field it would be
-necessary to pass the the following option to the command
-<code>-reqexts bric3_req_ext</code></li>
-</ul>
+necessary to pass the following option to the command
+<code>-reqexts bric3_req_ext</code></p>
+<div class="paragraph">
 <p>The <code>[dn]</code> section defines fields that compose what is a <em>DN</em>, e.g.
 the <strong>C</strong>ommon <strong>N</strong>ame, the <strong>O</strong>rganization, etc.</p>
+</div>
+<div class="paragraph">
 <p>The <em>extension section</em> (<code>bric3_req_ext</code>) defines where is located
-the <em>alternative name section</em> : <code>subjectAltName = @alt_names</code>, in
+the <em>alternative name section</em>: <code>subjectAltName = @alt_names</code>, in
 this case only the <code>@</code> prefix is necessary.</p>
+</div>
+<div class="paragraph">
 <p>The <em>alternative name section</em> (<code>alt_names</code>) will define the wanted
 entries of <code>DNS</code> type, <code>IP</code> type, etc.</p>
+</div>
+<div class="paragraph">
 <p>For more on this <code>req</code> command and how it can be configured, just deep
 dive in the <a href="https://www.openssl.org/docs/manmaster/man1/req.html">man (master branch)</a>
 page.</p>
+</div>
+</li>
+</ul>
+</div>
 </li>
 <li>
 <p>Sign the <em>certificate sign request</em> to generate the actual certificate</p>
-<pre><code class="language-sh">openssl x509 \
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">openssl x509 \
     -req \
     -days 3650 \
     -inform pem \
@@ -1451,31 +2002,47 @@ DNS.6 = blog
 IP.1 = 127.0.0.1
 IP.2 = ::1
 EOF
-)
-</code></pre>
-<p>The command <code>x509</code> gnerate a new X.509 certificate from a CSR (<code>-req</code>).
-As an intput it obvisouly need the request file <code>-in bric3-self.csr</code>,
-and since it is a self-signed certificate <strong>the command uses the same
+)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The command <code>x509</code> generate a new X.509 certificate from a CSR (<code>-req</code>).
+As an input it obviously needs the request file <code>-in bric3-self.csr</code>,
+and since it is a self-signed certificate, <strong>the command uses the same
 private key</strong> that was used to generate the request <code>-signkey bric3-private.key</code>,
 otherwise it would be the private key of the certificate authority.
 The new certificate will be valid for ten years (<code>-days 3650</code>).</p>
-<p>Unfortunately this <code>openssl</code> command don&rsquo;t use the extensions of the
-request, consequently it his needed to provide them as well via
+</div>
+<div class="paragraph">
+<p>Unfortunately this <code>openssl</code> command don’t use the extensions of the
+request, consequently it is necessary to provide them as well via
 configuration file or via a stream (and <em><a href="http://tldp.org/LDP/abs/html/here-docs.html">here docs</a></em>)
-<code>-extfile &lt;(cat &lt;&lt;-EOF ... EOF)</code>, however in this case the extension
+<code>-extfile &lt;(cat &lt;&lt;-EOF ... EOF)</code>, however, in this case the extension
 section name has to be passed via an option <code>-extensions bric3_ext</code>.</p>
+</div>
+<div class="paragraph">
 <p>If everything is correct a new <code>bric3-self.pem</code> certificate will be issued.</p>
+</div>
+<div class="paragraph">
 <p>For more on this <code>x509</code> command and how it can be configured, just deep
 dive in the <a href="https://www.openssl.org/docs/manmaster/man1/x509.html">man (master branch)</a>
 page.</p>
+</div>
 </li>
 </ol>
+</div>
+<div class="paragraph">
 <p>The configuration shown above is quite simple for this blog, in practice
 it will be more complicated with a <em>certificate authority</em> and a more
 elaborate certificate chain.</p>
-<p>As said earlier the 3 above steps that can be reduced to the the following
+</div>
+<div class="paragraph">
+<p>As said earlier, the 3 above steps that can be reduced to the following
 command to generate a self-signed certificate.</p>
-<pre><code class="language-sh">openssl req \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">openssl req \
     -new \
     -nodes \
     -sha256 \
@@ -1513,26 +2080,44 @@ DNS.6 = blog
 IP.1 = 127.0.0.1
 IP.2 = ::1
 EOF
-)
-</code></pre>
-<p>The command is <code>req</code> but tweaked with these options :</p>
+)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The command is <code>req</code> but tweaked with these options:</p>
+</div>
+<div class="ulist">
 <ul>
-<li><code>-newkey rsa:2048</code> option that will generate the RSA 2048 private key.
-The key will be stored with the PEM format in the <code>bric3-openssl.key</code> file.</li>
-<li><code>-x509</code> that tell the command the output won&rsquo;t be a certificate sign
-request but a X.509 signed certificate. The certificate will be valid
+<li>
+<p><code>-newkey rsa:2048</code> option that will generate the RSA 2048 private key.
+The key will be stored with the PEM format in the <code>bric3-openssl.key</code> file.</p>
+</li>
+<li>
+<p><code>-x509</code> that tells the command the output won’t be a certificate sign
+request but an X.509 signed certificate. The certificate will be valid
 for ten years <code>-days 3650</code> and will be stored with the PEM format in
 the <code>bric3-openssl.crt</code> file. Since <code>-x509</code> option is used the extension
-section location field changes from <code>req_extensions</code> to <code>x509_extensions = bric3_ext</code>.</li>
+section location field changes from <code>req_extensions</code> to <code>x509_extensions = bric3_ext</code>.</p>
+</li>
 </ul>
-<hr>
+</div>
+<hr/>
+<div class="paragraph">
 <p>Note the <code>subjectAltName = @alt_names</code> line again, the <code>@</code> allows to reference
 a <em>vertical</em> list declared within the <code>alt_names</code> section. For example</p>
-<pre><code>[bric3_ext]
-subjectAltName = DNS.1 : localhost, DNS.3 : arkey.fr, DNS.3 : *.arkey.fr, DNS.4 : arkey.pro, DNS.5 : *.arkey.pro, DNS.6 : blog, IP.1 : 127.0.0.1, IP.2 : ::1
-</code></pre>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[bric3_ext]
+subjectAltName = DNS.1 : localhost, DNS.3 : arkey.fr, DNS.3 : *.arkey.fr, DNS.4 : arkey.pro, DNS.5 : *.arkey.pro, DNS.6 : blog, IP.1 : 127.0.0.1, IP.2 : ::1</pre>
+</div>
+</div>
+<div class="paragraph">
 <p>is equivalent to</p>
-<pre><code>[bric3_ext]
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[bric3_ext]
 subjectAltName = @alt_names
 
 [alt_names]
@@ -1543,52 +2128,71 @@ DNS.4 = arkey.pro
 DNS.5 = *.arkey.pro
 DNS.6 = blog
 IP.1 = 127.0.0.1
-IP.2 = ::1
-</code></pre>
-<p>There&rsquo;s however a few syntax changes</p>
+IP.2 = ::1</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There are, however, a few syntax changes
+- the use of a colon <code>:</code> next to the alternative name (<code>IP</code>, <code>DNS</code>, etc.)
+  for the horizontal list, an equal sign <code>=</code> for the vertical one.</p>
+</div>
+<div class="ulist">
 <ul>
-<li>
-<p>the use of a colon <code>:</code> next to the the alternative name (<code>IP</code>, <code>DNS</code>, etc.)
-for the horizontal list, an equal sign <code>=</code> for the vertical one.</p>
-</li>
 <li>
 <p>the post-fix <em>index</em> notation is optional for the horizontal list, but
 mandatory in the vertical list.</p>
 </li>
 </ul>
-<hr>
-<p>Finally they need to be packaged in order to use the certificate and the key
+</div>
+<hr/>
+<div class="paragraph">
+<p>Finally, they need to be packaged in order to use the certificate and the key
 with the JVM. Standard libraries of the JDK can load a <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#KeyStore"><strong>J</strong>ava <strong>K</strong>ey
 <strong>S</strong>tore or <code>P12</code> (<strong>PKCS12</strong>) file</a>.</p>
-<pre><code class="language-sh">openssl pkcs12 \
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">openssl pkcs12 \
     -export \
     -in bric3-openssl.crt \
     -inkey bric3-openssl.key \
     -passout pass:cadeau \
-    -out bric3.p12
-</code></pre>
-<p>As a side note here&rsquo;s how to create a Java Keystore from a PKCS12 store :</p>
-<pre><code class="language-sh">keytool -importkeystore \
+    -out bric3.p12</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As a side note, here’s how to create a Java Keystore from a PKCS12 store:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh hljs" data-lang="sh">keytool -importkeystore \
         -srckeystore bric3.p12 \
         -srcstoretype PKCS12 \
         -srcstorepass cadeau \
         -deststorepass the_password \
         -destkeypass the_password \
-        -destkeystore bric3-openssl.jks
-</code></pre>
-<h3 id="loading-the-generated-certificate">Loading the generated certificate</h3>
-<p>In order to use the certificate wiremock need to be configured with the
-location of the key store (and of course in the client code).</p>
-<pre><code class="language-java">@Rule
+        -destkeystore bric3-openssl.jks</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_loading_the_generated_certificate"><a class="anchor" href="#_loading_the_generated_certificate"></a><a class="link" href="#_loading_the_generated_certificate">Loading the generated certificate</a></h3>
+<div class="paragraph">
+<p>To use, the certificate wiremock needs to be configured with the
+location of the key store (and, of course, in the client code).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">@Rule
 public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort()
-                                                                    .keystorePath(&quot;./bric3.jks&quot;)
-                                                                    .keystorePassword(&quot;the_password&quot;)
+                                                                    .keystorePath(&#34;./bric3.jks&#34;)
+                                                                    .keystorePassword(&#34;the_password&#34;)
                                                                     .dynamicHttpsPort());
 
 @Test
 public void my_precious_self_signed_certificate() throws IOException {
     X509TrustManager compositeTrustManager = new CompositeX509TrustManager(
-            trustManagerFor(readJavaKeyStore(Paths.get(&quot;./bric3.jks&quot;), &quot;the_password&quot;)),
+            trustManagerFor(readJavaKeyStore(Paths.get(&#34;./bric3.jks&#34;), &#34;the_password&#34;)),
             systemTrustManager());
     OkHttpClient okHttpClient = httpClient(sslContext(null,
                                                       new TrustManager[]{compositeTrustManager}),
@@ -1596,57 +2200,119 @@ public void my_precious_self_signed_certificate() throws IOException {
             .newBuilder()
             .build();
     try (Response response = okHttpClient.newCall(new Request.Builder().get()
-                                                                       .url(format(&quot;https://%s:%d&quot;,
-                                                                                   &quot;localhost&quot;,
+                                                                       .url(format(&#34;https://%s:%d&#34;,
+                                                                                   &#34;localhost&#34;,
                                                                                    wireMockRule.httpsPort()))
                                                                        .build())
                                          .execute()) {
         // successfully established connection
     }
-}
-</code></pre>
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>Notice the use of the JKS key store instead of the P12 file, while I just
 wrote that
 <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#impl">all JVM implementations are supposed to support PKCS12 type key store</a>,
-what happened ? Unfortunately wiremock uses Jetty under the hood and
-<a href="https://wiki.eclipse.org/Jetty/Howto/Configure_SSL#Loading_Keys_and_Certificates_via_PKCS12">Jetty doesn&rsquo;t allow to be configured with a PKCS12 file</a>.
-Meaning that our P12 file have to be converted in a <strong>J</strong>ava <strong>K</strong>ey <strong>S</strong>tore.</p>
-<h2 id="wrap-up">Wrap up</h2>
-<p>This was the last piece of code of this blog entry. In this article I hope
+what happened? Unfortunately, wiremock uses Jetty under the hood and
+<a href="https://wiki.eclipse.org/Jetty/Howto/Configure_SSL#Loading_Keys_and_Certificates_via_PKCS12">Jetty doesn’t allow to be configured with a PKCS12 file</a>.
+Meaning that our P12 file has to be converted in a <strong>J</strong>ava <strong>K</strong>ey <strong>S</strong>tore.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_wrap_up"><a class="anchor" href="#_wrap_up"></a><a class="link" href="#_wrap_up">Wrap up</a></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This was the last piece of code from this blog entry. In this article I hope
 you discovered how to manage simple self-signed certificates with Java,
 and how to generate self-signed certificates with Java tools and a almost
 standard tool <code>openssl</code>. I also you better understand how Java architectured
 their security infrastructure classes.</p>
-<p>There&rsquo;s way more thing that needs to dive in with TLS, for example</p>
+</div>
+<div class="paragraph">
+<p>There are way more things that need to dive in with TLS, for example</p>
+</div>
+<div class="ulist">
 <ul>
-<li>how to build his own certificate authority</li>
-<li>how to handle a real certificate chain</li>
-<li>how to handle mutual authentication (clients is also sending his own certificate)</li>
-<li>how to use third party providers like <a href="https://www.bouncycastle.org/java.html">BouncyCastle</a></li>
+<li>
+<p>how to build his own certificate authority</p>
+</li>
+<li>
+<p>how to handle a real certificate chain</p>
+</li>
+<li>
+<p>how to handle mutual authentication (clients is also sending his own certificate)</p>
+</li>
+<li>
+<p>how to use third party providers like <a href="https://www.bouncycastle.org/java.html">BouncyCastle</a></p>
+</li>
 </ul>
-<h3 id="versions">Versions</h3>
+</div>
+<div class="sect2">
+<h3 id="_versions"><a class="anchor" href="#_versions"></a><a class="link" href="#_versions">Versions</a></h3>
+<div class="paragraph">
 <p>This article has been elaborated with the following versions</p>
+</div>
+<div class="ulist">
 <ul>
-<li>Java 1.8.0u144</li>
-<li>okhttp 3.9.0</li>
-<li>wiremock 2.8.0</li>
-<li>High Sierra / OSX 10.13 / Darwin 17.0.0 / 17A405</li>
-<li>openssl =&gt; LibreSSL 2.2.7 (High Sierra comes with LibreSSL)</li>
+<li>
+<p>Java 1.8.0u144</p>
+</li>
+<li>
+<p>okhttp 3.9.0</p>
+</li>
+<li>
+<p>wiremock 2.8.0</p>
+</li>
+<li>
+<p>High Sierra / OSX 10.13 / Darwin 17.0.0 / 17A405</p>
+</li>
+<li>
+<p>openssl ⇒ LibreSSL 2.2.7 (High Sierra comes with LibreSSL)</p>
+</li>
 </ul>
-<h3 id="some-references">Some references</h3>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_some_references"><a class="anchor" href="#_some_references"></a><a class="link" href="#_some_references">Some references</a></h3>
+<div class="ulist">
 <ul>
-<li><a href="https://www.openssl.org">https://www.openssl.org</a></li>
-<li><a href="https://www.libressl.org">https://www.libressl.org</a></li>
-<li><a href="http://wiki.cacert.org/FAQ/subjectAltName">http://wiki.cacert.org/FAQ/subjectAltName</a></li>
-<li><a href="https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04">https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04</a></li>
-<li><a href="https://tools.ietf.org/html/rfc5280">https://tools.ietf.org/html/rfc5280</a></li>
-<li><a href="https://tools.ietf.org/html/rfc2818">https://tools.ietf.org/html/rfc2818</a></li>
-<li><a href="https://tools.ietf.org/html/rfc5246">https://tools.ietf.org/html/rfc5246</a></li>
-<li><a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/index.html">https://docs.oracle.com/javase/8/docs/technotes/guides/security/index.html</a></li>
+<li>
+<p><a href="https://www.openssl.org" class="bare">https://www.openssl.org</a></p>
+</li>
+<li>
+<p><a href="https://www.libressl.org" class="bare">https://www.libressl.org</a></p>
+</li>
+<li>
+<p><a href="http://wiki.cacert.org/FAQ/subjectAltName" class="bare">http://wiki.cacert.org/FAQ/subjectAltName</a></p>
+</li>
+<li>
+<p><a href="https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04" class="bare">https://www.digitalocean.com/community/tutorials/how-to-create-a-ssl-certificate-on-apache-for-ubuntu-14-04</a></p>
+</li>
+<li>
+<p><a href="https://tools.ietf.org/html/rfc5280" class="bare">https://tools.ietf.org/html/rfc5280</a></p>
+</li>
+<li>
+<p><a href="https://tools.ietf.org/html/rfc2818" class="bare">https://tools.ietf.org/html/rfc2818</a></p>
+</li>
+<li>
+<p><a href="https://tools.ietf.org/html/rfc5246" class="bare">https://tools.ietf.org/html/rfc5246</a></p>
+</li>
+<li>
+<p><a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/index.html" class="bare">https://docs.oracle.com/javase/8/docs/technotes/guides/security/index.html</a></p>
+</li>
 </ul>
+</div>
+<div class="paragraph">
 
 
 
+</div>
+</div>
+</div>
+</div>
 
   </div>
   
@@ -1701,7 +2367,7 @@ their security infrastructure classes.</p>
  
  
  <div class="github-edit">
-     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2017-10-19-self-signed-certificates-in-java.en.md">
+     <a href="https://github.com/bric3/bric3.github.io/edit/hugo-sources/content/posts/2017-10-19-self-signed-certificates-in-java.en.adoc">
      <i class="fab fa-github fa-lg" aria-hidden="true"></i> Edit this page
      </a>
  </div>
