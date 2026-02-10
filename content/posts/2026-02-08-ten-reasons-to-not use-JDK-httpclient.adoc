@@ -23,6 +23,7 @@ The Java `HttpClient` is a great addition to the JDK, but its API limitations an
 It looks like a general purpose HTTP client, but its one-size-fits-all approach is just not gonna cut it.
 
 Outside the basic use cases, the exposed API is uncomfortable, even awkward to use
+
 * Need payload compression, multipart, authentication or cache support => manual handling
 * Need to work TLS certificate pinning, hostname verification => Work with the JVM's SSL/TLS abstractions, no finer customization points
 * Need finer metrics (e.g. to diagnose) passing a custom socket => it's not possible!
@@ -133,6 +134,12 @@ the actual consumer to have the latest version.
 
 . https://github.com/spring-projects/spring-framework/issues/22333[WebFlux with Java 11 HttpClient unexpected slow performance compared with WebClient · Issue \#22333 · spring-projects/spring-framework]
 
+. When using a custom executor that rejects a task with `RejectedExecutionException`, it may shut down the internal
+`SelectorManager`, this affect both synchronous and asynchronous API (synchronous uses the async API under the hood),
+fixed in Java 19, backported to 17.0.17.
+
+** https://bugs.openjdk.org/browse/JDK-8277969[JDK-8277969 HttpClient SelectorManager shuts down when custom Executor rejects a task]
+
 . Connection Leak with HTTP/2 `GOAWAY` frame, which is used by a server to initiate a graceful shutdown of a connection
 
 ** https://bugs.openjdk.org/browse/JDK-8335181[JDK-8335181 Incorrect handling of HTTP/2 GOAWAY frames in HttpClient] (backported to 17.0.17, 21.0.8)
@@ -153,11 +160,6 @@ https://bugs.openjdk.org/browse/JDK-8221395[JDK-8221395 HttpClient leaving conne
 
 ** https://bugs.openjdk.org/browse/JDK-8216561[JDK-8216561 HttpClient: The logic of retry on connect exception is inverted]
 
-. When using a custom executor that rejects a task with `RejectedExecutionException`, it may shut down the internal
-`SelectorManager`, this affect both synchronous and asynchronous API (synchronous uses the async API under the hood),
-fixed in Java 19, backported to 17.0.17.
-
-** https://bugs.openjdk.org/browse/JDK-8277969[JDK-8277969 HttpClient SelectorManager shuts down when custom Executor rejects a task]
 
 
 == Conclusion
