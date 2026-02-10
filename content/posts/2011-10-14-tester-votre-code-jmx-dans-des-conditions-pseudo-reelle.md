@@ -74,7 +74,7 @@ connectorServer.start();
 
 Hop dans le code précédent, on a créé puis démarrer notre `JMXConnectorServer`. Il n'y a plus qu'à se connecter dessus de manière standard :
 
-Je vais utiliser `connectorServer.getJMXServer()` pour récupérer l'URL du service, il y a une raison à cela, c'est que comme l'indique la javadoc, l'URL passée pour la création du `JMXConnectorServer` peut être légèrement modifiée par celui-ci, il faut donc récupérer la nouvelle URL.</p>
+Je vais utiliser `connectorServer.getJMXServer()` pour récupérer l'URL du service, il y a une raison à cela, c'est que comme l'indique la javadoc, l'URL passée pour la création du `JMXConnectorServer` peut être légèrement modifiée par celui-ci, il faut donc récupérer la nouvelle URL.
 
 ```java
 JMXConnector jmxConnetor = JMXConnectorFactory.connect(connectorServer.getJMXServiceUrl());
