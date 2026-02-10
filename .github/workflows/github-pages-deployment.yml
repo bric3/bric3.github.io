@@ -14,8 +14,17 @@ jobs:
           submodules: true
           fetch-depth: 0
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker Image
-        run: docker build -t bric3/hugo-builder:ci builder/
+        uses: docker/build-push-action@v6
+        with:
+          context: builder/
+          tags: bric3/hugo-builder:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build Site
         run: docker run --rm --volume $PWD:/src bric3/hugo-builder:ci hugo --noBuildLock --buildDrafts --buildFuture --destination ./public
