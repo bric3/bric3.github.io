@@ -27,7 +27,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build Site
-        run: docker run --rm --volume $PWD:/src bric3/hugo-builder:ci hugo --noBuildLock --buildDrafts --buildFuture --destination ./public
+        run: docker run --rm --user $(id -u):$(id -g) --volume $PWD:/src bric3/hugo-builder:ci hugo --noBuildLock --buildDrafts --buildFuture --destination ./public
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
