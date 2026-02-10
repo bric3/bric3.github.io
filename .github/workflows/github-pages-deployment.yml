@@ -18,7 +18,7 @@ jobs:
         run: docker build -t bric3/hugo-builder:ci builder/
 
       - name: Build Site
-        run: docker run --rm --volume $PWD:/src bric3/hugo-builder:ci hugo --buildDrafts --buildFuture --destination ./public
+        run: docker run --rm --volume $PWD:/src bric3/hugo-builder:ci hugo --noBuildLock --buildDrafts --buildFuture --destination ./public
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
