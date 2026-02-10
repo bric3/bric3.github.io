@@ -304,7 +304,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 43 min read
+    <i class="fas fa-clock"></i> 48 min read
 
     
     
@@ -334,6 +334,7 @@
     <li><a href="#_appendix">Appendix</a>
       <ul>
         <li><a href="#_api_comparison_with_okhttp">API comparison with OkHttp</a></li>
+        <li><a href="#_protocol_limitations">Protocol limitations</a></li>
         <li><a href="#_how_request_timeout_is_handled_between_jdk_11_and_jdk_25_by_the_jdks_httpclient">How request timeout is handled between JDK 11 and JDK 25 by the JDK’s HttpClient</a></li>
       </ul>
     </li>
@@ -1244,6 +1245,153 @@ if (client.cache() != null) {
 <p>OkHttpClient does not have a single method to close the client but provides methods to close the various
 resources it uses, allowing controlled shutdown if necessary.</p>
 </div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_protocol_limitations"><a class="anchor" href="#_protocol_limitations"></a><a class="link" href="#_protocol_limitations">Protocol limitations</a></h3>
+<div class="listingblock">
+<div class="title"><code>HttpRequestImpl::new</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public HttpRequestImpl(HttpRequestBuilderImpl builder) {
+    // ...
+    this.secure = uri.getScheme().toLowerCase(Locale.US).equals(&#34;https&#34;); <i class="conum" data-value="1"></i><b>(1)</b>
+    // ...
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Just indicates if HttpClient should use TLS or not.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>Then in <code>HttpConnection</code>, happens the real connection mechanism.</p>
+</div>
+<div class="listingblock">
+<div class="title"><code>HttpConnection.getConnection</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public static HttpConnection getConnection(InetSocketAddress addr,
+                                           HttpClientImpl client,
+                                           HttpRequestImpl request,
+                                           Version version) {
+    // The default proxy selector may select a proxy whose  address is
+    // unresolved. We must resolve the address before connecting to it.
+    InetSocketAddress proxy = Utils.resolveAddress(request.proxy());
+    HttpConnection c = null;
+    boolean secure = request.secure();
+    // ...
+
+    if (!secure) {
+        c = pool.getConnection(false, addr, proxy); <i class="conum" data-value="3"></i><b>(3)</b>
+        if (c != null &amp;&amp; c.checkOpen() /* may have been eof/closed when in the pool */) {
+            // ...
+            return c;
+        } else {
+            return getPlainConnection(addr, proxy, request, client); <i class="conum" data-value="1"></i><b>(1)</b>
+        }
+    } else {  // secure
+        if (version != HTTP_2) { // only HTTP/1.1 connections are in the pool
+            c = pool.getConnection(true, addr, proxy); <i class="conum" data-value="3"></i><b>(3)</b>
+        }
+        if (c != null &amp;&amp; c.isOpen()) {
+            final HttpConnection conn = c;
+            // ...
+            return c;
+        } else {
+            // ...
+            return getSSLConnection(addr, proxy, alpn, request, client); <i class="conum" data-value="2"></i><b>(2)</b>
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Create or get an HTTP connection.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Create or get an HTTPS connection.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Already created connections in the pool are reused.
+<div class="ulist">
+<ul>
+<li>
+<p><code>HttpConnection::getPlainConnection</code> returns either :</p>
+<div class="ulist">
+<ul>
+<li>
+<p>a <code>PlainHttpConnection</code>, which actually opens the socket via <code>SocketChannel.open()</code></p>
+</li>
+<li>
+<p>a <code>PlainTunnelingConnection</code>, which is actually delegating to a <code>PlainHttpConnection</code></p>
+</li>
+<li>
+<p>or a <code>PlainProxyConnection</code>, which is just &#34;dumb&#34; subclass of <code>PlainHttpConnection</code>.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>HttpConnection::getSSLConnection</code> returns either :</p>
+<div class="ulist">
+<ul>
+<li>
+<p>a <code>AsyncSSLTunnelConnection</code>, which wraps a <code>PlainTunnelingConnection</code> and performs the TLS handshake on top of it (via the client’s <code>SSLContext</code>)</p>
+</li>
+<li>
+<p>or a <code>AsyncSSLConnection</code>, which wraps a <code>PlainHttpConnection</code> and performs the TLS handshake on top of it (via the client’s <code>SSLContext</code>).</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div></td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="title"><code>PlainHttpConnection::new</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">PlainHttpConnection(InetSocketAddress addr, HttpClientImpl client, String label) {
+    super(addr, client, label);
+    try {
+        this.chan = SocketChannel.open(); <i class="conum" data-value="1"></i><b>(1)</b>
+        chan.configureBlocking(false);
+        // ...
+        chan.setOption(StandardSocketOptions.TCP_NODELAY, true);
+        // wrap the channel in a Tube for async reading and writing
+        tube = new SocketTube(client(), chan, Utils::getBuffer, label);
+    } catch (IOException e) {
+        throw new InternalError(e);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Use the JDK’s <code>SocketChannel</code> to open a socket using <em>internet</em> protocols. Under the hood
+<code>SelectorProvider.provider().openSocketChannel()</code>, which is only supporting IPv4 and IPv6.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="paragraph">
+<p>The Unix Domain Socket support landed in JDK 16, but the HttpClient is still using
+<code>SocketChannel.open</code> to open sockets, as of JDK 25 it still uses it. To support UDS,
+The HttpClient would need to use <code>SocketChannel.open(StandardProtocolFamily.UNIX)</code>.</p>
+</div>
+<div class="paragraph">
+<p>The way the HttpClient is designed, it is not possible to use different kind of sockets,
+for example, <em>Named Pipes</em> on Windows.</p>
 </div>
 </div>
 <div class="sect2">
