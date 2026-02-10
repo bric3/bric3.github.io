@@ -7,22 +7,23 @@ on:
 
 jobs:
   build-deploy:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0
 
-      - name: Build
-        run: docker run --rm --volume $PWD:/src bric3/hugo-builder hugo --verbose --buildDrafts --buildFuture --destination ./public
+      - name: Build Docker Image
+        run: docker build -t bric3/hugo-builder:ci builder/
+
+      - name: Build Site
+        run: docker run --rm --volume $PWD:/src bric3/hugo-builder:ci hugo --buildDrafts --buildFuture --destination ./public
 
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
           publish_branch: master
           publish_dir: ./public
           cname: blog.arkey.fr
-#          force_orphan: true
-          
