@@ -129,8 +129,8 @@ Again, manual code or third party libraries can be used to add this support.
 
 === Performance, bugs
 
-I handpicked a few issues there that I think are relevant for me. Granted, many of these below have a fix; however,
-some are sometimes fixed very late in a patch release, for me, it is not acceptable for a library to require
+I handpicked a few issues that I think are relevant for me. Granted, many of these below have a fix;
+however, some are sometimes fixed very late in a patch release, for me, it is not acceptable for a library to require
 the actual consumer to have the latest version.
 
 . https://github.com/spring-projects/spring-framework/issues/22333[WebFlux with Java 11 HttpClient unexpected slow performance compared with WebClient · Issue \#22333 · spring-projects/spring-framework]
@@ -140,6 +140,12 @@ the actual consumer to have the latest version.
 fixed in Java 19, backported to 17.0.17.
 
 ** https://bugs.openjdk.org/browse/JDK-8277969[JDK-8277969 HttpClient SelectorManager shuts down when custom Executor rejects a task]
+
+. Converting a body from gzip (`BodySubscribers.mapping`) can lead to a deadlock (because it blocks the executor thread). Fixed in JDK 13.
+
+** https://bugs.openjdk.org/browse/JDK-8217627[JDK-8217627 HttpClient: The API documentation of BodySubscribers::mapping promotes bad behavior]
+** https://bugs.openjdk.org/browse/JDK-8219213[JDK-8219213 Unable to use BodySubscribers.mapping with InputStream as mentioned in the doc]
+** https://bugs.openjdk.org/browse/JDK-8217264[JDK-8217264 HttpClient: Blocking operations in mapper function do not work as documented]
 
 . Connection Leak with HTTP/2 `GOAWAY` frame, which is used by a server to initiate a graceful shutdown of a connection
 
