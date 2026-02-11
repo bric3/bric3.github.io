@@ -4,7 +4,7 @@ date: "2026-02-08T18:53:00+02:00"
 language: en
 tags: [ "jep-321", "java", "jvm", "httpclient", "okhttp" ]
 slug: "ten-reasons-to-not-use-jdk-httpclient"
-title: "10+ reasons to NOT use JDK's HttpClient"
+title: "10 or more reasons to NOT use JDK's HttpClient"
 summary: This article explains 10+ reasons why after 14 JDK releases the JDK's `HttpClient` introduced with Java 11 is unlikely to be the best option in your app.
 ---
 
@@ -14,18 +14,18 @@ used by everyone.
 
 [CAUTION]
 ====
-When reading these lines, keep in mind the following is based on facts, but keep in mind the whole article represents my opinion only.
+When reading these lines, the following is based on facts, but keep in mind the whole article represents my opinion only.
 ====
 
 .tl;dr
 **************
 The Java `HttpClient` is a great addition to the JDK, but its API limitations and issues significantly diminish its value.
-It looks like a general purpose HTTP client, but its one-size-fits-all approach is just not gonna cut it.
+It looks like a general purpose HTTP client, but its one-size-fits-all approach is just not going to cut it.
 
 Outside the basic use cases, the exposed API is uncomfortable, even awkward to use
 
 * Need payload compression, multipart, authentication or cache support => manual handling
-* Need to work TLS certificate pinning, hostname verification => Work with the JVM's SSL/TLS abstractions, no finer customization points
+* Need to work with TLS certificate pinning, hostname verification => Work with the JVM's SSL/TLS abstractions, no finer customization points
 * Need finer metrics (e.g. to diagnose) passing a custom socket => It's not possible!
 * Many of the finer controls are JVM-wide via system properties.
 * "Major" bugs discovered late, makes me doubt of the production readiness.
@@ -39,7 +39,7 @@ there and cannot be worked around by bumping a dependency.
 The reasons below may appeal to you or not depending on one's use case. The order is mine. Your opinion is most welcome.
 
 Before going further, I want to make clear that I congratulate the JDK team for delivering this client and improving
-it over the years, but after a look over the API and the issues, I don't believe anymore it's the best option for most
+it over the years, but after looking over the API and the issues, I don't believe anymore it's the best option for most
 use cases.
 
 [TIP]
@@ -48,7 +48,7 @@ It's funny that an `sun.net.www.http.HttpClient` that used very specific purpose
 the JDK pre-existed JDK 11's `java.net.http.HttpClient`, and this old one is still there, even in JDK 25.
 ====
 
-== 10PLUS reasons
+== 10 or more reasons
 
 . It's not possible to use a _named pipe_ or a _Unix Domain Socket_ (the `HttpClient` doesn't support passing a
 `SocketFactory`), even while UDS support landed in JDK 16.
@@ -89,7 +89,7 @@ Some behavior of a request just can't be observed, like redirect, retries, authe
 +
 Work around, wrap the client, https://github.com/mizosoft/methanol/[methanol] do it.
 
-. No event listener to dive explore the behavior of HTTP calls from begging to end. This can be done by wrapping
+. No event listener to explore the behavior of HTTP calls from beginning to end. This can be done by wrapping
 the HttpClient to measure a few things, but internal connection events are not available. Users of HttpClient are
 blind to DNS timing, connection timing, header and body timing.
 
@@ -115,7 +115,7 @@ to pass a custom `Executor`, it’s up to you to write an executor that matches 
 logging by wrapping the HttpClient, but it may lack the details one wants. Also, HttpClient wrappers usually provide this.
 
 . If you have to handle multipart requests, then you're just out of luck, it's something to handle on your own.
-Third party libraries, however, to bring that support by wrapping the HttpClient.
+Third party libraries, however, can bring that support by wrapping the HttpClient.
 
 . Payload compression also needs to be handled manually.
 
@@ -130,7 +130,7 @@ Again, manual code or third party libraries can be used to add this support.
 === Performance, bugs
 
 I handpicked a few issues there that I think are relevant for me. Granted, many of these below have a fix; however,
-some are sometimes fixed very late in a patch release, for me, it is not an option for a library to wish for
+some are sometimes fixed very late in a patch release, for me, it is not acceptable for a library to require
 the actual consumer to have the latest version.
 
 . https://github.com/spring-projects/spring-framework/issues/22333[WebFlux with Java 11 HttpClient unexpected slow performance compared with WebClient · Issue \#22333 · spring-projects/spring-framework]
@@ -177,7 +177,7 @@ to other libraries.
 * Some customization affects the whole JVM, which is not ideal for libraries and may be a problem for whenever it is
 necessary to use different settings for different clients.
 
-Some wrapper libraries can help, though, but the underlying issues remain and can't be worked around.
+Some wrapper libraries can help, but the underlying issues remain and can't be worked around.
 
 **Comparatively, a library like OkHttp API covers everything that HttpClient misses; also, its API has better concepts
 aligning well with HTTP Lingo, it is more battle tested and more customizable.**
@@ -201,7 +201,7 @@ The JDK's HttpClient is part of the JDK, so it doesn't add any dependency to you
 cannot upgrade, only your consumer can.
 
 Personally, I have nothing against Kotlin or using it in prod on a server; it's a great language. However, I do
-understand that as a library, it's not something you want to force on your users, and something it's not even something
+understand that as a library, it's not something you want to force on your users, and sometimes it's not even
 possible for the end users.
 
 [cols="1,1,2"]
@@ -222,6 +222,8 @@ possible for the end users.
 ==== TLS Customization
 
 Separating a trust manager and the way to connect is not possible with the JDK's HttpClient.
+This is particularly useful in some production environments or for tests, see my article on using
+link:{{% ref "posts/2017-10-19-self-signed-certificates-in-java.en.adoc" %}}[testing with self-signed certificates].
 
 [source,java,role="primary"]
 .httpclient
@@ -278,6 +280,7 @@ HttpClient builder.
 --
 
 [source,java,role="secondary"]
+.okhttp
 ----
 OkHttpClient client = new OkHttpClient.Builder()
     .certificatePinner(
