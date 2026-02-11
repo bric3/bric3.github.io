@@ -26,7 +26,7 @@
     
     
 
-<title>10&#43; reasons to NOT use JDK&#39;s HttpClient • Brice Dutheil</title>
+<title>10 or more reasons to NOT use JDK&#39;s HttpClient • Brice Dutheil</title>
 
 
 
@@ -43,7 +43,7 @@
     
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="Brice Dutheil">
-<meta property="og:title" content="10&#43; reasons to NOT use JDK&rsquo;s HttpClient">
+<meta property="og:title" content="10 or more reasons to NOT use JDK&rsquo;s HttpClient">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://blog.arkey.fr/2026/02/08/ten-reasons-to-not-use-jdk-httpclient/" />
 <meta property="og:description" content="Java mostly, and general tech">
@@ -62,7 +62,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:site" content="@BriceDutheil">
-<meta name="twitter:title" content="10&#43; reasons to NOT use JDK&rsquo;s HttpClient">
+<meta name="twitter:title" content="10 or more reasons to NOT use JDK&rsquo;s HttpClient">
 
 <meta name="twitter:image" content="https://blog.arkey.fr/social-sharing.png">
 
@@ -269,7 +269,7 @@
 
 <article>
   <header>
-    <h1>10&#43; reasons to NOT use JDK&#39;s HttpClient</h1>
+    <h1>10 or more reasons to NOT use JDK&#39;s HttpClient</h1>
     
     
 <div class="post__meta">
@@ -325,7 +325,7 @@
       
           <nav id="TableOfContents">
   <ul>
-    <li><a href="#_10plus_reasons">10PLUS reasons</a>
+    <li><a href="#_10_or_more_reasons">10 or more reasons</a>
       <ul>
         <li><a href="#_performance_bugs">Performance, bugs</a></li>
       </ul>
@@ -360,7 +360,7 @@ used by everyone.</p>
 </td>
 <td class="content">
 <div class="paragraph">
-<p>When reading these lines, keep in mind the following is based on facts, but keep in mind the whole article represents my opinion only.</p>
+<p>When reading these lines, the following is based on facts, but keep in mind the whole article represents my opinion only.</p>
 </div>
 </td>
 </tr>
@@ -371,7 +371,7 @@ used by everyone.</p>
 <div class="title">tl;dr</div>
 <div class="paragraph">
 <p>The Java <code>HttpClient</code> is a great addition to the JDK, but its API limitations and issues significantly diminish its value.
-It looks like a general purpose HTTP client, but its one-size-fits-all approach is just not gonna cut it.</p>
+It looks like a general purpose HTTP client, but its one-size-fits-all approach is just not going to cut it.</p>
 </div>
 <div class="paragraph">
 <p>Outside the basic use cases, the exposed API is uncomfortable, even awkward to use</p>
@@ -382,7 +382,7 @@ It looks like a general purpose HTTP client, but its one-size-fits-all approach 
 <p>Need payload compression, multipart, authentication or cache support ⇒ manual handling</p>
 </li>
 <li>
-<p>Need to work TLS certificate pinning, hostname verification ⇒ Work with the JVM’s SSL/TLS abstractions, no finer customization points</p>
+<p>Need to work with TLS certificate pinning, hostname verification ⇒ Work with the JVM’s SSL/TLS abstractions, no finer customization points</p>
 </li>
 <li>
 <p>Need finer metrics (e.g. to diagnose) passing a custom socket ⇒ It’s not possible!</p>
@@ -408,7 +408,7 @@ there and cannot be worked around by bumping a dependency.</p>
 </div>
 <div class="paragraph">
 <p>Before going further, I want to make clear that I congratulate the JDK team for delivering this client and improving
-it over the years, but after a look over the API and the issues, I don’t believe anymore it’s the best option for most
+it over the years, but after looking over the API and the issues, I don’t believe anymore it’s the best option for most
 use cases.</p>
 </div>
 <div class="admonitionblock tip">
@@ -427,7 +427,7 @@ the JDK pre-existed JDK 11’s <code>java.net.http.HttpClient</code>, and this o
 </tbody></table>
 </div>
 <div class="sect1">
-<h2 id="_10plus_reasons"><a class="anchor" href="#_10plus_reasons"></a><a class="link" href="#_10plus_reasons">10PLUS reasons</a></h2>
+<h2 id="_10_or_more_reasons"><a class="anchor" href="#_10_or_more_reasons"></a><a class="link" href="#_10_or_more_reasons">10 or more reasons</a></h2>
 <div class="sectionbody">
 <div class="olist arabic">
 <ol class="arabic">
@@ -507,7 +507,7 @@ Some behavior of a request just can’t be observed, like redirect, retries, aut
 </div>
 </li>
 <li>
-<p>No event listener to dive explore the behavior of HTTP calls from begging to end. This can be done by wrapping
+<p>No event listener to explore the behavior of HTTP calls from beginning to end. This can be done by wrapping
 the HttpClient to measure a few things, but internal connection events are not available. Users of HttpClient are
 blind to DNS timing, connection timing, header and body timing.</p>
 </li>
@@ -544,7 +544,7 @@ logging by wrapping the HttpClient, but it may lack the details one wants. Also,
 </li>
 <li>
 <p>If you have to handle multipart requests, then you’re just out of luck, it’s something to handle on your own.
-Third party libraries, however, to bring that support by wrapping the HttpClient.</p>
+Third party libraries, however, can bring that support by wrapping the HttpClient.</p>
 </li>
 <li>
 <p>Payload compression also needs to be handled manually.</p>
@@ -563,8 +563,8 @@ Again, manual code or third party libraries can be used to add this support.</p>
 <div class="sect2">
 <h3 id="_performance_bugs"><a class="anchor" href="#_performance_bugs"></a><a class="link" href="#_performance_bugs">Performance, bugs</a></h3>
 <div class="paragraph">
-<p>I handpicked a few issues there that I think are relevant for me. Granted, many of these below have a fix; however,
-some are sometimes fixed very late in a patch release, for me, it is not an option for a library to wish for
+<p>I handpicked a few issues there that I think are / were relevant for me. Granted, many of these below have a fix;
+however, some are sometimes fixed very late in a patch release, for me, it is not acceptable for a library to require
 the actual consumer to have the latest version.</p>
 </div>
 <div class="olist arabic">
@@ -580,6 +580,22 @@ fixed in Java 19, backported to 17.0.17.</p>
 <ul>
 <li>
 <p><a href="https://bugs.openjdk.org/browse/JDK-8277969">JDK-8277969 HttpClient SelectorManager shuts down when custom Executor rejects a task</a></p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Converting a body from GZiP (<code>BodySubscribers.mapping</code>) can lead to deadlock (because it blocks the executor thread). Fixed in JDK 13.</p>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8217627">JDK-8217627 HttpClient: The API documentation of BodySubscribers::mapping promotes bad behavior</a></p>
+</li>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8219213">JDK-8219213 Unable to use BodySubscribers.mapping with InputStream as mentioned in the doc</a></p>
+</li>
+<li>
+<p><a href="https://bugs.openjdk.org/browse/JDK-8217264">JDK-8217264 HttpClient: Blocking operations in mapper function do not work as documented</a></p>
 </li>
 </ul>
 </div>
@@ -660,7 +676,7 @@ necessary to use different settings for different clients.</p>
 </ul>
 </div>
 <div class="paragraph">
-<p>Some wrapper libraries can help, though, but the underlying issues remain and can’t be worked around.</p>
+<p>Some wrapper libraries can help, but the underlying issues remain and can’t be worked around.</p>
 </div>
 <div class="paragraph">
 <p><strong>Comparatively, a library like OkHttp API covers everything that HttpClient misses; also, its API has better concepts
@@ -699,7 +715,7 @@ cannot upgrade, only your consumer can.</p>
 </div>
 <div class="paragraph">
 <p>Personally, I have nothing against Kotlin or using it in prod on a server; it’s a great language. However, I do
-understand that as a library, it’s not something you want to force on your users, and something it’s not even something
+understand that as a library, it’s not something you want to force on your users, and sometimes it’s not even
 possible for the end users.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
@@ -732,7 +748,9 @@ possible for the end users.</p>
 <div class="sect3">
 <h4 id="_tls_customization"><a class="anchor" href="#_tls_customization"></a><a class="link" href="#_tls_customization">TLS Customization</a></h4>
 <div class="paragraph">
-<p>Separating a trust manager and the way to connect is not possible with the JDK’s HttpClient.</p>
+<p>Separating a trust manager and the way to connect is not possible with the JDK’s HttpClient.
+This is particularly useful in some production environments or for tests, see my article on using
+<a href="https://blog.arkey.fr/2017/10/19/self-signed-certificates-in-java.en/">testing with self-signed certificates</a>.</p>
 </div>
 <div class="listingblock primary">
 <div class="title">httpclient</div>
@@ -816,6 +834,7 @@ HttpClient builder.</p>
 </div>
 </div>
 <div class="listingblock secondary">
+<div class="title">okhttp</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">OkHttpClient client = new OkHttpClient.Builder()
     .certificatePinner(
