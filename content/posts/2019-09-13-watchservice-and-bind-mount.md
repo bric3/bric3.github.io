@@ -10,7 +10,7 @@ tags:
 - inotify
 - WatchService
 slug: watchservice-and-bind-mount
-title: When Java's WatchService is not the right tool in a container
+title: When Java's `WatchService` is not the right tool in a container
 ---
 
 ## Boring code that should be written once and run everywhere
@@ -272,7 +272,7 @@ When reading the javadoc of `WatchService` one paragraph caught my eye :
 
 This means that changes carried out on remote filesystems may not be detected.
 It's natural to think that `/etc/hosts` is present on the local filesystem, but 
-this code run in a container, and containers ~~may~~ do fancy stuff especially 
+this code runs in a container, and containers ~~may~~ do fancy stuff especially 
 on the `hosts` file.
 
 Let's have a look at mounts:
