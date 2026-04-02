@@ -26,7 +26,7 @@
     
     
 
-<title>Using Linux&amp;rsquo;s memfd_secret syscall from the JVM with JEP-419 JEP-454 • Brice Dutheil</title>
+<title>Using Linux&rsquo;s memfd_secret syscall from the JVM with JEP-419 JEP-454 • Brice Dutheil</title>
 
 
 
@@ -74,10 +74,10 @@
 
 
 
-<link rel="stylesheet" href="/scss/ascii-press.70f0dc6b0ba925a67d364f994bc556045605a427853874a5d71b04c9e8a989af.css" integrity="sha256-cPDcawupJaZ9Nk&#43;ZS8VWBFYFpCeFOHSl1xsEyeipia8=">
+<link rel="stylesheet" href="/scss/ascii-press.ecfbc70ca9dc33117dd50115c8955bc86a957c9cfdc91f2e70de61c358ff27bf.css" integrity="sha256-7PvHDKncMxF91QEVyJVbyGqVfJz9yR8ucN5hw1j/J78=">
 
 
-<link rel="stylesheet" href="/scss/ascii-press-dark.287256807294d72877e7d6ad2033ee800b6be06de5803c28476f7543c051a8bd.css" integrity="sha256-KHJWgHKU1yh359atIDPugAtr4G3lgDwoR291Q8BRqL0=" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/scss/ascii-press-dark.4084f4a822a288af278b3796ab2575ca05e0eacec6cde0a290fc683ae1ec726a.css" integrity="sha256-QIT0qCKiiK8nizeWqyV1ygXg6s7GzeCikPxoOuHscmo=" media="(prefers-color-scheme: dark)">
 
 
 <link rel="stylesheet" href="/scss/print.2744dcbf8a0b2e74f8a50e4b34e5f441be7cf93cc7de27029121c6a09f9e77bc.css" integrity="sha256-J0Tcv4oLLnT4pQ5LNOX0Qb58&#43;TzH3icCkSHGoJ&#43;ed7w=" media="print">
@@ -317,7 +317,7 @@
     
     
     <br/>
-    <i class="fas fa-clock"></i> 78 min read
+    <i class="fas fa-clock"></i> 85 min read
 
     
     
@@ -645,12 +645,7 @@ These numbers are part of the syscall ABI (<strong>A</strong>pplication <strong>
 and as such they are stable for a CPU architecture, although unbounded (new syscalls
 can be added).</p>
 </div>
-<div class="paragraph">
-
-
-
-<div class="table-wrapper">
-    <div class="admonitionblock note">
+<div class="admonitionblock note">
 <table>
 <tbody><tr>
 <td class="icon">
@@ -665,7 +660,12 @@ the cost of switching to kernel mode. In practice, vDSO (<strong>V</strong>irtua
 be accessed from the program memory (glibc knows about this memory region and
 will use it).</p>
 </div>
-<div class="listingblock">
+<div class="paragraph">
+
+
+
+<div class="table-wrapper">
+    <div class="listingblock">
 <div class="title"><code>pmap -X {pid}</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs"># pmap -X 1
@@ -687,6 +687,10 @@ ffffffffff600000 r-xp 00000000  00:00       0    4    0    0          0         
 </tr>
 </tbody></table>
 </div>
+
+</div>
+
+</div>
 <div class="paragraph">
 <p>To read more about it, one should read the relevant manual page (<a href="https://man7.org/linux/man-pages/man7/vdso.7.html"><code>man 7 vdso</code></a>).
 Typically, this page lists the exported syscalls.</p>
@@ -698,10 +702,6 @@ standard libc (<a href="https://man7.org/linux/man-pages/man3/clock_gettime.3.ht
 </td>
 </tr>
 </tbody></table>
-</div>
-
-</div>
-
 </div>
 <div class="admonitionblock caution">
 <table>
@@ -717,10 +717,10 @@ one can look at their definition in the <code>/include/asm-<strong>/unistd-</str
 </tbody></table>
 </div>
 <div class="paragraph">
-<p>From the syscall manpage the Intel CPUs syscall calling convention is:</p>
+<p>From the syscall manpage, the syscall calling convention varies by architecture:</p>
 </div>
 <div class="exampleblock primary">
-<div class="title">Example 1. 64-bit programs</div>
+<div class="title">Example 1. x86-64 (64-bit)</div>
 <div class="content">
 <div class="dlist">
 <dl>
@@ -761,7 +761,7 @@ one can look at their definition in the <code>/include/asm-<strong>/unistd-</str
 </div>
 </div>
 <div class="exampleblock secondary">
-<div class="title">Example 2. 32-bit programs</div>
+<div class="title">Example 2. x86 (32-bit)</div>
 <div class="content">
 <div class="dlist">
 <dl>
@@ -801,6 +801,63 @@ one can look at their definition in the <code>/include/asm-<strong>/unistd-</str
 </div>
 </div>
 </div>
+<div class="exampleblock secondary">
+<div class="title">Example 3. AArch64 (ARM 64-bit)</div>
+<div class="content">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Set the registers</dt>
+<dd>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><code>x8</code> ← System Call number</p>
+</li>
+<li>
+<p><code>x0</code> ← First argument</p>
+</li>
+<li>
+<p><code>x1</code> ← Second argument</p>
+</li>
+<li>
+<p><code>x2</code> ← Third argument</p>
+</li>
+</ol>
+</div>
+</dd>
+<dt class="hdlist1">Make the syscall</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>execute <code>svc #0</code> processor instruction (supervisor call)</p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The actual syscall numbers are usually defined in <code>/usr/include/asm/unistd.h</code> (Linux),
+or <code>$(xcrun --show-sdk-path)/usr/include/sys/syscall.h</code> (macOS SDK).</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tbody><tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The hardware only defines <code>svc</code> as the trap mechanism — which register holds the syscall number
+is an ABI decision made by the OS kernel, not mandated by the ARM spec.
+<strong>Linux AArch64</strong> uses <code>x8</code> (Linux ARM64 syscall ABI), while <strong>macOS AArch64</strong> uses <code>x16</code> (Darwin/XNU ABI).
+The CPU executes <code>svc #0</code> and traps into the kernel, which then reads whichever register it expects.
+</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_my_first_syscall"><a class="anchor" href="#_my_first_syscall"></a><a class="link" href="#_my_first_syscall">My first syscall</a></h3>
@@ -817,7 +874,7 @@ source snippet in assembly, and after that I’ll be back with Java and Panama.<
 </ul>
 </div>
 <div class="exampleblock primary">
-<div class="title">Example 3. 64-bits (with <code>syscall</code> instruction)</div>
+<div class="title">Example 4. x86-64 (64-bit)</div>
 <div class="content">
 <div class="listingblock">
 <div class="title">hello_syscall.asm (x86_64)</div>
@@ -875,7 +932,7 @@ ld -o hello_syscall hello_syscall.o
 </div>
 </div>
 <div class="exampleblock secondary">
-<div class="title">Example 4. 32-bits (with an interrupt)</div>
+<div class="title">Example 5. x86 (32-bit)</div>
 <div class="content">
 <div class="listingblock">
 <div class="title">hello_syscall_via_int80.asm (x86, ie won’t work on ARM)</div>
@@ -934,6 +991,133 @@ ld -m elf_i386 -o hello_syscall_via_int80 hello_syscall_via_int80.o <i class="co
 <td>Note the linker <em>emulation</em> option for <code>i386</code></td>
 </tr>
 </tbody></table>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">Example 6. AArch64 (ARM 64-bit)</div>
+<div class="content">
+<div class="paragraph">
+<p>The following is using <em>GNU Assembler (GAS)</em> syntax (<code>.s</code> extension), which
+is the way to go for AArch64, unlike NASM which is x86-focused.</p>
+</div>
+<div class="listingblock">
+<div class="title">hello_syscall_arm64.s (AArch64)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-asm hljs" data-lang="asm">.global _start
+.section .text
+_start:
+    mov x8, #64         // syscall number for write  <i class="conum" data-value="1"></i><b>(1)</b>
+    mov x0, #1          // int fd: stdout            <i class="conum" data-value="2"></i><b>(2)</b>
+    adr x1, msg         // const void* buf
+    mov x2, #mlen       // size_t count
+    svc #0              // make the call             <i class="conum" data-value="3"></i><b>(3)</b>
+
+    mov x8, #93         // syscall number for exit   <i class="conum" data-value="1"></i><b>(1)</b>
+    mov x0, #0          // int status                <i class="conum" data-value="2"></i><b>(2)</b>
+    svc #0              // make the call             <i class="conum" data-value="3"></i><b>(3)</b>
+
+.section .rodata
+msg:
+    .ascii &#34;Hello Linux syscalls!\n&#34;
+.equ mlen, . - msg</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>At this place this register will hold the selected syscall (a number).
+Note the number comes from <code>$(xcrun --show-sdk-path)/usr/include/sys/syscall.h</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Syscall arguments are placed in the next registers.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Make the syscall with the <code>svc #0</code> supervisor call instruction.</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">as -o hello_syscall_arm64.o hello_syscall_arm64.s  <i class="conum" data-value="1"></i><b>(1)</b>
+ld -o hello_syscall_arm64 hello_syscall_arm64.o
+./hello_syscall_arm64</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td><code>as</code> is available via <code>binutils</code>, when crosscompiling on x86-64, use <code>aarch64-linux-gnu-as</code>.</td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</div>
+<div class="exampleblock secondary">
+<div class="title">Example 7. AArch64 (macOS)</div>
+<div class="content">
+<div class="paragraph">
+<p>On macOS the syscall convention differs from Linux AArch64:
+the syscall number goes in <code>x16</code> (not <code>x8</code>), BSD syscall numbers carry a <code>0x2000000</code> class prefix,
+the SVC immediate is <code>0x80</code>, and sections use Mach-O names.</p>
+</div>
+<div class="listingblock">
+<div class="title">hello_syscall_macos.s (AArch64, macOS)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-asm hljs" data-lang="asm">.global _start
+.section __TEXT,__text
+_start:
+    movz x16, #4                // syscall: write (BSD #4)   <i class="conum" data-value="1"></i><b>(1)</b>
+    movk x16, #0x200, lsl #16   // + BSD class prefix 0x2000000
+    mov x0, #1                  // int fd: stdout            <i class="conum" data-value="2"></i><b>(2)</b>
+    adrp x1, msg@PAGE           // const void* buf (page)    <i class="conum" data-value="3"></i><b>(3)</b>
+    add  x1, x1, msg@PAGEOFF    // + page offset
+    mov x2, #mlen               // size_t count
+    svc #0x80                   // make the call             <i class="conum" data-value="4"></i><b>(4)</b>
+
+    movz x16, #1                // syscall: exit (BSD #1)    <i class="conum" data-value="1"></i><b>(1)</b>
+    movk x16, #0x200, lsl #16   // + BSD class prefix 0x2000000
+    mov x0, #0                  // int status                <i class="conum" data-value="2"></i><b>(2)</b>
+    svc #0x80                   // make the call             <i class="conum" data-value="4"></i><b>(4)</b>
+
+.section __TEXT,__cstring,cstring_literals
+msg:
+    .ascii &#34;Hello macOS syscalls!\n&#34;
+.equ mlen, . - msg</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tbody><tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>BSD syscall numbers are prefixed with <code>0x2000000</code> (the BSD class).
+Refer to <code>$(xcrun --show-sdk-path)/usr/include/sys/syscall.h</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Syscall arguments use the same registers as Linux (<code>x0</code>–<code>x5</code>).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Mach-O uses page-relative addressing (<code>adrp</code> + <code>add</code>) instead of the single <code>adr</code> used on Linux ELF.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>macOS BSD syscalls use <code>svc #0x80</code> (not <code>svc #0</code>).</td>
+</tr>
+</tbody></table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">as -arch arm64 -o hello_syscall_macos.o hello_syscall_macos.s
+ld -arch arm64 -o hello_syscall_macos hello_syscall_macos.o \
+    -lSystem -syslibroot $(xcrun --show-sdk-path) -e _start
+./hello_syscall_macos</code></pre>
+</div>
 </div>
 </div>
 </div>
@@ -1362,7 +1546,7 @@ calls and some library functions, see the relevant
 <p>Because it is a global variable, its declaration depends on the system.</p>
 </div>
 <div class="exampleblock primary">
-<div class="title">Example 5. Linux’s <code>errno</code></div>
+<div class="title">Example 8. Linux’s <code>errno</code></div>
 <div class="content">
 <div class="ulist">
 <ul>
@@ -1399,7 +1583,7 @@ calls and some library functions, see the relevant
 </div>
 </div>
 <div class="exampleblock secondary">
-<div class="title">Example 6. macOs’s <code>errno</code></div>
+<div class="title">Example 9. macOs’s <code>errno</code></div>
 <div class="content">
 <div class="ulist">
 <ul>
@@ -2716,372 +2900,372 @@ window.MathJax = {
 <script>
 
 
-(function() {
-  'use strict';
-
-  
-  function getScrollInfo(element, checkChildren = true) {
-    let scrollLeft = element.scrollLeft;
-    let scrollWidth = element.scrollWidth;
-    const clientWidth = element.clientWidth;
-
-    if (checkChildren) {
-      
-      const codeElement = element.querySelector('code');
-      if (codeElement && codeElement.scrollWidth > scrollWidth) {
-        scrollWidth = codeElement.scrollWidth;
-        if (codeElement.scrollLeft > 0 || element.scrollLeft === 0) {
-          scrollLeft = Math.max(scrollLeft, codeElement.scrollLeft);
-        }
-      }
-
-      
-      const tableElement = element.querySelector('table');
-      if (tableElement && tableElement.scrollWidth > scrollWidth) {
-        scrollWidth = tableElement.scrollWidth;
-        if (tableElement.scrollLeft > 0 || element.scrollLeft === 0) {
-          scrollLeft = Math.max(scrollLeft, tableElement.scrollLeft);
-        }
-      }
-    }
-
-    const maxScroll = scrollWidth - clientWidth;
-    
-    const hasOverflow = scrollWidth > clientWidth + 2;
-
-    return { scrollLeft, scrollWidth, clientWidth, maxScroll, hasOverflow };
-  }
-
-  
-  function applyScrollClasses(element, scrollInfo) {
-    if (!scrollInfo.hasOverflow) {
-      element.classList.remove('has-scroll-shadow-left', 'has-scroll-shadow-right');
-      return;
-    }
+(function () {
+    'use strict';
 
     
-    if (scrollInfo.scrollLeft > 5) {
-      element.classList.add('has-scroll-shadow-left');
-    } else {
-      element.classList.remove('has-scroll-shadow-left');
-    }
+    function getScrollInfo(element, checkChildren = true) {
+        let scrollLeft = element.scrollLeft;
+        let scrollWidth = element.scrollWidth;
+        const clientWidth = element.clientWidth;
 
-    
-    if (scrollInfo.scrollLeft < scrollInfo.maxScroll - 5) {
-      element.classList.add('has-scroll-shadow-right');
-    } else {
-      element.classList.remove('has-scroll-shadow-right');
-    }
-  }
-
-  
-  function updateScrollShadows(element) {
-    const scrollInfo = getScrollInfo(element);
-    applyScrollClasses(element, scrollInfo);
-  }
-
-  function initScrollShadows() {
-    
-    const selectors = [
-      '.post.adoc .literalblock pre',
-      '.post.adoc .listingblock > .content > pre',
-      '.post.adoc .openblock > .content > pre',  
-      '.post.md pre',  
-      '.table-wrapper',  
-    ];
-
-    const scrollables = document.querySelectorAll(selectors.join(', '));
-    scrollables.forEach(element => {
-      
-      let scrollingElement = element;
-      let targetElement = element;  
-
-      
-      let checkChildren = true;
-
-      if (element.classList.contains('table-wrapper')) {
-        
-        const admonitionBlock = element.querySelector(':scope > .admonitionblock');
-        if (admonitionBlock) {
-          const computedStyle = window.getComputedStyle(admonitionBlock);
-          if (computedStyle.overflowX === 'auto' || computedStyle.overflowX === 'scroll') {
-            scrollingElement = admonitionBlock;  
-            targetElement = element;  
-            checkChildren = true;  
-          }
-        } else {
-          
-          const table = element.querySelector(':scope > table');
-          if (table) {
-            const computedStyle = window.getComputedStyle(table);
-            if (computedStyle.overflowX === 'auto' || computedStyle.overflowX === 'scroll') {
-              scrollingElement = table;  
-              targetElement = element;  
-              checkChildren = false;  
+        if (checkChildren) {
+            
+            const codeElement = element.querySelector('code');
+            if (codeElement && codeElement.scrollWidth > scrollWidth) {
+                scrollWidth = codeElement.scrollWidth;
+                if (codeElement.scrollLeft > 0 || element.scrollLeft === 0) {
+                    scrollLeft = Math.max(scrollLeft, codeElement.scrollLeft);
+                }
             }
-          }
+
+            
+            const tableElement = element.querySelector('table');
+            if (tableElement && tableElement.scrollWidth > scrollWidth) {
+                scrollWidth = tableElement.scrollWidth;
+                if (tableElement.scrollLeft > 0 || element.scrollLeft === 0) {
+                    scrollLeft = Math.max(scrollLeft, tableElement.scrollLeft);
+                }
+            }
         }
-      }
 
-      
-      const updateShadows = () => {
-        const scrollInfo = getScrollInfo(scrollingElement, checkChildren);
-        applyScrollClasses(targetElement, scrollInfo);
-      };
-
-      
-      updateShadows();
-
-      
-      scrollingElement.addEventListener('scroll', updateShadows, { passive: true });
-
-      
-      if (checkChildren) {
+        const maxScroll = scrollWidth - clientWidth;
         
-        const codeElement = scrollingElement.querySelector('code');
-        if (codeElement) {
-          codeElement.addEventListener('scroll', updateShadows, { passive: true });
+        const hasOverflow = scrollWidth > clientWidth + 2;
+
+        return {scrollLeft, scrollWidth, clientWidth, maxScroll, hasOverflow};
+    }
+
+    
+    function applyScrollClasses(element, scrollInfo) {
+        if (!scrollInfo.hasOverflow) {
+            element.classList.remove('has-scroll-shadow-left', 'has-scroll-shadow-right');
+            return;
         }
 
         
-        const tableElement = scrollingElement.querySelector('table');
-        if (tableElement) {
-          tableElement.addEventListener('scroll', updateShadows, { passive: true });
+        if (scrollInfo.scrollLeft > 5) {
+            element.classList.add('has-scroll-shadow-left');
+        } else {
+            element.classList.remove('has-scroll-shadow-left');
         }
-      }
+
+        
+        if (scrollInfo.scrollLeft < scrollInfo.maxScroll - 5) {
+            element.classList.add('has-scroll-shadow-right');
+        } else {
+            element.classList.remove('has-scroll-shadow-right');
+        }
+    }
+
+    
+    function updateScrollShadows(element) {
+        const scrollInfo = getScrollInfo(element);
+        applyScrollClasses(element, scrollInfo);
+    }
+
+    function initScrollShadows() {
+        
+        const selectors = [
+            '.post.adoc .literalblock pre',
+            '.post.adoc .listingblock > .content > pre',
+            '.post.adoc .openblock > .content > pre',  
+            '.post.md pre',  
+            '.table-wrapper',  
+        ];
+
+        const scrollables = document.querySelectorAll(selectors.join(', '));
+        scrollables.forEach(element => {
+            
+            let scrollingElement = element;
+            let targetElement = element;  
+
+            
+            let checkChildren = true;
+
+            if (element.classList.contains('table-wrapper')) {
+                
+                const admonitionBlock = element.querySelector(':scope > .admonitionblock');
+                if (admonitionBlock) {
+                    const computedStyle = window.getComputedStyle(admonitionBlock);
+                    if (computedStyle.overflowX === 'auto' || computedStyle.overflowX === 'scroll') {
+                        scrollingElement = admonitionBlock;  
+                        targetElement = element;  
+                        checkChildren = true;  
+                    }
+                } else {
+                    
+                    const table = element.querySelector(':scope > table');
+                    if (table) {
+                        const computedStyle = window.getComputedStyle(table);
+                        if (computedStyle.overflowX === 'auto' || computedStyle.overflowX === 'scroll') {
+                            scrollingElement = table;  
+                            targetElement = element;  
+                            checkChildren = false;  
+                        }
+                    }
+                }
+            }
+
+            
+            const updateShadows = () => {
+                const scrollInfo = getScrollInfo(scrollingElement, checkChildren);
+                applyScrollClasses(targetElement, scrollInfo);
+            };
+
+            
+            updateShadows();
+
+            
+            scrollingElement.addEventListener('scroll', updateShadows, {passive: true});
+
+            
+            if (checkChildren) {
+                
+                const codeElement = scrollingElement.querySelector('code');
+                if (codeElement) {
+                    codeElement.addEventListener('scroll', updateShadows, {passive: true});
+                }
+
+                
+                const tableElement = scrollingElement.querySelector('table');
+                if (tableElement) {
+                    tableElement.addEventListener('scroll', updateShadows, {passive: true});
+                }
+            }
+        });
+
+        
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                scrollables.forEach(element => updateScrollShadows(element));
+            }, 150);
+        }, {passive: true});
+    }
+
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollShadows);
+    } else {
+        initScrollShadows();
+    }
+
+    
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const selectors = [
+                '.post.adoc .literalblock pre',
+                '.post.adoc .listingblock > .content > pre',
+                '.post.adoc .openblock > .content > pre',  
+                '.post.md pre',
+                '.table-wrapper'
+            ];
+            const scrollables = document.querySelectorAll(selectors.join(', '));
+            scrollables.forEach(element => updateScrollShadows(element));
+        }, 500);
     });
 
     
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        scrollables.forEach(element => updateScrollShadows(element));
-      }, 150);
-    }, { passive: true });
-  }
+    window.debugScrollShadow = function (element) {
+        if (typeof element === 'string') {
+            element = document.querySelector(element);
+        }
+        if (!element) {
+            console.error('Element not found');
+            return;
+        }
+        updateScrollShadows(element);
+    };
 
-  
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initScrollShadows);
-  } else {
-    initScrollShadows();
-  }
-
-  
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      const selectors = [
-        '.post.adoc .literalblock pre',
-        '.post.adoc .listingblock > .content > pre',
-        '.post.adoc .openblock > .content > pre',  
-        '.post.md pre',
-        '.table-wrapper'
-      ];
-      const scrollables = document.querySelectorAll(selectors.join(', '));
-      scrollables.forEach(element => updateScrollShadows(element));
-    }, 500);
-  });
-
-  
-  window.debugScrollShadow = function(element) {
-    if (typeof element === 'string') {
-      element = document.querySelector(element);
-    }
-    if (!element) {
-      console.error('Element not found');
-      return;
-    }
-    updateScrollShadows(element);
-  };
-
-  
-  window.refreshScrollShadows = function() {
-    const selectors = [
-      '.post.adoc .literalblock pre',
-      '.post.adoc .listingblock > .content > pre',
-      '.post.adoc .openblock > .content > pre',
-      '.post.md pre',
-      '.table-wrapper'
-    ];
-    const scrollables = document.querySelectorAll(selectors.join(', '));
-    scrollables.forEach(element => {
-      
-      if (element.offsetParent === null) return;
-      updateScrollShadows(element);
-    });
-  };
+    
+    window.refreshScrollShadows = function () {
+        const selectors = [
+            '.post.adoc .literalblock pre',
+            '.post.adoc .listingblock > .content > pre',
+            '.post.adoc .openblock > .content > pre',
+            '.post.md pre',
+            '.table-wrapper'
+        ];
+        const scrollables = document.querySelectorAll(selectors.join(', '));
+        scrollables.forEach(element => {
+            
+            if (element.offsetParent === null) return;
+            updateScrollShadows(element);
+        });
+    };
 })();
 </script>
 <script type="text/javascript">
+    
+    function children(element, selector) {
+        if (!selector) return Array.from(element.children);
+        return Array.from(element.children).filter(child => child.matches(selector));
+    }
 
-function children(element, selector) {
-	if (!selector) return Array.from(element.children);
-	return Array.from(element.children).filter(child => child.matches(selector));
-}
+    function siblings(element, selector) {
+        const sibs = Array.from(element.parentElement.children).filter(child => child !== element);
+        return selector ? sibs.filter(sib => sib.matches(selector)) : sibs;
+    }
 
-function siblings(element, selector) {
-	const sibs = Array.from(element.parentElement.children).filter(child => child !== element);
-	return selector ? sibs.filter(sib => sib.matches(selector)) : sibs;
-}
+    function getOffset(element) {
+        const rect = element.getBoundingClientRect();
+        return {
+            top: rect.top + window.scrollY,
+            left: rect.left + window.scrollX
+        };
+    }
 
-function getOffset(element) {
-	const rect = element.getBoundingClientRect();
-	return {
-		top: rect.top + window.scrollY,
-		left: rect.left + window.scrollX
-	};
-}
+    function addBlockSwitches() {
+        document.querySelectorAll('.primary').forEach(primary => {
+            const switchItem = createSwitchItem(primary, createBlockSwitch(primary));
+            switchItem.item.classList.add("selected");
+            const title = children(primary, '.title')[0];
+            if (title) title.remove();
+        });
 
-function addBlockSwitches() {
-	document.querySelectorAll('.primary').forEach(primary => {
-		const switchItem = createSwitchItem(primary, createBlockSwitch(primary));
-		switchItem.item.classList.add("selected");
-		const title = children(primary, '.title')[0];
-		if (title) title.remove();
-	});
+        document.querySelectorAll('.secondary').forEach(secondary => {
+            const primary = findPrimary(secondary);
+            const switchElement = children(primary, '.switch')[0];
+            const switchItem = createSwitchItem(secondary, switchElement);
+            switchItem.content.classList.add('hidden');
+            findPrimary(secondary).appendChild(switchItem.content);
+            secondary.remove();
+        });
+    }
 
-	document.querySelectorAll('.secondary').forEach(secondary => {
-		const primary = findPrimary(secondary);
-		const switchElement = children(primary, '.switch')[0];
-		const switchItem = createSwitchItem(secondary, switchElement);
-		switchItem.content.classList.add('hidden');
-		findPrimary(secondary).appendChild(switchItem.content);
-		secondary.remove();
-	});
-}
+    function createBlockSwitch(primary) {
+        const blockSwitch = document.createElement('div');
+        blockSwitch.className = 'switch';
+        primary.prepend(blockSwitch);
+        return blockSwitch;
+    }
 
-function createBlockSwitch(primary) {
-	const blockSwitch = document.createElement('div');
-	blockSwitch.className = 'switch';
-	primary.prepend(blockSwitch);
-	return blockSwitch;
-}
+    function findPrimary(secondary) {
+        let candidate = secondary.previousElementSibling;
+        while (candidate && !candidate.matches('.primary')) {
+            candidate = candidate.previousElementSibling;
+        }
+        return candidate;
+    }
 
-function findPrimary(secondary) {
-	let candidate = secondary.previousElementSibling;
-	while (candidate && !candidate.matches('.primary')) {
-		candidate = candidate.previousElementSibling;
-	}
-	return candidate;
-}
+    function createSwitchItem(block, blockSwitch) {
+        const titleElement = children(block, '.title')[0];
+        const blockName = titleElement ? titleElement.textContent : '';
+        const contentElement = children(block, '.content')[0];
+        const colist = block.nextElementSibling?.matches('.colist') ? block.nextElementSibling : null;
+        if (contentElement && colist) {
+            contentElement.appendChild(colist);
+        }
+        const item = document.createElement('div');
+        item.className = 'switch--item';
+        item.textContent = blockName;
+        blockSwitch.appendChild(item);
+        return {'item': item, 'content': contentElement};
+    }
 
-function createSwitchItem(block, blockSwitch) {
-	const titleElement = children(block, '.title')[0];
-	const blockName = titleElement ? titleElement.textContent : '';
-	const contentElement = children(block, '.content')[0];
-	const colist = block.nextElementSibling?.matches('.colist') ? block.nextElementSibling : null;
-	if (contentElement && colist) {
-		contentElement.appendChild(colist);
-	}
-	const item = document.createElement('div');
-	item.className = 'switch--item';
-	item.textContent = blockName;
-	blockSwitch.appendChild(item);
-	return {'item': item, 'content': contentElement};
-}
+    function globalSwitch() {
+        document.querySelectorAll('.switch--item').forEach(item => {
+            const blockId = blockIdForSwitchItem(item);
 
-function globalSwitch() {
-	document.querySelectorAll('.switch--item').forEach(item => {
-		const blockId = blockIdForSwitchItem(item);
+            
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
 
-		
-		const newItem = item.cloneNode(true);
-		item.parentNode.replaceChild(newItem, item);
+            newItem.addEventListener('click', function () {
+                const selectedText = this.textContent;
+                window.localStorage.setItem(blockId, selectedText);
 
-		newItem.addEventListener('click', function() {
-			const selectedText = this.textContent;
-			window.localStorage.setItem(blockId, selectedText);
+                
+                const clickedSwitch = this.closest('.primary');
 
-			
-			const clickedSwitch = this.closest('.openblock.primary');
+                
+                const scrollTopBefore = window.scrollY;
+                const offsetTopBefore = getOffset(clickedSwitch).top;
 
-			
-			const scrollTopBefore = window.scrollY;
-			const offsetTopBefore = getOffset(clickedSwitch).top;
+                Array.from(document.querySelectorAll(".switch--item"))
+                    .filter(el => blockIdForSwitchItem(el) === blockId)
+                    .filter(el => el.textContent === selectedText)
+                    .forEach(el => select(el));
 
-			Array.from(document.querySelectorAll(".switch--item"))
-				.filter(el => blockIdForSwitchItem(el) === blockId)
-				.filter(el => el.textContent === selectedText)
-				.forEach(el => select(el));
+                
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        
+                        const offsetTopAfter = getOffset(clickedSwitch).top;
 
-			
-			requestAnimationFrame(function() {
-				requestAnimationFrame(function() {
-					
-					const offsetTopAfter = getOffset(clickedSwitch).top;
+                        
+                        const scrollAdjustment = offsetTopAfter - offsetTopBefore;
 
-					
-					const scrollAdjustment = offsetTopAfter - offsetTopBefore;
+                        if (Math.abs(scrollAdjustment) > 1) {
+                            window.scrollTo({
+                                top: scrollTopBefore + scrollAdjustment,
+                                behavior: 'instant'
+                            });
+                        }
 
-					if (Math.abs(scrollAdjustment) > 1) {
-						window.scrollTo({
-							top: scrollTopBefore + scrollAdjustment,
-							behavior: 'instant'
-						});
-					}
+                        
+                        setTimeout(function () {
+                            if (typeof window.refreshScrollShadows === 'function') {
+                                window.refreshScrollShadows();
+                            }
+                        }, 0);
+                    });
+                });
+            });
 
-					
-					setTimeout(function() {
-						if (typeof window.refreshScrollShadows === 'function') {
-							window.refreshScrollShadows();
-						}
-					}, 0);
-				});
-			});
-		});
+            if (newItem.textContent === window.localStorage.getItem(blockId)) {
+                select(newItem);
+            }
+        });
+    }
 
-		if (newItem.textContent === window.localStorage.getItem(blockId)) {
-			select(newItem);
-		}
-	});
-}
+    function blockIdForSwitchItem(item) {
+        const idComponents = [];
+        idComponents.push(item.textContent.toLowerCase());
+        siblings(item, ".switch--item").forEach(sibling => {
+            idComponents.push(sibling.textContent.toLowerCase());
+        });
+        return idComponents.sort().join("-");
+    }
 
-function blockIdForSwitchItem(item) {
-	const idComponents = [];
-	idComponents.push(item.textContent.toLowerCase());
-	siblings(item, ".switch--item").forEach(sibling => {
-		idComponents.push(sibling.textContent.toLowerCase());
-	});
-	return idComponents.sort().join("-");
-}
+    function select(selected) {
+        selected.classList.add('selected');
+        siblings(selected).forEach(sib => sib.classList.remove('selected'));
 
-function select(selected) {
-	selected.classList.add('selected');
-	siblings(selected).forEach(sib => sib.classList.remove('selected'));
+        const parent = selected.parentElement;
+        const selectedIndex = Array.from(parent.children).indexOf(selected);
+        const contentElements = siblings(parent, ".content");
 
-	const parent = selected.parentElement;
-	const selectedIndex = Array.from(parent.children).indexOf(selected);
-	const contentElements = siblings(parent, ".content");
+        if (contentElements[selectedIndex]) {
+            contentElements[selectedIndex].classList.remove('hidden');
+            contentElements.forEach((content, idx) => {
+                if (idx !== selectedIndex) {
+                    content.classList.add('hidden');
+                }
+            });
+        }
+    }
 
-	if (contentElements[selectedIndex]) {
-		contentElements[selectedIndex].classList.remove('hidden');
-		contentElements.forEach((content, idx) => {
-			if (idx !== selectedIndex) {
-				content.classList.add('hidden');
-			}
-		});
-	}
-}
-
-
-if (document.readyState === 'loading') {
-	document.addEventListener('DOMContentLoaded', function() {
-		addBlockSwitches();
-		globalSwitch();
-	});
-} else {
-	addBlockSwitches();
-	globalSwitch();
-}
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            addBlockSwitches();
+            globalSwitch();
+        });
+    } else {
+        addBlockSwitches();
+        globalSwitch();
+    }
 </script>
 
 <script type="text/javascript">
-  
-  
-  window.addEventListener("load", () => {
+
+
+window.addEventListener("load", () => {
     if (!'IntersectionObserver' in window) {
-      return;
+        return;
     }
 
     
@@ -3091,47 +3275,45 @@ if (document.readyState === 'loading') {
     
     
     const scrollHandler = entries =>
-            entries.forEach(entry => {
-              const section = entry.target;
-              const sectionId = section.id;
-              const sectionLink = document.querySelector(`a[href="#${sectionId}"]`);
+        entries.forEach(entry => {
+            const section = entry.target;
+            const sectionId = section.id;
+            const sectionLink = document.querySelector(`a[href="#${sectionId}"]`);
 
-              console.log(sectionId, sectionLink);
-              console.log(entry)
-              console.log(entry.intersectionRect.height / entry.rootBounds.height)
+            console.log(sectionId, sectionLink);
+            console.log(entry)
+            console.log(entry.intersectionRect.height / entry.rootBounds.height)
 
-              if (entry.intersectionRatio > 0) {
+            if (entry.intersectionRatio > 0) {
                 section.classList.add(visibleSectionClass);
                 sectionLink.classList.add(visibleSectionClass);
-              } else {
+            } else {
                 section.classList.remove(visibleSectionClass);
                 sectionLink.classList.remove(visibleSectionClass);
-              }
-            });
+            }
+        });
 
     
     const observer = new IntersectionObserver(scrollHandler);
     sections.map(section => {
-      if (section.tagName === "SECTION") {
-        return section;
-      } else {
-        
-        
-        
-        
-        
-        
-        
-        
-        let actualSectionContainer = section.parentElement;
-        actualSectionContainer.id = section.id;
-        return actualSectionContainer;
-      }
+        if (section.tagName === "SECTION") {
+            return section;
+        } else {
+            
+            
+            
+            
+            
+            
+            
+            
+            let actualSectionContainer = section.parentElement;
+            actualSectionContainer.id = section.id;
+            return actualSectionContainer;
+        }
     }).forEach(section => observer.observe(section));
-  });
-
+});
 </script>
-
 
 
 
