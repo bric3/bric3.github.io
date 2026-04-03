@@ -38,6 +38,10 @@ there and cannot be worked around by bumping a dependency.
 
 The reasons below may appeal to you or not depending on one's use case. The order is mine. Your opinion is most welcome.
 
+////
+{{< bluesky link="https://bsky.app/profile/julien.ponge.org/post/3mhzsa5ihrc27" >}}
+////
+
 Before going further, I want to make clear that I congratulate the JDK team for delivering this client and improving
 it over the years, but after looking over the API and the issues, I don't believe anymore it's the best option for most
 use cases.
@@ -55,6 +59,11 @@ the JDK pre-existed JDK 11's `java.net.http.HttpClient`, and this old one is sti
 
 ** https://bugs.openjdk.org/browse/JDK-8275838[JDK-8275838 java.net.http client does not work over unix domain sockets]
 ** https://bugs.openjdk.org/browse/JDK-8371218[JDK-8371218 Add Unix Domain Socket Support to jdk.httpserver]
+** *Update 2026-04-03*: Since this article appeared, a new https://openjdk.org/jeps/8377806[*draft* JEP 8377806]
+has been submitted to add UDS support in the client. While the JEP is still a draft, it has already substantial
+limitations: UDS special URL schemes are not supported, while the suggested API appear to accept a `SocketAddress`,
+the only effective supported implementation will be `UnixDomainSocketAddress`, preventing anyone to actually provide
+customization.
 
 . `close`, `shutdown`, … methods were introduced in JDK 21
 
